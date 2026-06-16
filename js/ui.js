@@ -278,6 +278,29 @@ function renderPanelContent(n) {
   }
 }
 
+function isAncestorOf(potentialAncId, nodeId) {
+  let cur = nodeId;
+  for (let i = 0; i < 30; i++) {
+    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    if (!pe) break;
+    if (pe.from === potentialAncId) return true;
+    cur = pe.from;
+  }
+  return false;
+}
+
+function showPanel() {
+  if (_tabs.length === 0) return;
+  _detailPanelCollapsed = false;
+  detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
+  statusEl.classList.add('panel-open');
+  const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
+  if (toggleBtn) { toggleBtn.classList.add('visible'); toggleBtn.classList.remove('collapsed'); toggleBtn.innerHTML = PANEL_SVG_RIGHT; }
+  const activeTab = _tabs.find(t => t.nodeId === _activeTabId) || _tabs[_tabs.length - 1];
+  if (activeTab) renderPanelContent(activeTab.node);
+  renderTabs();
+}
+
 function openPanel(n) {
   const existing = _tabs.find(t => t.nodeId === n.id);
   if (existing) { switchTab(n.id); }
@@ -287,7 +310,10 @@ function openPanel(n) {
   statusEl.classList.add('panel-open');
   const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
   if (toggleBtn) { toggleBtn.classList.add('visible'); toggleBtn.classList.remove('collapsed'); toggleBtn.innerHTML = PANEL_SVG_RIGHT; }
-  if (_focusMode) applyFocusMode(n.id, _focusNodeId !== null && !n.dimmed);
+  if (_focusMode) {
+    const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
+    applyFocusMode(n.id, shallow);
+  }
   if (n.level === 0) highlightSidebarPage(n.sourcePageId || null);
 }
 
@@ -567,9 +593,10 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') {
     if (document.getElementById('settings-modal').classList.contains('open')) { closeSettings(); return; }
-    if (detailPanel.classList.contains('open')) { hidePanel(); }
+    if (detailPanel.classList.contains('open')) { hidePanel(); return; }
     const sidebar = document.getElementById('sidebar');
-    if (sidebar && !sidebar.classList.contains('collapsed')) { toggleSidebar(); }
+    if (sidebar && !sidebar.classList.contains('collapsed')) { toggleSidebar(); return; }
+    if (sidebar && sidebar.classList.contains('collapsed')) { toggleSidebar(); if (_tabs.length > 0) showPanel(); return; }
     return;
   }
   const tag = document.activeElement?.tagName;
