@@ -524,7 +524,8 @@ function exportGraph() {
       ctx2.setLineDash(bothMatch ? [] : [4,5]);
       ctx2.strokeStyle = rgbStr(edgeRgb, bothMatch ? 0.9 : 0.3);
       ctx2.lineWidth = (bothMatch ? 1.0 : 0.5) * CONFIG.linkWidth;
-    } else if (e.manualLink) { ctx2.setLineDash([4,5]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.6); ctx2.lineWidth = 0.8 * CONFIG.linkWidth; }
+    } else if (e.referenceLink) { ctx2.setLineDash([8,4]); ctx2.strokeStyle = 'rgba(255,159,67,0.5)'; ctx2.lineWidth = 1.0 * CONFIG.linkWidth; }
+    else if (e.manualLink) { ctx2.setLineDash([4,5]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.6); ctx2.lineWidth = 0.8 * CONFIG.linkWidth; }
     else if (e.weakLink) { ctx2.setLineDash([4,4]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.2); ctx2.lineWidth = 0.6 * CONFIG.linkWidth; }
     else { ctx2.setLineDash([]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.55); ctx2.lineWidth = 0.7 * CONFIG.linkWidth; }
     ctx2.beginPath(); ctx2.moveTo(a.x, a.y); ctx2.lineTo(b.x, b.y); ctx2.stroke();

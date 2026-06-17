@@ -183,6 +183,11 @@ function draw() {
       if(_focusMode && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+    } else if(e.referenceLink) {
+      if(hasSearch) return;
+      if(_focusMode && na.dimmed && nb.dimmed) return;
+      ctx.strokeStyle = `rgba(255,159,67,${isHov ? 0.75 : 0.45})`;
+      ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([8, 4]);
     } else if(e.weakLink) {
       ctx.strokeStyle = `rgba(255,159,67,${isHov?0.6:0.25})`;
       ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
@@ -482,6 +487,41 @@ function mergeGraph(title, markdown, pageId) {
   if (firstRoot && newRootNewId && firstRoot.id !== newRootNewId) {
     edges.push({ from: firstRoot.id, to: newRootNewId, weakLink: true });
   }
+  resolveReferenceLinks();
   const newNodeIds = new Set(Object.values(idMap));
   return revealByLevel(newNodeIds, restoreFixedPositions);
+}
+
+function findPageRootNode(n) {
+  if (n.level === 0) return n;
+  let cur = n;
+  for (let i = 0; i < 20; i++) {
+    const pe = edges.find(e => e.to === cur.id && !e.weakLink && !e.manualLink && !e.referenceLink);
+    if (!pe) break;
+    const parent = nodeMap[pe.from];
+    if (!parent) break;
+    if (parent.level === 0) return parent;
+    cur = parent;
+  }
+  return null;
+}
+
+function resolveReferenceLinks() {
+  edges = edges.filter(e => !e.referenceLink);
+  const re = /\[\[([a-f0-9]{32})\]\]/g;
+  nodes.forEach(n => {
+    if (!n.desc) return;
+    const sourceRoot = findPageRootNode(n);
+    if (!sourceRoot) return;
+    re.lastIndex = 0;
+    let match;
+    while ((match = re.exec(n.desc)) !== null) {
+      const targetPageId = match[1];
+      const targetNode = nodes.find(t => t.level === 0 && t.sourcePageId && t.sourcePageId.replace(/-/g, '') === targetPageId);
+      if (!targetNode || targetNode.id === sourceRoot.id) continue;
+      const exists = edges.some(e => e.referenceLink &&
+        ((e.from === sourceRoot.id && e.to === targetNode.id) || (e.from === targetNode.id && e.to === sourceRoot.id)));
+      if (!exists) edges.push({ from: sourceRoot.id, to: targetNode.id, referenceLink: true });
+    }
+  });
 }
