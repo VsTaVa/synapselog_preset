@@ -1,5 +1,5 @@
 // ── 공유 전역 상태 (ui.js에서 canvas/ctx/W/H 초기화) ────────────────
-let canvas, ctx, W, H;
+let canvas, ctx, W, H, DPR = 1;
 let scale = 0.85, panX = 0, panY = 0;
 let nodes = [], edges = [], nodeMap = {};
 let drag = null, hoveredNode = null;
@@ -159,6 +159,7 @@ function simulate() {
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
 function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#0c0d12'; ctx.fillRect(0,0,W,H);
   ctx.save();

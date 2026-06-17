@@ -29,8 +29,10 @@ function snRemove(key, scope) {
 
 canvas = document.getElementById('c');
 ctx = canvas.getContext('2d');
+DPR = window.devicePixelRatio || 1;
 W = window.innerWidth; H = window.innerHeight;
-canvas.width = W; canvas.height = H;
+canvas.width = W * DPR; canvas.height = H * DPR;
+canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
 const tooltip = document.getElementById('tooltip');
 const statusEl = document.getElementById('status');
@@ -505,9 +507,79 @@ canvas.addEventListener('wheel', e => {
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
 }, { passive: false });
 
+// ── 터치 지원 (모바일 팬/탭 + 핀치 줌) ─────────────────────────────────
+
+let _touchMode = null, _touchMoved = false, _touchStartX = 0, _touchStartY = 0;
+let _pinchStartDist = 0, _pinchStartScale = 1;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    mouseDownTime = Date.now();
+    const n = getNodeAt(t.clientX, t.clientY);
+    mouseDownNode = n;
+    _touchStartX = t.clientX; _touchStartY = t.clientY; _touchMoved = false;
+    _touchMode = 'single';
+    if (n) { drag = n; isStable = false; }
+    else { isPanning = true; panStartX = t.clientX; panStartY = t.clientY; panStartOffsetX = panX; panStartOffsetY = panY; }
+  } else if (e.touches.length === 2) {
+    drag = null; isPanning = false; _touchMode = 'pinch';
+    const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
+    _pinchStartDist = Math.sqrt(dx*dx + dy*dy); _pinchStartScale = scale;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (_touchMode === 'pinch' && e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
+    const pinchDist = Math.sqrt(dx*dx + dy*dy);
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2, midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    const wx = (midX - W / 2 - panX) / scale, wy = (midY - H / 2 - panY) / scale;
+    scale = Math.max(0.15, Math.min(4, _pinchStartScale * (pinchDist / _pinchStartDist)));
+    panX = midX - W / 2 - wx * scale; panY = midY - H / 2 - wy * scale;
+    statusEl.textContent = `확대: ${Math.round(scale * 100)}%`;
+    clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
+  } else if (_touchMode === 'single' && e.touches.length === 1) {
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - _touchStartX) > 4 || Math.abs(t.clientY - _touchStartY) > 4) _touchMoved = true;
+    if (drag) {
+      const w = screenToWorld(t.clientX, t.clientY); drag.x = w.x; drag.y = w.y;
+      nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
+    } else if (isPanning) {
+      panX = panStartOffsetX + (t.clientX - panStartX); panY = panStartOffsetY + (t.clientY - panStartY);
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  if (_touchMode === 'single' && !_touchMoved) {
+    const elapsed = Date.now() - mouseDownTime;
+    const n = mouseDownNode;
+    if (elapsed < 300 && n && n.level > 0) {
+      if (_connectMode) { handleConnectClick(n); }
+      else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
+    } else if (elapsed < 300 && n && n.level === 0) {
+      highlightSidebarPage(n.sourcePageId || null);
+    } else if (elapsed < 300 && !n) {
+      if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+      if (_connectMode && _connectFirstNode) {
+        _connectFirstNode.connectSelected = false; _connectFirstNode = null;
+        if (statusEl) statusEl.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
+        isStable = false;
+      }
+    }
+  }
+  if (drag && drag.fixed) saveFixedPositions();
+  drag = null; isPanning = false; mouseDownNode = null; _touchMode = null;
+}, { passive: true });
+
 window.addEventListener('resize', () => {
+  DPR = window.devicePixelRatio || 1;
   W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W; canvas.height = H;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   const root = nodes.find(n => n.level === 0);
   if (root) { root.x = W / 2; root.y = H / 2; }
   isStable = false;
