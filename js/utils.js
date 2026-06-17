@@ -12,7 +12,8 @@ function getBaseHue(label) {
 }
 
 function nodeR(level) {
-  return [10, 8, 6.5, 5.5, 4.5, 3.5][Math.min(level, 5)];
+  const base = [10, 8, 6.5, 5.5, 4.5, 3.5][Math.min(level, 5)];
+  return base * (typeof CONFIG !== 'undefined' ? CONFIG.nodeSize : 1);
 }
 
 function drawStar8(ctx, cx, cy, r) {

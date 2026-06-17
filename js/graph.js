@@ -5,7 +5,7 @@ let nodes = [], edges = [], nodeMap = {};
 let drag = null, hoveredNode = null;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panStartOffsetY = 0;
 let isStable = false;
-let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60 };
+let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.0 };
 let searchKeyword = '', searchMatches = new Set();
 let _showLabels = true;
 let _focusMode = false, _focusNodeId = null;
@@ -182,17 +182,17 @@ function draw() {
       if(hasSearch) return;
       if(_focusMode && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
-      ctx.lineWidth = (isHov ? 1.8 : 1.2) / scale; ctx.setLineDash([5, 6]);
+      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
       ctx.strokeStyle = `rgba(255,159,67,${isHov?0.6:0.25})`;
-      ctx.lineWidth = 1/scale; ctx.setLineDash([6,6]);
+      ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
     } else if(hasSearch) {
       if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.9); ctx.lineWidth=1.6/scale; ctx.setLineDash([5,3]); }
       else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.35); ctx.lineWidth=0.8/scale; ctx.setLineDash([4,5]); }
       else { ctx.strokeStyle=rgbStr(na._rgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
     } else {
       const alpha=isHov?0.85:0.55, width=isHov?2.2:0.8;
-      ctx.strokeStyle=rgbStr(na._rgb,alpha); ctx.lineWidth=width/scale; ctx.setLineDash([]);
+      ctx.strokeStyle=rgbStr(na._rgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
@@ -212,7 +212,7 @@ function draw() {
     }
     const existingEdgeSet = new Set(edges.filter(e => !e.weakLink).map(e => [e.from,e.to].sort().join('|')));
     const drawnPairs = new Set();
-    ctx.setLineDash([4,6]); ctx.lineWidth = 1.2/scale;
+    ctx.setLineDash([4,6]); ctx.lineWidth = 1.2*CONFIG.linkWidth/scale;
     matchArr.forEach(n => {
       const path = getPath(n);
       for(let i=0; i<path.length-1; i++) {
