@@ -34,7 +34,7 @@ function startWithMd(event) {
       const list = document.getElementById('added-pages-list');
       const item = document.createElement('div');
       item.className = 'added-page-item'; item.dataset.pageId = pageId;
-      item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(255,159,67,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
+      item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
       list.appendChild(item);
       updateBulkActionsVisibility(); savePageList();
     }, 100);
@@ -62,13 +62,13 @@ async function showPagePicker() {
     <div class="login-title">Synapse<span>Log</span></div>
     <div class="login-sub" style="margin-bottom:14px;">불러올 페이지를 선택하세요</div>
     <div style="position:relative; margin-bottom:10px;">
-      <input type="text" id="page-search-input" placeholder="페이지 검색..." style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:#fff; outline:none; transition:border-color 0.2s;" oninput="filterPageList(this.value)" onfocus="this.style.borderColor='rgba(255,159,67,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
+      <input type="text" id="page-search-input" placeholder="페이지 검색..." style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:#fff; outline:none; transition:border-color 0.2s;" oninput="filterPageList(this.value)" onfocus="this.style.borderColor='rgba(237,112,0,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
     </div>
     <div id="page-list" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:12px;">
       <div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:20px 0;">불러오는 중...</div>
     </div>
     <div style="display:flex; gap:8px;">
-      <button onclick="startWithSelected()" style="flex:1; background:rgba(255,159,67,0.15); border:1px solid rgba(255,159,67,0.4); border-radius:8px; padding:11px; color:#ff9f43; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,159,67,0.25)'" onmouseout="this.style.background='rgba(255,159,67,0.15)'">선택한 페이지 불러오기</button>
+      <button onclick="startWithSelected()" style="flex:1; background:rgba(237,112,0,0.15); border:1px solid rgba(237,112,0,0.4); border-radius:8px; padding:11px; color:#ed7000; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(237,112,0,0.25)'" onmouseout="this.style.background='rgba(237,112,0,0.15)'">선택한 페이지 불러오기</button>
       <button onclick="skipToGraph()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:11px 14px; color:rgba(255,255,255,0.5); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">건너뛰기</button>
     </div>
     <div id="page-pick-error" style="font-size:12px; color:#ff6b6b; text-align:center; margin-top:8px; display:none;"></div>
@@ -106,9 +106,9 @@ function togglePageSelect(pageId, el) {
     el.querySelector('.pick-check').innerHTML = '';
   } else {
     window._selectedPageIds.add(pageId);
-    el.style.background = 'rgba(255,159,67,0.1)'; el.style.borderColor = 'rgba(255,159,67,0.35)';
-    el.querySelector('.pick-check').style.background = '#ff9f43';
-    el.querySelector('.pick-check').style.borderColor = '#ff9f43';
+    el.style.background = 'rgba(237,112,0,0.1)'; el.style.borderColor = 'rgba(237,112,0,0.35)';
+    el.querySelector('.pick-check').style.background = '#ed7000';
+    el.querySelector('.pick-check').style.borderColor = '#ed7000';
     el.querySelector('.pick-check').innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 }
@@ -242,7 +242,7 @@ async function addPage() {
     const item = document.createElement('div');
     item.className = 'added-page-item'; item.dataset.pageId = pageId;
     const isCached = !!cached && !JSON.parse(cached)._headingsOnly;
-    item.innerHTML = `<span>📄 ${escapeHtml(data.title || pageId)}${isCached ? ' <span style="color:rgba(255,159,67,0.5);font-size:9px;">캐시</span>' : ''}</span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
+    item.innerHTML = `<span>📄 ${escapeHtml(data.title || pageId)}${isCached ? ' <span style="color:rgba(237,112,0,0.5);font-size:9px;">캐시</span>' : ''}</span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
     list.appendChild(item);
     updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
     _loadEntriesBackground(pageId);
@@ -284,7 +284,7 @@ async function restorePageList() {
     const listEl = document.getElementById('added-pages-list');
     const item = document.createElement('div');
     item.className = 'added-page-item'; item.dataset.pageId = pageId;
-    item.innerHTML = `<span>📄 ${escapeHtml(data.title || title)} <span style="color:rgba(255,159,67,0.5);font-size:9px;">캐시</span></span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
+    item.innerHTML = `<span>📄 ${escapeHtml(data.title || title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">캐시</span></span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
     listEl.appendChild(item);
     _loadEntriesBackground(pageId);
   }
@@ -454,7 +454,7 @@ async function _loadEntriesBackground(pageId) {
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const labelEl = item?.querySelector('.item-label') || item?.querySelector('span');
   if (labelEl && !labelEl.querySelector('.entry-load-tag')) {
-    labelEl.insertAdjacentHTML('beforeend', ` <span class="entry-load-tag" style="color:rgba(255,159,67,0.45);font-size:9px;">로딩 0/${total}</span>`);
+    labelEl.insertAdjacentHTML('beforeend', ` <span class="entry-load-tag" style="color:rgba(237,112,0,0.45);font-size:9px;">로딩 0/${total}</span>`);
   }
 
   for (const node of entryNodes) {
@@ -485,7 +485,7 @@ function importMarkdownFile(event) {
     const list = document.getElementById('added-pages-list');
     const item = document.createElement('div');
     item.className = 'added-page-item'; item.dataset.pageId = pageId;
-    item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(255,159,67,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
+    item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
     list.appendChild(item);
     updateBulkActionsVisibility(); savePageList();
   };

@@ -302,7 +302,7 @@ function renderPanelContent(n) {
   if (!notionLinkEl) {
     notionLinkEl = document.createElement('a');
     notionLinkEl.id = 'detail-notion-link'; notionLinkEl.target = '_blank';
-    notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#ff9f43;text-decoration:none;margin-left:8px;opacity:0.8;';
+    notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#ed7000;text-decoration:none;margin-left:8px;opacity:0.8;';
     notionLinkEl.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Notion에서 보기`;
     if (detailTitle) detailTitle.parentElement.appendChild(notionLinkEl);
   }
@@ -313,7 +313,7 @@ function renderPanelContent(n) {
   let rawDesc = (n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    rawDesc = rawDesc.replace(re, '<mark style="background:rgba(255,159,67,0.35);color:#ff9f43;border-radius:3px;padding:0 2px;">$1</mark>');
+    rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (detailContent) {
     detailContent.innerHTML = mdTableToHtml(rawDesc);

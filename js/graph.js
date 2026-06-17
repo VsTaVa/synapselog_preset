@@ -185,7 +185,7 @@ function draw() {
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
-      ctx.strokeStyle = `rgba(255,159,67,${isHov?0.6:0.25})`;
+      ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`;
       ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
     } else if(hasSearch) {
       if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.9); ctx.lineWidth=1.6/scale; ctx.setLineDash([5,3]); }
@@ -223,7 +223,7 @@ function draw() {
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)||existingEdgeSet.has(key)) continue;
         drawnPairs.add(key);
-        ctx.strokeStyle=rgbStr(hexToRgb(b.color||a.color||'#ff9f43'),0.75);
+        ctx.strokeStyle=rgbStr(hexToRgb(b.color||a.color||'#ed7000'),0.75);
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       }
     });
@@ -238,7 +238,7 @@ function draw() {
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)) continue;
         drawnPairs.add(key);
-        ctx.strokeStyle=rgbStr(hexToRgb(a.color||'#ff9f43'),0.9);
+        ctx.strokeStyle=rgbStr(hexToRgb(a.color||'#ed7000'),0.9);
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       }
     }

@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff9f43">
+<meta name="theme-color" content="#ed7000">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -64,7 +64,7 @@
         <input type="text" id="add-page-id" placeholder="노션 링크 붙여넣기 or .MD파일 불러오기" data-i18n-ph="ph-add" style="padding-right:52px; flex:1;" />
         <div style="position:absolute; right:8px; display:flex; align-items:center; gap:7px;">
           <span style="color:rgba(255,255,255,0.25); display:flex; pointer-events:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-          <label for="md-import-file" title=".md 파일 임포트" style="cursor:pointer; color:#ff9f43; display:flex; align-items:center; margin:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></label>
+          <label for="md-import-file" title=".md 파일 임포트" style="cursor:pointer; color:#ed7000; display:flex; align-items:center; margin:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></label>
           <input type="file" id="md-import-file" accept=".md,.txt" style="display:none;" onchange="importMarkdownFile(event)">
         </div>
       </div>
@@ -75,7 +75,7 @@
     </div>
     <div id="search-panel" class="panel-box">
       <div class="panel-title" data-i18n="kw-search">키워드 검색</div>
-      <div id="search-bar"><input type="text" id="search-input" placeholder="키워드 검색" data-i18n-ph="ph-search" /><button id="clear-btn">✕</button><button id="search-btn" aria-label="검색"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="6.5" r="4.5" stroke="#ff9f43" stroke-width="1.6"/><line x1="10" y1="10" x2="14" y2="14" stroke="#ff9f43" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+      <div id="search-bar"><input type="text" id="search-input" placeholder="키워드 검색" data-i18n-ph="ph-search" /><button id="clear-btn">✕</button><button id="search-btn" aria-label="검색"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="6.5" r="4.5" stroke="#ed7000" stroke-width="1.6"/><line x1="10" y1="10" x2="14" y2="14" stroke="#ed7000" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
       <div id="search-result-count"></div>
       <div id="search-history"></div>
     </div>
@@ -89,7 +89,7 @@
       <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:rgba(255,255,255,0.75);" data-i18n="lbl-focus">포커스 모드</span><label class="toggle-switch"><input type="checkbox" id="focus-toggle-input" onchange="toggleFocusMode()"><span class="toggle-track"><svg width="26" height="26" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="13" r="12" class="r-off-outer"/><circle cx="13" cy="13" r="4" class="r-off-mid1"/><circle cx="13" cy="13" r="5" class="r-off-mid2"/><circle cx="13" cy="13" r="12" class="r-on-outer"/><circle cx="13" cy="13" r="7" class="r-on-center"/></svg></span></label></div>
       <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:rgba(255,255,255,0.75);" data-i18n="lbl-connect">연결 모드</span><label class="toggle-switch"><input type="checkbox" id="connect-toggle-input" onchange="toggleConnectMode()"><span class="toggle-track"><svg width="26" height="26" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="13" r="12" class="r-off-outer"/><circle cx="13" cy="13" r="4" class="r-off-mid1"/><circle cx="13" cy="13" r="5" class="r-off-mid2"/><circle cx="13" cy="13" r="12" class="r-on-outer"/><circle cx="13" cy="13" r="7" class="r-on-center"/></svg></span></label></div>
       <button onclick="fitGraph()" style="width:100%; margin-top:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7); border-radius:7px; padding:8px 12px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s; display:flex; align-items:center; justify-content:space-between;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'"><span data-i18n="lbl-fit">화면 맞춤(Fit to View)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
-      <button onclick="exportGraph()" style="width:100%; margin-top:6px; background:rgba(255,159,67,0.12); border:1px solid rgba(255,159,67,0.4); color:#ff9f43; border-radius:7px; padding:8px 12px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s; display:flex; align-items:center; justify-content:space-between;" onmouseover="this.style.background='rgba(255,159,67,0.22)'" onmouseout="this.style.background='rgba(255,159,67,0.12)'"><span data-i18n="lbl-export">이미지 내보내기(Export PNG)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      <button onclick="exportGraph()" style="width:100%; margin-top:6px; background:rgba(237,112,0,0.12); border:1px solid rgba(237,112,0,0.4); color:#ed7000; border-radius:7px; padding:8px 12px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s; display:flex; align-items:center; justify-content:space-between;" onmouseover="this.style.background='rgba(237,112,0,0.22)'" onmouseout="this.style.background='rgba(237,112,0,0.12)'"><span data-i18n="lbl-export">이미지 내보내기(Export PNG)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     </div>
   </div>
   <div id="sidebar-profile" onclick="openSettings()">
@@ -134,7 +134,7 @@
         <input type="password" id="settings-token-input" placeholder="새 토큰 입력..." data-i18n-ph="sc-placeholder-token" />
         <button onclick="updateToken()" data-i18n="sc-save">저장</button>
       </div>
-      <div id="settings-token-msg" style="font-size:11px; color:rgba(255,159,67,0.7); margin-top:6px; display:none;"></div>
+      <div id="settings-token-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title" data-i18n="s-imgsize">이미지 저장 크기</div>
@@ -187,7 +187,7 @@
 </div>
 
 <div id="detail-panel">
-  <div id="detail-tabs-bar"><div id="detail-tabs"></div><button id="tab-overflow-btn" onclick="toggleOverflowMenu(event)">···</button><button id="detail-panel-collapse-btn" onclick="toggleDetailPanel()" title="패널 접기"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button><button id="detail-panel-close" onclick="closePanel()" title="전체 닫기" style="color:#ff9f43;">✕</button></div>
+  <div id="detail-tabs-bar"><div id="detail-tabs"></div><button id="tab-overflow-btn" onclick="toggleOverflowMenu(event)">···</button><button id="detail-panel-collapse-btn" onclick="toggleDetailPanel()" title="패널 접기"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button><button id="detail-panel-close" onclick="closePanel()" title="전체 닫기" style="color:#ed7000;">✕</button></div>
   <div id="detail-body"><div id="detail-title-row"><div id="detail-title"></div></div><div id="detail-meta-row"><span id="detail-date"></span></div><div id="detail-divider"></div><div id="detail-content"></div></div>
 </div>
 <div id="tab-overflow-menu"></div>
