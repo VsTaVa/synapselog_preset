@@ -178,6 +178,28 @@ export default async function handler(req, res) {
           if (title.trim()) markdown += '## ' + title + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
           continue;
+        } else if (type === 'table') {
+          try {
+            const tableRows = [];
+            let tCursor;
+            do {
+              const tUrl = `https://api.notion.com/v1/blocks/${block.id}/children${tCursor ? `?start_cursor=${tCursor}` : ''}`;
+              const tRes = await fetch(tUrl, { headers });
+              if (!tRes.ok) break;
+              const tData = await tRes.json();
+              tableRows.push(...tData.results.filter(b => b.type === 'table_row'));
+              tCursor = tData.has_more ? tData.next_cursor : undefined;
+            } while (tCursor);
+            if (tableRows.length) {
+              const esc = s => (s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+              const rowTexts = tableRows.map(r => (r.table_row?.cells || []).map(cell => esc(extractRichText(cell))));
+              const colCount = rowTexts[0].length;
+              markdown += '\n| ' + rowTexts[0].join(' | ') + ' |\n';
+              markdown += '|' + new Array(colCount).fill('---').join('|') + '|\n';
+              for (let ri = 1; ri < rowTexts.length; ri++) markdown += '| ' + rowTexts[ri].join(' | ') + ' |\n';
+            }
+          } catch (e) { }
+          continue;
         } else if (type === 'child_page') {
           markdown += `[CHILD_PAGE]\n[NOTION_ENTRY:${block.id.replace(/-/g,'')}]\n## ${block.child_page?.title || '하위 페이지'}\n`;
           continue;

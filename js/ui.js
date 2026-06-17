@@ -259,6 +259,28 @@ function closeTab(nodeId) {
   renderTabs();
 }
 
+function mdTableToHtml(text) {
+  const isRow = l => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const splitRow = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
+  const lines = text.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (isRow(lines[i]) && i + 1 < lines.length && isSep(lines[i + 1])) {
+      const header = splitRow(lines[i]);
+      let j = i + 2; const bodyRows = [];
+      while (j < lines.length && isRow(lines[j])) { bodyRows.push(splitRow(lines[j])); j++; }
+      let html = '<table class="md-table"><thead><tr>' + header.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      bodyRows.forEach(r => { html += '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>'; });
+      html += '</tbody></table>';
+      out.push(html);
+      i = j;
+    } else { out.push(lines[i]); i++; }
+  }
+  return out.join('\n');
+}
+
 function renderPanelContent(n) {
   if (detailTitle) detailTitle.textContent = n.label;
   if (detailDate) {
@@ -283,7 +305,7 @@ function renderPanelContent(n) {
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(255,159,67,0.35);color:#ff9f43;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (detailContent) {
-    detailContent.innerHTML = rawDesc;
+    detailContent.innerHTML = mdTableToHtml(rawDesc);
     if (searchKeyword && searchMatches.has(n.id)) {
       setTimeout(() => { const mark = detailContent.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
