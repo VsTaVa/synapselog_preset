@@ -103,9 +103,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #confirm-ok { background: rgba(255,159,67,0.15); border: 1px solid rgba(255,159,67,0.4); color: #ff9f43; }
 #confirm-ok:hover { background: rgba(255,159,67,0.25); }
 #detail-tabs-bar { width: 100%; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: stretch; }
-#detail-panel-toggle, #detail-panel-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; padding: 0 12px; flex-shrink: 0; transition: color 0.2s; display: flex; align-items: center; }
-#detail-panel-toggle:hover, #detail-panel-close:hover { color: #fff; }
-#detail-panel-close { border-left: 1px solid rgba(255,255,255,0.06); color: #ff9f43 !important; }
+#detail-panel-collapse-btn, #detail-panel-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; padding: 0 12px; flex-shrink: 0; transition: color 0.2s; display: flex; align-items: center; border-left: 1px solid rgba(255,255,255,0.06); }
+#detail-panel-collapse-btn:hover, #detail-panel-close:hover { color: #fff; }
+#detail-panel-close { color: #ff9f43 !important; }
 #detail-tabs { display: flex; align-items: stretch; flex: 1; overflow: hidden; }
 .detail-tab { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 14px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; min-height: 42px; border-right: 1px solid rgba(255,255,255,0.06); transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; max-width: 160px; }
 .detail-tab span.tab-label { overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
@@ -127,10 +127,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
 #detail-panel { position: fixed; top: 12px; right: -500px; width: 380px; height: calc(100vh - 24px); background: rgba(14,16,24,0.97); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(255,159,67,0.6); border-radius: 14px; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: blur(12px); }
 #detail-panel.open { right: 12px; }
-#detail-panel-sidebar-toggle { position: fixed; top: 16px; z-index: 300; right: -500px; width: 28px; height: 28px; border-radius: 7px; background: rgba(14,16,24,0.9); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); cursor: pointer; font-size: 14px; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: background 0.2s, right 0.28s cubic-bezier(0.4,0,0.2,1); }
-#detail-panel-sidebar-toggle.visible { display: flex; right: calc(380px + 24px); }
-#detail-panel-sidebar-toggle.collapsed { right: 12px; }
-#detail-panel-sidebar-toggle:hover { background: rgba(255,255,255,0.1); color: #fff; }
+#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 24px; height: 88px; border-radius: 12px 0 0 12px; background: rgba(255,159,67,0.2); border: 1px solid rgba(255,159,67,0.55); border-right: none; color: #ff9f43; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: background 0.2s, color 0.2s, opacity 0.2s, visibility 0.2s; }
+#detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
+#detail-panel-sidebar-toggle:hover { background: rgba(255,159,67,0.35); color: #ffbe76; }
 #detail-panel.panel-collapsed { right: -380px !important; }
 #detail-body { flex: 1; overflow-y: auto; padding: 22px 22px 24px; }
 #detail-body::-webkit-scrollbar { width: 3px; }

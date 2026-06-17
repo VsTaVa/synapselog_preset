@@ -207,13 +207,25 @@ function toggleSidebar() {
 // ── 디테일 패널 (탭) ──────────────────────────────────────────────────
 
 let _detailPanelCollapsed = false;
-const PANEL_SVG_RIGHT = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
+
+function updateDetailReopenTab() {
+  const btn = document.getElementById('detail-panel-sidebar-toggle');
+  if (!btn) return;
+  const visuallyOpen = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
+  btn.classList.toggle('visible', !visuallyOpen && _tabs.length > 0);
+}
 
 function toggleDetailPanel() {
   _detailPanelCollapsed = !_detailPanelCollapsed;
-  const panel = document.getElementById('detail-panel'), btn = document.getElementById('detail-panel-sidebar-toggle');
-  if (_detailPanelCollapsed) { panel.classList.add('panel-collapsed'); if (btn) { btn.innerHTML = PANEL_SVG_RIGHT; btn.classList.add('collapsed'); } }
-  else { panel.classList.remove('panel-collapsed'); if (btn) { btn.innerHTML = PANEL_SVG_RIGHT; btn.classList.remove('collapsed'); } }
+  detailPanel.classList.toggle('panel-collapsed', _detailPanelCollapsed);
+  updateDetailReopenTab();
+}
+
+function reopenDetailPanel() {
+  if (_tabs.length === 0) return;
+  if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
+  else { showPanel(); }
+  updateDetailReopenTab();
 }
 
 let _tabs = [], _activeTabId = null;
@@ -327,11 +339,10 @@ function showPanel() {
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
-  const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
-  if (toggleBtn) { toggleBtn.classList.add('visible'); toggleBtn.classList.remove('collapsed'); toggleBtn.innerHTML = PANEL_SVG_RIGHT; }
   const activeTab = _tabs.find(t => t.nodeId === _activeTabId) || _tabs[_tabs.length - 1];
   if (activeTab) renderPanelContent(activeTab.node);
   renderTabs();
+  updateDetailReopenTab();
 }
 
 function openPanel(n) {
@@ -341,8 +352,7 @@ function openPanel(n) {
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
-  const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
-  if (toggleBtn) { toggleBtn.classList.add('visible'); toggleBtn.classList.remove('collapsed'); toggleBtn.innerHTML = PANEL_SVG_RIGHT; }
+  updateDetailReopenTab();
   if (_focusMode) {
     const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
     applyFocusMode(n.id, shallow);
@@ -355,8 +365,7 @@ function closePanel() {
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
   renderTabs();
-  const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
-  if (toggleBtn) toggleBtn.classList.remove('visible', 'collapsed');
+  updateDetailReopenTab();
 }
 
 function hidePanel() {
@@ -364,8 +373,7 @@ function hidePanel() {
   _detailPanelCollapsed = false;
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
-  const toggleBtn = document.getElementById('detail-panel-sidebar-toggle');
-  if (toggleBtn) toggleBtn.classList.remove('visible', 'collapsed');
+  updateDetailReopenTab();
 }
 
 // ── 검색 ──────────────────────────────────────────────────────────────

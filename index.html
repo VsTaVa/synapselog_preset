@@ -187,11 +187,11 @@
 </div>
 
 <div id="detail-panel">
-  <div id="detail-tabs-bar"><div id="detail-tabs"></div><button id="tab-overflow-btn" onclick="toggleOverflowMenu(event)">···</button><button id="detail-panel-close" onclick="closePanel()" title="전체 닫기" style="color:#ff9f43;">✕</button></div>
+  <div id="detail-tabs-bar"><div id="detail-tabs"></div><button id="tab-overflow-btn" onclick="toggleOverflowMenu(event)">···</button><button id="detail-panel-collapse-btn" onclick="toggleDetailPanel()" title="패널 접기"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button><button id="detail-panel-close" onclick="closePanel()" title="전체 닫기" style="color:#ff9f43;">✕</button></div>
   <div id="detail-body"><div id="detail-title-row"><div id="detail-title"></div></div><div id="detail-meta-row"><span id="detail-date"></span></div><div id="detail-divider"></div><div id="detail-content"></div></div>
 </div>
 <div id="tab-overflow-menu"></div>
-<button id="detail-panel-sidebar-toggle" onclick="toggleDetailPanel()" title="패널 접기/펼치기"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button>
+<button id="detail-panel-sidebar-toggle" onclick="reopenDetailPanel()" aria-label="패널 열기"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg></button>
 <div id="status"></div>
 
 <script src="js/utils.js" defer></script>
