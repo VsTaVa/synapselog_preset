@@ -163,13 +163,11 @@ function saveManualLinks() {
     if (!na || !nb) return null;
     return { from: e.from, to: e.to, fromKey: `${na.sourcePageId || ''}::${na.label}`, toKey: `${nb.sourcePageId || ''}::${nb.label}` };
   }).filter(Boolean);
-  const json = JSON.stringify(manual);
-  localStorage.setItem('snlog_manual_links', json);
-  sessionStorage.setItem('snlog_manual_links', json);
+  snSet('snlog_manual_links', JSON.stringify(manual), 'connect');
 }
 
 function loadManualLinks() {
-  const saved = localStorage.getItem('snlog_manual_links') || sessionStorage.getItem('snlog_manual_links');
+  const saved = snGet('snlog_manual_links', 'connect');
   if (!saved) return;
   let links; try { links = JSON.parse(saved); } catch(e) { return; }
   links.forEach(link => {

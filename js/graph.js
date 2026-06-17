@@ -348,11 +348,11 @@ function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>
 function saveFixedPositions() {
   const data = {};
   nodes.filter(n => n.fixed).forEach(n => { data[n.label] = { x: n.x, y: n.y }; });
-  localStorage.setItem('snlog_fixed_pos', JSON.stringify(data));
+  snSet('snlog_fixed_pos', JSON.stringify(data), 'pages');
 }
 function restoreFixedPositions() {
   try {
-    const data = JSON.parse(localStorage.getItem('snlog_fixed_pos') || '{}');
+    const data = JSON.parse(snGet('snlog_fixed_pos', 'pages') || '{}');
     nodes.forEach(n => { if (data[n.label]) { n.fixed=true; n.x=data[n.label].x; n.y=data[n.label].y; n.vx=0; n.vy=0; } });
   } catch(e) {}
 }
