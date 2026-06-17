@@ -110,11 +110,6 @@ function applyFocusMode(nodeId, shallow = false) {
     if (connectedIds.has(e.from)) connectedIds.add(e.to);
     if (connectedIds.has(e.to)) connectedIds.add(e.from);
   });
-  edges.forEach(e => {
-    if (!e.referenceLink) return;
-    if (connectedIds.has(e.from)) connectedIds.add(e.to);
-    if (connectedIds.has(e.to)) connectedIds.add(e.from);
-  });
   nodes.forEach(n => { n.dimmed = !connectedIds.has(n.id); });
   isStable = false;
 }
@@ -280,7 +275,7 @@ function renderPanelContent(n) {
   if (pid) { notionLinkEl.href = `https://notion.so/${pid.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
   else { notionLinkEl.style.display = 'none'; }
 
-  let rawDesc = (n.desc || '(내용 없음)').replace(/\[\[[a-f0-9]{32}\]\]/g, '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  let rawDesc = (n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(255,159,67,0.35);color:#ff9f43;border-radius:3px;padding:0 2px;">$1</mark>');

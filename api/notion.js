@@ -66,14 +66,10 @@ export default async function handler(req, res) {
 
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
-  // 텍스트 추출 함수 — 볼드 유지 (본문용), page mention은 [[pageId]] 마커 삽입
+  // 텍스트 추출 함수 — 볼드 유지 (본문용)
   function extractRichText(richTextArr) {
     if (!richTextArr) return '';
     return richTextArr.map(t => {
-      if (t.type === 'mention' && t.mention?.type === 'page') {
-        const pid = t.mention.page.id.replace(/-/g, '');
-        return `${t.plain_text || ''}[[${pid}]]`;
-      }
       let str = t.plain_text || '';
       if (t.annotations?.bold) str = `**${str}**`;
       return str;
