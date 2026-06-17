@@ -52,7 +52,8 @@ export default async function handler(req, res) {
         for (const p of data.results) {
           const props = p.properties || {};
           const titleProp = Object.values(props).find(v => v.type === 'title');
-          const title = (titleProp?.title?.map(t => t.plain_text || '').join('') || p.child_page?.title || '').trim() || '(제목 없음)';
+          const title = (titleProp?.title?.map(t => t.plain_text || '').join('') || p.child_page?.title || '').trim();
+          if (!title) continue;
           pages.push({ id: p.id.replace(/-/g, ''), title });
         }
         cursor = data.has_more ? data.next_cursor : undefined;
