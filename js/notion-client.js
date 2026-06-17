@@ -467,6 +467,7 @@ async function _loadEntriesBackground(pageId) {
     const c = sessionStorage.getItem(`snlog_${pageId}`);
     if (c) { const p = JSON.parse(c); delete p._headingsOnly; sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify(p)); }
   } catch(e) {}
+  loadManualLinks();
 }
 
 // ── 파일 임포트 / 내보내기 ───────────────────────────────────────────
