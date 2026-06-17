@@ -33,6 +33,7 @@ DPR = window.devicePixelRatio || 1;
 W = window.innerWidth; H = window.innerHeight;
 canvas.width = W * DPR; canvas.height = H * DPR;
 canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+WORLD_CX = W / 2; WORLD_CY = H / 2;
 
 const tooltip = document.getElementById('tooltip');
 const statusEl = document.getElementById('status');
@@ -621,9 +622,6 @@ window.addEventListener('resize', () => {
   W = window.innerWidth; H = window.innerHeight;
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  const root = nodes.find(n => n.level === 0);
-  if (root) { root.x = W / 2; root.y = H / 2; }
-  isStable = false;
 });
 
 // ── 언어 시스템 ────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 // ── 공유 전역 상태 (ui.js에서 canvas/ctx/W/H 초기화) ────────────────
 let canvas, ctx, W, H, DPR = 1;
+let WORLD_CX = 0, WORLD_CY = 0;
 let scale = 0.85, panX = 0, panY = 0;
 let nodes = [], edges = [], nodeMap = {};
 let drag = null, hoveredNode = null;
@@ -143,7 +144,7 @@ function simulate() {
       const f = (d-natural)*strength;
       fx += dx/d*f; fy += dy/d*f;
     });
-    if(!fixedDescendants.has(n.id)){fx += (W/2-n.x)*centerForce; fy += (H/2-n.y)*centerForce;}
+    if(!fixedDescendants.has(n.id)){fx += (WORLD_CX-n.x)*centerForce; fy += (WORLD_CY-n.y)*centerForce;}
     n.vx = Math.max(-3, Math.min(3, (n.vx+fx)*damping));
     n.vy = Math.max(-3, Math.min(3, (n.vy+fy)*damping));
     n.x += n.vx; n.y += n.vy;
