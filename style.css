@@ -196,11 +196,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .s-toggle input:checked + .s-toggle-track { background: rgba(237,112,0,0.7); }
 .s-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.2s; pointer-events: none; }
 .s-toggle input:checked ~ .s-toggle-thumb { transform: translateX(16px); }
-.s-storage-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
-.s-storage-btn.local { background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; }
-.s-storage-btn.local:hover { background: rgba(237,112,0,0.25); }
-.s-storage-btn.session { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
-.s-storage-btn.session:hover { background: rgba(255,255,255,0.12); }
 .s-warn { font-size: 11px; color: rgba(237,112,0,0.7); background: rgba(237,112,0,0.08); border: 1px solid rgba(237,112,0,0.2); border-radius: 6px; padding: 8px 10px; margin-top: 8px; line-height: 1.6; display: none; }
 .s-delete-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 10px; border-radius: 5px; cursor: pointer; background: rgba(255,100,100,0.1); border: 1px solid rgba(255,100,100,0.25); color: rgba(255,120,120,0.8); transition: background 0.2s; }
 .s-delete-btn:hover { background: rgba(255,100,100,0.2); color: #ff6b6b; }
