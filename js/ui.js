@@ -540,6 +540,7 @@ canvas.addEventListener('wheel', e => {
 
 let _touchMode = null, _touchMoved = false, _touchStartX = 0, _touchStartY = 0;
 let _pinchStartDist = 0, _pinchStartScale = 1;
+let _lastTapTime = 0, _lastTapNode = null;
 
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
@@ -587,8 +588,19 @@ canvas.addEventListener('touchend', e => {
     const elapsed = Date.now() - mouseDownTime;
     const n = mouseDownNode;
     if (elapsed < 300 && n && n.level > 0) {
-      if (_connectMode) { handleConnectClick(n); }
-      else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
+      const now = Date.now();
+      if (_lastTapNode === n && now - _lastTapTime < 350) {
+        clearTimeout(_clickTimer);
+        n.fixed = !n.fixed;
+        if (!n.fixed) { n.vx = 0; n.vy = 0; }
+        saveFixedPositions(); isStable = false;
+        if (statusEl) { statusEl.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1800); }
+        _lastTapNode = null; _lastTapTime = 0;
+      } else {
+        if (_connectMode) { handleConnectClick(n); }
+        else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
+        _lastTapNode = n; _lastTapTime = now;
+      }
     } else if (elapsed < 300 && n && n.level === 0) {
       highlightSidebarPage(n.sourcePageId || null);
     } else if (elapsed < 300 && !n) {
