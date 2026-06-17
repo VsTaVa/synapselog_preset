@@ -41,6 +41,8 @@ canvas { display: block; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(-380px); }
 #sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
+#sidebar-logo-text { display: flex; align-items: center; gap: 8px; }
+#sidebar-logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
 #sidebar-logo .accent { color: #ff9f43; }
 #sidebar-collapse-btn { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
 #sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
