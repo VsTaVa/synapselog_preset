@@ -501,7 +501,7 @@ canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; ho
 canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
   const n = getNodeAt(e.clientX, e.clientY);
-  if (!n || n.level === 0) return;
+  if (!n) return;
   n.fixed = !n.fixed;
   if (!n.fixed) { n.vx = 0; n.vy = 0; }
   saveFixedPositions(); isStable = false;
@@ -588,7 +588,7 @@ canvas.addEventListener('touchend', e => {
   if (_touchMode === 'single' && !_touchMoved) {
     const elapsed = Date.now() - mouseDownTime;
     const n = mouseDownNode;
-    if (elapsed < 300 && n && n.level > 0) {
+    if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {
         clearTimeout(_clickTimer);
@@ -597,13 +597,14 @@ canvas.addEventListener('touchend', e => {
         saveFixedPositions(); isStable = false;
         if (statusEl) { statusEl.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1800); }
         _lastTapNode = null; _lastTapTime = 0;
-      } else {
+      } else if (n.level > 0) {
         if (_connectMode) { handleConnectClick(n); }
         else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
         _lastTapNode = n; _lastTapTime = now;
+      } else {
+        highlightSidebarPage(n.sourcePageId || null);
+        _lastTapNode = n; _lastTapTime = now;
       }
-    } else if (elapsed < 300 && n && n.level === 0) {
-      highlightSidebarPage(n.sourcePageId || null);
     } else if (elapsed < 300 && !n) {
       if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
       if (_connectMode && _connectFirstNode) {
