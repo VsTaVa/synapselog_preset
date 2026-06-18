@@ -56,7 +56,13 @@
   </div>
   <div id="sidebar-content">
     <div id="add-page-panel" class="panel-box">
-      <div class="panel-title" data-i18n="pg-add">페이지 추가</div>
+      <div class="panel-title-row">
+        <div class="panel-title" data-i18n="pg-add" style="margin-bottom:0;">페이지 추가</div>
+        <div id="bulk-actions" style="display:none">
+          <button class="icon-btn-sm sync-all" onclick="confirmBulkSync()" title="전체 동기화" data-i18n-title="btn-sync-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+          <button class="icon-btn-sm close-all" onclick="confirmBulkClose()" title="전체 닫기" data-i18n-title="btn-close-all"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </div>
       <div id="sidebar-page-list-wrap" style="display:none; margin-bottom:8px;">
         <div id="sidebar-page-list" style="max-height:96px; overflow-y:scroll; display:flex; flex-direction:column; gap:3px; padding-right:2px;"></div>
       </div>
@@ -71,7 +77,6 @@
       <button id="add-page-btn" onclick="addPage()" data-i18n="btn-add">+ 노드 불러오기</button>
       <div id="add-page-error"></div>
       <div id="added-pages-list" style="display:none;"></div>
-      <div id="bulk-actions" style="display:none"><button class="bulk-btn sync-all" onclick="confirmBulkSync()" data-i18n="btn-sync-all">전체 동기화</button><button class="bulk-btn close-all" onclick="confirmBulkClose()" data-i18n="btn-close-all">전체 닫기</button></div>
     </div>
     <div id="search-panel" class="panel-box">
       <div class="panel-title" data-i18n="kw-search">키워드 검색</div>
