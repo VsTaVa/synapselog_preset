@@ -472,24 +472,38 @@ async function _loadEntriesBackground(pageId) {
 
 // ── 파일 임포트 / 내보내기 ───────────────────────────────────────────
 
+function _importMdFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const markdown = e.target.result;
+      const title = file.name.replace(/\.md$|\.txt$/i, '');
+      const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      mergeGraph(title, markdown, pageId);
+      _addedPageIds.add(pageId);
+      const list = document.getElementById('added-pages-list');
+      const item = document.createElement('div');
+      item.className = 'added-page-item'; item.dataset.pageId = pageId;
+      item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
+      list.appendChild(item);
+      resolve();
+    };
+    reader.readAsText(file);
+  });
+}
+
 function importMarkdownFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const markdown = e.target.result;
-    const title = file.name.replace(/\.md$|\.txt$/i, '');
-    const pageId = 'md_' + Date.now();
-    mergeGraph(title, markdown, pageId);
-    _addedPageIds.add(pageId);
-    const list = document.getElementById('added-pages-list');
-    const item = document.createElement('div');
-    item.className = 'added-page-item'; item.dataset.pageId = pageId;
-    item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
-    list.appendChild(item);
-    updateBulkActionsVisibility(); savePageList();
-  };
-  reader.readAsText(file); event.target.value = '';
+  _importMdFile(file).then(() => { updateBulkActionsVisibility(); savePageList(); });
+  event.target.value = '';
+}
+
+async function importMarkdownFolder(event) {
+  const files = [...event.target.files].filter(f => /\.(md|txt)$/i.test(f.name));
+  for (const file of files) { await _importMdFile(file); }
+  updateBulkActionsVisibility(); savePageList();
+  event.target.value = '';
 }
 
 function exportGraph() {
