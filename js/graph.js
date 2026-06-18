@@ -189,8 +189,10 @@ function draw() {
       ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`;
       ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
     } else if(hasSearch) {
-      if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.9); ctx.lineWidth=1.6/scale; ctx.setLineDash([5,3]); }
-      else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.35); ctx.lineWidth=0.8/scale; ctx.setLineDash([4,5]); }
+      if(_focusMode && na.dimmed && nb.dimmed) return;
+      const focusDim = _focusMode && (na.dimmed || nb.dimmed);
+      if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([5,3]); }
+      else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([4,5]); }
       else { ctx.strokeStyle=rgbStr(na._rgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
     } else {
       if(_focusMode && na.dimmed && nb.dimmed) return;
@@ -222,6 +224,7 @@ function draw() {
       for(let i=0; i<path.length-1; i++) {
         const a=path[i], b=path[i+1];
         if(!a.visible||!b.visible) continue;
+        if(_focusMode && a.dimmed && b.dimmed) continue;
         if(a.level===1&&b.level===1) continue;
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)||existingEdgeSet.has(key)) continue;
@@ -238,6 +241,7 @@ function draw() {
       for(let i=0; i<rootArr.length-1; i++) {
         const a=rootArr[i], b=rootArr[i+1];
         if(!a.visible||!b.visible) continue;
+        if(_focusMode && a.dimmed && b.dimmed) continue;
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)) continue;
         drawnPairs.add(key);
