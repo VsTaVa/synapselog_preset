@@ -45,16 +45,21 @@ function pickFolder() {
   else document.getElementById('md-import-folder').click();
 }
 
-async function _importFolderFile(path, handle, folderBatchId) {
+async function _saveFolderBatchToIDB(folderBatchId) {
+  const batch = window._folderBatches?.get(folderBatchId);
+  if (!batch) return;
+  try { await _idbSaveFolder({ id: folderBatchId, handle: batch.handle, name: batch.name, files: [...batch.files.entries()] }); } catch(e) {}
+}
+
+async function _importFolderFile(path, handle, folderBatchId, pageId) {
   const file = await handle.getFile();
   const text = await file.text();
   const title = file.name.replace(/\.md$|\.txt$/i, '');
-  const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  pageId = pageId || ('md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
   mergeGraph(title, text, pageId);
   _addedPageIds.add(pageId);
   sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: text, isMd: true, folderBatchId, relPath: path, _cachedAt: Date.now() }));
-  if (!window._sidebarPageList) window._sidebarPageList = [];
-  window._sidebarPageList.push({ id: pageId, title, isMd: true, folderBatchId });
+  return { pageId, lastModified: file.lastModified };
 }
 
 async function pickFolderViaFSA() {
@@ -62,14 +67,12 @@ async function pickFolderViaFSA() {
   try { dirHandle = await window.showDirectoryPicker(); } catch(e) { return; }
   const folderBatchId = 'mdfolder_' + Date.now();
   const entries = await _walkDirectory(dirHandle);
-  const fileNames = new Set();
-  for (const { path, handle } of entries) { await _importFolderFile(path, handle, folderBatchId); fileNames.add(path); }
+  const files = new Map();
+  for (const { path, handle } of entries) { const r = await _importFolderFile(path, handle, folderBatchId); files.set(path, r); }
   if (!window._folderBatches) window._folderBatches = new Map();
-  window._folderBatches.set(folderBatchId, { handle: dirHandle, fileNames });
-  try { await _idbSaveFolder({ id: folderBatchId, handle: dirHandle, fileNames: [...fileNames] }); } catch(e) {}
-  const wrap = document.getElementById('sidebar-page-list-wrap');
-  if (wrap) wrap.style.display = 'block';
-  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
+  window._folderBatches.set(folderBatchId, { handle: dirHandle, name: dirHandle.name, files });
+  await _saveFolderBatchToIDB(folderBatchId);
+  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
 }
 
 async function loadFolderBatches() {
@@ -77,7 +80,8 @@ async function loadFolderBatches() {
   try {
     const recs = await _idbGetAllFolders();
     if (!window._folderBatches) window._folderBatches = new Map();
-    recs.forEach(r => window._folderBatches.set(r.id, { handle: r.handle, fileNames: new Set(r.fileNames) }));
+    recs.forEach(r => window._folderBatches.set(r.id, { handle: r.handle, name: r.name, files: new Map(r.files) }));
+    renderMdFolderList();
   } catch(e) {}
 }
 
@@ -89,15 +93,67 @@ async function syncFolderBatches() {
       if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'read' });
       if (perm !== 'granted') continue;
       const entries = await _walkDirectory(batch.handle);
+      const seenPaths = new Set();
       for (const { path, handle } of entries) {
-        if (batch.fileNames.has(path)) continue;
-        await _importFolderFile(path, handle, folderBatchId);
-        batch.fileNames.add(path);
+        seenPaths.add(path);
+        const existing = batch.files.get(path);
+        if (!existing) {
+          const r = await _importFolderFile(path, handle, folderBatchId);
+          batch.files.set(path, r);
+        } else {
+          const file = await handle.getFile();
+          if (file.lastModified !== existing.lastModified) {
+            const removeIds = new Set(nodes.filter(n => n.sourcePageId === existing.pageId).map(n => n.id));
+            nodes = nodes.filter(n => !removeIds.has(n.id));
+            edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
+            Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
+            const r = await _importFolderFile(path, handle, folderBatchId, existing.pageId);
+            batch.files.set(path, r);
+          }
+        }
       }
-      await _idbSaveFolder({ id: folderBatchId, handle: batch.handle, fileNames: [...batch.fileNames] });
+      for (const [path, info] of [...batch.files]) {
+        if (!seenPaths.has(path)) {
+          removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`));
+          batch.files.delete(path);
+        }
+      }
+      await _saveFolderBatchToIDB(folderBatchId);
     } catch(e) {}
   }
-  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
+  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+}
+
+function renderMdFolderList() {
+  const wrap = document.getElementById('md-folder-list-wrap');
+  const listEl = document.getElementById('md-folder-list');
+  if (!wrap || !listEl) return;
+  if (!window._folderBatches || window._folderBatches.size === 0) { wrap.style.display = 'none'; listEl.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  listEl.innerHTML = [...window._folderBatches.entries()].map(([folderBatchId, batch]) => {
+    const files = [...batch.files.entries()];
+    return `<div class="md-folder-group" data-folder-id="${folderBatchId}">
+      <div class="md-folder-header">
+        <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}">📁 ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
+        <div class="item-actions"><button title="폴더 전체 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
+      </div>
+      <div class="md-folder-files">
+        ${files.map(([path, info]) => `<div class="md-folder-file" data-page-id="${info.pageId}">
+          <span class="item-label" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
+          <button class="btn-remove" onclick="removePage('${info.pageId}', this.closest('.md-folder-file'))">✕</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function removeFolderBatch(folderBatchId) {
+  const batch = window._folderBatches?.get(folderBatchId);
+  if (!batch) return;
+  for (const [, info] of [...batch.files]) { removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`)); }
+  window._folderBatches.delete(folderBatchId);
+  try { const db = await _idbOpen(); const tx = db.transaction('folders', 'readwrite'); tx.objectStore('folders').delete(folderBatchId); } catch(e) {}
+  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
 }
 
 async function notionFetch(body) {
@@ -393,15 +449,18 @@ async function restorePageList() {
     _addedPageIds.add(pageId);
     await mergeGraph(data.title || title, data.markdown || '', pageId);
     if (data.isMd || pageId.startsWith('md_')) {
-      const wrap = document.getElementById('sidebar-page-list-wrap');
-      if (wrap) wrap.style.display = 'block';
-      if (!window._sidebarPageList) window._sidebarPageList = [];
-      window._sidebarPageList.push({ id: pageId, title: data.title || title, isMd: true, folderBatchId: data.folderBatchId });
+      if (!data.folderBatchId) {
+        const wrap = document.getElementById('sidebar-page-list-wrap');
+        if (wrap) wrap.style.display = 'block';
+        if (!window._sidebarPageList) window._sidebarPageList = [];
+        window._sidebarPageList.push({ id: pageId, title: data.title || title, isMd: true });
+      }
     } else {
       _loadEntriesBackground(pageId);
     }
   }
   refreshSidebarRender();
+  renderMdFolderList();
   updateBulkActionsVisibility();
 }
 
@@ -433,7 +492,14 @@ function removePage(pageId, el) {
   edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
   Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
   if (pageId.startsWith('md_') && window._sidebarPageList) window._sidebarPageList = window._sidebarPageList.filter(p => p.id !== pageId);
-  isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
+  if (window._folderBatches) {
+    for (const [folderBatchId, batch] of window._folderBatches) {
+      for (const [path, info] of batch.files) {
+        if (info.pageId === pageId) { batch.files.delete(path); _saveFolderBatchToIDB(folderBatchId); break; }
+      }
+    }
+  }
+  isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender(); renderMdFolderList();
 }
 
 function updateBulkActionsVisibility() {
