@@ -25,6 +25,13 @@ function snRemove(key, scope) {
   if (scope) localStorage.removeItem(key);
 }
 
+let _favoritePageIds = new Set((() => { try { return JSON.parse(snGet('snlog_favorites', 'pages') || '[]'); } catch(e) { return []; } })());
+function toggleFavorite(pageId) {
+  if (_favoritePageIds.has(pageId)) _favoritePageIds.delete(pageId); else _favoritePageIds.add(pageId);
+  snSet('snlog_favorites', JSON.stringify([..._favoritePageIds]), 'pages');
+  refreshSidebarRender();
+}
+
 // ── DOM 레퍼런스 & 캔버스 초기화 ─────────────────────────────────────
 
 canvas = document.getElementById('c');
@@ -868,7 +875,7 @@ applyLang();
 
 function loop() { simulate(); draw(); requestAnimationFrame(loop); }
 
-if (_savedToken) {
+if (_savedToken || sessionStorage.getItem('snlog_pages')) {
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('input-token');
     if (input) input.value = _savedToken;
@@ -876,6 +883,7 @@ if (_savedToken) {
     if (loginScreen) loginScreen.style.display = 'none';
     buildGraph();
     loop();
+    loadFolderBatches();
     setTimeout(restorePageList, 500);
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);

@@ -3,6 +3,103 @@
 let _savedToken = sessionStorage.getItem('snlog_token') || localStorage.getItem('snlog_token') || '';
 let _addedPageIds = new Set();
 
+// ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
+
+function _idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('synapselog_db', 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore('folders', { keyPath: 'id' }); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function _idbSaveFolder(rec) {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('folders', 'readwrite');
+    tx.objectStore('folders').put(rec);
+    tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
+  });
+}
+async function _idbGetAllFolders() {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('folders', 'readonly');
+    const req = tx.objectStore('folders').getAll();
+    req.onsuccess = () => resolve(req.result || []); req.onerror = () => reject(req.error);
+  });
+}
+
+async function _walkDirectory(dirHandle, relPath = '') {
+  const files = [];
+  for await (const [name, handle] of dirHandle.entries()) {
+    const path = relPath ? `${relPath}/${name}` : name;
+    if (handle.kind === 'file') { if (/\.(md|txt)$/i.test(name)) files.push({ path, handle }); }
+    else if (handle.kind === 'directory') { files.push(...await _walkDirectory(handle, path)); }
+  }
+  return files;
+}
+
+function pickFolder() {
+  if (window.showDirectoryPicker) pickFolderViaFSA();
+  else document.getElementById('md-import-folder').click();
+}
+
+async function _importFolderFile(path, handle, folderBatchId) {
+  const file = await handle.getFile();
+  const text = await file.text();
+  const title = file.name.replace(/\.md$|\.txt$/i, '');
+  const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  mergeGraph(title, text, pageId);
+  _addedPageIds.add(pageId);
+  sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: text, isMd: true, folderBatchId, relPath: path, _cachedAt: Date.now() }));
+  if (!window._sidebarPageList) window._sidebarPageList = [];
+  window._sidebarPageList.push({ id: pageId, title, isMd: true, folderBatchId });
+}
+
+async function pickFolderViaFSA() {
+  let dirHandle;
+  try { dirHandle = await window.showDirectoryPicker(); } catch(e) { return; }
+  const folderBatchId = 'mdfolder_' + Date.now();
+  const entries = await _walkDirectory(dirHandle);
+  const fileNames = new Set();
+  for (const { path, handle } of entries) { await _importFolderFile(path, handle, folderBatchId); fileNames.add(path); }
+  if (!window._folderBatches) window._folderBatches = new Map();
+  window._folderBatches.set(folderBatchId, { handle: dirHandle, fileNames });
+  try { await _idbSaveFolder({ id: folderBatchId, handle: dirHandle, fileNames: [...fileNames] }); } catch(e) {}
+  const wrap = document.getElementById('sidebar-page-list-wrap');
+  if (wrap) wrap.style.display = 'block';
+  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
+}
+
+async function loadFolderBatches() {
+  if (!window.showDirectoryPicker) return;
+  try {
+    const recs = await _idbGetAllFolders();
+    if (!window._folderBatches) window._folderBatches = new Map();
+    recs.forEach(r => window._folderBatches.set(r.id, { handle: r.handle, fileNames: new Set(r.fileNames) }));
+  } catch(e) {}
+}
+
+async function syncFolderBatches() {
+  if (!window._folderBatches || window._folderBatches.size === 0) return;
+  for (const [folderBatchId, batch] of window._folderBatches) {
+    try {
+      let perm = await batch.handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'read' });
+      if (perm !== 'granted') continue;
+      const entries = await _walkDirectory(batch.handle);
+      for (const { path, handle } of entries) {
+        if (batch.fileNames.has(path)) continue;
+        await _importFolderFile(path, handle, folderBatchId);
+        batch.fileNames.add(path);
+      }
+      await _idbSaveFolder({ id: folderBatchId, handle: batch.handle, fileNames: [...batch.fileNames] });
+    } catch(e) {}
+  }
+  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
+}
+
 async function notionFetch(body) {
   const res = await fetch('/api/notion', {
     method: 'POST',
@@ -31,6 +128,7 @@ function startWithMd(event) {
     setTimeout(() => {
       mergeGraph(title, markdown, pageId);
       _addedPageIds.add(pageId);
+      sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown, isMd: true, _cachedAt: Date.now() }));
       const wrap = document.getElementById('sidebar-page-list-wrap');
       if (wrap) wrap.style.display = 'block';
       if (!window._sidebarPageList) window._sidebarPageList = [];
@@ -164,14 +262,21 @@ function renderSidebarPageList(pages) {
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return;
   if (!pages || !pages.length) { listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">페이지 없음</div>'; return; }
-  const sorted = [...pages].filter(p => p.title && p.title.trim()).sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true }));
+  const sorted = [...pages].filter(p => p.title && p.title.trim()).sort((a, b) => {
+    const fa = _favoritePageIds.has(a.id) ? 0 : 1, fb = _favoritePageIds.has(b.id) ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true });
+  });
   listEl.innerHTML = sorted.map(p => {
     const isActive = _addedPageIds.has(p.id);
+    const isFav = _favoritePageIds.has(p.id);
     const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>' : '';
+    const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
     if (isActive) {
       return `<div class="page-list-item active" data-page-id="${p.id}">
         <span class="item-label" title="${p.title || '(제목 없음)'}">${p.title || '(제목 없음)'}${mdBadge}</span>
         <div class="item-actions">
+          ${starBtn}
           ${p.isMd ? '' : `<button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
@@ -179,6 +284,7 @@ function renderSidebarPageList(pages) {
     } else {
       return `<div class="page-list-item" data-page-id="${p.id}">
         <span class="item-label" title="${p.title || '(제목 없음)'}" onclick="addPageById('${p.id}')">${p.title || '(제목 없음)'}</span>
+        <div class="item-actions">${starBtn}</div>
       </div>`;
     }
   }).join('');
@@ -278,6 +384,7 @@ async function restorePageList() {
     let data;
     if (cached) { try { data = JSON.parse(cached); } catch(e) {} }
     if (!data) {
+      if (pageId.startsWith('md_')) continue;
       try {
         data = await notionFetch({ pageId, action: 'headings' });
         sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() }));
@@ -285,13 +392,16 @@ async function restorePageList() {
     }
     _addedPageIds.add(pageId);
     await mergeGraph(data.title || title, data.markdown || '', pageId);
-    const listEl = document.getElementById('added-pages-list');
-    const item = document.createElement('div');
-    item.className = 'added-page-item'; item.dataset.pageId = pageId;
-    item.innerHTML = `<span>📄 ${escapeHtml(data.title || title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">캐시</span></span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
-    listEl.appendChild(item);
-    _loadEntriesBackground(pageId);
+    if (data.isMd || pageId.startsWith('md_')) {
+      const wrap = document.getElementById('sidebar-page-list-wrap');
+      if (wrap) wrap.style.display = 'block';
+      if (!window._sidebarPageList) window._sidebarPageList = [];
+      window._sidebarPageList.push({ id: pageId, title: data.title || title, isMd: true, folderBatchId: data.folderBatchId });
+    } else {
+      _loadEntriesBackground(pageId);
+    }
   }
+  refreshSidebarRender();
   updateBulkActionsVisibility();
 }
 
@@ -342,7 +452,11 @@ function showConfirm(title, msg, onOk) {
 function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); _confirmCallback = null; }
 
 function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지의 노션 데이터를 새로 불러옵니다. 계속할까요?', bulkSync); }
-async function bulkSync() { const ids = [..._addedPageIds]; for (const pid of ids) { await syncPage(pid); } }
+async function bulkSync() {
+  const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_'));
+  for (const pid of ids) { await syncPage(pid); }
+  await syncFolderBatches();
+}
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다. 계속할까요?', () => {
     const ids = [..._addedPageIds];
@@ -486,6 +600,7 @@ function _importMdFile(file) {
       const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
       mergeGraph(title, markdown, pageId);
       _addedPageIds.add(pageId);
+      sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown, isMd: true, _cachedAt: Date.now() }));
       const wrap = document.getElementById('sidebar-page-list-wrap');
       if (wrap) wrap.style.display = 'block';
       if (!window._sidebarPageList) window._sidebarPageList = [];
