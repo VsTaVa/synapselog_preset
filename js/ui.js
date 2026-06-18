@@ -41,10 +41,12 @@ const searchInput = document.getElementById('search-input');
 const clearBtn = document.getElementById('clear-btn');
 const cfgRep = document.getElementById('cfg-rep');
 const cfgGrav = document.getElementById('cfg-grav');
+const cfgTension = document.getElementById('cfg-tension');
 const cfgNodeSize = document.getElementById('cfg-node-size');
 const cfgLinkWidth = document.getElementById('cfg-link-width');
 const vRep = document.getElementById('v-rep');
 const vGrav = document.getElementById('v-grav');
+const vTension = document.getElementById('v-tension');
 const vNodeSize = document.getElementById('v-node-size');
 const vLinkWidth = document.getElementById('v-link-width');
 const detailPanel = document.getElementById('detail-panel');
@@ -57,18 +59,21 @@ const detailContent = document.getElementById('detail-content');
 function updateConfig() {
   CONFIG.repulsion = parseFloat(cfgRep.value);
   CONFIG.gravity = parseFloat(cfgGrav.value);
+  CONFIG.linkTension = parseFloat(cfgTension.value);
   CONFIG.nodeSize = parseFloat(cfgNodeSize.value);
   CONFIG.linkWidth = parseFloat(cfgLinkWidth.value);
   vRep.textContent = Math.round(parseFloat(cfgRep.value) / 100);
   vGrav.textContent = Math.round(parseFloat(cfgGrav.value) * 10000);
+  vTension.textContent = Math.round(parseFloat(cfgTension.value) * 1000);
   vNodeSize.textContent = parseFloat(cfgNodeSize.value).toFixed(1);
   vLinkWidth.textContent = parseFloat(cfgLinkWidth.value).toFixed(1);
   isStable = false;
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-  snSet('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value }), 'slider');
+  snSet('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value }), 'slider');
 }
 cfgRep.addEventListener('input', updateConfig);
 cfgGrav.addEventListener('input', updateConfig);
+cfgTension.addEventListener('input', updateConfig);
 cfgNodeSize.addEventListener('input', updateConfig);
 cfgLinkWidth.addEventListener('input', updateConfig);
 
@@ -632,7 +637,7 @@ const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
     'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-fit':'화면 맞춤',
-    'lbl-export':'이미지 내보내기','lbl-repulsion':'노드 반발력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
+    'lbl-export':'이미지 내보내기','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 검색',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
@@ -654,7 +659,7 @@ const LANG = {
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
     'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-fit':'Fit to View',
-    'lbl-export':'Export PNG','lbl-repulsion':'Repulsion','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
+    'lbl-export':'Export PNG','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Search keywords',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
     's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
@@ -844,7 +849,7 @@ document.getElementById('settings-modal')?.addEventListener('click', function(e)
 function restoreSlider() {
   const saved = snGet('snlog_slider', 'slider');
   if (!saved) return;
-  try { const { rep, grav, nodeSize, linkWidth } = JSON.parse(saved); if (rep) cfgRep.value = rep; if (grav) cfgGrav.value = grav; if (nodeSize) cfgNodeSize.value = nodeSize; if (linkWidth) cfgLinkWidth.value = linkWidth; updateConfig(); } catch(e) {}
+  try { const { rep, grav, tension, nodeSize, linkWidth } = JSON.parse(saved); if (rep) cfgRep.value = rep; if (grav) cfgGrav.value = grav; if (tension) cfgTension.value = tension; if (nodeSize) cfgNodeSize.value = nodeSize; if (linkWidth) cfgLinkWidth.value = linkWidth; updateConfig(); } catch(e) {}
 }
 
 // ── 검색 기록 저장/복원 ───────────────────────────────────────────────

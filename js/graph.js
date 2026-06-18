@@ -6,7 +6,7 @@ let nodes = [], edges = [], nodeMap = {};
 let drag = null, hoveredNode = null;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panStartOffsetY = 0;
 let isStable = false;
-let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.0 };
+let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.0, linkTension: 0.005 };
 let searchKeyword = '', searchMatches = new Set();
 let _showLabels = true;
 let _focusMode = false, _focusNodeId = null;
@@ -134,7 +134,7 @@ function simulate() {
       if(!other||!other.visible) return;
       if(other.fixed && e.from === n.id) return;
       const dx = other.x-n.x, dy = other.y-n.y, d = Math.max(dist(n,other), 1);
-      let natural = CONFIG.linkDistance, strength = 0.005;
+      let natural = CONFIG.linkDistance, strength = CONFIG.linkTension;
       if(e.weakLink) { natural = 600; strength = 0.001; }
       else if(e.manualLink) { return; }
       else {
