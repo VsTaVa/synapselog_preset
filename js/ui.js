@@ -253,7 +253,7 @@ function renderTabs() {
   visibleTabs.forEach(tab => {
     const el = document.createElement('div');
     el.className = 'detail-tab' + (tab.nodeId === _activeTabId ? ' active' : '');
-    el.innerHTML = `<span class="tab-label">${tab.label}</span><span class="tab-close">✕</span>`;
+    el.innerHTML = `<span class="tab-label">${escapeHtml(tab.label)}</span><span class="tab-close">✕</span>`;
     el.querySelector('.tab-label').onclick = () => switchTab(tab.nodeId);
     el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(tab.nodeId); };
     tabsEl.appendChild(el);
@@ -269,7 +269,7 @@ function toggleOverflowMenu(e) {
   if (!isOpen) {
     const rect = btn.getBoundingClientRect();
     menu.style.top = (rect.bottom + 4) + 'px'; menu.style.right = (window.innerWidth - rect.right) + 'px';
-    menu.innerHTML = _tabs.map(tab => `<div class="overflow-tab-item ${tab.nodeId === _activeTabId ? 'active' : ''}" onclick="switchTab('${tab.nodeId}');closeOverflowMenu()"><span>${tab.label}</span><span class="overflow-close" onclick="event.stopPropagation();closeTab('${tab.nodeId}');closeOverflowMenu()">✕</span></div>`).join('');
+    menu.innerHTML = _tabs.map(tab => `<div class="overflow-tab-item ${tab.nodeId === _activeTabId ? 'active' : ''}" onclick="switchTab('${tab.nodeId}');closeOverflowMenu()"><span>${escapeHtml(tab.label)}</span><span class="overflow-close" onclick="event.stopPropagation();closeTab('${tab.nodeId}');closeOverflowMenu()">✕</span></div>`).join('');
   }
 }
 function closeOverflowMenu() { const menu = document.getElementById('tab-overflow-menu'); if (menu) menu.classList.remove('open'); }
@@ -323,7 +323,7 @@ function renderPanelContent(n) {
   if (pid) { notionLinkEl.href = `https://notion.so/${pid.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
   else { notionLinkEl.style.display = 'none'; }
 
-  let rawDesc = (n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
@@ -401,7 +401,7 @@ function renderSearchHistory() {
   _searchHistory.forEach((kw, idx) => {
     const item = document.createElement('div');
     item.className = 'search-history-item';
-    item.innerHTML = `<span>${kw}</span><button class="search-history-del" onclick="deleteHistory(${idx},event)">✕</button>`;
+    item.innerHTML = `<span>${escapeHtml(kw)}</span><button class="search-history-del" onclick="deleteHistory(${idx},event)">✕</button>`;
     item.addEventListener('click', () => { searchInput.value = kw; doSearch(kw); });
     container.appendChild(item);
   });
