@@ -221,11 +221,12 @@ async function addPage() {
   const raw = document.getElementById('add-page-id').value.trim();
   const pageId = (raw.match(/([a-f0-9]{32})/i)?.[1] || raw.replace(/-/g, '')).toLowerCase();
   const errEl = document.getElementById('add-page-error');
-  const btn = document.getElementById('add-page-btn');
+  const btn = document.getElementById('add-page-submit-btn');
   if (!pageId) { errEl.textContent = 'Page ID를 입력해주세요'; errEl.style.display = 'block'; return; }
   if (_addedPageIds.has(pageId)) { errEl.textContent = '이미 추가된 페이지예요'; errEl.style.display = 'block'; return; }
   if (!_savedToken) { errEl.textContent = '토큰 정보가 없어요. 새로고침 후 다시 시도해주세요'; errEl.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = '불러오는 중...'; errEl.style.display = 'none';
+  if (btn) { btn.style.pointerEvents = 'none'; btn.style.opacity = '0.4'; }
+  errEl.style.display = 'none';
   showLoading('노션 페이지 불러오는 중...');
   try {
     const cacheKey = `snlog_${pageId}`;
@@ -247,11 +248,13 @@ async function addPage() {
     updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
     _loadEntriesBackground(pageId);
     document.getElementById('add-page-id').value = '';
-    btn.disabled = false; btn.textContent = '+ 노드 불러오기'; isStable = false;
+    isStable = false;
   } catch(e) {
     errEl.textContent = e.message; errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '+ 노드 불러오기';
-  } finally { hideLoading(); }
+  } finally {
+    hideLoading();
+    if (btn) { btn.style.pointerEvents = ''; btn.style.opacity = ''; }
+  }
 }
 
 function savePageList() {

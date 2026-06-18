@@ -78,9 +78,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #add-page-panel input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 9px; font-size: 10px; font-family: inherit; color: #fff; outline: none; margin-bottom: 6px; transition: border-color 0.2s; }
 #add-page-panel input:focus { border-color: rgba(237,112,0,0.5); }
 #add-page-panel input::placeholder { color: rgba(255,255,255,0.2); }
-#add-page-btn { width: 100%; background: rgba(237,112,0,0.12); border: 1px solid rgba(237,112,0,0.35); border-radius: 6px; padding: 6px; color: #ed7000; font-size: 10px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.2s; }
-#add-page-btn:hover { background: rgba(237,112,0,0.22); }
-#add-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#add-page-submit-btn:hover { opacity: 0.7; }
 #add-page-error { font-size: 10px; color: #ff6b6b; margin-top: 4px; display: none; }
 #added-pages-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .added-page-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 9px 12px; transition: border-color 0.15s, background 0.15s; }
