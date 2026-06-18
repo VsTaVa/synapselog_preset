@@ -41,7 +41,8 @@ canvas { display: block; }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
 .page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:rgba(255,255,255,0.35); transition:color 0.15s; }
 .page-list-item .item-actions .btn-sync:hover { color:rgba(255,255,255,0.8); }
-.page-list-item .item-actions .btn-remove:hover { color:#ff6b6b; }
+.page-list-item .item-actions .btn-remove { color:#ed7000; }
+.page-list-item .item-actions .btn-remove:hover { color:#ffbe76; }
 .page-list-item .item-actions .btn-favorite { color:rgba(255,255,255,0.25); font-size:13px; }
 .page-list-item .item-actions .btn-favorite:hover { color:#ed7000; }
 .page-list-item .item-actions .btn-favorite.active { color:#ed7000; }

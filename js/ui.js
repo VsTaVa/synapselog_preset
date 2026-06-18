@@ -884,6 +884,7 @@ if (_savedToken || sessionStorage.getItem('snlog_pages')) {
     buildGraph();
     loop();
     loadFolderBatches();
+    loadMdFileHandles();
     setTimeout(restorePageList, 500);
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);

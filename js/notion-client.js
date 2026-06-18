@@ -7,28 +7,42 @@ let _addedPageIds = new Set();
 
 function _idbOpen() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('synapselog_db', 1);
-    req.onupgradeneeded = () => { req.result.createObjectStore('folders', { keyPath: 'id' }); };
+    const req = indexedDB.open('synapselog_db', 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('folders')) db.createObjectStore('folders', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
-async function _idbSaveFolder(rec) {
+async function _idbSave(store, rec) {
   const db = await _idbOpen();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('folders', 'readwrite');
-    tx.objectStore('folders').put(rec);
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(rec);
     tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
   });
 }
-async function _idbGetAllFolders() {
+async function _idbGetAll(store) {
   const db = await _idbOpen();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction('folders', 'readonly');
-    const req = tx.objectStore('folders').getAll();
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
     req.onsuccess = () => resolve(req.result || []); req.onerror = () => reject(req.error);
   });
 }
+async function _idbDelete(store, id) {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).delete(id);
+    tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
+  });
+}
+const _idbSaveFolder = rec => _idbSave('folders', rec);
+const _idbGetAllFolders = () => _idbGetAll('folders');
 
 async function _walkDirectory(dirHandle, relPath = '') {
   const files = [];
@@ -38,6 +52,75 @@ async function _walkDirectory(dirHandle, relPath = '') {
     else if (handle.kind === 'directory') { files.push(...await _walkDirectory(handle, path)); }
   }
   return files;
+}
+
+// ── 개별 .MD 파일 동기화 (File System Access API) ──────────────────────
+
+function pickMdFile() {
+  if (window.showOpenFilePicker) pickMdFileViaFSA();
+  else document.getElementById('md-import-file').click();
+}
+
+async function _importMdFileHandle(handle, pageId) {
+  const file = await handle.getFile();
+  const text = await file.text();
+  const title = file.name.replace(/\.md$|\.txt$/i, '');
+  pageId = pageId || ('md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
+  mergeGraph(title, text, pageId);
+  _addedPageIds.add(pageId);
+  sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: text, isMd: true, hasHandle: true, _cachedAt: Date.now() }));
+  return { pageId, title, lastModified: file.lastModified };
+}
+
+async function pickMdFileViaFSA() {
+  let handles;
+  try { handles = await window.showOpenFilePicker({ multiple: true, types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.txt'] } }] }); } catch(e) { return; }
+  if (!window._mdFileHandles) window._mdFileHandles = new Map();
+  for (const handle of handles) {
+    const { pageId, title, lastModified } = await _importMdFileHandle(handle);
+    window._mdFileHandles.set(pageId, { handle, lastModified });
+    try { await _idbSave('files', { id: pageId, handle, lastModified }); } catch(e) {}
+    const wrap = document.getElementById('sidebar-page-list-wrap');
+    if (wrap) wrap.style.display = 'block';
+    if (!window._sidebarPageList) window._sidebarPageList = [];
+    window._sidebarPageList.push({ id: pageId, title, isMd: true, hasHandle: true });
+  }
+  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
+}
+
+async function loadMdFileHandles() {
+  if (!window.showOpenFilePicker) return;
+  try {
+    const recs = await _idbGetAll('files');
+    if (!window._mdFileHandles) window._mdFileHandles = new Map();
+    recs.forEach(r => window._mdFileHandles.set(r.id, { handle: r.handle, lastModified: r.lastModified }));
+  } catch(e) {}
+}
+
+async function syncMdFile(pageId) {
+  const info = window._mdFileHandles?.get(pageId);
+  if (!info) return;
+  try {
+    let perm = await info.handle.queryPermission({ mode: 'read' });
+    if (perm !== 'granted') perm = await info.handle.requestPermission({ mode: 'read' });
+    if (perm !== 'granted') return;
+    const file = await info.handle.getFile();
+    if (file.lastModified === info.lastModified) return;
+    const removeIds = new Set(nodes.filter(n => n.sourcePageId === pageId).map(n => n.id));
+    nodes = nodes.filter(n => !removeIds.has(n.id));
+    edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
+    Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
+    const { lastModified } = await _importMdFileHandle(info.handle, pageId);
+    info.lastModified = lastModified;
+    await _idbSave('files', { id: pageId, handle: info.handle, lastModified });
+    refreshSidebarRender();
+  } catch(e) {}
+}
+
+async function syncMdFileHandles() {
+  if (!window._mdFileHandles || window._mdFileHandles.size === 0) return;
+  for (const pageId of [...window._mdFileHandles.keys()]) { await syncMdFile(pageId); }
+  refreshSidebarRender(); updateBulkActionsVisibility(); savePageList();
 }
 
 function pickFolder() {
@@ -161,7 +244,7 @@ async function removeFolderBatch(folderBatchId) {
   if (!batch) return;
   for (const [, info] of [...batch.files]) { removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`)); }
   window._folderBatches.delete(folderBatchId);
-  try { const db = await _idbOpen(); const tx = db.transaction('folders', 'readwrite'); tx.objectStore('folders').delete(folderBatchId); } catch(e) {}
+  try { await _idbDelete('folders', folderBatchId); } catch(e) {}
   renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
 }
 
@@ -342,7 +425,7 @@ function renderSidebarPageList(pages) {
         <span class="item-label" title="${p.title || '(제목 없음)'}">${p.title || '(제목 없음)'}${mdBadge}</span>
         <div class="item-actions">
           ${starBtn}
-          ${p.isMd ? '' : `<button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>`}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;
@@ -462,7 +545,7 @@ async function restorePageList() {
         const wrap = document.getElementById('sidebar-page-list-wrap');
         if (wrap) wrap.style.display = 'block';
         if (!window._sidebarPageList) window._sidebarPageList = [];
-        window._sidebarPageList.push({ id: pageId, title: data.title || title, isMd: true });
+        window._sidebarPageList.push({ id: pageId, title: data.title || title, isMd: true, hasHandle: !!data.hasHandle });
       }
     } else {
       _loadEntriesBackground(pageId);
@@ -508,6 +591,10 @@ function removePage(pageId, el) {
       }
     }
   }
+  if (window._mdFileHandles && window._mdFileHandles.has(pageId)) {
+    window._mdFileHandles.delete(pageId);
+    _idbDelete('files', pageId).catch(()=>{});
+  }
   isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender(); renderMdFolderList();
 }
 
@@ -530,6 +617,7 @@ function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지�
 async function bulkSync() {
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_'));
   for (const pid of ids) { await syncPage(pid); }
+  await syncMdFileHandles();
   await syncFolderBatches();
 }
 function confirmBulkClose() {
