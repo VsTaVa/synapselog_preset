@@ -85,41 +85,50 @@ async function loadFolderBatches() {
   } catch(e) {}
 }
 
+async function _syncOneFolderBatch(folderBatchId, batch) {
+  let perm = await batch.handle.queryPermission({ mode: 'read' });
+  if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'read' });
+  if (perm !== 'granted') return;
+  const entries = await _walkDirectory(batch.handle);
+  const seenPaths = new Set();
+  for (const { path, handle } of entries) {
+    seenPaths.add(path);
+    const existing = batch.files.get(path);
+    if (!existing) {
+      const r = await _importFolderFile(path, handle, folderBatchId);
+      batch.files.set(path, r);
+    } else {
+      const file = await handle.getFile();
+      if (file.lastModified !== existing.lastModified) {
+        const removeIds = new Set(nodes.filter(n => n.sourcePageId === existing.pageId).map(n => n.id));
+        nodes = nodes.filter(n => !removeIds.has(n.id));
+        edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
+        Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
+        const r = await _importFolderFile(path, handle, folderBatchId, existing.pageId);
+        batch.files.set(path, r);
+      }
+    }
+  }
+  for (const [path, info] of [...batch.files]) {
+    if (!seenPaths.has(path)) {
+      removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`));
+      batch.files.delete(path);
+    }
+  }
+  await _saveFolderBatchToIDB(folderBatchId);
+}
+
+async function syncFolderBatch(folderBatchId) {
+  const batch = window._folderBatches?.get(folderBatchId);
+  if (!batch) return;
+  try { await _syncOneFolderBatch(folderBatchId, batch); } catch(e) {}
+  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+}
+
 async function syncFolderBatches() {
   if (!window._folderBatches || window._folderBatches.size === 0) return;
   for (const [folderBatchId, batch] of window._folderBatches) {
-    try {
-      let perm = await batch.handle.queryPermission({ mode: 'read' });
-      if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'read' });
-      if (perm !== 'granted') continue;
-      const entries = await _walkDirectory(batch.handle);
-      const seenPaths = new Set();
-      for (const { path, handle } of entries) {
-        seenPaths.add(path);
-        const existing = batch.files.get(path);
-        if (!existing) {
-          const r = await _importFolderFile(path, handle, folderBatchId);
-          batch.files.set(path, r);
-        } else {
-          const file = await handle.getFile();
-          if (file.lastModified !== existing.lastModified) {
-            const removeIds = new Set(nodes.filter(n => n.sourcePageId === existing.pageId).map(n => n.id));
-            nodes = nodes.filter(n => !removeIds.has(n.id));
-            edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
-            Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
-            const r = await _importFolderFile(path, handle, folderBatchId, existing.pageId);
-            batch.files.set(path, r);
-          }
-        }
-      }
-      for (const [path, info] of [...batch.files]) {
-        if (!seenPaths.has(path)) {
-          removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`));
-          batch.files.delete(path);
-        }
-      }
-      await _saveFolderBatchToIDB(folderBatchId);
-    } catch(e) {}
+    try { await _syncOneFolderBatch(folderBatchId, batch); } catch(e) {}
   }
   renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
 }
@@ -135,7 +144,7 @@ function renderMdFolderList() {
     return `<div class="md-folder-group" data-folder-id="${folderBatchId}">
       <div class="md-folder-header">
         <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}">📁 ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
-        <div class="item-actions"><button title="폴더 전체 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
+        <div class="item-actions"><button title="이 폴더 동기화" onclick="syncFolderBatch('${folderBatchId}')">↻</button><button title="폴더 전체 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
       </div>
       <div class="md-folder-files">
         ${files.map(([path, info]) => `<div class="md-folder-file" data-page-id="${info.pageId}">
