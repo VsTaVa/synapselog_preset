@@ -185,6 +185,7 @@ function draw() {
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
+      if(_focusMode && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`;
       ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
     } else if(hasSearch) {
@@ -192,7 +193,9 @@ function draw() {
       else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,0.35); ctx.lineWidth=0.8/scale; ctx.setLineDash([4,5]); }
       else { ctx.strokeStyle=rgbStr(na._rgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
     } else {
-      const alpha=isHov?0.85:0.55, width=isHov?2.2:0.8;
+      if(_focusMode && na.dimmed && nb.dimmed) return;
+      const isDimEdge = _focusMode && (na.dimmed || nb.dimmed);
+      const alpha=isDimEdge?0.08:(isHov?0.85:0.55), width=isDimEdge?0.5:(isHov?2.2:0.8);
       ctx.strokeStyle=rgbStr(na._rgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
