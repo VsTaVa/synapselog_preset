@@ -31,11 +31,11 @@ function startWithMd(event) {
     setTimeout(() => {
       mergeGraph(title, markdown, pageId);
       _addedPageIds.add(pageId);
-      const list = document.getElementById('added-pages-list');
-      const item = document.createElement('div');
-      item.className = 'added-page-item'; item.dataset.pageId = pageId;
-      item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
-      list.appendChild(item);
+      const wrap = document.getElementById('sidebar-page-list-wrap');
+      if (wrap) wrap.style.display = 'block';
+      if (!window._sidebarPageList) window._sidebarPageList = [];
+      window._sidebarPageList.push({ id: pageId, title, isMd: true });
+      refreshSidebarRender();
       updateBulkActionsVisibility(); savePageList();
     }, 100);
   };
@@ -167,11 +167,12 @@ function renderSidebarPageList(pages) {
   const sorted = [...pages].filter(p => p.title && p.title.trim()).sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true }));
   listEl.innerHTML = sorted.map(p => {
     const isActive = _addedPageIds.has(p.id);
+    const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>' : '';
     if (isActive) {
       return `<div class="page-list-item active" data-page-id="${p.id}">
-        <span class="item-label" title="${p.title || '(제목 없음)'}">${p.title || '(제목 없음)'}</span>
+        <span class="item-label" title="${p.title || '(제목 없음)'}">${p.title || '(제목 없음)'}${mdBadge}</span>
         <div class="item-actions">
-          <button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>
+          ${p.isMd ? '' : `<button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;
@@ -321,6 +322,7 @@ function removePage(pageId, el) {
   nodes = nodes.filter(n => !removeIds.has(n.id));
   edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
   Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
+  if (pageId.startsWith('md_') && window._sidebarPageList) window._sidebarPageList = window._sidebarPageList.filter(p => p.id !== pageId);
   isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
 }
 
@@ -484,11 +486,11 @@ function _importMdFile(file) {
       const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
       mergeGraph(title, markdown, pageId);
       _addedPageIds.add(pageId);
-      const list = document.getElementById('added-pages-list');
-      const item = document.createElement('div');
-      item.className = 'added-page-item'; item.dataset.pageId = pageId;
-      item.innerHTML = `<span>📄 ${escapeHtml(title)} <span style="color:rgba(237,112,0,0.5);font-size:9px;">MD</span></span><div class="btn-group"><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
-      list.appendChild(item);
+      const wrap = document.getElementById('sidebar-page-list-wrap');
+      if (wrap) wrap.style.display = 'block';
+      if (!window._sidebarPageList) window._sidebarPageList = [];
+      window._sidebarPageList.push({ id: pageId, title, isMd: true });
+      refreshSidebarRender();
       resolve();
     };
     reader.readAsText(file);
