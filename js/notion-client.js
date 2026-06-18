@@ -6,6 +6,7 @@ let _addedPageIds = new Set();
 // ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
 
 function _idbOpen() {
+  if (!_useLocalStorage) return Promise.reject(new Error('로컬 저장 사용이 꺼져있어요'));
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('synapselog_db', 2);
     req.onupgradeneeded = () => {
