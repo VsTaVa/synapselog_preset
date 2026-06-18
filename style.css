@@ -23,11 +23,8 @@ canvas { display: block; }
 .panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 10px; }
 .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 #bulk-actions { display: flex; gap: 6px; }
-.icon-btn-sm { width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, border-color 0.2s, color 0.2s; }
-.icon-btn-sm.sync-all { background: rgba(237,112,0,0.85); border: 1px solid rgba(237,112,0,1); color: #15110a; }
-.icon-btn-sm.sync-all:hover { background: #ed7000; }
-.icon-btn-sm.close-all { background: rgba(255,255,255,0.05); border: 1px solid rgba(237,112,0,0.45); color: #ed7000; }
-.icon-btn-sm.close-all:hover { background: rgba(255,100,100,0.15); border-color: rgba(255,100,100,0.4); color: #ff6b6b; }
+.icon-btn-sm { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(237,112,0,0.12); border: 1px solid rgba(237,112,0,0.35); color: #ed7000; transition: background 0.2s; }
+.icon-btn-sm:hover { background: rgba(237,112,0,0.22); }
 #sidebar { position: fixed; top: 0; left: 0; width: 380px; height: 100vh; z-index: 200; display: flex; flex-direction: column; background: rgba(10,11,18,0.96); border-right: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(12px); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; overflow-x: hidden; }
 #sidebar-page-list::-webkit-scrollbar { width: 3px; }
 #sidebar-page-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
