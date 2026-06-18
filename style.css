@@ -40,7 +40,7 @@ canvas { display: block; }
 .page-list-item .item-actions .btn-remove:hover { color:#ff6b6b; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(-380px); }
-#sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
+#sidebar-logo { padding: 18px 18px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
 #sidebar-logo-text { display: flex; align-items: center; gap: 8px; }
 #sidebar-logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
 #sidebar-logo .accent { color: #ed7000; }
@@ -105,9 +105,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #confirm-ok { background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; }
 #confirm-ok:hover { background: rgba(237,112,0,0.25); }
 #detail-tabs-bar { width: 100%; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: stretch; }
-#tab-overflow-btn, #detail-panel-collapse-btn, #detail-panel-close { background: none; border: none; border-left: 1px solid rgba(255,255,255,0.06); cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; width: 40px; padding: 0; flex-shrink: 0; transition: color 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; }
+#tab-overflow-btn, #detail-panel-collapse-btn, #detail-panel-close { background: none; border: none; border-left: 1px solid rgba(255,255,255,0.06); cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; line-height: 1; width: 40px; padding: 0; flex-shrink: 0; transition: color 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; }
 #tab-overflow-btn:hover, #detail-panel-collapse-btn:hover, #detail-panel-close:hover { color: #fff; background: rgba(255,255,255,0.05); }
-#detail-panel-close { color: #ed7000 !important; }
+#detail-panel-close { color: #ed7000 !important; font-size: 18px; }
 #detail-tabs { display: flex; align-items: stretch; flex: 1; overflow: hidden; }
 .detail-tab { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 14px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; min-height: 42px; border-right: 1px solid rgba(255,255,255,0.06); transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; max-width: 160px; }
 .detail-tab span.tab-label { overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
