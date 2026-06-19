@@ -232,6 +232,7 @@ function renderMultiSelectMenu() {
   if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">🔗 연결</button>`;
   html += `<button onclick="multiSelectPath()">↔ 경로 찾기</button>`;
   html += `<button onclick="multiSelectIsolate()">⊙ 격리</button>`;
+  html += `<button onclick="multiSelectPin()">📌 고정/해제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
   repositionMultiSelectMenu();
@@ -328,6 +329,15 @@ function multiSelectIsolate() {
   _isolateActive = true;
   _pathConnectors = [];
   nodes.forEach(n => { n.dimmed = !ids.has(n.id); });
+  isStable = false;
+  clearMultiSelect();
+}
+
+function multiSelectPin() {
+  if (_multiSelected.length < 2) return;
+  const allFixed = _multiSelected.every(n => n.fixed);
+  _multiSelected.forEach(n => { n.fixed = !allFixed; if (!n.fixed) { n.vx = 0; n.vy = 0; } });
+  saveFixedPositions();
   isStable = false;
   clearMultiSelect();
 }
