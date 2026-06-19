@@ -12,7 +12,7 @@ let _showLabels = true;
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
-let _multiSelected = [], _isolateActive = false;
+let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
 let _pathConnectors = [];
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────

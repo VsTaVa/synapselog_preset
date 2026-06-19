@@ -150,6 +150,13 @@ function toggleConnectMode() {
   isStable = false;
 }
 
+function toggleMultiSelectMode() {
+  const cb = document.getElementById('multiselect-toggle-input');
+  _multiSelectMode = cb ? cb.checked : !_multiSelectMode;
+  if (!_multiSelectMode) clearMultiSelect();
+  isStable = false;
+}
+
 function handleConnectClick(n) {
   const s = document.getElementById('status');
   if (!_connectFirstNode) {
@@ -625,7 +632,7 @@ let _clickTimer = null;
 canvas.addEventListener('mouseup', e => {
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
-  if (elapsed < 150 && n && n === mouseDownNode && e.shiftKey) {
+  if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
     toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode && n.level > 0) {
     if (_connectMode) { handleConnectClick(n); }
@@ -739,7 +746,9 @@ canvas.addEventListener('touchend', e => {
   if (_touchMode === 'single' && !_touchMoved) {
     const elapsed = Date.now() - mouseDownTime;
     const n = mouseDownNode;
-    if (elapsed < 300 && n) {
+    if (elapsed < 300 && n && _multiSelectMode) {
+      toggleMultiSelect(n);
+    } else if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {
         clearTimeout(_clickTimer);
@@ -757,7 +766,9 @@ canvas.addEventListener('touchend', e => {
         _lastTapNode = n; _lastTapTime = now;
       }
     } else if (elapsed < 300 && !n) {
+      if (_multiSelected.length) clearMultiSelect();
       if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+      if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
       if (_connectMode && _connectFirstNode) {
         _connectFirstNode.connectSelected = false; _connectFirstNode = null;
         if (statusEl) statusEl.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
@@ -781,7 +792,7 @@ window.addEventListener('resize', () => {
 const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-fit':'화면 맞춤',
+    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'다중선택 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 검색',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
@@ -804,7 +815,7 @@ const LANG = {
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-fit':'Fit to View',
+    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Multi-Select Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Search keywords',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
