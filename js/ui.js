@@ -236,10 +236,12 @@ function renderMultiSelectMenu() {
   if (!menu) return;
   if (_multiSelected.length < 2) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
   let html = '';
-  if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">🔗 연결</button>`;
+  const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-1.5a3 3 0 0 1-.88-2.12V8a5 5 0 0 0-10 0v5.38a3 3 0 0 1-.88 2.12L5 17z"/></svg>`;
+  if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">${chainIcon} 연결/해제</button>`;
   html += `<button onclick="multiSelectPath()">↔ 경로 찾기</button>`;
   html += `<button onclick="multiSelectIsolate()">⊙ 격리</button>`;
-  html += `<button onclick="multiSelectPin()">📌 고정/해제</button>`;
+  html += `<button onclick="multiSelectPin()">${pinIcon} 고정/해제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
   repositionMultiSelectMenu();
@@ -803,6 +805,7 @@ const LANG = {
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
     'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
     'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
+    'sc-multiselectmode':'다중선택 모드','sc-multiselectmode-sub':'Shift 없이 클릭/탭으로 다중선택',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
@@ -826,6 +829,7 @@ const LANG = {
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
     'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
     'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
+    'sc-multiselectmode':'Multi-Select Mode','sc-multiselectmode-sub':'Click/tap to multi-select without Shift',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
@@ -858,12 +862,12 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleFocusMode: '2', toggleConnectMode: '3', fitGraph: ' ' };
+const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleFocusMode: '2', toggleConnectMode: '3', toggleMultiSelectMode: '4', fitGraph: ' ' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleLabels','toggleFocusMode','toggleConnectMode','fitGraph'].forEach(action => {
+  ['toggleLabels','toggleFocusMode','toggleConnectMode','toggleMultiSelectMode','fitGraph'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -898,6 +902,7 @@ document.addEventListener('keydown', e => {
   if (k === _shortcuts.toggleLabels) { e.preventDefault(); document.getElementById('label-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleFocusMode) { e.preventDefault(); document.getElementById('focus-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleConnectMode) { e.preventDefault(); document.getElementById('connect-toggle-input')?.click(); }
+  else if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.fitGraph) { e.preventDefault(); fitGraph(); }
 });
 
@@ -943,7 +948,7 @@ function openSettings() {
 
   ['pages','connect'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleLabels','toggleFocusMode','toggleConnectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  ['toggleLabels','toggleFocusMode','toggleConnectMode','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts','storage'].forEach(id => {

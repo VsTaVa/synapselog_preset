@@ -1,10 +1,10 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0c0d12; overflow: hidden; font-family: 'Noto Sans KR', sans-serif; }
 canvas { display: block; }
-.shortcut-hint { font-size: 10px; color: rgba(237,112,0,0.55); font-weight: 700; }
+.shortcut-hint { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; }
 #multi-select-menu { position: fixed; display: none; flex-direction: column; gap: 2px; z-index: 500; background: rgba(14,16,24,0.97); border: 1px solid rgba(237,112,0,0.4); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #multi-select-menu.open { display: flex; }
-#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 6px; }
 #multi-select-menu button:hover { background: rgba(237,112,0,0.15); color: #ed7000; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
