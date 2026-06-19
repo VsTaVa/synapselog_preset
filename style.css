@@ -1,6 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0c0d12; overflow: hidden; font-family: 'Noto Sans KR', sans-serif; }
 canvas { display: block; }
+.shortcut-hint { font-size: 10px; color: rgba(237,112,0,0.55); font-weight: 700; }
 #multi-select-menu { position: fixed; display: none; flex-direction: column; gap: 2px; z-index: 500; background: rgba(14,16,24,0.97); border: 1px solid rgba(237,112,0,0.4); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #multi-select-menu.open { display: flex; }
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; }

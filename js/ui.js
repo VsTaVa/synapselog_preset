@@ -862,6 +862,12 @@ const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleFocusMode: '2', toggleConne
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
+function updateShortcutHints() {
+  ['toggleLabels','toggleFocusMode','toggleConnectMode','fitGraph'].forEach(action => {
+    const el = document.getElementById('hint-' + action);
+    if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
+  });
+}
 
 let _recordingFor = null, _recordingBtn = null;
 function recordShortcut(action, btn) {
@@ -875,7 +881,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (e.key === 'Escape') { _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(_shortcuts[_recordingFor]); _recordingFor = null; _recordingBtn = null; return; }
     const k = e.key;
-    if (k.length === 1) { _shortcuts[_recordingFor] = k; saveShortcuts(); _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(k); _recordingFor = null; _recordingBtn = null; }
+    if (k.length === 1) { _shortcuts[_recordingFor] = k; saveShortcuts(); updateShortcutHints(); _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(k); _recordingFor = null; _recordingBtn = null; }
     return;
   }
   if (e.key === 'Escape') {
@@ -1023,6 +1029,7 @@ function restoreSearchHistory() {
 
 updateConfig();
 applyLang();
+updateShortcutHints();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
