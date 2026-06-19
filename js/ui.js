@@ -257,7 +257,7 @@ function multiSelectConnect() {
   clearMultiSelect();
 }
 
-function _bfsPath(startId, endId) {
+function _bfsRealPath(startId, endId) {
   if (startId === endId) return [startId];
   const visited = new Set([startId]);
   const prev = {};
@@ -279,9 +279,35 @@ function _bfsPath(startId, endId) {
   return path;
 }
 
+function _findRootId(id) {
+  let cur = id;
+  for (let i = 0; i < 30; i++) {
+    const n = nodeMap[cur];
+    if (!n) return null;
+    if (n.level === 0) return cur;
+    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    if (!pe) return cur;
+    cur = pe.from;
+  }
+  return cur;
+}
+
+function _bfsPath(startId, endId) {
+  const direct = _bfsRealPath(startId, endId);
+  if (direct.length) return direct;
+  const startRoot = _findRootId(startId), endRoot = _findRootId(endId);
+  if (!startRoot || !endRoot || startRoot === endRoot) return [];
+  const upPath = _bfsRealPath(startId, startRoot);
+  const downPath = _bfsRealPath(endRoot, endId);
+  if (!upPath.length || !downPath.length) return [];
+  _pathConnectors.push({ from: startRoot, to: endRoot });
+  return [...upPath, ...downPath];
+}
+
 function multiSelectPath() {
   if (_multiSelected.length < 2) return;
   const allPathIds = new Set();
+  _pathConnectors = [];
   for (let i = 0; i < _multiSelected.length; i++) {
     for (let j = i + 1; j < _multiSelected.length; j++) {
       _bfsPath(_multiSelected[i].id, _multiSelected[j].id).forEach(id => allPathIds.add(id));
@@ -300,6 +326,7 @@ function multiSelectIsolate() {
   const ids = new Set(_multiSelected.map(n => n.id));
   _focusMode = false; _focusNodeId = null;
   _isolateActive = true;
+  _pathConnectors = [];
   nodes.forEach(n => { n.dimmed = !ids.has(n.id); });
   isStable = false;
   clearMultiSelect();
@@ -598,7 +625,7 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && !n) {
     if (_multiSelected.length) clearMultiSelect();
     if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-    if (_isolateActive) { _isolateActive = false; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+    if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
     if (_connectMode && _connectFirstNode) {
       _connectFirstNode.connectSelected = false; _connectFirstNode = null;
       const s = document.getElementById('status');

@@ -13,6 +13,7 @@ let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false;
+let _pathConnectors = [];
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────
 
@@ -205,6 +206,17 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
   });
+
+  if(_isolateActive && _pathConnectors.length) {
+    _pathConnectors.forEach(c => {
+      const a = nodeMap[c.from], b = nodeMap[c.to];
+      if(!a || !b || !a.visible || !b.visible) return;
+      ctx.strokeStyle = 'rgba(237,112,0,0.9)';
+      ctx.lineWidth = 1.8*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
 
   if(hasSearch && searchMatches.size > 0) {
     const matchArr = [...searchMatches].map(id => nodeMap[id]).filter(n => n && n.visible);
