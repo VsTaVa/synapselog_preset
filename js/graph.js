@@ -187,8 +187,9 @@ function draw() {
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
-      ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`;
-      ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
+      const pathActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
+      if(pathActive) { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.95:0.85})`; ctx.lineWidth = (isHov?2.2:1.6)*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]); }
+      else { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`; ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]); }
     } else if(hasSearch) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
