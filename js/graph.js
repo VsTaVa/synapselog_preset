@@ -335,14 +335,14 @@ function draw() {
       }
     }
     if(n.multiSelected) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+15, 0, Math.PI*2);
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+8, 0, Math.PI*2);
       ctx.strokeStyle = '#ed7000'; ctx.lineWidth = 2/scale; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
       const order = _multiSelected.indexOf(n) + 1;
       if (order > 0) {
-        ctx.beginPath(); ctx.arc(n.x+r+8, n.y-r-8, 8/scale, 0, Math.PI*2);
+        ctx.beginPath(); ctx.arc(n.x+r+6, n.y-r-6, 7/scale, 0, Math.PI*2);
         ctx.fillStyle = '#ed7000'; ctx.fill();
         ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(order, n.x+r+8, n.y-r-8);
+        ctx.fillText(order, n.x+r+6, n.y-r-6);
         ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
