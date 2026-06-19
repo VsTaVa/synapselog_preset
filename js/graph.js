@@ -12,6 +12,7 @@ let _showLabels = true;
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
+let _multiSelected = [], _isolateActive = false;
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────
 
@@ -181,22 +182,22 @@ function draw() {
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
-      if(_focusMode && na.dimmed && nb.dimmed) return;
+      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
-      if(_focusMode && na.dimmed && nb.dimmed) return;
+      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`;
       ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]);
     } else if(hasSearch) {
-      if(_focusMode && na.dimmed && nb.dimmed) return;
-      const focusDim = _focusMode && (na.dimmed || nb.dimmed);
+      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
+      const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([5,3]); }
       else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([4,5]); }
       else { ctx.strokeStyle=rgbStr(na._rgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
     } else {
-      if(_focusMode && na.dimmed && nb.dimmed) return;
-      const isDimEdge = _focusMode && (na.dimmed || nb.dimmed);
+      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
+      const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       const alpha=isDimEdge?0.08:(isHov?0.85:0.55), width=isDimEdge?0.5:(isHov?2.2:0.8);
       ctx.strokeStyle=rgbStr(na._rgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
     }
@@ -224,7 +225,7 @@ function draw() {
       for(let i=0; i<path.length-1; i++) {
         const a=path[i], b=path[i+1];
         if(!a.visible||!b.visible) continue;
-        if(_focusMode && a.dimmed && b.dimmed) continue;
+        if((_focusMode||_isolateActive) && a.dimmed && b.dimmed) continue;
         if(a.level===1&&b.level===1) continue;
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)||existingEdgeSet.has(key)) continue;
@@ -241,7 +242,7 @@ function draw() {
       for(let i=0; i<rootArr.length-1; i++) {
         const a=rootArr[i], b=rootArr[i+1];
         if(!a.visible||!b.visible) continue;
-        if(_focusMode && a.dimmed && b.dimmed) continue;
+        if((_focusMode||_isolateActive) && a.dimmed && b.dimmed) continue;
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)) continue;
         drawnPairs.add(key);
@@ -255,7 +256,7 @@ function draw() {
   nodes.forEach(n => {
     if(!n.visible) return;
     const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
-    const isDim=(hasSearch&&!isMatch)||(_focusMode&&n.dimmed);
+    const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
@@ -331,6 +332,18 @@ function draw() {
         const gDel2 = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+7);
         gDel2.addColorStop(0, 'rgba(255,80,80,0.55)'); gDel2.addColorStop(1, 'rgba(255,80,80,0)');
         ctx.fillStyle = gDel2; ctx.fill();
+      }
+    }
+    if(n.multiSelected) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+15, 0, Math.PI*2);
+      ctx.strokeStyle = '#ed7000'; ctx.lineWidth = 2/scale; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      const order = _multiSelected.indexOf(n) + 1;
+      if (order > 0) {
+        ctx.beginPath(); ctx.arc(n.x+r+8, n.y-r-8, 8/scale, 0, Math.PI*2);
+        ctx.fillStyle = '#ed7000'; ctx.fill();
+        ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(order, n.x+r+8, n.y-r-8);
+        ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
     if(_showLabels) {

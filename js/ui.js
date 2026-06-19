@@ -208,6 +208,103 @@ function removeManualLink(fromId, toId) {
   saveManualLinks(); isStable = false;
 }
 
+// ── 다중 선택 (Shift+클릭) — 연결/경로찾기/격리 ───────────────────────
+
+function toggleMultiSelect(n) {
+  const idx = _multiSelected.indexOf(n);
+  if (idx !== -1) { _multiSelected.splice(idx, 1); n.multiSelected = false; }
+  else { _multiSelected.push(n); n.multiSelected = true; }
+  renderMultiSelectMenu();
+  isStable = false;
+}
+
+function clearMultiSelect() {
+  _multiSelected.forEach(n => { n.multiSelected = false; });
+  _multiSelected = [];
+  renderMultiSelectMenu();
+}
+
+function renderMultiSelectMenu() {
+  const menu = document.getElementById('multi-select-menu');
+  if (!menu) return;
+  if (_multiSelected.length < 2) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
+  let html = '';
+  if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">🔗 연결</button>`;
+  html += `<button onclick="multiSelectPath()">↔ 경로 찾기</button>`;
+  html += `<button onclick="multiSelectIsolate()">⊙ 격리</button>`;
+  menu.innerHTML = html;
+  menu.classList.add('open');
+  repositionMultiSelectMenu();
+}
+
+function repositionMultiSelectMenu() {
+  if (_multiSelected.length < 2) return;
+  const menu = document.getElementById('multi-select-menu');
+  if (!menu || !menu.classList.contains('open')) return;
+  const last = _multiSelected[_multiSelected.length - 1];
+  const screenX = (last.x - W / 2) * scale + W / 2 + panX;
+  const screenY = (last.y - H / 2) * scale + H / 2 + panY;
+  menu.style.left = screenX + 'px';
+  menu.style.top = (screenY + 20) + 'px';
+}
+
+function multiSelectConnect() {
+  if (_multiSelected.length !== 2) return;
+  const [a, b] = _multiSelected;
+  const existing = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
+  if (existing) removeManualLink(a.id, b.id);
+  else { edges.push({ from: a.id, to: b.id, manualLink: true }); saveManualLinks(); isStable = false; }
+  clearMultiSelect();
+}
+
+function _bfsPath(startId, endId) {
+  if (startId === endId) return [startId];
+  const visited = new Set([startId]);
+  const prev = {};
+  const queue = [startId];
+  while (queue.length) {
+    const cur = queue.shift();
+    if (cur === endId) break;
+    edges.forEach(e => {
+      let next = null;
+      if (e.from === cur) next = e.to;
+      else if (e.to === cur) next = e.from;
+      if (next && !visited.has(next)) { visited.add(next); prev[next] = cur; queue.push(next); }
+    });
+  }
+  if (!visited.has(endId)) return [];
+  const path = [endId];
+  let cur = endId;
+  while (cur !== startId) { cur = prev[cur]; path.unshift(cur); }
+  return path;
+}
+
+function multiSelectPath() {
+  if (_multiSelected.length < 2) return;
+  const allPathIds = new Set();
+  for (let i = 0; i < _multiSelected.length; i++) {
+    for (let j = i + 1; j < _multiSelected.length; j++) {
+      _bfsPath(_multiSelected[i].id, _multiSelected[j].id).forEach(id => allPathIds.add(id));
+    }
+  }
+  if (allPathIds.size === 0) { clearMultiSelect(); return; }
+  _focusMode = false; _focusNodeId = null;
+  _isolateActive = true;
+  nodes.forEach(n => { n.dimmed = !allPathIds.has(n.id); });
+  isStable = false;
+  clearMultiSelect();
+}
+
+function multiSelectIsolate() {
+  if (_multiSelected.length < 2) return;
+  const ids = new Set(_multiSelected.map(n => n.id));
+  _focusMode = false; _focusNodeId = null;
+  _isolateActive = true;
+  nodes.forEach(n => { n.dimmed = !ids.has(n.id); });
+  isStable = false;
+  clearMultiSelect();
+}
+
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
 
 function toggleSidebar() {
@@ -491,13 +588,17 @@ let _clickTimer = null;
 canvas.addEventListener('mouseup', e => {
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
-  if (elapsed < 150 && n && n === mouseDownNode && n.level > 0) {
+  if (elapsed < 150 && n && n === mouseDownNode && e.shiftKey) {
+    toggleMultiSelect(n);
+  } else if (elapsed < 150 && n && n === mouseDownNode && n.level > 0) {
     if (_connectMode) { handleConnectClick(n); }
     else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
   } else if (elapsed < 150 && n && n === mouseDownNode && n.level === 0) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
   } else if (elapsed < 150 && !n) {
+    if (_multiSelected.length) clearMultiSelect();
     if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+    if (_isolateActive) { _isolateActive = false; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
     if (_connectMode && _connectFirstNode) {
       _connectFirstNode.connectSelected = false; _connectFirstNode = null;
       const s = document.getElementById('status');
@@ -873,7 +974,7 @@ function restoreSearchHistory() {
 updateConfig();
 applyLang();
 
-function loop() { simulate(); draw(); requestAnimationFrame(loop); }
+function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
 if (_savedToken || sessionStorage.getItem('snlog_pages')) {
   document.addEventListener('DOMContentLoaded', () => {
