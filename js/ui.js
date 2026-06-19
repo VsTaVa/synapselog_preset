@@ -239,6 +239,7 @@ function renderMultiSelectMenu() {
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-1.5a3 3 0 0 1-.88-2.12V8a5 5 0 0 0-10 0v5.38a3 3 0 0 1-.88 2.12L5 17z"/></svg>`;
   if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">${chainIcon} 연결/해제</button>`;
+  else if (_multiSelected.length >= 3) html += `<button onclick="multiSelectChainConnect()">${chainIcon} 순서대로 연결</button>`;
   html += `<button onclick="multiSelectPath()">↔ 경로 찾기</button>`;
   html += `<button onclick="multiSelectIsolate()">⊙ 격리</button>`;
   html += `<button onclick="multiSelectPin()">${pinIcon} 고정/해제</button>`;
@@ -264,6 +265,18 @@ function multiSelectConnect() {
   const existing = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
   if (existing) removeManualLink(a.id, b.id);
   else { edges.push({ from: a.id, to: b.id, manualLink: true }); saveManualLinks(); isStable = false; }
+  clearMultiSelect();
+}
+
+function multiSelectChainConnect() {
+  if (_multiSelected.length < 3) return;
+  for (let i = 0; i < _multiSelected.length - 1; i++) {
+    const a = _multiSelected[i], b = _multiSelected[i + 1];
+    const existing = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
+    if (!existing) edges.push({ from: a.id, to: b.id, manualLink: true });
+  }
+  saveManualLinks();
+  isStable = false;
   clearMultiSelect();
 }
 
