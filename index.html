@@ -156,32 +156,18 @@
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title s-collapsible" onclick="toggleSection('shortcuts')">
-        <span class="s-arrow" id="arrow-shortcuts">▾</span>
-        <span data-i18n="s-shortcuts">키보드 단축키</span>
+      <div class="settings-row">
+        <div><div class="settings-row-label" data-i18n="s-local">로컬 저장 사용</div><div class="settings-row-sub" data-i18n="s-local-sub">브라우저를 닫아도 데이터가 유지됩니다</div></div>
+        <label class="s-toggle"><input type="checkbox" id="s-local-toggle" onchange="onStorageToggle(this)"><div class="s-toggle-track"></div><div class="s-toggle-thumb"></div></label>
       </div>
-      <div class="s-section-body" id="section-shortcuts">
-        <div style="font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:8px;" data-i18n="s-shortcuts-hint">버튼 클릭 후 원하는 키 입력</div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-lbl">제목 표시</div><div class="settings-row-sub" data-i18n="sc-lbl-sub">제목 표시 / 그래프</div></div><button class="shortcut-btn" id="sc-toggleLabels" onclick="recordShortcut('toggleLabels',this)">1</button></div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-multiselectmode">노드 선택 모드</div><div class="settings-row-sub" data-i18n="sc-multiselectmode-sub">노드 클릭하여 액션 메뉴 열기</div></div><button class="shortcut-btn" id="sc-toggleMultiSelectMode" onclick="recordShortcut('toggleMultiSelectMode',this)">2</button></div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-fit">화면 맞춤</div><div class="settings-row-sub" data-i18n="sc-fit-sub">전체 화면 맞춤</div></div><button class="shortcut-btn" id="sc-fitGraph" onclick="recordShortcut('fitGraph',this)">Space</button></div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-hide">패널 숨기기</div><div class="settings-row-sub" data-i18n="sc-hide-sub">Esc (고정)</div></div><button class="shortcut-btn fixed-key">Esc</button></div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-pin">노드 고정 / 해제</div><div class="settings-row-sub" data-i18n="sc-pin-sub">더블클릭으로 고정</div></div><button class="shortcut-btn fixed-key" data-i18n="sc-dblclick">더블클릭</button></div>
-        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-multiselect">노드 선택(Shift)</div><div class="settings-row-sub" data-i18n="sc-multiselect-sub">연결 / 경로찾기 / 격리 / 고정</div></div><button class="shortcut-btn fixed-key" data-i18n="sc-shiftclick">Shift+클릭</button></div>
-      </div>
+      <div class="s-warn" id="s-local-warn" data-i18n="s-local-warn">⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.</div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title s-collapsible" onclick="toggleSection('storage')">
         <span class="s-arrow" id="arrow-storage">▾</span>
-        <span data-i18n="s-storage">저장 &amp; 캐시</span>
+        <span data-i18n="s-storage">저장 &amp; 캐시 세부조정</span>
       </div>
       <div class="s-section-body" id="section-storage">
-        <div class="settings-row">
-          <div><div class="settings-row-label" data-i18n="s-local">로컬 저장 사용</div><div class="settings-row-sub" data-i18n="s-local-sub">브라우저를 닫아도 데이터가 유지됩니다</div></div>
-          <label class="s-toggle"><input type="checkbox" id="s-local-toggle" onchange="onStorageToggle(this)"><div class="s-toggle-track"></div><div class="s-toggle-thumb"></div></label>
-        </div>
-        <div class="s-warn" id="s-local-warn" data-i18n="s-local-warn">⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.</div>
-        <div style="height:10px;"></div>
         <div class="settings-row">
           <div><div class="settings-row-label" data-i18n="s-page-cache">페이지 캐시</div><div class="settings-row-sub" data-i18n="s-page-cache-sub">불러온 노션 페이지 내용</div></div>
           <div style="display:flex;align-items:center;gap:8px;"><label class="s-toggle"><input type="checkbox" id="s-scope-pages" checked><div class="s-toggle-track"></div><div class="s-toggle-thumb"></div></label><button class="s-delete-btn" onclick="clearCache('pages')" data-i18n="s-del">삭제</button></div>
@@ -191,6 +177,21 @@
           <div style="display:flex;align-items:center;gap:8px;"><label class="s-toggle"><input type="checkbox" id="s-scope-connect" checked><div class="s-toggle-track"></div><div class="s-toggle-thumb"></div></label><button class="s-delete-btn" onclick="clearCache('connect')" data-i18n="s-del">삭제</button></div>
         </div>
         <div class="settings-row"><span class="settings-row-label" data-i18n="s-all-cache">전체 캐시</span><button class="s-delete-btn" onclick="clearCache('all')" data-i18n="s-del-all">전체 삭제</button></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title s-collapsible" onclick="toggleSection('shortcuts')">
+        <span class="s-arrow" id="arrow-shortcuts">▾</span>
+        <span data-i18n="s-shortcuts">키보드 단축키</span>
+      </div>
+      <div class="s-section-body" id="section-shortcuts">
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;" data-i18n="s-shortcuts-hint">버튼 클릭 후 원하는 키 입력</div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-lbl">제목 표시</div><div class="settings-row-sub" data-i18n="sc-lbl-sub">제목 표시 / 그래프</div></div><button class="shortcut-btn" id="sc-toggleLabels" onclick="recordShortcut('toggleLabels',this)">1</button></div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-multiselectmode">노드 선택 모드</div><div class="settings-row-sub" data-i18n="sc-multiselectmode-sub">노드 클릭하여 액션 메뉴 열기</div></div><button class="shortcut-btn" id="sc-toggleMultiSelectMode" onclick="recordShortcut('toggleMultiSelectMode',this)">2</button></div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-fit">화면 맞춤</div><div class="settings-row-sub" data-i18n="sc-fit-sub">전체 화면 맞춤</div></div><button class="shortcut-btn" id="sc-fitGraph" onclick="recordShortcut('fitGraph',this)">Space</button></div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-hide">패널 숨기기</div><div class="settings-row-sub" data-i18n="sc-hide-sub">Esc (고정)</div></div><button class="shortcut-btn fixed-key">Esc</button></div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-pin">노드 고정 / 해제</div><div class="settings-row-sub" data-i18n="sc-pin-sub">더블클릭으로 고정</div></div><button class="shortcut-btn fixed-key" data-i18n="sc-dblclick">더블클릭</button></div>
+        <div class="settings-row"><div><div class="settings-row-label" data-i18n="sc-multiselect">노드 선택(Shift)</div><div class="settings-row-sub" data-i18n="sc-multiselect-sub">연결 / 경로찾기 / 격리 / 고정</div></div><button class="shortcut-btn fixed-key" data-i18n="sc-shiftclick">Shift+클릭</button></div>
       </div>
     </div>
     <button class="settings-close-btn" onclick="closeSettings()" data-i18n="s-close-btn">닫기</button>
