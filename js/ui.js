@@ -153,7 +153,7 @@ function toggleConnectMode() {
 function toggleMultiSelectMode() {
   const cb = document.getElementById('multiselect-toggle-input');
   _multiSelectMode = cb ? cb.checked : !_multiSelectMode;
-  if (!_multiSelectMode) clearMultiSelect();
+  if (!_multiSelectMode && typeof clearAllModes === 'function') clearAllModes();
   isStable = false;
 }
 
@@ -234,22 +234,30 @@ function clearMultiSelect() {
 function renderMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu) return;
-  if (_multiSelected.length < 2) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
-  let html = '';
+  if (_multiSelected.length < 1) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
+  const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-1.5a3 3 0 0 1-.88-2.12V8a5 5 0 0 0-10 0v5.38a3 3 0 0 1-.88 2.12L5 17z"/></svg>`;
-  if (_multiSelected.length === 2) html += `<button onclick="multiSelectConnect()">${chainIcon} 연결/해제</button>`;
-  else if (_multiSelected.length >= 3) html += `<button onclick="multiSelectChainConnect()">${chainIcon} 순서대로 연결</button>`;
-  html += `<button onclick="multiSelectPath()">↔ 경로 찾기</button>`;
-  html += `<button onclick="multiSelectIsolate()">⊙ 격리</button>`;
-  html += `<button onclick="multiSelectPin()">${pinIcon} 고정/해제</button>`;
+  const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
+  let html = '';
+  if (n === 1) {
+    html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
+    html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
+  } else if (n === 2) {
+    html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결합니다. 이미 연결돼 있으면 해제합니다">${chainIcon} 노드 간 연결</button>`;
+  } else {
+    html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로(1→2→3…) 인접한 노드끼리 연결합니다">${chainIcon} 순서대로 연결</button>`;
+  }
+  html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
+  html += `<button onclick="multiSelectIsolate()" title="선택한 노드만 남기고 나머지를 흐리게 표시합니다">⊙ 격리</button>`;
+  html += `<button onclick="multiSelectPin()" title="선택한 노드의 위치를 고정하거나 해제합니다">${pinIcon} 고정/해제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
   repositionMultiSelectMenu();
 }
 
 function repositionMultiSelectMenu() {
-  if (_multiSelected.length < 2) return;
+  if (_multiSelected.length < 1) return;
   const menu = document.getElementById('multi-select-menu');
   if (!menu || !menu.classList.contains('open')) return;
   const last = _multiSelected[_multiSelected.length - 1];
@@ -257,6 +265,27 @@ function repositionMultiSelectMenu() {
   const screenY = (last.y - H / 2) * scale + H / 2 + panY;
   menu.style.left = screenX + 'px';
   menu.style.top = (screenY + 20) + 'px';
+}
+
+function multiSelectStartConnect() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  _connectMode = true;
+  _connectFirstNode = node; node.connectSelected = true;
+  const s = document.getElementById('status');
+  if (s) s.textContent = `"${node.label}" 기준 — 연결할 노드를 클릭하세요`;
+  isStable = false;
+}
+
+function multiSelectFocus() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  _isolateActive = false; _pathConnectors = [];
+  _focusMode = true;
+  applyFocusMode(node.id);
+  isStable = false;
 }
 
 function multiSelectConnect() {
@@ -328,12 +357,17 @@ function _bfsPath(startId, endId) {
 }
 
 function multiSelectPath() {
-  if (_multiSelected.length < 2) return;
+  if (_multiSelected.length < 1) return;
   const allPathIds = new Set();
   _pathConnectors = [];
-  for (let i = 0; i < _multiSelected.length; i++) {
-    for (let j = i + 1; j < _multiSelected.length; j++) {
-      _bfsPath(_multiSelected[i].id, _multiSelected[j].id).forEach(id => allPathIds.add(id));
+  if (_multiSelected.length === 1) {
+    const startId = _multiSelected[0].id, rootId = _findRootId(startId);
+    if (rootId) _bfsRealPath(startId, rootId).forEach(id => allPathIds.add(id));
+  } else {
+    for (let i = 0; i < _multiSelected.length; i++) {
+      for (let j = i + 1; j < _multiSelected.length; j++) {
+        _bfsPath(_multiSelected[i].id, _multiSelected[j].id).forEach(id => allPathIds.add(id));
+      }
     }
   }
   if (allPathIds.size === 0) { clearMultiSelect(); return; }
@@ -345,7 +379,7 @@ function multiSelectPath() {
 }
 
 function multiSelectIsolate() {
-  if (_multiSelected.length < 2) return;
+  if (_multiSelected.length < 1) return;
   const ids = new Set(_multiSelected.map(n => n.id));
   _focusMode = false; _focusNodeId = null;
   _isolateActive = true;
@@ -356,7 +390,7 @@ function multiSelectIsolate() {
 }
 
 function multiSelectPin() {
-  if (_multiSelected.length < 2) return;
+  if (_multiSelected.length < 1) return;
   const allFixed = _multiSelected.every(n => n.fixed);
   _multiSelected.forEach(n => { n.fixed = !allFixed; if (!n.fixed) { n.vx = 0; n.vy = 0; } });
   saveFixedPositions();
@@ -647,27 +681,31 @@ let _clickTimer = null;
 canvas.addEventListener('mouseup', e => {
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
-  if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
+  if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
+    handleConnectClick(n);
+  } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
     toggleMultiSelect(n);
-  } else if (elapsed < 150 && n && n === mouseDownNode && n.level > 0) {
-    if (_connectMode) { handleConnectClick(n); }
-    else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
-  } else if (elapsed < 150 && n && n === mouseDownNode && n.level === 0) {
+  } else if (elapsed < 150 && n && n === mouseDownNode) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
   } else if (elapsed < 150 && !n) {
-    if (_multiSelected.length) clearMultiSelect();
-    if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-    if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-    if (_connectMode && _connectFirstNode) {
-      _connectFirstNode.connectSelected = false; _connectFirstNode = null;
-      const s = document.getElementById('status');
-      if (s) s.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
-      isStable = false;
-    }
+    clearAllModes();
   }
   if (drag && drag.fixed) saveFixedPositions();
   drag = null; isPanning = false; canvas.style.cursor = 'default';
 });
+
+function clearAllModes() {
+  if (_multiSelected.length) clearMultiSelect();
+  if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_connectMode) {
+    _connectMode = false;
+    if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
+    nodes.forEach(nd => { nd.connectSelected = false; });
+    const s = document.getElementById('status'); if (s) s.textContent = '';
+    isStable = false;
+  }
+}
 
 canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; drag = null; isPanning = false; });
 
@@ -761,7 +799,9 @@ canvas.addEventListener('touchend', e => {
   if (_touchMode === 'single' && !_touchMoved) {
     const elapsed = Date.now() - mouseDownTime;
     const n = mouseDownNode;
-    if (elapsed < 300 && n && _multiSelectMode) {
+    if (elapsed < 300 && n && _connectMode && n.level > 0) {
+      handleConnectClick(n);
+    } else if (elapsed < 300 && n && _multiSelectMode) {
       toggleMultiSelect(n);
     } else if (elapsed < 300 && n) {
       const now = Date.now();
@@ -772,23 +812,12 @@ canvas.addEventListener('touchend', e => {
         saveFixedPositions(); isStable = false;
         if (statusEl) { statusEl.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1800); }
         _lastTapNode = null; _lastTapTime = 0;
-      } else if (n.level > 0) {
-        if (_connectMode) { handleConnectClick(n); }
-        else { clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220); }
-        _lastTapNode = n; _lastTapTime = now;
       } else {
         clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
         _lastTapNode = n; _lastTapTime = now;
       }
     } else if (elapsed < 300 && !n) {
-      if (_multiSelected.length) clearMultiSelect();
-      if (_focusMode) { _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-      if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-      if (_connectMode && _connectFirstNode) {
-        _connectFirstNode.connectSelected = false; _connectFirstNode = null;
-        if (statusEl) statusEl.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
-        isStable = false;
-      }
+      clearAllModes();
     }
   }
   if (drag && drag.fixed) saveFixedPositions();
@@ -855,7 +884,7 @@ window.addEventListener('resize', () => {
 const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'다중선택 모드','lbl-fit':'화면 맞춤',
+    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 검색',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
@@ -866,11 +895,11 @@ const LANG = {
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
     'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
     'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
-    'sc-multiselectmode':'다중선택 모드','sc-multiselectmode-sub':'Shift 없이 클릭/탭으로 다중선택',
+    'sc-multiselectmode':'노드 선택 모드','sc-multiselectmode-sub':'노드 클릭하여 액션 메뉴 열기',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
-    'sc-multiselect':'다중 선택','sc-multiselect-sub':'연결 / 경로찾기 / 격리','sc-shiftclick':'Shift+클릭',
+    'sc-multiselect':'노드 선택(Shift)','sc-multiselect-sub':'연결 / 경로찾기 / 격리 / 고정','sc-shiftclick':'Shift+클릭',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'브라우저를 닫아도 데이터가 유지됩니다',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
@@ -879,7 +908,7 @@ const LANG = {
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Multi-Select Mode','lbl-fit':'Fit to View',
+    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Search keywords',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
@@ -890,11 +919,11 @@ const LANG = {
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
     'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
     'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
-    'sc-multiselectmode':'Multi-Select Mode','sc-multiselectmode-sub':'Click/tap to multi-select without Shift',
+    'sc-multiselectmode':'Node Select Mode','sc-multiselectmode-sub':'Click nodes to open action menu',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
-    'sc-multiselect':'Multi-select','sc-multiselect-sub':'Connect / Path / Isolate','sc-shiftclick':'Shift+Click',
+    'sc-multiselect':'Node Select(Shift)','sc-multiselect-sub':'Connect / Path / Isolate / Pin','sc-shiftclick':'Shift+Click',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'Data persists after browser is closed',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
@@ -923,12 +952,15 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleFocusMode: '2', toggleConnectMode: '3', toggleMultiSelectMode: '4', fitGraph: ' ' };
+const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleMultiSelectMode: '2', fitGraph: ' ' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
+// 구버전 단축키 정리 (포커스/연결 모드 제거, 노드선택 모드 4→2 이전)
+delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode;
+if (_shortcuts.toggleMultiSelectMode === '4' || _shortcuts.toggleMultiSelectMode === '3') _shortcuts.toggleMultiSelectMode = '2';
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleLabels','toggleFocusMode','toggleConnectMode','toggleMultiSelectMode','fitGraph'].forEach(action => {
+  ['toggleLabels','toggleMultiSelectMode','fitGraph'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -961,8 +993,6 @@ document.addEventListener('keydown', e => {
   if (tag === 'INPUT' || tag === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key;
   if (k === _shortcuts.toggleLabels) { e.preventDefault(); document.getElementById('label-toggle-input')?.click(); }
-  else if (k === _shortcuts.toggleFocusMode) { e.preventDefault(); document.getElementById('focus-toggle-input')?.click(); }
-  else if (k === _shortcuts.toggleConnectMode) { e.preventDefault(); document.getElementById('connect-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.fitGraph) { e.preventDefault(); fitGraph(); }
 });
@@ -1009,7 +1039,7 @@ function openSettings() {
 
   ['pages','connect'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleLabels','toggleFocusMode','toggleConnectMode','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  ['toggleLabels','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts','storage'].forEach(id => {
