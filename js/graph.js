@@ -434,8 +434,9 @@ function fitGraph() {
   if (nodes.length === 0) return;
   const visibleNodes = nodes.filter(n => n.visible);
   if (visibleNodes.length === 0) return;
-  const sidebarWidth = document.getElementById('sidebar').classList.contains('collapsed') ? 0 : 380;
-  const detailWidth = document.getElementById('detail-panel').classList.contains('open') ? 400 : 0;
+  const sbEl = document.getElementById('sidebar'), dpEl = document.getElementById('detail-panel');
+  const sidebarWidth = sbEl.classList.contains('collapsed') ? 0 : sbEl.offsetWidth;
+  const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
   const minX = Math.min(...visibleNodes.map(n => n.x)), maxX = Math.max(...visibleNodes.map(n => n.x));

@@ -802,6 +802,54 @@ window.addEventListener('resize', () => {
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 });
 
+// ── 패널 너비 조절 (드래그) ───────────────────────────────────────────
+
+(function restorePanelWidths() {
+  const sw = localStorage.getItem('snlog_sidebar_w');
+  const dw = localStorage.getItem('snlog_detail_w');
+  if (sw) document.documentElement.style.setProperty('--sidebar-w', sw + 'px');
+  if (dw) document.documentElement.style.setProperty('--detail-w', dw + 'px');
+})();
+
+(function setupPanelResize() {
+  const sH = document.getElementById('sidebar-resize-handle');
+  const dH = document.getElementById('detail-resize-handle');
+  if (!sH || !dH) return;
+  let active = null;
+  function onMove(clientX) {
+    if (active === 'sidebar') {
+      const w = Math.max(260, Math.min(640, clientX));
+      document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+    } else if (active === 'detail') {
+      const w = Math.max(280, Math.min(720, window.innerWidth - clientX - 12));
+      document.documentElement.style.setProperty('--detail-w', w + 'px');
+    }
+  }
+  function start(which, e) {
+    active = which; e.preventDefault();
+    document.body.classList.add('resizing-panel');
+    (which === 'sidebar' ? sH : dH).classList.add('dragging');
+  }
+  function end() {
+    if (!active) return;
+    const prop = active === 'sidebar' ? '--sidebar-w' : '--detail-w';
+    const key = active === 'sidebar' ? 'snlog_sidebar_w' : 'snlog_detail_w';
+    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue(prop));
+    if (v) localStorage.setItem(key, v);
+    document.body.classList.remove('resizing-panel');
+    sH.classList.remove('dragging'); dH.classList.remove('dragging');
+    active = null;
+  }
+  sH.addEventListener('mousedown', e => start('sidebar', e));
+  dH.addEventListener('mousedown', e => start('detail', e));
+  window.addEventListener('mousemove', e => { if (active) onMove(e.clientX); });
+  window.addEventListener('mouseup', end);
+  sH.addEventListener('touchstart', e => start('sidebar', e), { passive: false });
+  dH.addEventListener('touchstart', e => start('detail', e), { passive: false });
+  window.addEventListener('touchmove', e => { if (active) { onMove(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  window.addEventListener('touchend', end);
+})();
+
 // ── 언어 시스템 ────────────────────────────────────────────────────────
 
 const LANG = {
