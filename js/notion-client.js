@@ -860,13 +860,13 @@ function exportGraph() {
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
       const fontSize = n.level <= 1 ? 12 : 10;
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
-      ctx2.fillStyle = '#ffffff';
+      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
       ctx2.fillText(lbl, n.x, n.y + r + 4);
     }
   });
   ctx2.restore();
-  ctx2.fillStyle = '#ffffff'; ctx2.font = 'bold 13px sans-serif';
+  ctx2.fillStyle = 'rgba(255,255,255,0.15)'; ctx2.font = 'bold 13px sans-serif';
   ctx2.textAlign = 'right'; ctx2.textBaseline = 'bottom';
   ctx2.fillText('SynapseLog', SIZE-16, SIZE-14);
   const link = document.createElement('a');
