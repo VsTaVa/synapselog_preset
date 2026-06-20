@@ -188,14 +188,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(237,112,0,0.2); border-top-color: #ed7000; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #loading-text { font-size: 12px; color: rgba(255,255,255,0.5); }
-#sidebar-profile { flex-shrink: 0; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.07); display: none; align-items: center; gap: 10px; cursor: pointer; transition: background 0.15s; }
-#sidebar-profile:hover { background: rgba(255,255,255,0.04); }
-#profile-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: rgba(237,112,0,0.2); border: 1px solid rgba(237,112,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #ed7000; overflow: hidden; }
+#sidebar-profile { flex-shrink: 0; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+#profile-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: rgba(237,112,0,0.2); border: 1px solid rgba(237,112,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #ed7000; overflow: hidden; cursor: pointer; }
 #profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-#profile-info { flex: 1; min-width: 0; }
-#profile-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#profile-workspace { font-size: 10px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-#profile-gear { flex-shrink: 0; color: #ed7000; display: flex; align-items: center; }
+#profile-info { flex: 1; min-width: 0; cursor: pointer; }
+#profile-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#profile-workspace { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+#profile-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.profile-action-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 5px 6px; border-radius: 7px; color: rgba(255,255,255,0.6); font-family: inherit; transition: background 0.15s, color 0.15s; }
+.profile-action-btn span { font-size: 9px; font-weight: 600; white-space: nowrap; }
+.profile-action-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.profile-action-btn.accent { color: #ed7000; }
+.profile-action-btn.accent:hover { background: rgba(237,112,0,0.15); color: #ed7000; }
 #settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: blur(6px); }
 #settings-modal.open { display: flex; }
 #settings-box { background: rgba(14,16,24,0.98); border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 16px; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.7); padding: 24px; }

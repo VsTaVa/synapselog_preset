@@ -885,7 +885,7 @@ const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
     'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
-    'lbl-export':'이미지 내보내기','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
+    'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 검색',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
@@ -909,7 +909,7 @@ const LANG = {
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
     'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
-    'lbl-export':'Export PNG','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
+    'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Search keywords',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
     's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
@@ -1045,7 +1045,7 @@ function openSettings() {
   ['shortcuts','storage'].forEach(id => {
     const saved = localStorage.getItem('snlog_sec_' + id), body = document.getElementById('section-' + id), arrow = document.getElementById('arrow-' + id);
     if (!body) return;
-    const isOpen = saved !== '0';
+    const isOpen = saved === '1';
     body.style.display = isOpen ? '' : 'none';
     if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
   });
