@@ -659,11 +659,12 @@ function _addEntryChildNodes(entryNode, markdown) {
 
     let descLines = [], nextIdx = i + 1;
     while (nextIdx < lines.length) {
-      const nl = lines[nextIdx].trim();
+      const rawNl = lines[nextIdx].replace(/\s+$/, '');
+      const nl = rawNl.trim();
       if (!nl) { nextIdx++; continue; }
       if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl.startsWith('[NOTION_ENTRY:')) break;
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
-      descLines.push(nl); nextIdx++;
+      descLines.push(rawNl); nextIdx++;
     }
 
     const parentColor = nodeMap[parentId]?.color;

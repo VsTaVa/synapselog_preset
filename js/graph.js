@@ -85,7 +85,8 @@ function parseMarkdown(text, rootTitle) {
       if (!parentId) parentId = rootId;
       let descLines = [], nextIdx = i + 1;
       while (nextIdx < lines.length) {
-        let nextLine = lines[nextIdx].trim();
+        const rawLine = lines[nextIdx].replace(/\s+$/, '');
+        let nextLine = rawLine.trim();
         if (!nextLine) { nextIdx++; continue; }
         if (nextLine.startsWith('#')) break;
         if (nextLine === '[DB_NODE]') break;
@@ -95,7 +96,7 @@ function parseMarkdown(text, rootTitle) {
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
         if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
-        descLines.push(nextLine); nextIdx++;
+        descLines.push(rawLine); nextIdx++;
       }
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {

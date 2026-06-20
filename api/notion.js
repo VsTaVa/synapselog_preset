@@ -112,9 +112,10 @@ export default async function handler(req, res) {
     return '(제목 없음)';
   }
 
-  // 재귀 블록 읽기 (skipDb=true면 child_database 스킵)
-  async function fetchBlocks(blockId, depth = 0, skipDb = false) {
+  // 재귀 블록 읽기 (skipDb=true면 child_database 스킵, indent=본문 중첩 깊이)
+  async function fetchBlocks(blockId, depth = 0, skipDb = false, indent = 0) {
     if (depth > 8) return '';
+    const IND = '   '.repeat(indent);
 
     // 모든 블록을 먼저 수집 (페이지네이션 처리)
     const allBlocks = [];
@@ -141,37 +142,37 @@ export default async function handler(req, res) {
 
         if (type === 'heading_1') {
           markdown += '# ' + extractHeadingText(block.heading_1?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_2') {
           markdown += '## ' + extractHeadingText(block.heading_2?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_3') {
           markdown += '### ' + extractHeadingText(block.heading_3?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
           markdown += '#### ' + extractHeadingText(block.heading_4?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
-          if (text.trim()) markdown += text + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (text.trim()) markdown += IND + text + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'bulleted_list_item') {
           listCounter = 0;
-          markdown += '- ' + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          markdown += IND + '- ' + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'numbered_list_item') {
           listCounter++;
-          markdown += `${listCounter}. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          markdown += IND + `${listCounter}. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'quote') {
           listCounter = 0;
-          markdown += '> ' + extractRichText(block.quote?.rich_text) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          markdown += IND + '> ' + extractRichText(block.quote?.rich_text) + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'callout') {
           listCounter = 0;
           const text = extractRichText(block.callout?.rich_text);
-          if (text.trim()) markdown += '> ' + text + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
+          if (text.trim()) markdown += IND + '> ' + text + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingText(block.toggle?.rich_text);
