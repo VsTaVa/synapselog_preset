@@ -350,6 +350,80 @@ function appendCachedPageHeading(pageId, newId, title) {
   if (entryVal != null) { sessionStorage.setItem(entryKey, entryVal.replace(/\s*$/, '') + add); }
 }
 
+// ── 로컬 노드(노션과 무관, 로컬 저장) + 마크다운 내보내기 ──────────────
+
+// 노드의 하위 트리를 마크다운으로 직렬화 (depth: 자식 헤딩 레벨 시작값)
+function serializeChildrenMd(nodeId, depth) {
+  let md = '';
+  edges.filter(e => e.from === nodeId && !e.weakLink && !e.manualLink).forEach(e => {
+    const c = nodeMap[e.to];
+    if (!c) return;
+    md += '#'.repeat(Math.min(depth, 6)) + ' ' + c.label + '\n';
+    if (c.desc && c.desc !== '(내용 없음)') md += c.desc.replace(/\n+$/, '') + '\n';
+    md += serializeChildrenMd(c.id, depth + 1);
+  });
+  return md;
+}
+
+// 로컬 노드 트리를 localStorage에 저장 (새로고침해도 유지)
+function saveLocalPages() {
+  try {
+    const roots = nodes.filter(n => n.local && n.level === 0);
+    const pages = roots.map(r => ({ pageId: r.sourcePageId, title: r.label, desc: r.desc || '', markdown: serializeChildrenMd(r.id, 1) }));
+    localStorage.setItem('snlog_local_pages', JSON.stringify(pages));
+  } catch (e) {}
+}
+
+function restoreLocalPages() {
+  let pages;
+  try { pages = JSON.parse(localStorage.getItem('snlog_local_pages') || '[]'); } catch (e) { return; }
+  for (const p of pages) {
+    if (!p.pageId || _addedPageIds.has(p.pageId)) continue;
+    mergeGraph(p.title || '새 노드', '', p.pageId);
+    const root = nodes.find(n => n.sourcePageId === p.pageId && n.level === 0);
+    if (!root) continue;
+    root.local = true; root.visible = true; root.desc = p.desc || '';
+    if (p.markdown) {
+      const ids = _addEntryChildNodes(root, p.markdown);
+      ids.forEach(id => { const c = nodeMap[id]; if (c) { c.local = true; c.visible = true; } });
+    }
+    _addedPageIds.add(p.pageId);
+  }
+  isStable = false;
+}
+
+function createLocalRoot(title) {
+  const pageId = 'local_' + Date.now();
+  mergeGraph(title || '새 노드', '', pageId);
+  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  if (root) { root.local = true; root.visible = true; }
+  _addedPageIds.add(pageId);
+  saveLocalPages();
+  isStable = false;
+  if (root && typeof openPanel === 'function') openPanel(root);
+  return root;
+}
+
+function newLocalRoot() {
+  const t = prompt('새 최상위 노드 제목:', '');
+  if (t === null) return;
+  createLocalRoot(t.trim() || '새 노드');
+}
+
+// 노드 하위 트리를 .md 파일로 내보내기
+function exportNodeMarkdown(node) {
+  let md = '# ' + node.label + '\n';
+  if (node.desc && node.desc !== '(내용 없음)') md += node.desc.replace(/\n+$/, '') + '\n';
+  md += serializeChildrenMd(node.id, 2);
+  const safe = (node.label || 'export').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'export';
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.download = safe + '.md';
+  a.href = URL.createObjectURL(blob);
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
 function startWithMd(event) {
@@ -462,6 +536,7 @@ async function startWithSelected() {
   }
   document.getElementById('login-screen').style.display = 'none';
   buildGraph(); loop();
+  setTimeout(restoreLocalPages, 200);
   setTimeout(initSidebarPageList, 300); setTimeout(loadProfile, 500);
   for (const pageId of window._selectedPageIds) { await addPageById(pageId); }
 }
@@ -469,6 +544,7 @@ async function startWithSelected() {
 function skipToGraph() {
   document.getElementById('login-screen').style.display = 'none';
   buildGraph(); loop();
+  setTimeout(restoreLocalPages, 200);
   setTimeout(initSidebarPageList, 300); setTimeout(loadProfile, 500);
 }
 

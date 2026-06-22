@@ -678,8 +678,9 @@ function renderPaneContent(i, n) {
     notionLinkEl.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Notion에서 보기`;
     titleRow.appendChild(notionLinkEl);
   }
-  // 노션에서 보기 — 블록 id가 있으면 그 블록(텍스트)으로 바로 이동
-  const linkTarget = n.notionBlockId || n.entryNotionId || (n.sourcePageId || '').replace(/-/g, '');
+  // 노션에서 보기 — 블록 id가 있으면 그 블록(텍스트)으로 바로 이동 (로컬/MD 노드는 숨김)
+  const isLocalLike = n.local || String(n.sourcePageId || '').startsWith('md_');
+  const linkTarget = isLocalLike ? '' : (n.notionBlockId || n.entryNotionId || (n.sourcePageId || '').replace(/-/g, ''));
   if (linkTarget) { notionLinkEl.href = `https://notion.so/${linkTarget.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
   else { notionLinkEl.style.display = 'none'; }
 
@@ -692,7 +693,7 @@ function renderPaneContent(i, n) {
     editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
     titleRow.appendChild(editBtn);
   }
-  if (n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
+  if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
 
   // 하위 노드 추가 버튼 — #/##/### 헤딩 노드(####부터는 더 못 들어가므로 숨김)
@@ -707,8 +708,20 @@ function renderPaneContent(i, n) {
   const isHeadingAdd = n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3;
   const isEntryAdd = !!n.entryNotionId; // DB 엔트리/하위 페이지 → 그 페이지에 #노드 추가
   const isPageAdd = !n.notionBlockId && !n.entryNotionId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_');
-  if (isHeadingAdd || isEntryAdd || isPageAdd) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.title = isHeadingAdd ? '하위 노드 추가' : '노드 추가'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
+  if (n.local || isHeadingAdd || isEntryAdd || isPageAdd) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.title = (n.local || !isHeadingAdd) ? '노드 추가' : '하위 노드 추가'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
   else { addNodeBtn.style.display = 'none'; }
+
+  // 마크다운 내보내기 버튼 — 모든 노드(이 노드 + 하위 트리)
+  let exportBtn = titleRow.querySelector('.detail-export-btn');
+  if (!exportBtn) {
+    exportBtn = document.createElement('button');
+    exportBtn.className = 'detail-edit-btn detail-export-btn';
+    exportBtn.title = '마크다운으로 내보내기';
+    exportBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+    titleRow.appendChild(exportBtn);
+  }
+  exportBtn.style.display = 'inline-flex';
+  exportBtn.onclick = () => exportNodeMarkdown(n);
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   if (searchKeyword && searchMatches.has(n.id)) {
@@ -724,16 +737,45 @@ function renderPaneContent(i, n) {
 
 }
 
-// ── 편집 서식 툴바 (볼드 **, 취소선 ~~) ──────────────────────────────
+// ── 편집 서식: contenteditable WYSIWYG (볼드/취소선) ──────────────────
+// 저장 시 마크다운(**·~~)으로 직렬화, 표시 시 HTML로 변환
+function htmlFromMarkdown(t) {
+  return escapeHtml(t || '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
+}
+function markdownFromHtml(el) {
+  function walk(node) {
+    let s = '';
+    node.childNodes.forEach(c => {
+      if (c.nodeType === 3) s += c.nodeValue;
+      else if (c.nodeType === 1) {
+        const tag = c.tagName.toLowerCase();
+        if (tag === 'br') s += '\n';
+        else if (tag === 'strong' || tag === 'b') s += '**' + walk(c) + '**';
+        else if (tag === 'del' || tag === 's' || tag === 'strike') s += '~~' + walk(c) + '~~';
+        else if (tag === 'div' || tag === 'p') s += (s && !s.endsWith('\n') ? '\n' : '') + walk(c);
+        else if (tag === 'span') {
+          const st = c.getAttribute('style') || '';
+          let inner = walk(c);
+          if (/text-decoration[^;]*line-through/.test(st)) inner = '~~' + inner + '~~';
+          if (/font-weight\s*:\s*(bold|[6-9]00)/.test(st)) inner = '**' + inner + '**';
+          s += inner;
+        } else s += walk(c);
+      }
+    });
+    return s;
+  }
+  return walk(el).replace(/ /g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 let _fmtField = null;
 function _getFmtToolbar() {
   let tb = document.getElementById('fmt-toolbar');
   if (!tb) {
     tb = document.createElement('div'); tb.id = 'fmt-toolbar';
-    tb.innerHTML = `<button data-mk="**" title="볼드 (Ctrl+B)"><b>B</b></button><button data-mk="~~" title="취소선 (Ctrl+U)"><s>S</s></button>`;
+    tb.innerHTML = `<button data-cmd="bold" title="볼드 (Ctrl+B)"><b>B</b></button><button data-cmd="strikeThrough" title="취소선 (Ctrl+U)"><s>S</s></button>`;
     tb.querySelectorAll('button').forEach(b => {
-      b.addEventListener('mousedown', e => e.preventDefault()); // 텍스트 선택 유지
-      b.addEventListener('click', e => { e.preventDefault(); if (_fmtField) wrapSelection(_fmtField, b.dataset.mk); });
+      b.addEventListener('mousedown', e => e.preventDefault()); // 선택 유지
+      b.addEventListener('click', e => { e.preventDefault(); applyFmt(b.dataset.cmd); });
     });
     document.body.appendChild(tb);
   }
@@ -747,54 +789,40 @@ function _showFmtToolbar(x, y) {
   tb.style.left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8)) + 'px';
   tb.style.top = Math.max(8, y - 42) + 'px';
 }
-function wrapSelection(field, mk) {
-  const s = field.selectionStart, e = field.selectionEnd, v = field.value;
-  const sel = v.slice(s, e);
-  let before = v.slice(0, s), after = v.slice(e);
-  let ns, ne;
-  if (sel.length >= mk.length * 2 && sel.startsWith(mk) && sel.endsWith(mk)) {
-    // 선택 안에 마커가 포함된 경우 → 해제
-    const inner = sel.slice(mk.length, sel.length - mk.length);
-    field.value = before + inner + after; ns = s; ne = s + inner.length;
-  } else if (before.endsWith(mk) && after.startsWith(mk)) {
-    // 마커가 선택 바로 바깥에 있는 경우 → 해제
-    before = before.slice(0, before.length - mk.length);
-    after = after.slice(mk.length);
-    field.value = before + sel + after; ns = s - mk.length; ne = e - mk.length;
-  } else {
-    field.value = before + mk + sel + mk + after; ns = s + mk.length; ne = e + mk.length;
-  }
-  field.focus(); field.setSelectionRange(ns, ne);
-  field.dispatchEvent(new Event('input'));
+function applyFmt(cmd) {
+  if (!_fmtField) return;
+  _fmtField.focus();
+  try { document.execCommand(cmd, false, null); } catch (e) {}
 }
+// contenteditable 요소에 서식 단축키/툴바 연결
 function attachFormatting(field) {
   field.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); wrapSelection(field, '**'); }
-    else if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); wrapSelection(field, '~~'); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); _fmtField = field; applyFmt('bold'); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); _fmtField = field; applyFmt('strikeThrough'); }
   });
   const upd = (e) => {
-    if (field.selectionStart !== field.selectionEnd) {
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && field.contains(sel.anchorNode)) {
       _fmtField = field;
       const r = field.getBoundingClientRect();
-      const x = (e && e.clientX) || (r.left + 24);
-      const y = (e && e.clientY) || r.top;
-      _showFmtToolbar(x, y);
+      _showFmtToolbar((e && e.clientX) || r.left + 24, (e && e.clientY) || r.top);
     } else if (_fmtField === field) _hideFmtToolbar();
   };
   field.addEventListener('mouseup', upd);
-  field.addEventListener('keyup', e => { if (e.shiftKey || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') upd(e); });
+  field.addEventListener('keyup', e => { if (e.shiftKey || (e.key && e.key.startsWith('Arrow'))) upd(e); });
   field.addEventListener('blur', () => setTimeout(_hideFmtToolbar, 160));
 }
 
-// 제목 + 본문 블록을 한 번에 인라인 수정 (변경분만 PATCH, 새 줄은 append)
+// 제목 + 본문 인라인 수정 (contenteditable WYSIWYG). 로컬 노드는 노션 호출 없이 로컬 저장
 function beginNodeEdit(paneIdx, node) {
   const paneEl = getPaneEl(paneIdx);
   if (!paneEl) return;
   const titleEl = paneEl.querySelector('.detail-title');
   const contentEl = paneEl.querySelector('.detail-content');
-  const hasTitle = !!node.notionBlockId;
-  const hasBody = !!(node.bodyBlocks && node.bodyBlocks.length);
-  const canAdd = !!(node.notionBlockId && node.notionParentId);
+  const isLocal = !!node.local;
+  const hasTitle = isLocal || !!node.notionBlockId;
+  const hasBody = isLocal || !!(node.bodyBlocks && node.bodyBlocks.length);
+  const canAdd = !isLocal && !!(node.notionBlockId && node.notionParentId);
   if (!hasTitle && !hasBody && !canAdd) return;
   if (!contentEl) return;
 
@@ -804,7 +832,6 @@ function beginNodeEdit(paneIdx, node) {
     titleInput = document.createElement('input');
     titleInput.className = 'detail-title-input'; titleInput.value = node.label;
     titleEl.appendChild(titleInput);
-    attachFormatting(titleInput);
   }
 
   const rows = [];
@@ -812,20 +839,19 @@ function beginNodeEdit(paneIdx, node) {
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
   const addRow = (text, blk) => {
-    const ta = document.createElement('textarea');
-    ta.className = 'body-edit-row'; ta.value = text; ta.rows = 1;
-    if (!blk) ta.placeholder = '추가할 본문 내용…';
-    list.appendChild(ta);
-    const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
-    ta.addEventListener('input', grow);
-    setTimeout(grow, 0);
-    attachFormatting(ta);
-    rows.push({ blk: blk || null, ta, orig: blk ? blk.text : '', isNew: !blk });
-    return ta;
+    const ce = document.createElement('div');
+    ce.className = 'body-edit-row'; ce.contentEditable = 'true';
+    ce.innerHTML = htmlFromMarkdown(text);
+    if (!blk) ce.dataset.placeholder = '본문 내용…';
+    list.appendChild(ce);
+    attachFormatting(ce);
+    rows.push({ blk: blk || null, el: ce, orig: text || '', isNew: !blk });
+    return ce;
   };
-  if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
+  if (isLocal) addRow(node.desc || '', { local: true });
+  else if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
 
-  // 수정 화면 안에서 본문 추가 — 새 입력 줄을 더한다
+  // 노션 헤딩 노드: 수정 화면 안에서 본문 블록 추가
   if (canAdd) {
     const addBody = document.createElement('button');
     addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
@@ -840,7 +866,7 @@ function beginNodeEdit(paneIdx, node) {
   contentEl.appendChild(actions);
 
   if (titleInput) { titleInput.focus(); titleInput.select(); }
-  else if (rows[0]) rows[0].ta.focus();
+  else if (rows[0]) rows[0].el.focus();
 
   const finish = () => renderPaneContent(paneIdx, node);
   cancelBtn.onclick = finish;
@@ -848,31 +874,37 @@ function beginNodeEdit(paneIdx, node) {
   saveBtn.onclick = async () => {
     const newTitle = titleInput ? titleInput.value.trim() : null;
     const titleChanged = !!(titleInput && newTitle && newTitle !== node.label);
-    const dirty = rows.filter(r => r.isNew ? r.ta.value.trim() : r.ta.value.trim() !== r.orig);
+    const valOf = r => markdownFromHtml(r.el);
+    const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
     if (!titleChanged && !dirty.length) { finish(); return; }
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     try {
       if (titleChanged) {
-        await notionUpdateBlock(node.notionBlockId, newTitle);
+        if (!isLocal) await notionUpdateBlock(node.notionBlockId, newTitle);
         node.label = newTitle;
         _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
-        updateCachedBlockText(node.notionBlockId, newTitle);
+        if (!isLocal) updateCachedBlockText(node.notionBlockId, newTitle);
       }
-      for (const r of dirty) {
-        const nt = r.ta.value.trim();
-        if (r.isNew) {
-          const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, nt, 'paragraph');
-          node.desc = node.desc ? node.desc + '\n' + nt : nt;
-          if (res && res.id) {
-            node.bodyBlocks = node.bodyBlocks || [];
-            node.bodyBlocks.push({ id: res.id, text: nt });
-            insertCachedBodyBlock(node.notionBlockId, res.id, nt);
+      if (isLocal) {
+        node.desc = valOf(rows[0]);
+        saveLocalPages();
+      } else {
+        for (const r of dirty) {
+          const nt = valOf(r).trim();
+          if (r.isNew) {
+            const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, nt, 'paragraph');
+            node.desc = node.desc ? node.desc + '\n' + nt : nt;
+            if (res && res.id) {
+              node.bodyBlocks = node.bodyBlocks || [];
+              node.bodyBlocks.push({ id: res.id, text: nt });
+              insertCachedBodyBlock(node.notionBlockId, res.id, nt);
+            }
+          } else {
+            await notionUpdateBlock(r.blk.id, nt);
+            if (node.desc && r.orig) node.desc = node.desc.replace(r.orig, nt);
+            updateCachedBodyBlock(r.blk.id, nt);
+            r.blk.text = nt;
           }
-        } else {
-          await notionUpdateBlock(r.blk.id, nt);
-          if (node.desc && r.orig) node.desc = node.desc.replace(r.orig, nt);
-          updateCachedBodyBlock(r.blk.id, nt);
-          r.blk.text = nt;
         }
       }
       isStable = false;
@@ -907,7 +939,6 @@ function beginChildAdd(paneIdx, node) {
   form.appendChild(input); form.appendChild(actions);
   contentEl.insertBefore(form, contentEl.firstChild);
   input.focus();
-  attachFormatting(input);
 
   const finish = () => renderPaneContent(paneIdx, node);
   cancelBtn.onclick = finish;
@@ -920,15 +951,24 @@ function beginChildAdd(paneIdx, node) {
     if (!title) { finish(); return; }
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
     try {
-      const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
-      if (res && res.id) {
-        const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
-        const newIds = _addEntryChildNodes(node, snippet);
-        newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-        if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
-        else appendCachedPageHeading(parentId, res.id, title);
+      if (node.local) {
+        // 로컬 노드: 노션 호출 없이 자식 노드 생성 + 로컬 저장
+        const newIds = _addEntryChildNodes(node, `# ${title}`);
+        newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (node.headingDepth || 1) + 1; } });
+        saveLocalPages();
         nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
         isStable = false;
+      } else {
+        const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
+        if (res && res.id) {
+          const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
+          const newIds = _addEntryChildNodes(node, snippet);
+          newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
+          if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
+          else appendCachedPageHeading(parentId, res.id, title);
+          nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
+          isStable = false;
+        }
       }
       renderPaneContent(paneIdx, node);
     } catch (err) {
@@ -1564,7 +1604,7 @@ renderPanes();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
-if (_savedToken || sessionStorage.getItem('snlog_pages')) {
+if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages')) {
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('input-token');
     if (input) input.value = _savedToken;
@@ -1574,6 +1614,7 @@ if (_savedToken || sessionStorage.getItem('snlog_pages')) {
     loop();
     loadFolderBatches();
     loadMdFileHandles();
+    setTimeout(restoreLocalPages, 300);
     setTimeout(restorePageList, 500);
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);
