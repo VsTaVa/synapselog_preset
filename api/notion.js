@@ -64,6 +64,29 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── action: 'updateBlock' — 기존 블록(헤딩/문단 등) 텍스트 수정 ──────
+  if (action === 'updateBlock') {
+    const { blockId, text } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    try {
+      // 블록 유형을 먼저 조회해 올바른 키로 PATCH (레벨 시프트와 무관하게 정확)
+      const g = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { headers });
+      if (!g.ok) { const e = await g.json(); return res.status(g.status).json({ error: e.message || '블록 조회 실패' }); }
+      const block = await g.json();
+      const type = block.type;
+      const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
+      if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
+      const patchBody = { [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };
+      const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchBody)
+      });
+      if (!p.ok) { const e = await p.json(); return res.status(p.status).json({ error: e.message || '수정 실패' }); }
+      return res.status(200).json({ ok: true, type });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
   // 텍스트 추출 함수 — 볼드 유지 (본문용)

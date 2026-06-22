@@ -682,6 +682,18 @@ function renderPaneContent(i, n) {
   if (pid) { notionLinkEl.href = `https://notion.so/${pid.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
   else { notionLinkEl.style.display = 'none'; }
 
+  // 제목 수정 버튼 — 노션 block id를 가진 헤딩 노드만
+  let editBtn = titleRow.querySelector('.detail-edit-btn');
+  if (!editBtn) {
+    editBtn = document.createElement('button');
+    editBtn.className = 'detail-edit-btn';
+    editBtn.title = '제목 수정';
+    editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+    titleRow.appendChild(editBtn);
+  }
+  if (n.notionBlockId) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginTitleEdit(i, n); }
+  else { editBtn.style.display = 'none'; }
+
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -693,6 +705,47 @@ function renderPaneContent(i, n) {
       setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
   }
+}
+
+// 노드 제목(노션 헤딩 텍스트) 인라인 수정
+function beginTitleEdit(paneIdx, node) {
+  const paneEl = getPaneEl(paneIdx);
+  if (!paneEl) return;
+  const titleEl = paneEl.querySelector('.detail-title');
+  if (!titleEl || titleEl.querySelector('.detail-title-input')) return;
+  const orig = node.label;
+  titleEl.innerHTML = '';
+  const input = document.createElement('input');
+  input.className = 'detail-title-input'; input.value = orig;
+  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
+  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '저장';
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  titleEl.appendChild(input); titleEl.appendChild(actions);
+  input.focus(); input.select();
+
+  const finish = () => renderPaneContent(paneIdx, node);
+  cancelBtn.onclick = finish;
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(); }
+    else if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
+  });
+  saveBtn.onclick = async () => {
+    const newLabel = input.value.trim();
+    if (!newLabel || newLabel === orig) { finish(); return; }
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
+    try {
+      await notionUpdateBlock(node.notionBlockId, newLabel);
+      node.label = newLabel;
+      _panes.forEach((p, pi) => { let touched = false; p.tabs.forEach(t => { if (t.nodeId === node.id) { t.label = newLabel; touched = true; } }); if (touched) renderPaneTabs(pi); });
+      updateCachedBlockText(node.notionBlockId, newLabel);
+      isStable = false;
+      renderPaneContent(paneIdx, node);
+    } catch (err) {
+      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
+      alert('수정 실패: ' + (err.message || err));
+    }
+  };
 }
 
 function isAncestorOf(potentialAncId, nodeId) {

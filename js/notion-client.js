@@ -262,6 +262,29 @@ async function notionFetch(body) {
   return data;
 }
 
+// ── 노션 쓰기: 블록 텍스트 수정 ──────────────────────────────────────
+
+async function notionUpdateBlock(blockId, text) {
+  return notionFetch({ action: 'updateBlock', blockId, text });
+}
+
+// 수정한 헤딩 텍스트를 세션 캐시에도 반영 → 새로고침해도 유지
+function updateCachedBlockText(blockId, newText) {
+  const re = new RegExp(`(\\[BLOCK:${blockId}\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
+  const replacer = (m, p1) => p1 + newText;
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (!key || !key.startsWith('snlog_')) continue;
+    const val = sessionStorage.getItem(key);
+    if (!val || !val.includes(`[BLOCK:${blockId}]`)) continue;
+    try {
+      const obj = JSON.parse(val);
+      if (obj && typeof obj.markdown === 'string') { obj.markdown = obj.markdown.replace(re, replacer); sessionStorage.setItem(key, JSON.stringify(obj)); continue; }
+    } catch (e) {}
+    sessionStorage.setItem(key, val.replace(re, replacer));
+  }
+}
+
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
 function startWithMd(event) {
