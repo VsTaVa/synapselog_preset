@@ -733,25 +733,30 @@ function beginNodeEdit(paneIdx, node) {
   contentEl.innerHTML = '';
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
-  const addRow = (text, blk) => {
+  const addRow = (text, blk, kind) => {
     const ta = document.createElement('textarea');
-    ta.className = 'body-edit-row'; ta.value = text; ta.rows = 1;
-    if (!blk) ta.placeholder = '추가할 본문 내용…';
+    ta.className = 'body-edit-row' + (kind === 'child' ? ' child-row' : '');
+    ta.value = text; ta.rows = 1;
+    if (!blk) ta.placeholder = kind === 'child' ? '하위 노드 제목…' : '추가할 본문 내용…';
     list.appendChild(ta);
     const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
     ta.addEventListener('input', grow);
     setTimeout(grow, 0);
-    rows.push({ blk: blk || null, ta, orig: blk ? blk.text : '', isNew: !blk });
+    rows.push({ blk: blk || null, ta, orig: blk ? blk.text : '', isNew: !blk, kind: kind || 'body' });
     return ta;
   };
-  if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
+  if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk, 'body'));
 
-  // 수정 화면 안에서 본문 추가 — 새 입력 줄을 더한다
+  // 수정 화면 안에서 본문 / 하위 노드 추가 — 새 입력 줄을 더한다
   if (canAdd) {
-    const addBtn = document.createElement('button');
-    addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가';
-    addBtn.onclick = () => { addRow('', null).focus(); };
-    contentEl.appendChild(addBtn);
+    const addBody = document.createElement('button');
+    addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
+    addBody.onclick = () => { addRow('', null, 'body').focus(); };
+    contentEl.appendChild(addBody);
+    const addChild = document.createElement('button');
+    addChild.className = 'detail-add-body-btn child'; addChild.textContent = '+ 하위 노드 추가';
+    addChild.onclick = () => { addRow('', null, 'child').focus(); };
+    contentEl.appendChild(addChild);
   }
 
   const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
@@ -779,9 +784,20 @@ function beginNodeEdit(paneIdx, node) {
         _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
         updateCachedBlockText(node.notionBlockId, newTitle);
       }
+      let childAdded = false;
       for (const r of dirty) {
         const nt = r.ta.value.trim();
-        if (r.isNew) {
+        if (r.isNew && r.kind === 'child') {
+          const title = nt.replace(/\n/g, ' ');
+          const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, title, 'heading');
+          if (res && res.id) {
+            const snippet = `[BLOCK:${res.id}|${node.notionParentId}]\n# ${title}`;
+            const newIds = _addEntryChildNodes(node, snippet);
+            newIds.forEach(id => { if (nodeMap[id]) nodeMap[id].visible = true; });
+            insertCachedChildHeading(node.notionBlockId, res.id, node.notionParentId, nt);
+            childAdded = true;
+          }
+        } else if (r.isNew) {
           const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, nt, 'paragraph');
           node.desc = node.desc ? node.desc + '\n' + nt : nt;
           if (res && res.id) {
@@ -796,6 +812,7 @@ function beginNodeEdit(paneIdx, node) {
           r.blk.text = nt;
         }
       }
+      if (childAdded) nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
       isStable = false;
       renderPaneContent(paneIdx, node);
     } catch (err) {

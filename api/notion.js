@@ -91,7 +91,9 @@ export default async function handler(req, res) {
   if (action === 'appendBlock') {
     const { parentId, afterId, text, blockType } = req.body;
     if (!parentId || !afterId) return res.status(400).json({ error: 'parentId / afterId가 필요해요' });
-    const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
+    // 'heading'이면 부모 헤딩보다 한 단계 깊은 레벨로 자동 결정(아래에서)
+    const wantHeading = blockType === 'heading';
+    let type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
     try {
       // 부모의 children을 읽어, 헤딩 다음 헤딩(섹션 경계) 직전의 마지막 블록을 찾는다
       const norm = id => (id || '').replace(/-/g, '');
@@ -115,6 +117,14 @@ export default async function handler(req, res) {
           last = children[j];
         }
         afterTarget = last.id;
+        // 하위 노드(heading): 부모 헤딩보다 한 단계 깊은 레벨로
+        if (wantHeading) {
+          const m = /^heading_(\d)$/.exec(children[idx].type || '');
+          const lvl = m ? Math.min(parseInt(m[1], 10) + 1, 3) : 2;
+          type = `heading_${lvl}`;
+        }
+      } else if (wantHeading) {
+        type = 'heading_2';
       }
 
       const newBlock = { object: 'block', type, [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };

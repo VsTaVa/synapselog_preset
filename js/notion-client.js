@@ -315,6 +315,24 @@ function insertCachedBodyBlock(headingBlockId, newBlockId, text) {
   });
 }
 
+// 부모 헤딩 섹션 끝에 새 하위 헤딩(자식 노드) 삽입 — 부모보다 # 한 개 더 깊게
+function insertCachedChildHeading(parentBlockId, newId, newParentId, title) {
+  const safe = title.replace(/\n/g, ' ');
+  const markerRe = new RegExp(`^\\[BLOCK:${parentBlockId}(?:\\|[a-f0-9]+)?\\]$`);
+  const boundary = t => /^#{1,5}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t.startsWith('[NOTION_ENTRY:');
+  _mutateCachedMarkdown(`[BLOCK:${parentBlockId}`, md => {
+    const lines = md.split('\n');
+    const mi = lines.findIndex(l => markerRe.test(l.trim()));
+    if (mi < 0) return md;
+    const h = ((lines[mi + 1] || '').match(/^#+/) || ['#'])[0].length;
+    const childHashes = '#'.repeat(Math.min(h + 1, 5));
+    let at = mi + 2;
+    while (at < lines.length && !boundary(lines[at].trim())) at++;
+    lines.splice(at, 0, `[BLOCK:${newId}|${newParentId}]`, `${childHashes} ${safe}`);
+    return lines.join('\n');
+  });
+}
+
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
 function startWithMd(event) {
