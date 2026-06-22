@@ -145,7 +145,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: 0 0 14px 14px; }
 .detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
-#detail-panes.split .detail-pane:nth-child(2) { border-top: 2px solid rgba(237,112,0,0.6); }
+#detail-panes.split .detail-pane:first-child { border-bottom: 2px solid rgba(255,255,255,0.12); }
 #detail-panes.split .detail-pane.pane-active .detail-tabs-bar { background: rgba(237,112,0,0.13); }
 .detail-pane.drag-over { box-shadow: inset 0 0 0 2px rgba(237,112,0,0.6); }
 .detail-pane.drag-over .detail-tabs-bar { background: rgba(237,112,0,0.14); }
