@@ -640,6 +640,7 @@ function _addEntryChildNodes(entryNode, markdown) {
   const currentParents = { 0: entryNode.id };
   let pendingIsChildPage = false;
   let pendingEntryId = null;
+  let pendingBlockId = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -647,8 +648,10 @@ function _addEntryChildNodes(entryNode, markdown) {
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
     if (entryMarker) { pendingEntryId = entryMarker[1]; continue; }
+    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)\]$/);
+    if (blockMarker) { pendingBlockId = blockMarker[1]; continue; }
     const headerMatch = line.match(/^(#{1,5})\s+(.*)$/);
-    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; continue; }
+    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; pendingBlockId = null; continue; }
 
     const mdDepth = Math.min(headerMatch[1].length, 5);
     const graphLevel = Math.min(entryNode.level + mdDepth, 5);
@@ -662,7 +665,7 @@ function _addEntryChildNodes(entryNode, markdown) {
       const rawNl = lines[nextIdx].replace(/\s+$/, '');
       const nl = rawNl.trim();
       if (!nl) { nextIdx++; continue; }
-      if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl.startsWith('[NOTION_ENTRY:')) break;
+      if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl.startsWith('[NOTION_ENTRY:') || nl.startsWith('[BLOCK:')) break;
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
       descLines.push(rawNl); nextIdx++;
     }
@@ -692,6 +695,7 @@ function _addEntryChildNodes(entryNode, markdown) {
       sourcePageId: entryNode.sourcePageId, visible: false, _frozen: false, _frozenFrames: 0
     };
     if (pendingEntryId) { n.entryNotionId = pendingEntryId; pendingEntryId = null; }
+    if (pendingBlockId) { n.notionBlockId = pendingBlockId; pendingBlockId = null; }
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
     nodes.push(n); nodeMap[id] = n;
     edges.push({ from: parentId, to: id });

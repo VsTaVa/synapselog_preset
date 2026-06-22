@@ -141,16 +141,16 @@ export default async function handler(req, res) {
         const type = block.type;
 
         if (type === 'heading_1') {
-          markdown += '# ' + extractHeadingText(block.heading_1?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_2') {
-          markdown += '## ' + extractHeadingText(block.heading_2?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_3') {
-          markdown += '### ' + extractHeadingText(block.heading_3?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
-          markdown += '#### ' + extractHeadingText(block.heading_4?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingText(block.toggle?.rich_text);
-          if (title.trim()) markdown += '## ' + title + '\n';
+          if (title.trim()) markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + title + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
           continue;
         } else if (type === 'table') {
@@ -320,11 +320,11 @@ export default async function handler(req, res) {
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += '# ' + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_2') { md += '## ' + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_3') { md += '### ' + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_4') { md += '#### ' + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += '## ' + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            if (type === 'heading_1') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_2') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_3') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_4') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call

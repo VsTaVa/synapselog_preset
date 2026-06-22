@@ -65,6 +65,7 @@ function parseMarkdown(text, rootTitle) {
   let pendingEntryId = null;
   let pendingIsDbNode = false;
   let pendingIsChildPage = false;
+  let pendingBlockId = null;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
@@ -73,6 +74,8 @@ function parseMarkdown(text, rootTitle) {
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
     if (entryMarker) { pendingEntryId = entryMarker[1]; continue; }
+    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)\]$/);
+    if (blockMarker) { pendingBlockId = blockMarker[1]; continue; }
     const headerMatch = line.match(/^(#{1,5})\s+(.*)$/);
     if (headerMatch) {
       const rawDepth = headerMatch[1].length;
@@ -93,6 +96,7 @@ function parseMarkdown(text, rootTitle) {
         if (nextLine === '[DB_NODE]') break;
         if (nextLine === '[CHILD_PAGE]') break;
         if (nextLine.startsWith('[NOTION_ENTRY:')) break;
+        if (nextLine.startsWith('[BLOCK:')) break;
         const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
@@ -102,6 +106,7 @@ function parseMarkdown(text, rootTitle) {
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
         if (pendingEntryId) { nodeMap[curId].entryNotionId = pendingEntryId; pendingEntryId = null; }
+        if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; pendingBlockId = null; }
         if (pendingIsDbNode) { nodeMap[curId].isDbNode = true; pendingIsDbNode = false; }
         if (pendingIsChildPage) { nodeMap[curId].isChildPage = true; pendingIsChildPage = false; }
         currentParents[depth] = curId;
