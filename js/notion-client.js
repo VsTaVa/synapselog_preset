@@ -268,21 +268,36 @@ async function notionUpdateBlock(blockId, text) {
   return notionFetch({ action: 'updateBlock', blockId, text });
 }
 
-// 수정한 헤딩 텍스트를 세션 캐시에도 반영 → 새로고침해도 유지
-function updateCachedBlockText(blockId, newText) {
-  const re = new RegExp(`(\\[BLOCK:${blockId}\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
-  const replacer = (m, p1) => p1 + newText;
+async function notionAppendBlock(parentId, afterId, text, blockType) {
+  return notionFetch({ action: 'appendBlock', parentId, afterId, text, blockType });
+}
+
+// 세션 캐시의 모든 markdown에 대해 [BLOCK:id(|parent)] 마커를 찾아 변형 적용
+function _mutateCachedMarkdown(blockId, mutate) {
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
     if (!key || !key.startsWith('snlog_')) continue;
     const val = sessionStorage.getItem(key);
-    if (!val || !val.includes(`[BLOCK:${blockId}]`)) continue;
+    if (!val || !val.includes(`[BLOCK:${blockId}`)) continue;
     try {
       const obj = JSON.parse(val);
-      if (obj && typeof obj.markdown === 'string') { obj.markdown = obj.markdown.replace(re, replacer); sessionStorage.setItem(key, JSON.stringify(obj)); continue; }
+      if (obj && typeof obj.markdown === 'string') { obj.markdown = mutate(obj.markdown); sessionStorage.setItem(key, JSON.stringify(obj)); continue; }
     } catch (e) {}
-    sessionStorage.setItem(key, val.replace(re, replacer));
+    sessionStorage.setItem(key, mutate(val));
   }
+}
+
+// 수정한 헤딩 텍스트를 세션 캐시에도 반영 → 새로고침해도 유지
+function updateCachedBlockText(blockId, newText) {
+  const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
+  _mutateCachedMarkdown(blockId, md => md.replace(re, (m, p1) => p1 + newText));
+}
+
+// 헤딩 바로 다음(섹션 시작)에 본문 한 줄 삽입 → 새로고침해도 유지
+function insertCachedBodyLine(blockId, text) {
+  const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}[^\\n]*\\n)`);
+  const safe = text.replace(/\n/g, ' ');
+  _mutateCachedMarkdown(blockId, md => md.replace(re, (m, p1) => p1 + safe + '\n'));
 }
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
@@ -664,6 +679,7 @@ function _addEntryChildNodes(entryNode, markdown) {
   let pendingIsChildPage = false;
   let pendingEntryId = null;
   let pendingBlockId = null;
+  let pendingParentId = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -671,10 +687,10 @@ function _addEntryChildNodes(entryNode, markdown) {
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
     if (entryMarker) { pendingEntryId = entryMarker[1]; continue; }
-    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)\]$/);
-    if (blockMarker) { pendingBlockId = blockMarker[1]; continue; }
+    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)(?:\|([a-f0-9]+))?\]$/);
+    if (blockMarker) { pendingBlockId = blockMarker[1]; pendingParentId = blockMarker[2] || null; continue; }
     const headerMatch = line.match(/^(#{1,5})\s+(.*)$/);
-    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; pendingBlockId = null; continue; }
+    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; pendingBlockId = null; pendingParentId = null; continue; }
 
     const mdDepth = Math.min(headerMatch[1].length, 5);
     const graphLevel = Math.min(entryNode.level + mdDepth, 5);
@@ -718,7 +734,7 @@ function _addEntryChildNodes(entryNode, markdown) {
       sourcePageId: entryNode.sourcePageId, visible: false, _frozen: false, _frozenFrames: 0
     };
     if (pendingEntryId) { n.entryNotionId = pendingEntryId; pendingEntryId = null; }
-    if (pendingBlockId) { n.notionBlockId = pendingBlockId; pendingBlockId = null; }
+    if (pendingBlockId) { n.notionBlockId = pendingBlockId; n.notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
     nodes.push(n); nodeMap[id] = n;
     edges.push({ from: parentId, to: id });

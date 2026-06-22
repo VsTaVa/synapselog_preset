@@ -66,6 +66,7 @@ function parseMarkdown(text, rootTitle) {
   let pendingIsDbNode = false;
   let pendingIsChildPage = false;
   let pendingBlockId = null;
+  let pendingParentId = null;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
@@ -74,8 +75,8 @@ function parseMarkdown(text, rootTitle) {
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
     if (entryMarker) { pendingEntryId = entryMarker[1]; continue; }
-    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)\]$/);
-    if (blockMarker) { pendingBlockId = blockMarker[1]; continue; }
+    const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)(?:\|([a-f0-9]+))?\]$/);
+    if (blockMarker) { pendingBlockId = blockMarker[1]; pendingParentId = blockMarker[2] || null; continue; }
     const headerMatch = line.match(/^(#{1,5})\s+(.*)$/);
     if (headerMatch) {
       const rawDepth = headerMatch[1].length;
@@ -106,7 +107,7 @@ function parseMarkdown(text, rootTitle) {
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
         if (pendingEntryId) { nodeMap[curId].entryNotionId = pendingEntryId; pendingEntryId = null; }
-        if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; pendingBlockId = null; }
+        if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; nodeMap[curId].notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
         if (pendingIsDbNode) { nodeMap[curId].isDbNode = true; pendingIsDbNode = false; }
         if (pendingIsChildPage) { nodeMap[curId].isChildPage = true; pendingIsChildPage = false; }
         currentParents[depth] = curId;

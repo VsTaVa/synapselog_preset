@@ -87,6 +87,25 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'appendBlock' — 헤딩 밑(섹션 시작 위치)에 새 블록 추가 ──
+  if (action === 'appendBlock') {
+    const { parentId, afterId, text, blockType } = req.body;
+    if (!parentId || !afterId) return res.status(400).json({ error: 'parentId / afterId가 필요해요' });
+    const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
+    try {
+      const newBlock = { object: 'block', type, [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };
+      const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ children: [newBlock], after: afterId })
+      });
+      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '추가 실패' }); }
+      const data = await r.json();
+      const created = data.results?.[0];
+      return res.status(200).json({ ok: true, id: (created?.id || '').replace(/-/g, ''), type });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
   // 텍스트 추출 함수 — 볼드 유지 (본문용)
@@ -164,16 +183,16 @@ export default async function handler(req, res) {
         const type = block.type;
 
         if (type === 'heading_1') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_2') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_3') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
+          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
@@ -199,7 +218,7 @@ export default async function handler(req, res) {
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingText(block.toggle?.rich_text);
-          if (title.trim()) markdown += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + title + '\n';
+          if (title.trim()) markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + title + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
           continue;
         } else if (type === 'table') {
@@ -343,11 +362,11 @@ export default async function handler(req, res) {
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_2') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_3') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_4') { md += `[BLOCK:${block.id.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[BLOCK:${block.id.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            if (type === 'heading_1') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_2') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_3') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_4') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call

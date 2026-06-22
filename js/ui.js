@@ -705,6 +705,57 @@ function renderPaneContent(i, n) {
       setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
   }
+
+  // 본문 추가 버튼 — 노션 헤딩 블록 + 부모 id를 아는 노드만
+  const bodyEl = paneEl.querySelector('.detail-body');
+  if (bodyEl) {
+    let addBtn = bodyEl.querySelector('.detail-add-body-btn');
+    if (!addBtn) { addBtn = document.createElement('button'); addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가'; bodyEl.appendChild(addBtn); }
+    else { bodyEl.appendChild(addBtn); } // 항상 본문 아래로 위치 유지
+    if (n.notionBlockId && n.notionParentId) { addBtn.style.display = 'block'; addBtn.onclick = () => beginBodyAdd(i, n); }
+    else { addBtn.style.display = 'none'; }
+  }
+}
+
+// 헤딩 노드 아래(섹션 시작)에 본문 문단 추가
+function beginBodyAdd(paneIdx, node) {
+  const paneEl = getPaneEl(paneIdx);
+  if (!paneEl) return;
+  const bodyEl = paneEl.querySelector('.detail-body');
+  if (!bodyEl || bodyEl.querySelector('.detail-add-form')) return;
+  const addBtn = bodyEl.querySelector('.detail-add-body-btn');
+  if (addBtn) addBtn.style.display = 'none';
+  const form = document.createElement('div'); form.className = 'detail-add-form';
+  const ta = document.createElement('textarea'); ta.className = 'detail-add-input'; ta.placeholder = '추가할 본문 내용… (Ctrl+Enter로 추가)'; ta.rows = 3;
+  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
+  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '추가';
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  form.appendChild(ta); form.appendChild(actions);
+  bodyEl.appendChild(form);
+  ta.focus();
+
+  const finish = () => renderPaneContent(paneIdx, node);
+  cancelBtn.onclick = finish;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveBtn.click(); }
+  });
+  saveBtn.onclick = async () => {
+    const text = ta.value.trim();
+    if (!text) { finish(); return; }
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
+    try {
+      await notionAppendBlock(node.notionParentId, node.notionBlockId, text, 'paragraph');
+      // 노션에서 헤딩 바로 다음에 삽입되므로 본문 맨 앞에 반영
+      node.desc = text + (node.desc ? '\n' + node.desc : '');
+      insertCachedBodyLine(node.notionBlockId, text);
+      renderPaneContent(paneIdx, node);
+    } catch (err) {
+      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '추가';
+      alert('추가 실패: ' + (err.message || err));
+    }
+  };
 }
 
 // 노드 제목(노션 헤딩 텍스트) 인라인 수정
