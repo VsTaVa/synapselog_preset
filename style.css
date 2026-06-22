@@ -179,10 +179,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-row { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid rgba(237,112,0,0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; resize: none; overflow: hidden; }
 .body-edit-row:focus { border-color: rgba(237,112,0,0.7); }
-.body-edit-row.child-row { border-style: dashed; border-color: rgba(120,184,255,0.6); font-weight: 700; color: #fff; }
-.body-edit-row.child-row:focus { border-color: rgba(120,184,255,0.9); }
-.detail-add-body-btn.child { border-color: rgba(120,184,255,0.45); color: rgba(120,184,255,0.9); background: rgba(120,184,255,0.08); }
-.detail-add-body-btn.child:hover { background: rgba(120,184,255,0.16); }
+.child-add-form { margin-bottom: 16px; }
+.child-add-form .detail-title-input { font-size: 14px; }
 #detail-close { background: rgba(255,255,255,0.08); border: none; color: #aaa; font-size: 14px; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, color 0.2s; }
 #detail-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
 .detail-meta-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }

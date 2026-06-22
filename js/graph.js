@@ -110,6 +110,7 @@ function parseMarkdown(text, rootTitle) {
       }
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
+        nodeMap[curId].headingDepth = rawDepth;
         if (bodyBlocks.length) nodeMap[curId].bodyBlocks = bodyBlocks;
         if (pendingEntryId) { nodeMap[curId].entryNotionId = pendingEntryId; pendingEntryId = null; }
         if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; nodeMap[curId].notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }

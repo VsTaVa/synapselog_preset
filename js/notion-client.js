@@ -772,6 +772,7 @@ function _addEntryChildNodes(entryNode, markdown) {
     };
     if (pendingEntryId) { n.entryNotionId = pendingEntryId; pendingEntryId = null; }
     if (pendingBlockId) { n.notionBlockId = pendingBlockId; n.notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
+    n.headingDepth = headerMatch[1].length;
     if (bodyBlocks.length) n.bodyBlocks = bodyBlocks;
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
     nodes.push(n); nodeMap[id] = n;

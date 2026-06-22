@@ -695,6 +695,18 @@ function renderPaneContent(i, n) {
   if (n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
 
+  // 하위 노드 추가 버튼 — #/##/### 헤딩 노드(####부터는 더 못 들어가므로 숨김)
+  let addNodeBtn = titleRow.querySelector('.detail-addnode-btn');
+  if (!addNodeBtn) {
+    addNodeBtn = document.createElement('button');
+    addNodeBtn.className = 'detail-edit-btn detail-addnode-btn';
+    addNodeBtn.title = '하위 노드 추가';
+    addNodeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg>`;
+    titleRow.appendChild(addNodeBtn);
+  }
+  if (n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
+  else { addNodeBtn.style.display = 'none'; }
+
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -733,30 +745,25 @@ function beginNodeEdit(paneIdx, node) {
   contentEl.innerHTML = '';
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
-  const addRow = (text, blk, kind) => {
+  const addRow = (text, blk) => {
     const ta = document.createElement('textarea');
-    ta.className = 'body-edit-row' + (kind === 'child' ? ' child-row' : '');
-    ta.value = text; ta.rows = 1;
-    if (!blk) ta.placeholder = kind === 'child' ? '하위 노드 제목…' : '추가할 본문 내용…';
+    ta.className = 'body-edit-row'; ta.value = text; ta.rows = 1;
+    if (!blk) ta.placeholder = '추가할 본문 내용…';
     list.appendChild(ta);
     const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
     ta.addEventListener('input', grow);
     setTimeout(grow, 0);
-    rows.push({ blk: blk || null, ta, orig: blk ? blk.text : '', isNew: !blk, kind: kind || 'body' });
+    rows.push({ blk: blk || null, ta, orig: blk ? blk.text : '', isNew: !blk });
     return ta;
   };
-  if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk, 'body'));
+  if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
 
-  // 수정 화면 안에서 본문 / 하위 노드 추가 — 새 입력 줄을 더한다
+  // 수정 화면 안에서 본문 추가 — 새 입력 줄을 더한다
   if (canAdd) {
     const addBody = document.createElement('button');
     addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
-    addBody.onclick = () => { addRow('', null, 'body').focus(); };
+    addBody.onclick = () => { addRow('', null).focus(); };
     contentEl.appendChild(addBody);
-    const addChild = document.createElement('button');
-    addChild.className = 'detail-add-body-btn child'; addChild.textContent = '+ 하위 노드 추가';
-    addChild.onclick = () => { addRow('', null, 'child').focus(); };
-    contentEl.appendChild(addChild);
   }
 
   const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
@@ -784,20 +791,9 @@ function beginNodeEdit(paneIdx, node) {
         _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
         updateCachedBlockText(node.notionBlockId, newTitle);
       }
-      let childAdded = false;
       for (const r of dirty) {
         const nt = r.ta.value.trim();
-        if (r.isNew && r.kind === 'child') {
-          const title = nt.replace(/\n/g, ' ');
-          const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, title, 'heading');
-          if (res && res.id) {
-            const snippet = `[BLOCK:${res.id}|${node.notionParentId}]\n# ${title}`;
-            const newIds = _addEntryChildNodes(node, snippet);
-            newIds.forEach(id => { if (nodeMap[id]) nodeMap[id].visible = true; });
-            insertCachedChildHeading(node.notionBlockId, res.id, node.notionParentId, nt);
-            childAdded = true;
-          }
-        } else if (r.isNew) {
+        if (r.isNew) {
           const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, nt, 'paragraph');
           node.desc = node.desc ? node.desc + '\n' + nt : nt;
           if (res && res.id) {
@@ -812,12 +808,56 @@ function beginNodeEdit(paneIdx, node) {
           r.blk.text = nt;
         }
       }
-      if (childAdded) nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
       isStable = false;
       renderPaneContent(paneIdx, node);
     } catch (err) {
       saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
       alert('수정 실패: ' + (err.message || err));
+    }
+  };
+}
+
+// 하위 노드(헤딩 블록) 추가 → 그래프 자식 노드 생성
+function beginChildAdd(paneIdx, node) {
+  const paneEl = getPaneEl(paneIdx);
+  if (!paneEl) return;
+  const contentEl = paneEl.querySelector('.detail-content');
+  if (!contentEl || contentEl.querySelector('.child-add-form')) return;
+  const form = document.createElement('div'); form.className = 'child-add-form';
+  const input = document.createElement('input');
+  input.className = 'detail-title-input'; input.placeholder = '하위 노드 제목…';
+  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
+  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '추가';
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  form.appendChild(input); form.appendChild(actions);
+  contentEl.insertBefore(form, contentEl.firstChild);
+  input.focus();
+
+  const finish = () => renderPaneContent(paneIdx, node);
+  cancelBtn.onclick = finish;
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(); }
+    else if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
+  });
+  saveBtn.onclick = async () => {
+    const title = input.value.trim().replace(/\n/g, ' ');
+    if (!title) { finish(); return; }
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
+    try {
+      const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, title, 'heading');
+      if (res && res.id) {
+        const snippet = `[BLOCK:${res.id}|${node.notionParentId}]\n# ${title}`;
+        const newIds = _addEntryChildNodes(node, snippet);
+        newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = (node.headingDepth || 1) + 1; } });
+        insertCachedChildHeading(node.notionBlockId, res.id, node.notionParentId, title);
+        nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
+        isStable = false;
+      }
+      renderPaneContent(paneIdx, node);
+    } catch (err) {
+      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '추가';
+      alert('하위 노드 추가 실패: ' + (err.message || err));
     }
   };
 }
