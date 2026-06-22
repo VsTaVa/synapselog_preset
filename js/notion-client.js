@@ -388,8 +388,19 @@ function restoreLocalPages() {
       ids.forEach(id => { const c = nodeMap[id]; if (c) { c.local = true; c.visible = true; } });
     }
     _addedPageIds.add(p.pageId);
+    _registerLocalInList(p.pageId, p.title || '새 노드');
   }
+  refreshSidebarRender();
   isStable = false;
+}
+
+function _registerLocalInList(pageId, title) {
+  if (!window._sidebarPageList) window._sidebarPageList = [];
+  if (!window._sidebarPageList.some(p => p.id === pageId)) {
+    window._sidebarPageList.push({ id: pageId, title, isLocal: true });
+  }
+  const wrap = document.getElementById('sidebar-page-list-wrap');
+  if (wrap) wrap.style.display = 'block';
 }
 
 function createLocalRoot(title) {
@@ -399,15 +410,24 @@ function createLocalRoot(title) {
   if (root) { root.local = true; root.visible = true; }
   _addedPageIds.add(pageId);
   saveLocalPages();
+  _registerLocalInList(pageId, title || '새 노드');
+  refreshSidebarRender();
   isStable = false;
   if (root && typeof openPanel === 'function') openPanel(root);
   return root;
 }
 
 function newLocalRoot() {
-  const t = prompt('새 최상위 노드 제목:', '');
-  if (t === null) return;
-  createLocalRoot(t.trim() || '새 노드');
+  const inp = document.getElementById('new-root-input');
+  const t = inp ? inp.value.trim() : '';
+  if (!t) { if (inp) inp.focus(); return; }
+  createLocalRoot(t);
+  if (inp) inp.value = '';
+}
+
+function focusLocalRoot(pageId) {
+  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  if (root && typeof openPanel === 'function') { openPanel(root); highlightSidebarPage(pageId); }
 }
 
 // 노드 하위 트리를 .md 파일로 내보내기
@@ -422,6 +442,11 @@ function exportNodeMarkdown(node) {
   a.href = URL.createObjectURL(blob);
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function exportLocalPage(pageId) {
+  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  if (root) exportNodeMarkdown(root);
 }
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
@@ -564,7 +589,10 @@ async function refreshSidebarPageList() {
   listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
   try {
     const data = await notionFetch({ action: 'list' });
-    window._sidebarPageList = data.pages || [];
+    const pages = data.pages || [];
+    // 로컬/MD 항목은 노션 목록에 없으므로 보존
+    const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd) && !pages.some(q => q.id === p.id));
+    window._sidebarPageList = pages.concat(extras);
     renderSidebarPageList(window._sidebarPageList);
   } catch(e) {
     listEl.innerHTML = `<div style="font-size:11px; color:#ff6b6b; padding:6px 0; text-align:center;">${e.message}</div>`;
@@ -583,9 +611,20 @@ function renderSidebarPageList(pages) {
   listEl.innerHTML = sorted.map(p => {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
-    const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>' : '';
+    const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>'
+      : (p.isLocal ? ' <span style="color:rgba(120,184,255,0.7);font-size:9px;font-weight:700;">로컬</span>' : '');
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
+    if (p.isLocal) {
+      return `<div class="page-list-item active" data-page-id="${p.id}">
+        <span class="item-label" title="${safeTitle}" onclick="focusLocalRoot('${p.id}')">${safeTitle}${mdBadge}</span>
+        <div class="item-actions">
+          ${starBtn}
+          <button class="btn-sync" title="마크다운 내보내기" onclick="exportLocalPage('${p.id}')">⤓</button>
+          <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
+        </div>
+      </div>`;
+    }
     if (isActive) {
       return `<div class="page-list-item active" data-page-id="${p.id}">
         <span class="item-label" title="${safeTitle}">${safeTitle}${mdBadge}</span>
@@ -681,6 +720,7 @@ async function addPage() {
 function savePageList() {
   const list = [];
   _addedPageIds.forEach(pageId => {
+    if (pageId.startsWith('local_')) return; // 로컬 노드는 snlog_local_pages로 따로 저장
     const cached = sessionStorage.getItem(`snlog_${pageId}`);
     const title = cached ? (JSON.parse(cached).title || pageId) : pageId;
     list.push({ pageId, title });
@@ -749,7 +789,8 @@ function removePage(pageId, el) {
   nodes = nodes.filter(n => !removeIds.has(n.id));
   edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
   Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
-  if (pageId.startsWith('md_') && window._sidebarPageList) window._sidebarPageList = window._sidebarPageList.filter(p => p.id !== pageId);
+  if ((pageId.startsWith('md_') || pageId.startsWith('local_')) && window._sidebarPageList) window._sidebarPageList = window._sidebarPageList.filter(p => p.id !== pageId);
+  if (pageId.startsWith('local_')) saveLocalPages();
   if (window._folderBatches) {
     for (const [folderBatchId, batch] of window._folderBatches) {
       for (const [path, info] of batch.files) {

@@ -79,11 +79,17 @@
           <input type="file" id="md-import-file" accept=".md,.txt" style="display:none;" onchange="importMarkdownFile(event)">
           <button onclick="pickFolder()" title="폴더 전체 임포트 (.md/.txt) - 동기화로 새 파일 자동 추가" style="background:none; border:none; padding:0; cursor:pointer; color:#ed7000; display:flex; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
           <input type="file" id="md-import-folder" webkitdirectory multiple style="display:none;" onchange="importMarkdownFolder(event)">
-          <button onclick="newLocalRoot()" title="새 최상위 노드(로컬 저장)" style="background:none; border:none; padding:0; cursor:pointer; color:#ed7000; display:flex; align-items:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
         </div>
       </div>
       <div id="add-page-error"></div>
       <div id="added-pages-list" style="display:none;"></div>
+    </div>
+    <div id="local-node-panel" class="panel-box">
+      <div class="panel-title">최상위 노드</div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="text" id="new-root-input" placeholder="새 최상위 노드 제목 (로컬 저장)" onkeydown="if(event.key==='Enter'){event.preventDefault();newLocalRoot();}" style="flex:1;" />
+        <button onclick="newLocalRoot()" style="background:rgba(237,112,0,0.15); border:1px solid rgba(237,112,0,0.4); border-radius:8px; padding:0 13px; height:36px; color:#ed7000; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; transition:background 0.2s;" onmouseover="this.style.background='rgba(237,112,0,0.25)'" onmouseout="this.style.background='rgba(237,112,0,0.15)'">만들기</button>
+      </div>
     </div>
     <div id="search-panel" class="panel-box">
       <div class="panel-title" data-i18n="kw-search">키워드 검색</div>

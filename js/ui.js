@@ -884,6 +884,10 @@ function beginNodeEdit(paneIdx, node) {
         node.label = newTitle;
         _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
         if (!isLocal) updateCachedBlockText(node.notionBlockId, newTitle);
+        if (isLocal && node.level === 0 && window._sidebarPageList) {
+          const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
+          if (it) { it.title = newTitle; refreshSidebarRender(); }
+        }
       }
       if (isLocal) {
         node.desc = valOf(rows[0]);
