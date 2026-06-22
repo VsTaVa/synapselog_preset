@@ -333,8 +333,8 @@ function draw() {
     }
     if(n._satelliteRoot) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+5,0,Math.PI*2);
-      ctx.strokeStyle='rgba(237,112,0,0.95)'; ctx.lineWidth=1.8/scale;
-      ctx.stroke();
+      ctx.strokeStyle='rgba(237,112,0,0.9)'; ctx.lineWidth=1.5/scale;
+      ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
     }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);

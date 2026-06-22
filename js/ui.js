@@ -459,6 +459,24 @@ const MAX_TABS = 3;
 let _panes = [{ tabs: [], activeTabId: null }];
 let _activePane = 0;
 let _splitMode = false;
+let _draggingTab = null;
+
+// 탭을 다른 패인으로 이동
+function moveTabToPane(fromIdx, nodeId, toIdx) {
+  if (fromIdx === toIdx || !_panes[fromIdx] || !_panes[toIdx]) return;
+  const from = _panes[fromIdx], to = _panes[toIdx];
+  const t = from.tabs.find(x => x.nodeId === nodeId);
+  if (!t) return;
+  from.tabs = from.tabs.filter(x => x.nodeId !== nodeId);
+  if (from.activeTabId === nodeId) from.activeTabId = from.tabs.length ? from.tabs[from.tabs.length - 1].nodeId : null;
+  to.tabs = to.tabs.filter(x => x.nodeId !== nodeId);
+  if (to.tabs.length >= MAX_TABS) to.tabs.shift();
+  to.tabs.push(t);
+  to.activeTabId = nodeId;
+  _activePane = toIdx;
+  if (!anyTabs()) { closePanel(); return; }
+  renderPanes();
+}
 
 function anyTabs() { return _panes.some(p => p.tabs.length > 0); }
 function getPaneEl(i) { return document.querySelector(`#detail-panes .detail-pane[data-pane="${i}"]`); }
@@ -513,6 +531,20 @@ function renderPanes() {
     el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
     el.querySelector('.pane-close-btn').onclick = (e) => { e.stopPropagation(); closePaneOrPanel(i); };
     el.addEventListener('mousedown', () => setActivePane(i));
+    // 탭 드래그&드롭: 다른 패인 위에 떨어뜨리면 그 패인으로 이동
+    el.addEventListener('dragover', (e) => {
+      if (!_draggingTab || _draggingTab.pane === i) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
+    el.addEventListener('drop', (e) => {
+      el.classList.remove('drag-over');
+      if (!_draggingTab || _draggingTab.pane === i) return;
+      e.preventDefault();
+      moveTabToPane(_draggingTab.pane, _draggingTab.nodeId, i);
+    });
     wrap.appendChild(el);
     renderPaneTabs(i);
     const active = pane.tabs.find(t => t.nodeId === pane.activeTabId) || pane.tabs[pane.tabs.length - 1];
@@ -552,9 +584,20 @@ function renderPaneTabs(i) {
   [...pane.tabs].reverse().forEach(tab => {
     const el = document.createElement('div');
     el.className = 'detail-tab' + (tab.nodeId === pane.activeTabId ? ' active' : '');
+    el.draggable = true;
     el.innerHTML = `<span class="tab-label">${escapeHtml(tab.label)}</span><span class="tab-close">✕</span>`;
     el.querySelector('.tab-label').onclick = () => { setActivePane(i); switchTab(i, tab.nodeId); };
     el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(i, tab.nodeId); };
+    el.addEventListener('dragstart', (e) => {
+      _draggingTab = { pane: i, nodeId: tab.nodeId };
+      el.classList.add('dragging');
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tab.nodeId); }
+    });
+    el.addEventListener('dragend', () => {
+      _draggingTab = null;
+      document.querySelectorAll('#detail-panes .detail-pane').forEach(p => p.classList.remove('drag-over'));
+      el.classList.remove('dragging');
+    });
     tabsEl.appendChild(el);
   });
 }
