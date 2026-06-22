@@ -709,9 +709,11 @@ function renderPaneContent(i, n) {
   // 본문 추가 버튼 — 노션 헤딩 블록 + 부모 id를 아는 노드만
   const bodyEl = paneEl.querySelector('.detail-body');
   if (bodyEl) {
+    const staleForm = bodyEl.querySelector('.detail-add-form');
+    if (staleForm) staleForm.remove();
     let addBtn = bodyEl.querySelector('.detail-add-body-btn');
-    if (!addBtn) { addBtn = document.createElement('button'); addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가'; bodyEl.appendChild(addBtn); }
-    else { bodyEl.appendChild(addBtn); } // 항상 본문 아래로 위치 유지
+    if (!addBtn) { addBtn = document.createElement('button'); addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가'; }
+    bodyEl.appendChild(addBtn); // 항상 본문 맨 아래로 위치 유지
     if (n.notionBlockId && n.notionParentId) { addBtn.style.display = 'block'; addBtn.onclick = () => beginBodyAdd(i, n); }
     else { addBtn.style.display = 'none'; }
   }
@@ -747,8 +749,8 @@ function beginBodyAdd(paneIdx, node) {
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
     try {
       await notionAppendBlock(node.notionParentId, node.notionBlockId, text, 'paragraph');
-      // 노션에서 헤딩 바로 다음에 삽입되므로 본문 맨 앞에 반영
-      node.desc = text + (node.desc ? '\n' + node.desc : '');
+      // 노션에서 헤딩 섹션 맨 끝에 삽입되므로 본문 맨 아래에 반영
+      node.desc = node.desc ? node.desc + '\n' + text : text;
       insertCachedBodyLine(node.notionBlockId, text);
       renderPaneContent(paneIdx, node);
     } catch (err) {

@@ -87,20 +87,44 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
-  // ── action: 'appendBlock' — 헤딩 밑(섹션 시작 위치)에 새 블록 추가 ──
+  // ── action: 'appendBlock' — 헤딩 섹션 맨 끝(다음 헤딩 직전)에 새 블록 추가 ──
   if (action === 'appendBlock') {
     const { parentId, afterId, text, blockType } = req.body;
     if (!parentId || !afterId) return res.status(400).json({ error: 'parentId / afterId가 필요해요' });
     const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
     try {
+      // 부모의 children을 읽어, 헤딩 다음 헤딩(섹션 경계) 직전의 마지막 블록을 찾는다
+      const norm = id => (id || '').replace(/-/g, '');
+      const children = [];
+      let cur;
+      do {
+        const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+        if (!r.ok) break;
+        const d = await r.json();
+        children.push(...d.results.filter(b => b?.type));
+        cur = d.has_more ? d.next_cursor : undefined;
+      } while (cur);
+
+      let afterTarget = afterId;
+      const idx = children.findIndex(b => norm(b.id) === norm(afterId));
+      if (idx >= 0) {
+        const BREAK = ['heading_1', 'heading_2', 'heading_3', 'toggle', 'child_page', 'child_database'];
+        let last = children[idx]; // 헤딩 자신(섹션이 비어있으면 헤딩 바로 뒤)
+        for (let j = idx + 1; j < children.length; j++) {
+          if (BREAK.includes(children[j].type)) break;
+          last = children[j];
+        }
+        afterTarget = last.id;
+      }
+
       const newBlock = { object: 'block', type, [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };
-      const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
+      const r2 = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ children: [newBlock], after: afterId })
+        body: JSON.stringify({ children: [newBlock], after: afterTarget })
       });
-      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '추가 실패' }); }
-      const data = await r.json();
+      if (!r2.ok) { const e = await r2.json(); return res.status(r2.status).json({ error: e.message || '추가 실패' }); }
+      const data = await r2.json();
       const created = data.results?.[0];
       return res.status(200).json({ ok: true, id: (created?.id || '').replace(/-/g, ''), type });
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }

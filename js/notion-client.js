@@ -293,11 +293,20 @@ function updateCachedBlockText(blockId, newText) {
   _mutateCachedMarkdown(blockId, md => md.replace(re, (m, p1) => p1 + newText));
 }
 
-// 헤딩 바로 다음(섹션 시작)에 본문 한 줄 삽입 → 새로고침해도 유지
+// 헤딩 섹션 맨 끝(다음 헤딩/마커 직전)에 본문 한 줄 삽입 → 새로고침해도 유지
 function insertCachedBodyLine(blockId, text) {
-  const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}[^\\n]*\\n)`);
   const safe = text.replace(/\n/g, ' ');
-  _mutateCachedMarkdown(blockId, md => md.replace(re, (m, p1) => p1 + safe + '\n'));
+  const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
+  const boundary = t => /^#{1,5}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t.startsWith('[NOTION_ENTRY:');
+  _mutateCachedMarkdown(blockId, md => {
+    const lines = md.split('\n');
+    const mi = lines.findIndex(l => markerRe.test(l.trim()));
+    if (mi < 0) return md;
+    let at = mi + 2; // 마커(mi) + 헤딩 줄(mi+1) 다음부터 본문
+    while (at < lines.length && !boundary(lines[at].trim())) at++;
+    lines.splice(at, 0, safe);
+    return lines.join('\n');
+  });
 }
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
