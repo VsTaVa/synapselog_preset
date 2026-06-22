@@ -380,8 +380,17 @@ function multiSelectPath() {
   setTimeout(fitGraph, 50);
 }
 
+function restoreSatellite() {
+  (_satelliteRemovedEdges || []).forEach(e => edges.push(e));
+  _satelliteRemovedEdges = [];
+  nodes.forEach(n => { n._satellite = false; n._frozen = false; n._frozenFrames = 0; });
+  _satelliteActive = false;
+  isStable = false;
+}
+
 function multiSelectSatellite() {
   if (_multiSelected.length < 1) return;
+  if (_satelliteActive) { restoreSatellite(); clearMultiSelect(); return; }
   if (!_satelliteRemovedEdges) _satelliteRemovedEdges = [];
   _multiSelected.forEach(node => {
     // node + 하위 트리 수집
@@ -406,7 +415,7 @@ function multiSelectSatellite() {
 function multiSelectPin() {
   if (_multiSelected.length < 1) return;
   const allFixed = _multiSelected.every(n => n.fixed);
-  _multiSelected.forEach(n => { n.fixed = !allFixed; if (!n.fixed) { n.vx = 0; n.vy = 0; } });
+  _multiSelected.forEach(n => { n.fixed = !allFixed; if (!n.fixed) { n.vx = 0; n.vy = 0; } unfreezeSubtree(n); });
   saveFixedPositions();
   isStable = false;
   clearMultiSelect();
@@ -714,13 +723,7 @@ function clearAllModes() {
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-  if (_satelliteActive) {
-    _satelliteRemovedEdges.forEach(e => edges.push(e));
-    _satelliteRemovedEdges = [];
-    nodes.forEach(nd => { nd._satellite = false; nd._frozen = false; nd._frozenFrames = 0; });
-    _satelliteActive = false;
-    isStable = false;
-  }
+  if (_satelliteActive) { restoreSatellite(); }
   if (_connectMode) {
     _connectMode = false;
     if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
@@ -732,12 +735,22 @@ function clearAllModes() {
 
 canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; drag = null; isPanning = false; });
 
+function unfreezeSubtree(node) {
+  node._frozen = false; node._frozenFrames = 0;
+  const q = [node.id], seen = new Set([node.id]);
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) { seen.add(e.to); const c = nodeMap[e.to]; if (c) { c._frozen = false; c._frozenFrames = 0; } q.push(e.to); } });
+  }
+}
+
 canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
   const n = getNodeAt(e.clientX, e.clientY);
   if (!n) return;
   n.fixed = !n.fixed;
   if (!n.fixed) { n.vx = 0; n.vy = 0; }
+  unfreezeSubtree(n);
   saveFixedPositions(); isStable = false;
   const s = document.getElementById('status');
   if (s) { s.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { s.textContent = ''; }, 1800); }
@@ -832,6 +845,7 @@ canvas.addEventListener('touchend', e => {
         clearTimeout(_clickTimer);
         n.fixed = !n.fixed;
         if (!n.fixed) { n.vx = 0; n.vy = 0; }
+        unfreezeSubtree(n);
         saveFixedPositions(); isStable = false;
         if (statusEl) { statusEl.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1800); }
         _lastTapNode = null; _lastTapTime = 0;
@@ -909,7 +923,7 @@ const LANG = {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
     'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
-    'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 검색',
+    'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
     's-api':'API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
@@ -933,7 +947,7 @@ const LANG = {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
     'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
-    'ph-add':'Notion link or .MD file/folder import','ph-search':'Search keywords',
+    'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
     's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
     's-api':'API Token','sc-save':'Save','sc-placeholder-token':'Enter new token...',
