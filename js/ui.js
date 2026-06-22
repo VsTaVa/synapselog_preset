@@ -249,7 +249,7 @@ function renderMultiSelectMenu() {
     html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로(1→2→3…) 인접한 노드끼리 연결합니다">${chainIcon} 순서대로 연결</button>`;
   }
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
-  html += `<button onclick="multiSelectIsolate()" title="선택한 노드만 남기고 나머지를 흐리게 표시합니다">⊙ 격리</button>`;
+  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 빈 곳을 클릭하면 원래대로 복원됩니다">◌ 위성 모드</button>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드의 위치를 고정하거나 해제합니다">${pinIcon} 고정/해제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
@@ -286,6 +286,7 @@ function multiSelectFocus() {
   _focusMode = true;
   applyFocusMode(node.id);
   isStable = false;
+  setTimeout(fitGraph, 50);
 }
 
 function multiSelectConnect() {
@@ -376,16 +377,29 @@ function multiSelectPath() {
   nodes.forEach(n => { n.dimmed = !allPathIds.has(n.id); });
   isStable = false;
   clearMultiSelect();
+  setTimeout(fitGraph, 50);
 }
 
-function multiSelectIsolate() {
+function multiSelectSatellite() {
   if (_multiSelected.length < 1) return;
-  const ids = new Set(_multiSelected.map(n => n.id));
-  _focusMode = false; _focusNodeId = null;
-  _isolateActive = true;
-  _pathConnectors = [];
-  nodes.forEach(n => { n.dimmed = !ids.has(n.id); });
+  if (!_satelliteRemovedEdges) _satelliteRemovedEdges = [];
+  _multiSelected.forEach(node => {
+    // node + 하위 트리 수집
+    const group = new Set([node.id]);
+    const q = [node.id];
+    while (q.length) {
+      const id = q.shift();
+      edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !group.has(e.to)) { group.add(e.to); q.push(e.to); } });
+    }
+    group.forEach(id => { if (nodeMap[id]) nodeMap[id]._satellite = true; });
+    // node의 부모(계층) 엣지 제거 — 복원용으로 저장
+    const parentEdges = edges.filter(e => e.to === node.id && !e.weakLink && !e.manualLink);
+    parentEdges.forEach(e => _satelliteRemovedEdges.push(e));
+    edges = edges.filter(e => !parentEdges.includes(e));
+  });
+  _satelliteActive = true;
   isStable = false;
+  nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
   clearMultiSelect();
 }
 
@@ -627,12 +641,14 @@ function doSearch(kw) {
     directMatches.forEach(id => { searchMatches.add(id); getAncestors(id).forEach(aid => searchMatches.add(aid)); });
     if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = `${directMatches.size}개 결과`; }
     clearBtn.style.display = 'block';
+    if (directMatches.size > 0) { clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(fitGraph, 450); }
   } else {
     if (resultEl) resultEl.style.display = 'none';
     clearBtn.style.display = 'none';
   }
   isStable = false;
 }
+let _searchFitTimer = null;
 
 searchInput.addEventListener('input', e => doSearch(e.target.value));
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { const kw = searchInput.value.trim(); if (kw) addHistory(kw); doSearch(kw); } });
@@ -698,6 +714,13 @@ function clearAllModes() {
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_satelliteActive) {
+    _satelliteRemovedEdges.forEach(e => edges.push(e));
+    _satelliteRemovedEdges = [];
+    nodes.forEach(nd => { nd._satellite = false; nd._frozen = false; nd._frozenFrames = 0; });
+    _satelliteActive = false;
+    isStable = false;
+  }
   if (_connectMode) {
     _connectMode = false;
     if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
@@ -899,7 +922,7 @@ const LANG = {
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
-    'sc-multiselect':'노드 선택(Shift)','sc-multiselect-sub':'연결 / 경로찾기 / 격리 / 고정','sc-shiftclick':'Shift+클릭',
+    'sc-multiselect':'노드 다중 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift+클릭',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시 세부조정','s-local':'로컬 저장 사용','s-local-sub':'브라우저를 닫아도 데이터가 유지됩니다',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
@@ -923,7 +946,7 @@ const LANG = {
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
-    'sc-multiselect':'Node Select(Shift)','sc-multiselect-sub':'Connect / Path / Isolate / Pin','sc-shiftclick':'Shift+Click',
+    'sc-multiselect':'Multi-Select Nodes','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift+Click',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache Details','s-local':'Use Local Storage','s-local-sub':'Data persists after browser is closed',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',

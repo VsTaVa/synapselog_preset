@@ -14,6 +14,7 @@ let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
 let _pathConnectors = [];
+let _satelliteActive = false, _satelliteRemovedEdges = [];
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────
 
@@ -147,7 +148,12 @@ function simulate() {
       const f = (d-natural)*strength;
       fx += dx/d*f; fy += dy/d*f;
     });
-    if(!fixedDescendants.has(n.id)){fx += (WORLD_CX-n.x)*centerForce; fy += (WORLD_CY-n.y)*centerForce;}
+    if(fixedDescendants.has(n.id)){}
+    else if(n._satellite){
+      const sdx=n.x-WORLD_CX, sdy=n.y-WORLD_CY, sd=Math.max(Math.sqrt(sdx*sdx+sdy*sdy),1);
+      const sf=(sd-700)*0.0016; fx-=sdx/sd*sf; fy-=sdy/sd*sf;
+    }
+    else { fx += (WORLD_CX-n.x)*centerForce; fy += (WORLD_CY-n.y)*centerForce; }
     n.vx = Math.max(-3, Math.min(3, (n.vx+fx)*damping));
     n.vy = Math.max(-3, Math.min(3, (n.vy+fy)*damping));
     n.x += n.vx; n.y += n.vy;
@@ -325,6 +331,11 @@ function draw() {
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1/scale;
       ctx.setLineDash([2.5,2.5]); ctx.stroke(); ctx.setLineDash([]);
     }
+    if(n._satellite) {
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+5,0,Math.PI*2);
+      ctx.strokeStyle='rgba(237,112,0,0.5)'; ctx.lineWidth=1.2/scale;
+      ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]);
+    }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
       const gSel = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+16);
@@ -433,8 +444,16 @@ function revealByLevel(nodeIds, onComplete) {
 
 function fitGraph() {
   if (nodes.length === 0) return;
-  const visibleNodes = nodes.filter(n => n.visible);
+  let visibleNodes = nodes.filter(n => n.visible);
   if (visibleNodes.length === 0) return;
+  // 검색/포커스/경로/격리 활성 시: 활성(밝은) 노드만 기준으로 맞춤
+  if (searchKeyword.length > 0 && searchMatches.size > 0) {
+    const m = visibleNodes.filter(n => searchMatches.has(n.id));
+    if (m.length) visibleNodes = m;
+  } else if (_focusMode || _isolateActive) {
+    const a = visibleNodes.filter(n => !n.dimmed);
+    if (a.length) visibleNodes = a;
+  }
   const sbEl = document.getElementById('sidebar'), dpEl = document.getElementById('detail-panel');
   const sidebarWidth = sbEl.classList.contains('collapsed') ? 0 : sbEl.offsetWidth;
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
