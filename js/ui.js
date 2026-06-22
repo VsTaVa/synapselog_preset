@@ -705,8 +705,9 @@ function renderPaneContent(i, n) {
     titleRow.appendChild(addNodeBtn);
   }
   const isHeadingAdd = n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3;
-  const isPageAdd = !n.notionBlockId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_');
-  if (isHeadingAdd || isPageAdd) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.title = isPageAdd ? '최상위(#) 노드 추가' : '하위 노드 추가'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
+  const isEntryAdd = !!n.entryNotionId; // DB 엔트리/하위 페이지 → 그 페이지에 #노드 추가
+  const isPageAdd = !n.notionBlockId && !n.entryNotionId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_');
+  if (isHeadingAdd || isEntryAdd || isPageAdd) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.title = isHeadingAdd ? '하위 노드 추가' : '노드 추가'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
   else { addNodeBtn.style.display = 'none'; }
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
@@ -748,11 +749,18 @@ function _showFmtToolbar(x, y) {
 }
 function wrapSelection(field, mk) {
   const s = field.selectionStart, e = field.selectionEnd, v = field.value;
-  const sel = v.slice(s, e), before = v.slice(0, s), after = v.slice(e);
+  const sel = v.slice(s, e);
+  let before = v.slice(0, s), after = v.slice(e);
   let ns, ne;
   if (sel.length >= mk.length * 2 && sel.startsWith(mk) && sel.endsWith(mk)) {
+    // 선택 안에 마커가 포함된 경우 → 해제
     const inner = sel.slice(mk.length, sel.length - mk.length);
     field.value = before + inner + after; ns = s; ne = s + inner.length;
+  } else if (before.endsWith(mk) && after.startsWith(mk)) {
+    // 마커가 선택 바로 바깥에 있는 경우 → 해제
+    before = before.slice(0, before.length - mk.length);
+    after = after.slice(mk.length);
+    field.value = before + sel + after; ns = s - mk.length; ne = e - mk.length;
   } else {
     field.value = before + mk + sel + mk + after; ns = s + mk.length; ne = e + mk.length;
   }
@@ -882,15 +890,16 @@ function beginChildAdd(paneIdx, node) {
   if (!paneEl) return;
   const contentEl = paneEl.querySelector('.detail-content');
   if (!contentEl || contentEl.querySelector('.child-add-form')) return;
-  // 페이지(level 0) 노드면 페이지에 직접 #노드 추가, 헤딩 노드면 하위 노드 추가
-  const isPage = !node.notionBlockId && node.level === 0;
-  const parentId = isPage ? String(node.sourcePageId).replace(/-/g, '') : node.notionParentId;
-  const afterId = isPage ? null : node.notionBlockId;
-  const childDepth = isPage ? 1 : (node.headingDepth || 1) + 1;
+  // 헤딩 노드 → 하위 노드 추가 / 엔트리·페이지 노드 → 그 페이지에 #노드 추가
+  const isHeading = !!node.notionBlockId;
+  const pageLikeId = node.entryNotionId || node.sourcePageId; // 엔트리는 그 페이지, 페이지는 자기 id
+  const parentId = isHeading ? node.notionParentId : String(pageLikeId).replace(/-/g, '');
+  const afterId = isHeading ? node.notionBlockId : null;
+  const childDepth = isHeading ? (node.headingDepth || 1) + 1 : 1;
 
   const form = document.createElement('div'); form.className = 'child-add-form';
   const input = document.createElement('input');
-  input.className = 'detail-title-input'; input.placeholder = isPage ? '최상위(#) 노드 제목…' : '하위 노드 제목…';
+  input.className = 'detail-title-input'; input.placeholder = isHeading ? '하위 노드 제목…' : '노드 제목…';
   const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
   const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '추가';
   const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
@@ -911,13 +920,13 @@ function beginChildAdd(paneIdx, node) {
     if (!title) { finish(); return; }
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
     try {
-      const res = await notionAppendBlock(parentId, afterId, title, isPage ? 'heading_1' : 'heading');
+      const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
       if (res && res.id) {
         const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
         const newIds = _addEntryChildNodes(node, snippet);
         newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-        if (isPage) appendCachedPageHeading(parentId, res.id, title);
-        else insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
+        if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
+        else appendCachedPageHeading(parentId, res.id, title);
         nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
         isStable = false;
       }
