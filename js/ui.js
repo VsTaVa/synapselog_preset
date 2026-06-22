@@ -456,14 +456,12 @@ function reopenDetailPanel() {
 
 let _tabs = [], _activeTabId = null;
 
+const MAX_TABS = 3;
 function renderTabs() {
-  const tabsEl = document.getElementById('detail-tabs'), overflowBtn = document.getElementById('tab-overflow-btn');
+  const tabsEl = document.getElementById('detail-tabs');
   if (!tabsEl) return;
   tabsEl.innerHTML = '';
-  const reversed = [..._tabs].reverse();
-  const MAX_VISIBLE = 3;
-  const visibleTabs = reversed.slice(0, MAX_VISIBLE), hiddenTabs = reversed.slice(MAX_VISIBLE);
-  visibleTabs.forEach(tab => {
+  [..._tabs].reverse().forEach(tab => {
     const el = document.createElement('div');
     el.className = 'detail-tab' + (tab.nodeId === _activeTabId ? ' active' : '');
     el.innerHTML = `<span class="tab-label">${escapeHtml(tab.label)}</span><span class="tab-close">✕</span>`;
@@ -471,22 +469,7 @@ function renderTabs() {
     el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(tab.nodeId); };
     tabsEl.appendChild(el);
   });
-  if (overflowBtn) overflowBtn.style.display = hiddenTabs.length > 0 ? 'flex' : 'none';
 }
-
-function toggleOverflowMenu(e) {
-  const menu = document.getElementById('tab-overflow-menu'), btn = document.getElementById('tab-overflow-btn');
-  if (!menu) return;
-  const isOpen = menu.classList.contains('open');
-  menu.classList.toggle('open');
-  if (!isOpen) {
-    const rect = btn.getBoundingClientRect();
-    menu.style.top = (rect.bottom + 4) + 'px'; menu.style.right = (window.innerWidth - rect.right) + 'px';
-    menu.innerHTML = _tabs.map(tab => `<div class="overflow-tab-item ${tab.nodeId === _activeTabId ? 'active' : ''}" onclick="switchTab('${tab.nodeId}');closeOverflowMenu()"><span>${escapeHtml(tab.label)}</span><span class="overflow-close" onclick="event.stopPropagation();closeTab('${tab.nodeId}');closeOverflowMenu()">✕</span></div>`).join('');
-  }
-}
-function closeOverflowMenu() { const menu = document.getElementById('tab-overflow-menu'); if (menu) menu.classList.remove('open'); }
-document.addEventListener('click', (e) => { if (!e.target.closest('#tab-overflow-btn') && !e.target.closest('#tab-overflow-menu')) closeOverflowMenu(); });
 
 function switchTab(nodeId) { _activeTabId = nodeId; const tab = _tabs.find(t => t.nodeId === nodeId); if (tab) renderPanelContent(tab.node); renderTabs(); }
 function closeTab(nodeId) {
@@ -574,7 +557,10 @@ function showPanel() {
 function openPanel(n) {
   const existing = _tabs.find(t => t.nodeId === n.id);
   if (existing) { switchTab(n.id); }
-  else { _tabs.push({ nodeId: n.id, label: n.label, node: n }); _activeTabId = n.id; renderPanelContent(n); renderTabs(); }
+  else {
+    if (_tabs.length >= MAX_TABS) _tabs.shift();
+    _tabs.push({ nodeId: n.id, label: n.label, node: n }); _activeTabId = n.id; renderPanelContent(n); renderTabs();
+  }
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
@@ -723,7 +709,6 @@ function clearAllModes() {
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-  if (_satelliteActive) { restoreSatellite(); }
   if (_connectMode) {
     _connectMode = false;
     if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }

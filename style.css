@@ -130,8 +130,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #confirm-ok { background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; }
 #confirm-ok:hover { background: rgba(237,112,0,0.25); }
 #detail-tabs-bar { width: 100%; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: stretch; }
-#tab-overflow-btn, #detail-panel-collapse-btn, #detail-panel-close { background: none; border: none; border-left: 1px solid rgba(255,255,255,0.06); cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; line-height: 1; width: 40px; padding: 0; flex-shrink: 0; transition: color 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; }
-#tab-overflow-btn:hover, #detail-panel-collapse-btn:hover, #detail-panel-close:hover { color: #fff; background: rgba(255,255,255,0.05); }
+#detail-panel-split-btn, #detail-panel-collapse-btn, #detail-panel-close { background: none; border: none; border-left: 1px solid rgba(255,255,255,0.06); cursor: pointer; color: rgba(255,255,255,0.4); font-size: 13px; line-height: 1; width: 40px; padding: 0; flex-shrink: 0; transition: color 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; }
+#detail-panel-split-btn:hover, #detail-panel-collapse-btn:hover, #detail-panel-close:hover { color: #fff; background: rgba(255,255,255,0.05); }
+#detail-panel-split-btn.active { color: #ed7000; }
 #detail-panel-close { color: #ed7000 !important; font-size: 18px; }
 #detail-tabs { display: flex; align-items: stretch; flex: 1; overflow: hidden; }
 .detail-tab { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 14px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; min-height: 42px; border-right: 1px solid rgba(255,255,255,0.06); transition: background 0.15s, color 0.15s; white-space: nowrap; flex-shrink: 0; max-width: 160px; }
@@ -140,14 +141,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-tab.active { background: rgba(255,255,255,0.08); color: #fff; border-bottom: 2px solid #ed7000; }
 .detail-tab .tab-close { font-size: 10px; color: rgba(255,255,255,0.3); padding: 2px 4px; border-radius: 3px; flex-shrink: 0; }
 .detail-tab .tab-close:hover { color: #ff6b6b; background: rgba(255,100,100,0.15); }
-#tab-overflow-btn { display: none; font-weight: 700; }
-#tab-overflow-menu { position: fixed; background: rgba(14,16,24,0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 600; min-width: 180px; overflow: hidden; display: none; }
-#tab-overflow-menu.open { display: block; }
-.overflow-tab-item { padding: 10px 14px; font-size: 11px; cursor: pointer; color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.overflow-tab-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
-.overflow-tab-item.active { color: #ed7000; }
-.overflow-close { font-size: 10px; color: rgba(255,255,255,0.3); padding: 1px 4px; border-radius: 3px; }
-.overflow-close:hover { color: #ff6b6b; background: rgba(255,100,100,0.15); }
 #detail-panel { display: flex; flex-direction: column; }
 #detail-body { flex: 1; overflow-y: auto; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
