@@ -14,7 +14,7 @@ let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
 let _pathConnectors = [];
-let _satelliteActive = false, _satelliteRemovedEdges = [];
+let _satelliteRemovedEdges = [];
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────
 
@@ -331,10 +331,10 @@ function draw() {
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1/scale;
       ctx.setLineDash([2.5,2.5]); ctx.stroke(); ctx.setLineDash([]);
     }
-    if(n._satellite) {
+    if(n._satelliteRoot) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+5,0,Math.PI*2);
-      ctx.strokeStyle='rgba(237,112,0,0.5)'; ctx.lineWidth=1.2/scale;
-      ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(237,112,0,0.95)'; ctx.lineWidth=1.8/scale;
+      ctx.stroke();
     }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);

@@ -57,9 +57,6 @@ const vTension = document.getElementById('v-tension');
 const vNodeSize = document.getElementById('v-node-size');
 const vLinkWidth = document.getElementById('v-link-width');
 const detailPanel = document.getElementById('detail-panel');
-const detailTitle = document.getElementById('detail-title');
-const detailDate = document.getElementById('detail-date');
-const detailContent = document.getElementById('detail-content');
 
 // ── 그래프 설정 슬라이더 ──────────────────────────────────────────────
 
@@ -249,7 +246,8 @@ function renderMultiSelectMenu() {
     html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로(1→2→3…) 인접한 노드끼리 연결합니다">${chainIcon} 순서대로 연결</button>`;
   }
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
-  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 빈 곳을 클릭하면 원래대로 복원됩니다">◌ 위성 모드</button>`;
+  const satOn = _multiSelected.every(nd => nd._satelliteRoot);
+  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">◌ 위성 모드${satOn ? ' 해제' : ''}</button>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드의 위치를 고정하거나 해제합니다">${pinIcon} 고정/해제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
@@ -380,35 +378,56 @@ function multiSelectPath() {
   setTimeout(fitGraph, 50);
 }
 
-function restoreSatellite() {
-  (_satelliteRemovedEdges || []).forEach(e => edges.push(e));
-  _satelliteRemovedEdges = [];
-  nodes.forEach(n => { n._satellite = false; n._frozen = false; n._frozenFrames = 0; });
-  _satelliteActive = false;
-  isStable = false;
-}
-
-function multiSelectSatellite() {
-  if (_multiSelected.length < 1) return;
-  if (_satelliteActive) { restoreSatellite(); clearMultiSelect(); return; }
-  if (!_satelliteRemovedEdges) _satelliteRemovedEdges = [];
-  _multiSelected.forEach(node => {
-    // node + 하위 트리 수집
-    const group = new Set([node.id]);
-    const q = [node.id];
+// 위성 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
+function recomputeSatelliteFlags() {
+  nodes.forEach(n => { n._satellite = false; });
+  nodes.forEach(root => {
+    if (!root._satelliteRoot) return;
+    const group = new Set([root.id]);
+    const q = [root.id];
     while (q.length) {
       const id = q.shift();
       edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !group.has(e.to)) { group.add(e.to); q.push(e.to); } });
     }
     group.forEach(id => { if (nodeMap[id]) nodeMap[id]._satellite = true; });
-    // node의 부모(계층) 엣지 제거 — 복원용으로 저장
-    const parentEdges = edges.filter(e => e.to === node.id && !e.weakLink && !e.manualLink);
-    parentEdges.forEach(e => _satelliteRemovedEdges.push(e));
-    edges = edges.filter(e => !parentEdges.includes(e));
   });
-  _satelliteActive = true;
-  isStable = false;
+}
+
+function activateSatellite(node) {
+  if (node._satelliteRoot) return;
+  node._satelliteRoot = true;
+  // node + 하위 트리에 위성 플래그
+  const group = new Set([node.id]);
+  const q = [node.id];
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !group.has(e.to)) { group.add(e.to); q.push(e.to); } });
+  }
+  group.forEach(id => { if (nodeMap[id]) nodeMap[id]._satellite = true; });
+  // node의 부모(계층) 엣지 제거 — 루트 id로 태그해 복원용 저장
+  const parentEdges = edges.filter(e => e.to === node.id && !e.weakLink && !e.manualLink);
+  parentEdges.forEach(e => { e._satRoot = node.id; _satelliteRemovedEdges.push(e); });
+  edges = edges.filter(e => !parentEdges.includes(e));
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+}
+
+function releaseSatellite(node) {
+  // 이 루트가 분리했던 부모 엣지 복원
+  _satelliteRemovedEdges.filter(e => e._satRoot === node.id).forEach(e => { delete e._satRoot; edges.push(e); });
+  _satelliteRemovedEdges = _satelliteRemovedEdges.filter(e => e._satRoot !== node.id);
+  node._satelliteRoot = false;
+  recomputeSatelliteFlags();
+  nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+}
+
+function multiSelectSatellite() {
+  if (_multiSelected.length < 1) return;
+  if (!_satelliteRemovedEdges) _satelliteRemovedEdges = [];
+  _multiSelected.forEach(node => {
+    if (node._satelliteRoot) releaseSatellite(node);
+    else activateSatellite(node);
+  });
+  isStable = false;
   clearMultiSelect();
 }
 
@@ -434,11 +453,21 @@ function toggleSidebar() {
 
 let _detailPanelCollapsed = false;
 
+// 우측 패널: 1개(단일) 또는 2개(상하 분할)의 독립 패인.
+// 각 패인은 자체 탭 목록(tabs)과 활성 탭(activeTabId)을 가진다.
+const MAX_TABS = 3;
+let _panes = [{ tabs: [], activeTabId: null }];
+let _activePane = 0;
+let _splitMode = false;
+
+function anyTabs() { return _panes.some(p => p.tabs.length > 0); }
+function getPaneEl(i) { return document.querySelector(`#detail-panes .detail-pane[data-pane="${i}"]`); }
+
 function updateDetailReopenTab() {
   const btn = document.getElementById('detail-panel-sidebar-toggle');
   if (!btn) return;
   const visuallyOpen = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
-  btn.classList.toggle('visible', !visuallyOpen && _tabs.length > 0);
+  btn.classList.toggle('visible', !visuallyOpen && anyTabs());
 }
 
 function toggleDetailPanel() {
@@ -448,35 +477,118 @@ function toggleDetailPanel() {
 }
 
 function reopenDetailPanel() {
-  if (_tabs.length === 0) return;
+  if (!anyTabs()) return;
   if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
   else { showPanel(); }
   updateDetailReopenTab();
 }
 
-let _tabs = [], _activeTabId = null;
+const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
+const _paneSplitIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
-const MAX_TABS = 3;
-function renderTabs() {
-  const tabsEl = document.getElementById('detail-tabs');
-  if (!tabsEl) return;
-  tabsEl.innerHTML = '';
-  [..._tabs].reverse().forEach(tab => {
+// 패인 DOM 구조 전체를 _panes 상태에 맞춰 재생성한다(분할/복귀 시 호출).
+function renderPanes() {
+  const wrap = document.getElementById('detail-panes');
+  if (!wrap) return;
+  wrap.classList.toggle('split', _splitMode);
+  wrap.innerHTML = '';
+  _panes.forEach((pane, i) => {
     const el = document.createElement('div');
-    el.className = 'detail-tab' + (tab.nodeId === _activeTabId ? ' active' : '');
+    el.className = 'detail-pane' + (_splitMode && i === _activePane ? ' pane-active' : '');
+    el.dataset.pane = i;
+    el.innerHTML =
+      `<div class="detail-tabs-bar">` +
+        `<div class="detail-tabs"></div>` +
+        `<button class="pane-split-btn${_splitMode ? ' active' : ''}" title="패널 상하 분할 / 복귀">${_paneSplitIcon}</button>` +
+        `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
+        `<button class="pane-close-btn" title="${_splitMode ? '이 패널 닫기' : '전체 닫기'}" style="color:#ed7000;">✕</button>` +
+      `</div>` +
+      `<div class="detail-body">` +
+        `<div class="detail-title-row"><div class="detail-title"></div></div>` +
+        `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
+        `<div class="detail-divider"></div>` +
+        `<div class="detail-content"></div>` +
+      `</div>`;
+    el.querySelector('.pane-split-btn').onclick = (e) => { e.stopPropagation(); toggleDetailSplit(); };
+    el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
+    el.querySelector('.pane-close-btn').onclick = (e) => { e.stopPropagation(); closePaneOrPanel(i); };
+    el.addEventListener('mousedown', () => setActivePane(i));
+    wrap.appendChild(el);
+    renderPaneTabs(i);
+    const active = pane.tabs.find(t => t.nodeId === pane.activeTabId) || pane.tabs[pane.tabs.length - 1];
+    if (active) renderPaneContent(i, active.node);
+  });
+}
+
+function setActivePane(i) {
+  if (_activePane === i) return;
+  _activePane = i;
+  document.querySelectorAll('#detail-panes .detail-pane').forEach(el => {
+    el.classList.toggle('pane-active', _splitMode && +el.dataset.pane === i);
+  });
+}
+
+function toggleDetailSplit() {
+  if (!_splitMode) {
+    _panes.push({ tabs: [], activeTabId: null });
+    _splitMode = true;
+    _activePane = 1; // 새로 연 아래쪽 패널을 활성으로
+  } else {
+    // 활성 패인을 남기고 단일 패널로 복귀
+    _panes = [_panes[_activePane]];
+    _activePane = 0;
+    _splitMode = false;
+  }
+  renderPanes();
+  updateDetailReopenTab();
+}
+
+function renderPaneTabs(i) {
+  const paneEl = getPaneEl(i);
+  if (!paneEl) return;
+  const tabsEl = paneEl.querySelector('.detail-tabs');
+  const pane = _panes[i];
+  tabsEl.innerHTML = '';
+  [...pane.tabs].reverse().forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'detail-tab' + (tab.nodeId === pane.activeTabId ? ' active' : '');
     el.innerHTML = `<span class="tab-label">${escapeHtml(tab.label)}</span><span class="tab-close">✕</span>`;
-    el.querySelector('.tab-label').onclick = () => switchTab(tab.nodeId);
-    el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(tab.nodeId); };
+    el.querySelector('.tab-label').onclick = () => { setActivePane(i); switchTab(i, tab.nodeId); };
+    el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(i, tab.nodeId); };
     tabsEl.appendChild(el);
   });
 }
 
-function switchTab(nodeId) { _activeTabId = nodeId; const tab = _tabs.find(t => t.nodeId === nodeId); if (tab) renderPanelContent(tab.node); renderTabs(); }
-function closeTab(nodeId) {
-  const idx = _tabs.findIndex(t => t.nodeId === nodeId);
-  _tabs = _tabs.filter(t => t.nodeId !== nodeId);
-  if (_tabs.length === 0) { closePanel(); } else { const next = _tabs[Math.min(idx, _tabs.length - 1)]; switchTab(next.nodeId); }
-  renderTabs();
+function switchTab(i, nodeId) {
+  const pane = _panes[i];
+  pane.activeTabId = nodeId;
+  const tab = pane.tabs.find(t => t.nodeId === nodeId);
+  if (tab) renderPaneContent(i, tab.node);
+  renderPaneTabs(i);
+}
+
+function closeTab(i, nodeId) {
+  const pane = _panes[i];
+  const idx = pane.tabs.findIndex(t => t.nodeId === nodeId);
+  pane.tabs = pane.tabs.filter(t => t.nodeId !== nodeId);
+  if (pane.tabs.length === 0) {
+    if (_splitMode) { renderPaneTabs(i); renderPaneContent(i, null); pane.activeTabId = null; if (!anyTabs()) closePanel(); }
+    else closePanel();
+  } else {
+    const next = pane.tabs[Math.min(idx, pane.tabs.length - 1)];
+    switchTab(i, next.nodeId);
+  }
+}
+
+// 분할 모드: 해당 패인만 비우고(둘 다 비면 전체 닫기), 단일 모드: 전체 닫기
+function closePaneOrPanel(i) {
+  if (_splitMode) {
+    _panes[i] = { tabs: [], activeTabId: null };
+    renderPaneTabs(i); renderPaneContent(i, null);
+    if (!anyTabs()) closePanel();
+  } else {
+    closePanel();
+  }
 }
 
 function mdTableToHtml(text) {
@@ -501,19 +613,33 @@ function mdTableToHtml(text) {
   return out.join('\n');
 }
 
-function renderPanelContent(n) {
-  if (detailTitle) detailTitle.textContent = n.label;
-  if (detailDate) {
-    if (n.date) { detailDate.style.display = 'inline'; detailDate.textContent = n.date; }
-    else { detailDate.style.display = 'none'; }
+function renderPaneContent(i, n) {
+  const paneEl = getPaneEl(i);
+  if (!paneEl) return;
+  const titleEl = paneEl.querySelector('.detail-title');
+  const dateEl = paneEl.querySelector('.detail-date');
+  const contentEl = paneEl.querySelector('.detail-content');
+  const titleRow = paneEl.querySelector('.detail-title-row');
+  if (!n) {
+    if (titleEl) titleEl.textContent = '';
+    if (dateEl) dateEl.style.display = 'none';
+    if (contentEl) contentEl.innerHTML = '';
+    const oldLink = titleRow && titleRow.querySelector('.detail-notion-link');
+    if (oldLink) oldLink.style.display = 'none';
+    return;
   }
-  let notionLinkEl = document.getElementById('detail-notion-link');
+  if (titleEl) titleEl.textContent = n.label;
+  if (dateEl) {
+    if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
+    else { dateEl.style.display = 'none'; }
+  }
+  let notionLinkEl = titleRow.querySelector('.detail-notion-link');
   if (!notionLinkEl) {
     notionLinkEl = document.createElement('a');
-    notionLinkEl.id = 'detail-notion-link'; notionLinkEl.target = '_blank';
+    notionLinkEl.className = 'detail-notion-link'; notionLinkEl.target = '_blank';
     notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#ed7000;text-decoration:none;margin-left:8px;opacity:0.8;';
     notionLinkEl.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Notion에서 보기`;
-    if (detailTitle) detailTitle.parentElement.appendChild(notionLinkEl);
+    titleRow.appendChild(notionLinkEl);
   }
   const pid = n.sourcePageId || '';
   if (pid) { notionLinkEl.href = `https://notion.so/${pid.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
@@ -524,10 +650,10 @@ function renderPanelContent(n) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
-  if (detailContent) {
-    detailContent.innerHTML = mdTableToHtml(rawDesc);
+  if (contentEl) {
+    contentEl.innerHTML = mdTableToHtml(rawDesc);
     if (searchKeyword && searchMatches.has(n.id)) {
-      setTimeout(() => { const mark = detailContent.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+      setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
   }
 }
@@ -544,22 +670,27 @@ function isAncestorOf(potentialAncId, nodeId) {
 }
 
 function showPanel() {
-  if (_tabs.length === 0) return;
+  if (!anyTabs()) return;
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
-  const activeTab = _tabs.find(t => t.nodeId === _activeTabId) || _tabs[_tabs.length - 1];
-  if (activeTab) renderPanelContent(activeTab.node);
-  renderTabs();
+  renderPanes();
   updateDetailReopenTab();
 }
 
 function openPanel(n) {
-  const existing = _tabs.find(t => t.nodeId === n.id);
-  if (existing) { switchTab(n.id); }
-  else {
-    if (_tabs.length >= MAX_TABS) _tabs.shift();
-    _tabs.push({ nodeId: n.id, label: n.label, node: n }); _activeTabId = n.id; renderPanelContent(n); renderTabs();
+  const pane = _panes[_activePane] || _panes[0];
+  const existing = pane.tabs.find(t => t.nodeId === n.id);
+  if (existing) {
+    pane.activeTabId = n.id;
+    renderPaneContent(_activePane, n);
+    renderPaneTabs(_activePane);
+  } else {
+    if (pane.tabs.length >= MAX_TABS) pane.tabs.shift();
+    pane.tabs.push({ nodeId: n.id, label: n.label, node: n });
+    pane.activeTabId = n.id;
+    renderPaneContent(_activePane, n);
+    renderPaneTabs(_activePane);
   }
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
@@ -573,10 +704,11 @@ function openPanel(n) {
 }
 
 function closePanel() {
-  _tabs = []; _activeTabId = null; _detailPanelCollapsed = false;
+  _panes = [{ tabs: [], activeTabId: null }];
+  _activePane = 0; _splitMode = false; _detailPanelCollapsed = false;
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
-  renderTabs();
+  renderPanes();
   updateDetailReopenTab();
 }
 
@@ -1008,7 +1140,7 @@ document.addEventListener('keydown', e => {
     if (detailPanel.classList.contains('open')) { hidePanel(); return; }
     const sidebar = document.getElementById('sidebar');
     if (sidebar && !sidebar.classList.contains('collapsed')) { toggleSidebar(); return; }
-    if (sidebar && sidebar.classList.contains('collapsed')) { toggleSidebar(); if (_tabs.length > 0) showPanel(); return; }
+    if (sidebar && sidebar.classList.contains('collapsed')) { toggleSidebar(); if (anyTabs()) showPanel(); return; }
     return;
   }
   const tag = document.activeElement?.tagName;
@@ -1148,6 +1280,7 @@ function restoreSearchHistory() {
 updateConfig();
 applyLang();
 updateShortcutHints();
+renderPanes();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
