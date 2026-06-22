@@ -389,7 +389,13 @@ function draw() {
 // ── 그래프 빌드/병합/공개 ────────────────────────────────────────────
 
 function screenToWorld(sx, sy) { return { x:(sx-W/2-panX)/scale+W/2, y:(sy-H/2-panY)/scale+H/2 }; }
-function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>n.visible&&dist(n,w)<=nodeR(n.level)+5)||null; }
+// 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
+function isNodeInteractable(n) {
+  if (searchKeyword.length > 0 && !searchMatches.has(n.id)) return false;
+  if ((_focusMode || _isolateActive) && n.dimmed) return false;
+  return true;
+}
+function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>n.visible&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+5)||null; }
 
 function saveFixedPositions() {
   const data = {};

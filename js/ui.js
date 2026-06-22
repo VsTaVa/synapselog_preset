@@ -514,12 +514,15 @@ function renderPanes() {
     const el = document.createElement('div');
     el.className = 'detail-pane' + (_splitMode && i === _activePane ? ' pane-active' : '');
     el.dataset.pane = i;
+    // 분할 모드의 하단 패인(i===1)은 분할/복귀 버튼만 둔다
+    const onlySplit = _splitMode && i === 1;
     el.innerHTML =
       `<div class="detail-tabs-bar">` +
         `<div class="detail-tabs"></div>` +
         `<button class="pane-split-btn${_splitMode ? ' active' : ''}" title="패널 상하 분할 / 복귀">${_paneSplitIcon}</button>` +
-        `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
-        `<button class="pane-close-btn" title="${_splitMode ? '이 패널 닫기' : '전체 닫기'}" style="color:#ed7000;">✕</button>` +
+        (onlySplit ? '' :
+          `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
+          `<button class="pane-close-btn" title="${_splitMode ? '이 패널 닫기' : '전체 닫기'}" style="color:#ed7000;">✕</button>`) +
       `</div>` +
       `<div class="detail-body">` +
         `<div class="detail-title-row"><div class="detail-title"></div></div>` +
@@ -528,8 +531,10 @@ function renderPanes() {
         `<div class="detail-content"></div>` +
       `</div>`;
     el.querySelector('.pane-split-btn').onclick = (e) => { e.stopPropagation(); toggleDetailSplit(); };
-    el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
-    el.querySelector('.pane-close-btn').onclick = (e) => { e.stopPropagation(); closePaneOrPanel(i); };
+    const collapseBtn = el.querySelector('.pane-collapse-btn');
+    if (collapseBtn) collapseBtn.onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
+    const closeBtn = el.querySelector('.pane-close-btn');
+    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closePaneOrPanel(i); };
     el.addEventListener('mousedown', () => setActivePane(i));
     // 탭 드래그&드롭: 다른 패인 위에 떨어뜨리면 그 패인으로 이동
     el.addEventListener('dragover', (e) => {
