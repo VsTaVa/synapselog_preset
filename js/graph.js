@@ -88,7 +88,7 @@ function parseMarkdown(text, rootTitle) {
       let parentId = null;
       for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
       if (!parentId) parentId = rootId;
-      let descLines = [], nextIdx = i + 1;
+      let descLines = [], bodyBlocks = [], pendingBlk = null, nextIdx = i + 1;
       while (nextIdx < lines.length) {
         const rawLine = lines[nextIdx].replace(/\s+$/, '');
         let nextLine = rawLine.trim();
@@ -98,14 +98,19 @@ function parseMarkdown(text, rootTitle) {
         if (nextLine === '[CHILD_PAGE]') break;
         if (nextLine.startsWith('[NOTION_ENTRY:')) break;
         if (nextLine.startsWith('[BLOCK:')) break;
+        const bbm = nextLine.match(/^\[BB:([a-f0-9]+)\]$/);
+        if (bbm) { pendingBlk = bbm[1]; nextIdx++; continue; }
         const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
         if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
-        descLines.push(rawLine); nextIdx++;
+        descLines.push(rawLine);
+        if (pendingBlk) { bodyBlocks.push({ id: pendingBlk, text: bodyBlockText(rawLine) }); pendingBlk = null; }
+        nextIdx++;
       }
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
+        if (bodyBlocks.length) nodeMap[curId].bodyBlocks = bodyBlocks;
         if (pendingEntryId) { nodeMap[curId].entryNotionId = pendingEntryId; pendingEntryId = null; }
         if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; nodeMap[curId].notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
         if (pendingIsDbNode) { nodeMap[curId].isDbNode = true; pendingIsDbNode = false; }

@@ -220,24 +220,24 @@ export default async function handler(req, res) {
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
-          if (text.trim()) markdown += IND + text + '\n';
+          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + text + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'bulleted_list_item') {
           listCounter = 0;
-          markdown += IND + '- ' + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '- ' + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'numbered_list_item') {
           listCounter++;
-          markdown += IND + `${listCounter}. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + `${listCounter}. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'quote') {
           listCounter = 0;
-          markdown += IND + '> ' + extractRichText(block.quote?.rich_text) + '\n';
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '> ' + extractRichText(block.quote?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'callout') {
           listCounter = 0;
           const text = extractRichText(block.callout?.rich_text);
-          if (text.trim()) markdown += IND + '> ' + text + '\n';
+          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '> ' + text + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;

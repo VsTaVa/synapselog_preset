@@ -272,13 +272,13 @@ async function notionAppendBlock(parentId, afterId, text, blockType) {
   return notionFetch({ action: 'appendBlock', parentId, afterId, text, blockType });
 }
 
-// 세션 캐시의 모든 markdown에 대해 [BLOCK:id(|parent)] 마커를 찾아 변형 적용
-function _mutateCachedMarkdown(blockId, mutate) {
+// 세션 캐시의 모든 markdown 중 containsStr를 포함하는 항목에 변형 적용
+function _mutateCachedMarkdown(containsStr, mutate) {
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
     if (!key || !key.startsWith('snlog_')) continue;
     const val = sessionStorage.getItem(key);
-    if (!val || !val.includes(`[BLOCK:${blockId}`)) continue;
+    if (!val || !val.includes(containsStr)) continue;
     try {
       const obj = JSON.parse(val);
       if (obj && typeof obj.markdown === 'string') { obj.markdown = mutate(obj.markdown); sessionStorage.setItem(key, JSON.stringify(obj)); continue; }
@@ -290,7 +290,13 @@ function _mutateCachedMarkdown(blockId, mutate) {
 // 수정한 헤딩 텍스트를 세션 캐시에도 반영 → 새로고침해도 유지
 function updateCachedBlockText(blockId, newText) {
   const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
-  _mutateCachedMarkdown(blockId, md => md.replace(re, (m, p1) => p1 + newText));
+  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => md.replace(re, (m, p1) => p1 + newText));
+}
+
+// 수정한 본문 블록 텍스트를 세션 캐시에 반영(들여쓰기/목록 접두는 보존)
+function updateCachedBodyBlock(blockId, newText) {
+  const re = new RegExp(`(\\[BB:${blockId}\\]\\n[ \\t]*(?:[-*]\\s+|\\d+\\.\\s+|>\\s+)?)[^\\n]*`);
+  _mutateCachedMarkdown(`[BB:${blockId}]`, md => md.replace(re, (m, p1) => p1 + newText));
 }
 
 // 헤딩 섹션 맨 끝(다음 헤딩/마커 직전)에 본문 한 줄 삽입 → 새로고침해도 유지
@@ -298,7 +304,7 @@ function insertCachedBodyLine(blockId, text) {
   const safe = text.replace(/\n/g, ' ');
   const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
   const boundary = t => /^#{1,5}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t.startsWith('[NOTION_ENTRY:');
-  _mutateCachedMarkdown(blockId, md => {
+  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => {
     const lines = md.split('\n');
     const mi = lines.findIndex(l => markerRe.test(l.trim()));
     if (mi < 0) return md;
@@ -708,14 +714,18 @@ function _addEntryChildNodes(entryNode, markdown) {
     let parentId = entryNode.id;
     for (let d = mdDepth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
 
-    let descLines = [], nextIdx = i + 1;
+    let descLines = [], bodyBlocks = [], pendingBlk = null, nextIdx = i + 1;
     while (nextIdx < lines.length) {
       const rawNl = lines[nextIdx].replace(/\s+$/, '');
       const nl = rawNl.trim();
       if (!nl) { nextIdx++; continue; }
       if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl.startsWith('[NOTION_ENTRY:') || nl.startsWith('[BLOCK:')) break;
+      const bbm = nl.match(/^\[BB:([a-f0-9]+)\]$/);
+      if (bbm) { pendingBlk = bbm[1]; nextIdx++; continue; }
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
-      descLines.push(rawNl); nextIdx++;
+      descLines.push(rawNl);
+      if (pendingBlk) { bodyBlocks.push({ id: pendingBlk, text: bodyBlockText(rawNl) }); pendingBlk = null; }
+      nextIdx++;
     }
 
     const parentColor = nodeMap[parentId]?.color;
@@ -744,6 +754,7 @@ function _addEntryChildNodes(entryNode, markdown) {
     };
     if (pendingEntryId) { n.entryNotionId = pendingEntryId; pendingEntryId = null; }
     if (pendingBlockId) { n.notionBlockId = pendingBlockId; n.notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
+    if (bodyBlocks.length) n.bodyBlocks = bodyBlocks;
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
     nodes.push(n); nodeMap[id] = n;
     edges.push({ from: parentId, to: id });
@@ -775,7 +786,20 @@ async function _loadEntryNode(node, pageId) {
     const nestedChildPages = [...newIds].map(id => nodeMap[id]).filter(n => n?.entryNotionId);
     for (const child of nestedChildPages) await _loadEntryNode(child, pageId);
   } else {
-    node.desc = cleanDesc(md.replace(/^#{1,5}\s+/gm, '').substring(0, 5000).trim());
+    // 헤딩 없는 엔트리: 본문 블록 마커를 파싱해 desc + bodyBlocks 구성
+    const bb = [], descArr = [];
+    let pend = null;
+    for (const raw of md.split('\n')) {
+      const t = raw.trim();
+      if (!t) continue;
+      const m = t.match(/^\[BB:([a-f0-9]+)\]$/);
+      if (m) { pend = m[1]; continue; }
+      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE)[^\]]*\]$/.test(t)) { pend = null; continue; }
+      descArr.push(raw.replace(/^#{1,5}\s+/, ''));
+      if (pend) { bb.push({ id: pend, text: bodyBlockText(raw) }); pend = null; }
+    }
+    node.desc = cleanDesc(descArr.join('\n').substring(0, 5000).trim());
+    if (bb.length) node.bodyBlocks = bb;
   }
 }
 

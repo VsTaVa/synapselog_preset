@@ -134,6 +134,11 @@ function cleanDesc(str) {
     .replace(/[\[\]#`]/g, '').replace(/\{[^}]*\}/g, '').trim();
 }
 
+// 본문 블록 마커 다음 줄에서 노션 rich_text 원문만 추출(목록/인용 접두·들여쓰기·볼드 제거)
+function bodyBlockText(line) {
+  return (line || '').replace(/^\s+/, '').replace(/^(?:[-*]\s+|\d+\.\s+|>\s+)/, '').replace(/\*\*([^*]+)\*\*/g, '$1').trim();
+}
+
 function dist(a, b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
 
 function getChildCount(nodeId) {

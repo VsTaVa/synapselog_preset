@@ -706,17 +706,80 @@ function renderPaneContent(i, n) {
     }
   }
 
-  // 본문 추가 버튼 — 노션 헤딩 블록 + 부모 id를 아는 노드만
+  // 본문 수정 / 추가 버튼 바
   const bodyEl = paneEl.querySelector('.detail-body');
   if (bodyEl) {
     const staleForm = bodyEl.querySelector('.detail-add-form');
     if (staleForm) staleForm.remove();
-    let addBtn = bodyEl.querySelector('.detail-add-body-btn');
-    if (!addBtn) { addBtn = document.createElement('button'); addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가'; }
-    bodyEl.appendChild(addBtn); // 항상 본문 맨 아래로 위치 유지
-    if (n.notionBlockId && n.notionParentId) { addBtn.style.display = 'block'; addBtn.onclick = () => beginBodyAdd(i, n); }
-    else { addBtn.style.display = 'none'; }
+    let bar = bodyEl.querySelector('.detail-body-actions');
+    if (!bar) { bar = document.createElement('div'); bar.className = 'detail-body-actions'; }
+    bar.innerHTML = '';
+    bar.style.display = 'flex';
+    if (n.bodyBlocks && n.bodyBlocks.length) {
+      const editBtn = document.createElement('button');
+      editBtn.className = 'detail-body-edit-btn'; editBtn.textContent = '✏ 본문 수정';
+      editBtn.onclick = () => beginBodyEdit(i, n);
+      bar.appendChild(editBtn);
+    }
+    if (n.notionBlockId && n.notionParentId) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'detail-add-body-btn'; addBtn.textContent = '+ 본문 추가';
+      addBtn.onclick = () => beginBodyAdd(i, n);
+      bar.appendChild(addBtn);
+    }
+    bodyEl.appendChild(bar); // 항상 본문 맨 아래로
+    if (!bar.children.length) bar.style.display = 'none';
   }
+}
+
+// 본문 블록들을 한 번에 인라인 수정 (각 블록 textarea → 변경분만 PATCH)
+function beginBodyEdit(paneIdx, node) {
+  const paneEl = getPaneEl(paneIdx);
+  if (!paneEl) return;
+  const contentEl = paneEl.querySelector('.detail-content');
+  const bar = paneEl.querySelector('.detail-body-actions');
+  if (!contentEl || !node.bodyBlocks || !node.bodyBlocks.length) return;
+  if (bar) bar.style.display = 'none';
+  contentEl.innerHTML = '';
+  const list = document.createElement('div'); list.className = 'body-edit-list';
+  const rows = [];
+  node.bodyBlocks.forEach(blk => {
+    const ta = document.createElement('textarea');
+    ta.className = 'body-edit-row'; ta.value = blk.text; ta.rows = 1;
+    list.appendChild(ta);
+    const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    ta.addEventListener('input', grow);
+    setTimeout(grow, 0);
+    rows.push({ blk, ta, orig: blk.text });
+  });
+  contentEl.appendChild(list);
+  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
+  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '저장';
+  const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  contentEl.appendChild(actions);
+
+  const finish = () => renderPaneContent(paneIdx, node);
+  cancelBtn.onclick = finish;
+  saveBtn.onclick = async () => {
+    const changed = rows.filter(r => r.ta.value.trim() !== r.orig);
+    if (!changed.length) { finish(); return; }
+    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
+    try {
+      for (const r of changed) {
+        const nt = r.ta.value.trim();
+        await notionUpdateBlock(r.blk.id, nt);
+        if (node.desc && r.orig) node.desc = node.desc.replace(r.orig, nt);
+        updateCachedBodyBlock(r.blk.id, nt);
+        r.blk.text = nt;
+      }
+      isStable = false;
+      renderPaneContent(paneIdx, node);
+    } catch (err) {
+      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
+      alert('수정 실패: ' + (err.message || err));
+    }
+  };
 }
 
 // 헤딩 노드 아래(섹션 시작)에 본문 문단 추가
@@ -725,8 +788,8 @@ function beginBodyAdd(paneIdx, node) {
   if (!paneEl) return;
   const bodyEl = paneEl.querySelector('.detail-body');
   if (!bodyEl || bodyEl.querySelector('.detail-add-form')) return;
-  const addBtn = bodyEl.querySelector('.detail-add-body-btn');
-  if (addBtn) addBtn.style.display = 'none';
+  const bar = bodyEl.querySelector('.detail-body-actions');
+  if (bar) bar.style.display = 'none';
   const form = document.createElement('div'); form.className = 'detail-add-form';
   const ta = document.createElement('textarea'); ta.className = 'detail-add-input'; ta.placeholder = '추가할 본문 내용… (Ctrl+Enter로 추가)'; ta.rows = 3;
   const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
