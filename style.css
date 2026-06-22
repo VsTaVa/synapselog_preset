@@ -164,7 +164,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 .detail-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .detail-title { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; word-break: keep-all; flex: 1; }
-.detail-edit-btn { background: none; border: none; color: rgba(255,255,255,0.35); cursor: pointer; padding: 2px 4px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
+.detail-edit-btn { background: none; border: none; color: rgba(237,112,0,0.85); cursor: pointer; padding: 2px 4px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
 .detail-edit-btn:hover { color: #ed7000; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(237,112,0,0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
 .detail-edit-actions { display: flex; gap: 6px; margin-top: 8px; }
@@ -177,8 +177,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-body-actions { display: flex; gap: 8px; margin-top: 18px; }
 .detail-add-body-btn { flex: 1; background: rgba(237,112,0,0.08); border: 1px dashed rgba(237,112,0,0.4); border-radius: 7px; padding: 8px; font-family: inherit; font-size: 12px; font-weight: 700; color: rgba(237,112,0,0.85); cursor: pointer; transition: background 0.15s; }
 .detail-add-body-btn:hover { background: rgba(237,112,0,0.16); }
-.detail-body-edit-btn { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 7px; padding: 8px; font-family: inherit; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.65); cursor: pointer; transition: background 0.15s, color 0.15s; }
-.detail-body-edit-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-row { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid rgba(237,112,0,0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; resize: none; overflow: hidden; }
 .body-edit-row:focus { border-color: rgba(237,112,0,0.7); }
