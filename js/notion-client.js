@@ -333,6 +333,21 @@ function insertCachedChildHeading(parentBlockId, newId, newParentId, title) {
   });
 }
 
+// 페이지 캐시 끝에 새 최상위(#) 헤딩 추가 → 새로고침해도 유지
+function appendCachedPageHeading(pageId, newId, title) {
+  const safe = title.replace(/\n/g, ' ');
+  const key = `snlog_${pageId}`;
+  const val = sessionStorage.getItem(key);
+  if (!val) return;
+  try {
+    const obj = JSON.parse(val);
+    if (obj && typeof obj.markdown === 'string') {
+      obj.markdown = obj.markdown.replace(/\s*$/, '') + `\n[BLOCK:${newId}|${pageId}]\n# ${safe}\n`;
+      sessionStorage.setItem(key, JSON.stringify(obj));
+    }
+  } catch (e) {}
+}
+
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
 function startWithMd(event) {

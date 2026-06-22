@@ -14,6 +14,21 @@ export default async function handler(req, res) {
     'Notion-Version': '2022-06-28',
   };
 
+  // 마크다운(**볼드**, ~~취소선~~)을 노션 rich_text 배열로 변환 (쓰기용)
+  function buildRichText(text) {
+    if (!text) return [{ type: 'text', text: { content: '' } }];
+    const out = [];
+    let i = 0, buf = '', bold = false, strike = false;
+    const flush = () => { if (buf) { out.push({ type: 'text', text: { content: buf }, annotations: { bold, strikethrough: strike } }); buf = ''; } };
+    while (i < text.length) {
+      if (text.startsWith('**', i)) { flush(); bold = !bold; i += 2; }
+      else if (text.startsWith('~~', i)) { flush(); strike = !strike; i += 2; }
+      else { buf += text[i]; i++; }
+    }
+    flush();
+    return out.length ? out : [{ type: 'text', text: { content: '' } }];
+  }
+
   // 프로필 조회
   if (action === 'profile') {
     try {
@@ -76,7 +91,7 @@ export default async function handler(req, res) {
       const type = block.type;
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
-      const patchBody = { [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };
+      const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -90,48 +105,49 @@ export default async function handler(req, res) {
   // ── action: 'appendBlock' — 헤딩 섹션 맨 끝(다음 헤딩 직전)에 새 블록 추가 ──
   if (action === 'appendBlock') {
     const { parentId, afterId, text, blockType } = req.body;
-    if (!parentId || !afterId) return res.status(400).json({ error: 'parentId / afterId가 필요해요' });
+    if (!parentId) return res.status(400).json({ error: 'parentId가 필요해요' });
     // 'heading'이면 부모 헤딩보다 한 단계 깊은 레벨로 자동 결정(아래에서)
     const wantHeading = blockType === 'heading';
     let type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
     try {
-      // 부모의 children을 읽어, 헤딩 다음 헤딩(섹션 경계) 직전의 마지막 블록을 찾는다
       const norm = id => (id || '').replace(/-/g, '');
-      const children = [];
-      let cur;
-      do {
-        const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
-        if (!r.ok) break;
-        const d = await r.json();
-        children.push(...d.results.filter(b => b?.type));
-        cur = d.has_more ? d.next_cursor : undefined;
-      } while (cur);
-
-      let afterTarget = afterId;
-      const idx = children.findIndex(b => norm(b.id) === norm(afterId));
-      if (idx >= 0) {
-        const BREAK = ['heading_1', 'heading_2', 'heading_3', 'toggle', 'child_page', 'child_database'];
-        let last = children[idx]; // 헤딩 자신(섹션이 비어있으면 헤딩 바로 뒤)
-        for (let j = idx + 1; j < children.length; j++) {
-          if (BREAK.includes(children[j].type)) break;
-          last = children[j];
-        }
-        afterTarget = last.id;
-        // 하위 노드(heading): 부모 헤딩보다 한 단계 깊은 레벨로
-        if (wantHeading) {
-          const m = /^heading_(\d)$/.exec(children[idx].type || '');
-          const lvl = m ? Math.min(parseInt(m[1], 10) + 1, 3) : 2;
-          type = `heading_${lvl}`;
-        }
+      let afterTarget = afterId || null;
+      // afterId가 있으면 그 헤딩 섹션의 끝 블록을 찾는다(없으면 부모 children 맨 끝에 추가)
+      if (afterId) {
+        const children = [];
+        let cur;
+        do {
+          const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+          if (!r.ok) break;
+          const d = await r.json();
+          children.push(...d.results.filter(b => b?.type));
+          cur = d.has_more ? d.next_cursor : undefined;
+        } while (cur);
+        const idx = children.findIndex(b => norm(b.id) === norm(afterId));
+        if (idx >= 0) {
+          const BREAK = ['heading_1', 'heading_2', 'heading_3', 'toggle', 'child_page', 'child_database'];
+          let last = children[idx];
+          for (let j = idx + 1; j < children.length; j++) {
+            if (BREAK.includes(children[j].type)) break;
+            last = children[j];
+          }
+          afterTarget = last.id;
+          if (wantHeading) {
+            const m = /^heading_(\d)$/.exec(children[idx].type || '');
+            const lvl = m ? Math.min(parseInt(m[1], 10) + 1, 3) : 2;
+            type = `heading_${lvl}`;
+          }
+        } else if (wantHeading) { type = 'heading_2'; }
       } else if (wantHeading) {
-        type = 'heading_2';
+        type = 'heading_1'; // 페이지 직속 → 최상위 헤딩(# 노드)
       }
 
-      const newBlock = { object: 'block', type, [type]: { rich_text: [{ type: 'text', text: { content: text || '' } }] } };
+      const newBlock = { object: 'block', type, [type]: { rich_text: buildRichText(text || '') } };
+      const appendBody = afterTarget ? { children: [newBlock], after: afterTarget } : { children: [newBlock] };
       const r2 = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ children: [newBlock], after: afterTarget })
+        body: JSON.stringify(appendBody)
       });
       if (!r2.ok) { const e = await r2.json(); return res.status(r2.status).json({ error: e.message || '추가 실패' }); }
       const data = await r2.json();
@@ -142,11 +158,12 @@ export default async function handler(req, res) {
 
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
-  // 텍스트 추출 함수 — 볼드 유지 (본문용)
+  // 텍스트 추출 함수 — 볼드(**)·취소선(~~) 마크다운으로 보존 (본문용)
   function extractRichText(richTextArr) {
     if (!richTextArr) return '';
     return richTextArr.map(t => {
       let str = t.plain_text || '';
+      if (t.annotations?.strikethrough) str = `~~${str}~~`;
       if (t.annotations?.bold) str = `**${str}**`;
       return str;
     }).join('');
