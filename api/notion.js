@@ -156,6 +156,17 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'deleteBlock' — 블록(헤딩+하위) 삭제(보관) ──────────────
+  if (action === 'deleteBlock') {
+    const { blockId } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    try {
+      const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { method: 'DELETE', headers });
+      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '삭제 실패' }); }
+      return res.status(200).json({ ok: true });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
   // 텍스트 추출 함수 — 볼드(**)·취소선(~~) 마크다운으로 보존 (본문용)

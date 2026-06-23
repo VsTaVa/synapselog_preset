@@ -272,6 +272,32 @@ async function notionAppendBlock(parentId, afterId, text, blockType) {
   return notionFetch({ action: 'appendBlock', parentId, afterId, text, blockType });
 }
 
+async function notionDeleteBlock(blockId) {
+  return notionFetch({ action: 'deleteBlock', blockId });
+}
+
+// 캐시 마크다운에서 해당 헤딩 + 하위 섹션 제거 (삭제 시 새로고침해도 유지)
+function removeCachedBlockSection(blockId) {
+  const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
+  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => {
+    const lines = md.split('\n');
+    const mi = lines.findIndex(l => markerRe.test(l.trim()));
+    if (mi < 0) return md;
+    const depth = ((lines[mi + 1] || '').match(/^#+/) || ['#'])[0].length;
+    let end = mi + 2;
+    while (end < lines.length) {
+      const t = lines[end].trim();
+      const hm = t.match(/^(#{1,6})\s/);
+      if (hm && hm[1].length <= depth) break; // 같은/상위 레벨 헤딩 = 섹션 끝
+      end++;
+    }
+    // 다음 섹션 헤딩 바로 앞의 [BLOCK:] 마커는 남긴다
+    if (end - 1 > mi + 1 && /^\[BLOCK:/.test((lines[end - 1] || '').trim())) end -= 1;
+    lines.splice(mi, end - mi);
+    return lines.join('\n');
+  });
+}
+
 // 세션 캐시의 모든 markdown 중 containsStr를 포함하는 항목에 변형 적용
 function _mutateCachedMarkdown(containsStr, mutate) {
   for (let i = 0; i < sessionStorage.length; i++) {
@@ -497,7 +523,7 @@ async function showPagePicker() {
     <div class="login-title">Synapse<span>Log</span></div>
     <div class="login-sub" style="margin-bottom:14px;">불러올 페이지를 선택하세요</div>
     <div style="position:relative; margin-bottom:10px;">
-      <input type="text" id="page-search-input" placeholder="페이지 검색..." style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:#fff; outline:none; transition:border-color 0.2s;" oninput="filterPageList(this.value)" onfocus="this.style.borderColor='rgba(237,112,0,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
+      <input type="text" id="page-search-input" autocomplete="off" placeholder="페이지 검색..." style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:#fff; outline:none; transition:border-color 0.2s;" oninput="filterPageList(this.value)" onfocus="this.style.borderColor='rgba(237,112,0,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
     </div>
     <div id="page-list" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:12px;">
       <div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:20px 0;">불러오는 중...</div>
