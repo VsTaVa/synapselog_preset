@@ -165,16 +165,24 @@ function toggleEditMode() {
   isStable = false;
 }
 
-// 모드별 커서: 선택 모드=손가락, 편집 모드=노드연결(분기) 아이콘
+// 모드별 커서: 선택 모드=주황 손가락, 편집 모드=노드연결(분기) 아이콘
 function _editModeCursor() {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='%23ed7000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='5' r='2.4'/><circle cx='5' cy='18' r='2.4'/><path d='M11 7.4V13a3 3 0 0 1-3 3H7.4'/><path d='M16 18h6M19 15v6'/></svg>`;
   return `url("data:image/svg+xml,${svg}") 5 5, pointer`;
 }
+function _selectModeCursor() {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32'><path fill='%23ed7000' stroke='%23ffffff' stroke-width='1.3' stroke-linejoin='round' d='M12 2a2 2 0 0 0-2 2v12L8.5 14a2.2 2.2 0 0 0-3.1 3.1l4.5 6A6 6 0 0 0 14.7 25H19a6 6 0 0 0 6-6v-7a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0V4a2 2 0 0 0-1-2z'/></svg>`;
+  return `url("data:image/svg+xml,${svg}") 10 2, pointer`;
+}
+function _modeCursor() {
+  if (_editMode) return _editModeCursor();
+  if (_multiSelectMode) return _selectModeCursor();
+  return '';
+}
 function applyModeCursor() {
-  if (!canvas) return;
-  if (_editMode) canvas.style.cursor = _editModeCursor();
-  else if (_multiSelectMode) canvas.style.cursor = 'pointer';
-  else canvas.style.cursor = 'default';
+  const c = _modeCursor();
+  document.body.style.cursor = c; // 클릭 즉시 전역 반영
+  if (canvas) canvas.style.cursor = c || 'default';
 }
 
 // 편집 모드에서 노드 클릭 → 단일 선택 + 편집 메뉴
@@ -1208,8 +1216,7 @@ canvas.addEventListener('mousemove', e => {
   if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
   const n = getNodeAt(e.clientX, e.clientY);
   hoveredNode = n;
-  if (_editMode) canvas.style.cursor = _editModeCursor();
-  else if (_multiSelectMode) canvas.style.cursor = 'pointer';
+  if (_editMode || _multiSelectMode) canvas.style.cursor = _modeCursor();
   else canvas.style.cursor = n ? 'pointer' : 'default';
   if (n && n.level > 0) {
     tooltip.textContent = n.label; tooltip.style.display = 'block';
@@ -1516,15 +1523,16 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleLabels: '1', toggleMultiSelectMode: '2', fitGraph: ' ' };
+const DEFAULT_SHORTCUTS = { toggleEditMode: '1', toggleMultiSelectMode: '2', fitGraph: ' ' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
-// 구버전 단축키 정리 (포커스/연결 모드 제거, 노드선택 모드 4→2 이전)
-delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode;
+// 구버전 단축키 정리 (포커스/연결/제목표시 제거, 노드선택 모드 4→2 이전)
+delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleLabels;
+if (!_shortcuts.toggleEditMode) _shortcuts.toggleEditMode = '1';
 if (_shortcuts.toggleMultiSelectMode === '4' || _shortcuts.toggleMultiSelectMode === '3') _shortcuts.toggleMultiSelectMode = '2';
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleLabels','toggleMultiSelectMode','fitGraph'].forEach(action => {
+  ['toggleEditMode','toggleMultiSelectMode','fitGraph'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -1556,7 +1564,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key;
-  if (k === _shortcuts.toggleLabels) { e.preventDefault(); document.getElementById('label-toggle-input')?.click(); }
+  if (k === _shortcuts.toggleEditMode) { e.preventDefault(); document.getElementById('editmode-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.fitGraph) { e.preventDefault(); fitGraph(); }
 });
@@ -1603,7 +1611,7 @@ function openSettings() {
 
   ['pages','connect'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleLabels','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  ['toggleEditMode','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts','storage'].forEach(id => {
