@@ -444,9 +444,10 @@ function exportNodeMarkdown(node) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function exportLocalPage(pageId) {
+function exportPageById(pageId) {
   const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
   if (root) exportNodeMarkdown(root);
+  else alert('내보낼 내용을 찾지 못했어요. 페이지를 먼저 불러오거나 열어주세요.');
 }
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
@@ -612,25 +613,27 @@ function renderSidebarPageList(pages) {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
     const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>'
-      : (p.isLocal ? ' <span style="color:rgba(120,184,255,0.7);font-size:9px;font-weight:700;">로컬</span>' : '');
+      : (p.isLocal ? ' <span style="color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;">임시</span>' : '');
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
+    const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')">⤓</button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
     if (p.isLocal) {
       return `<div class="page-list-item active" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}" onclick="focusLocalRoot('${p.id}')">${safeTitle}${mdBadge}</span>
+        <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
         <div class="item-actions">
           ${starBtn}
-          <button class="btn-sync" title="마크다운 내보내기" onclick="exportLocalPage('${p.id}')">⤓</button>
+          ${exportBtn}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;
     }
     if (isActive) {
       return `<div class="page-list-item active" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}">${safeTitle}${mdBadge}</span>
+        <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
         <div class="item-actions">
           ${starBtn}
-          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화" onclick="syncPage('${p.id}')">↻</button>`}
+          ${p.isMd ? exportBtn : ''}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncPage('${p.id}')">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;

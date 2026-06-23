@@ -460,6 +460,7 @@ let _panes = [{ tabs: [], activeTabId: null }];
 let _activePane = 0;
 let _splitMode = false;
 let _draggingTab = null;
+let _activeNode = null; // 현재 패널에 열린(선택된) 노드 — '노드 편집' 섹션이 사용
 
 // 탭을 다른 패인으로 이동
 function moveTabToPane(fromIdx, nodeId, toIdx) {
@@ -611,7 +612,7 @@ function switchTab(i, nodeId) {
   const pane = _panes[i];
   pane.activeTabId = nodeId;
   const tab = pane.tabs.find(t => t.nodeId === nodeId);
-  if (tab) renderPaneContent(i, tab.node);
+  if (tab) { renderPaneContent(i, tab.node); _activeNode = tab.node; }
   renderPaneTabs(i);
 }
 
@@ -696,32 +697,6 @@ function renderPaneContent(i, n) {
   if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
 
-  // 하위 노드 추가 버튼 — #/##/### 헤딩 노드(####부터는 더 못 들어가므로 숨김)
-  let addNodeBtn = titleRow.querySelector('.detail-addnode-btn');
-  if (!addNodeBtn) {
-    addNodeBtn = document.createElement('button');
-    addNodeBtn.className = 'detail-edit-btn detail-addnode-btn';
-    addNodeBtn.title = '하위 노드 추가';
-    addNodeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg>`;
-    titleRow.appendChild(addNodeBtn);
-  }
-  const isHeadingAdd = n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3;
-  const isEntryAdd = !!n.entryNotionId; // DB 엔트리/하위 페이지 → 그 페이지에 #노드 추가
-  const isPageAdd = !n.notionBlockId && !n.entryNotionId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_');
-  if (n.local || isHeadingAdd || isEntryAdd || isPageAdd) { addNodeBtn.style.display = 'inline-flex'; addNodeBtn.title = (n.local || !isHeadingAdd) ? '노드 추가' : '하위 노드 추가'; addNodeBtn.onclick = () => beginChildAdd(i, n); }
-  else { addNodeBtn.style.display = 'none'; }
-
-  // 마크다운 내보내기 버튼 — 모든 노드(이 노드 + 하위 트리)
-  let exportBtn = titleRow.querySelector('.detail-export-btn');
-  if (!exportBtn) {
-    exportBtn = document.createElement('button');
-    exportBtn.className = 'detail-edit-btn detail-export-btn';
-    exportBtn.title = '마크다운으로 내보내기';
-    exportBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-    titleRow.appendChild(exportBtn);
-  }
-  exportBtn.style.display = 'inline-flex';
-  exportBtn.onclick = () => exportNodeMarkdown(n);
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   if (searchKeyword && searchMatches.has(n.id)) {
@@ -920,66 +895,81 @@ function beginNodeEdit(paneIdx, node) {
   };
 }
 
-// 하위 노드(헤딩 블록) 추가 → 그래프 자식 노드 생성
-function beginChildAdd(paneIdx, node) {
-  const paneEl = getPaneEl(paneIdx);
-  if (!paneEl) return;
-  const contentEl = paneEl.querySelector('.detail-content');
-  if (!contentEl || contentEl.querySelector('.child-add-form')) return;
-  // 헤딩 노드 → 하위 노드 추가 / 엔트리·페이지 노드 → 그 페이지에 #노드 추가
+// 이 노드에 하위 노드를 만들 수 있는가 (####/제한 노드는 false)
+function canAddChild(n) {
+  if (!n) return false;
+  if (n.local) return true;
+  if (n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3) return true;
+  if (n.entryNotionId) return true;
+  if (!n.notionBlockId && !n.entryNotionId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_')) return true;
+  return false;
+}
+
+// 하위(또는 #) 노드 생성 — 로컬은 노션 호출 없이, 노션은 append. 생성된 노드 id 배열 반환
+async function createChildNode(node, rawTitle) {
+  const title = (rawTitle || '').trim().replace(/\n/g, ' ') || '(제목 없음)';
+  if (node.local) {
+    const newIds = _addEntryChildNodes(node, `# ${title}`);
+    newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (node.headingDepth || 1) + 1; } });
+    saveLocalPages();
+    nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
+    isStable = false;
+    return [...newIds];
+  }
   const isHeading = !!node.notionBlockId;
-  const pageLikeId = node.entryNotionId || node.sourcePageId; // 엔트리는 그 페이지, 페이지는 자기 id
+  const pageLikeId = node.entryNotionId || node.sourcePageId;
   const parentId = isHeading ? node.notionParentId : String(pageLikeId).replace(/-/g, '');
   const afterId = isHeading ? node.notionBlockId : null;
   const childDepth = isHeading ? (node.headingDepth || 1) + 1 : 1;
+  const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
+  if (!res || !res.id) return [];
+  const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
+  const newIds = _addEntryChildNodes(node, snippet);
+  newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
+  if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
+  else appendCachedPageHeading(parentId, res.id, title);
+  nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
+  isStable = false;
+  return [...newIds];
+}
 
-  const form = document.createElement('div'); form.className = 'child-add-form';
-  const input = document.createElement('input');
-  input.className = 'detail-title-input'; input.placeholder = isHeading ? '하위 노드 제목…' : '노드 제목…';
-  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
-  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '추가';
-  const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
-  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
-  form.appendChild(input); form.appendChild(actions);
-  contentEl.insertBefore(form, contentEl.firstChild);
-  input.focus();
+// "노드 편집" 섹션의 하위 노드 추가 — 현재 활성 노드에 (제목 없음) 자식 생성
+async function addChildToActive() {
+  const n = _activeNode;
+  if (!n) { alert('먼저 노드를 클릭해 선택하세요.'); return; }
+  if (!canAddChild(n)) { alert('이 노드에는 하위 노드를 만들 수 없어요.\n(최하위(####)이거나 생성이 제한된 노드입니다)'); return; }
+  const btn = document.getElementById('add-child-btn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  try {
+    const ids = await createChildNode(n, '(제목 없음)');
+    if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]);
+  } catch (err) {
+    alert('하위 노드 추가 실패: ' + (err.message || err));
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+}
 
-  const finish = () => renderPaneContent(paneIdx, node);
-  cancelBtn.onclick = finish;
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); finish(); }
-    else if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
-  });
-  saveBtn.onclick = async () => {
-    const title = input.value.trim().replace(/\n/g, ' ');
-    if (!title) { finish(); return; }
-    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '추가중…';
-    try {
-      if (node.local) {
-        // 로컬 노드: 노션 호출 없이 자식 노드 생성 + 로컬 저장
-        const newIds = _addEntryChildNodes(node, `# ${title}`);
-        newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (node.headingDepth || 1) + 1; } });
-        saveLocalPages();
-        nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
-        isStable = false;
-      } else {
-        const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
-        if (res && res.id) {
-          const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
-          const newIds = _addEntryChildNodes(node, snippet);
-          newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-          if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
-          else appendCachedPageHeading(parentId, res.id, title);
-          nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
-          isStable = false;
-        }
-      }
-      renderPaneContent(paneIdx, node);
-    } catch (err) {
-      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '추가';
-      alert('노드 추가 실패: ' + (err.message || err));
-    }
-  };
+// 그래프 설정 세부(슬라이더) 토글
+function toggleGraphDetail() {
+  const d = document.getElementById('gcfg-detail');
+  const t = document.getElementById('gcfg-toggle');
+  if (!d) return;
+  const open = (d.style.display === 'none' || !d.style.display);
+  d.style.display = open ? 'block' : 'none';
+  if (t) t.classList.toggle('open', open);
+}
+
+// 페이지 목록 클릭 → 그 페이지 하위 트리만 활성(화면 맞춤), 나머지 비활성
+function focusPage(pageId) {
+  if (!pageId) return;
+  _focusMode = false; _focusNodeId = null;
+  _isolateActive = true; _pathConnectors = [];
+  const norm = String(pageId).replace(/-/g, '');
+  nodes.forEach(nd => { nd.dimmed = !(nd.visible && String(nd.sourcePageId || '').replace(/-/g, '') === norm); });
+  isStable = false;
+  setTimeout(fitGraph, 60);
+  if (typeof highlightSidebarPage === 'function') highlightSidebarPage(pageId);
 }
 
 function isAncestorOf(potentialAncId, nodeId) {
@@ -1003,6 +993,7 @@ function showPanel() {
 }
 
 function openPanel(n) {
+  _activeNode = n;
   const pane = _panes[_activePane] || _panes[0];
   const existing = pane.tabs.find(t => t.nodeId === n.id);
   if (existing) {
@@ -1102,8 +1093,8 @@ function doSearch(kw) {
 let _searchFitTimer = null;
 
 searchInput.addEventListener('input', e => doSearch(e.target.value));
-searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { const kw = searchInput.value.trim(); if (kw) addHistory(kw); doSearch(kw); } });
-document.getElementById('search-btn').addEventListener('click', () => { const kw = searchInput.value.trim(); if (kw) addHistory(kw); doSearch(kw); });
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { doSearch(searchInput.value.trim()); } });
+document.getElementById('search-btn').addEventListener('click', () => { doSearch(searchInput.value.trim()); });
 clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
 
 document.getElementById('add-page-id').addEventListener('paste', function(e) {
