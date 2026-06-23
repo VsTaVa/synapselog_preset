@@ -179,10 +179,13 @@ function _modeCursor() {
   if (_multiSelectMode) return _selectModeCursor();
   return '';
 }
+// 모드 커서를 전역 스타일(!important)로 주입 → 스위치/사이드바 위에서도 즉시 반영
 function applyModeCursor() {
+  let st = document.getElementById('mode-cursor-style');
+  if (!st) { st = document.createElement('style'); st.id = 'mode-cursor-style'; document.head.appendChild(st); }
   const c = _modeCursor();
-  document.body.style.cursor = c; // 클릭 즉시 전역 반영
-  if (canvas) canvas.style.cursor = c || 'default';
+  st.textContent = c ? `*, body { cursor: ${c} !important; }` : '';
+  if (canvas && !c) canvas.style.cursor = 'default';
 }
 
 // 편집 모드에서 노드 클릭 → 단일 선택 + 편집 메뉴
@@ -1216,8 +1219,7 @@ canvas.addEventListener('mousemove', e => {
   if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
   const n = getNodeAt(e.clientX, e.clientY);
   hoveredNode = n;
-  if (_editMode || _multiSelectMode) canvas.style.cursor = _modeCursor();
-  else canvas.style.cursor = n ? 'pointer' : 'default';
+  if (!_editMode && !_multiSelectMode) canvas.style.cursor = n ? 'pointer' : 'default';
   if (n && n.level > 0) {
     tooltip.textContent = n.label; tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY - 32) + 'px';
