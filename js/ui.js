@@ -236,10 +236,13 @@ function renderMultiSelectMenu() {
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-1.5a3 3 0 0 1-.88-2.12V8a5 5 0 0 0-10 0v5.38a3 3 0 0 1-.88 2.12L5 17z"/></svg>`;
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
+  const branchIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/></svg>`;
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
   let html = '';
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
     html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
+    if (canAddChild(_multiSelected[0])) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   } else if (n === 2) {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결합니다. 이미 연결돼 있으면 해제합니다">${chainIcon} 노드 간 연결</button>`;
   } else {
@@ -249,6 +252,7 @@ function renderMultiSelectMenu() {
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">◌ 위성 모드${satOn ? ' 해제' : ''}</button>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드의 위치를 고정하거나 해제합니다">${pinIcon} 고정/해제</button>`;
+  if (_multiSelected.some(canDeleteNode)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="선택한 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 삭제</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
   repositionMultiSelectMenu();
@@ -438,6 +442,29 @@ function multiSelectPin() {
   saveFixedPositions();
   isStable = false;
   clearMultiSelect();
+}
+
+function multiSelectAddChild() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  if (!canAddChild(node)) { alert('이 노드에는 하위 노드를 만들 수 없어요.\n(최하위(####)이거나 생성이 제한된 노드입니다)'); return; }
+  createChildNode(node, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); }).catch(err => alert('하위 노드 추가 실패: ' + (err.message || err)));
+}
+
+function multiSelectDelete() {
+  if (_multiSelected.length < 1) return;
+  const targets = _multiSelected.slice();
+  clearMultiSelect();
+  const deletable = targets.filter(canDeleteNode);
+  if (!deletable.length) { alert('선택한 노드는 삭제할 수 없어요.\n(페이지·DB 노드는 목록의 ✕로 닫으세요)'); return; }
+  const skipped = targets.length - deletable.length;
+  const totalCount = deletable.reduce((s, n) => s + _subtreeIds(n.id).length, 0);
+  const hasNotion = deletable.some(n => !n.local);
+  const msg = `${deletable.length}개 노드(하위 포함 총 ${totalCount}개)를 삭제할까요?`
+    + (skipped ? `\n(삭제 불가 ${skipped}개는 제외)` : '')
+    + (hasNotion ? '\n(노션 헤딩은 영구 삭제됩니다)' : '');
+  showConfirm('노드 삭제', msg, async () => { for (const n of deletable) { await deleteNodeSubtree(n); } });
 }
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
@@ -691,7 +718,7 @@ function renderPaneContent(i, n) {
     editBtn = document.createElement('button');
     editBtn.className = 'detail-edit-btn';
     editBtn.title = '제목·본문 수정';
-    editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+    editBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
     titleRow.appendChild(editBtn);
   }
   if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
@@ -1097,45 +1124,12 @@ searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { doSearch
 document.getElementById('search-btn').addEventListener('click', () => { doSearch(searchInput.value.trim()); });
 clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
 
-document.getElementById('add-page-id').addEventListener('paste', function(e) {
-  setTimeout(() => {
-    const val = this.value.trim();
-    const match = val.match(/([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})/i);
-    if (match && (val.startsWith('http') || val.includes('notion'))) { this.value = match[1].replace(/-/g, ''); }
-  }, 0);
-});
-document.getElementById('add-page-id').addEventListener('keydown', e => { if (e.key === 'Enter') addPage(); });
 
 // ── 캔버스 이벤트 ─────────────────────────────────────────────────────
 
 let mouseDownNode = null, mouseDownTime = 0;
 
-// ── 노드 지정 액션 모드 (하위 노드 추가 / 삭제) ───────────────────────
-let _nodeAction = null; // 'addChild' | 'delete'
-function _actionCursor(kind) {
-  const stroke = kind === 'delete' ? '%23ff6b6b' : '%23ed7000';
-  const inner = kind === 'delete'
-    ? `<path d='M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14'/>`
-    : `<circle cx='11' cy='5' r='2.4'/><circle cx='5' cy='18' r='2.4'/><path d='M11 7.4V13a3 3 0 0 1-3 3H7.4'/><path d='M16 18h6M19 15v6'/>`;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='${stroke}' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${inner}</svg>`;
-  return `url("data:image/svg+xml,${svg}") 4 4, crosshair`;
-}
-function startNodeAction(kind) {
-  if (_nodeAction === kind) { cancelNodeAction(); return; }
-  _nodeAction = kind;
-  canvas.style.cursor = _actionCursor(kind);
-  const s = document.getElementById('status');
-  if (s) s.textContent = kind === 'delete' ? '삭제할 노드를 클릭하세요 (빈 곳/Esc 취소)' : '하위 노드를 추가할 노드를 클릭하세요 (빈 곳/Esc 취소)';
-  const ab = document.getElementById('add-child-btn'); if (ab) ab.classList.toggle('armed', kind === 'addChild');
-  const db = document.getElementById('del-node-btn'); if (db) db.classList.toggle('armed', kind === 'delete');
-}
-function cancelNodeAction() {
-  if (!_nodeAction) return;
-  _nodeAction = null;
-  canvas.style.cursor = 'default';
-  const s = document.getElementById('status'); if (s) s.textContent = '';
-  ['add-child-btn', 'del-node-btn'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.remove('armed'); });
-}
+// ── 노드 삭제 (노드 선택 모드 메뉴에서 사용) ──────────────────────────
 function _subtreeIds(rootId) {
   const ids = [rootId], q = [rootId];
   while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !ids.includes(e.to)) { ids.push(e.to); q.push(e.to); } }); }
@@ -1163,21 +1157,6 @@ async function deleteNodeSubtree(node) {
   }
   isStable = false;
 }
-function handleNodeAction(n) {
-  const kind = _nodeAction;
-  if (kind === 'addChild') {
-    if (!canAddChild(n)) { cancelNodeAction(); alert('이 노드에는 하위 노드를 만들 수 없어요.\n(최하위(####)이거나 생성이 제한된 노드입니다)'); return; }
-    cancelNodeAction();
-    createChildNode(n, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); }).catch(err => alert('하위 노드 추가 실패: ' + (err.message || err)));
-  } else if (kind === 'delete') {
-    if (!canDeleteNode(n)) { cancelNodeAction(); alert('이 노드는 삭제할 수 없어요.\n(페이지·DB 노드는 목록의 ✕로 닫으세요)'); return; }
-    cancelNodeAction();
-    const cnt = _subtreeIds(n.id).length - 1;
-    showConfirm('노드 삭제', `"${n.label}"${cnt > 0 ? ` 및 하위 ${cnt}개 노드` : ''}를 삭제할까요?` + (node_isLocalSafe(n) ? '' : '\n(노션에서도 영구 삭제됩니다)'), () => deleteNodeSubtree(n));
-  }
-}
-function node_isLocalSafe(n) { return !!(n && n.local); }
-
 canvas.addEventListener('mousemove', e => {
   if (drag) {
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
@@ -1187,7 +1166,7 @@ canvas.addEventListener('mousemove', e => {
   }
   if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
   const n = getNodeAt(e.clientX, e.clientY);
-  hoveredNode = n; if (!_nodeAction) canvas.style.cursor = n ? 'pointer' : 'default';
+  hoveredNode = n; canvas.style.cursor = n ? 'pointer' : 'default';
   if (n && n.level > 0) {
     tooltip.textContent = n.label; tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY - 32) + 'px';
@@ -1198,7 +1177,6 @@ canvas.addEventListener('mousedown', e => {
   mouseDownTime = Date.now();
   const n = getNodeAt(e.clientX, e.clientY);
   mouseDownNode = n;
-  if (_nodeAction) return; // 지정 모드: 드래그/패닝 안 함
   if (n) { drag = n; isStable = false; }
   else { isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartOffsetX = panX; panStartOffsetY = panY; canvas.style.cursor = 'grab'; }
 });
@@ -1208,12 +1186,6 @@ let _clickTimer = null;
 canvas.addEventListener('mouseup', e => {
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
-  if (_nodeAction) {
-    if (elapsed < 300 && n && n === mouseDownNode) handleNodeAction(n);
-    else if (elapsed < 300 && !n) cancelNodeAction();
-    drag = null; isPanning = false;
-    return;
-  }
   if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
     handleConnectClick(n);
   } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
@@ -1228,7 +1200,6 @@ canvas.addEventListener('mouseup', e => {
 });
 
 function clearAllModes() {
-  if (_nodeAction) cancelNodeAction();
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
@@ -1527,7 +1498,6 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape') {
-    if (_nodeAction) { cancelNodeAction(); return; }
     if (document.getElementById('settings-modal').classList.contains('open')) { closeSettings(); return; }
     if (detailPanel.classList.contains('open')) { hidePanel(); return; }
     const sidebar = document.getElementById('sidebar');

@@ -851,10 +851,11 @@ function closeConfirm() { document.getElementById('confirm-modal').classList.rem
 
 function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지의 노션 데이터를 새로 불러옵니다. 계속할까요?', bulkSync); }
 async function bulkSync() {
-  const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_'));
+  const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
   for (const pid of ids) { await syncPage(pid); }
   await syncMdFileHandles();
   await syncFolderBatches();
+  await refreshSidebarPageList(); // 노션 페이지 목록도 갱신(새 페이지 반영)
 }
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다. 계속할까요?', () => {

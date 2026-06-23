@@ -6,6 +6,8 @@ canvas { display: block; }
 #multi-select-menu.open { display: flex; }
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 6px; }
 #multi-select-menu button:hover { background: rgba(237,112,0,0.15); color: #ed7000; }
+#multi-select-menu button.ms-danger { color: #ff8585; }
+#multi-select-menu button.ms-danger:hover { background: rgba(255,107,107,0.16); color: #ff6b6b; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 4px; }
@@ -186,7 +188,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 .detail-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .detail-title { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; word-break: keep-all; flex: 1; }
-.detail-edit-btn { background: none; border: none; color: rgba(237,112,0,0.85); cursor: pointer; padding: 2px 4px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
+.detail-edit-btn { background: none; border: none; color: rgba(237,112,0,0.9); cursor: pointer; padding: 4px 6px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
 .detail-edit-btn:hover { color: #ed7000; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(237,112,0,0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
 .detail-edit-actions { display: flex; gap: 6px; margin-top: 8px; }
