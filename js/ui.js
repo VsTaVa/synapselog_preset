@@ -500,8 +500,8 @@ function multiSelectAddChild() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
   clearMultiSelect();
-  if (!canAddChild(node)) { alert('이 노드에는 하위 노드를 만들 수 없어요.\n(최하위(####)이거나 생성이 제한된 노드입니다)'); return; }
-  createChildNode(node, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); }).catch(err => alert('하위 노드 추가 실패: ' + (err.message || err)));
+  if (!canAddChild(node)) { toast('이 노드에는 하위 노드를 만들 수 없어요 (최하위/제한 노드)', { type: 'error' }); return; }
+  createChildNode(node, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); toast('하위 노드 추가됨', { type: 'success' }); }).catch(err => toast('하위 노드 추가 실패: ' + (err.message || err), { type: 'error', duration: 5000 }));
 }
 
 function multiSelectDelete() {
@@ -509,14 +509,20 @@ function multiSelectDelete() {
   const targets = _multiSelected.slice();
   clearMultiSelect();
   const deletable = targets.filter(canDeleteNode);
-  if (!deletable.length) { alert('선택한 노드는 삭제할 수 없어요.\n(페이지·DB 노드는 목록의 ✕로 닫으세요)'); return; }
+  if (!deletable.length) { toast('선택한 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   const skipped = targets.length - deletable.length;
   const totalCount = deletable.reduce((s, n) => s + _subtreeIds(n.id).length, 0);
   const hasNotion = deletable.some(n => !n.local);
   const msg = `${deletable.length}개 노드(하위 포함 총 ${totalCount}개)를 삭제할까요?`
     + (skipped ? `\n(삭제 불가 ${skipped}개는 제외)` : '')
-    + (hasNotion ? '\n(노션 헤딩은 영구 삭제됩니다)' : '');
-  showConfirm('노드 삭제', msg, async () => { for (const n of deletable) { await deleteNodeSubtree(n); } }, true);
+    + (hasNotion ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
+  showConfirm('노드 삭제', msg, async () => {
+    _undoDelete = { entries: [] };
+    for (const n of deletable) { await deleteNodeSubtree(n); }
+    const cnt = _undoDelete.entries.length;
+    if (cnt) toast(`${cnt}개 노드 삭제됨`, { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });
+    else _undoDelete = null;
+  }, true);
 }
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
@@ -540,6 +546,7 @@ let _activePane = 0;
 let _splitMode = false;
 let _draggingTab = null;
 let _activeNode = null; // 현재 패널에 열린(선택된) 노드 — '노드 편집' 섹션이 사용
+let _undoDelete = null; // 마지막 삭제 묶음 (실행 취소용)
 
 // 탭을 다른 패인으로 이동
 function moveTabToPane(fromIdx, nodeId, toIdx) {
@@ -810,6 +817,29 @@ function renderPaneContent(i, n) {
 
 }
 
+// ── 토스트 알림 ───────────────────────────────────────────────────────
+function toast(msg, opts) {
+  opts = opts || {};
+  let c = document.getElementById('toast-container');
+  if (!c) { c = document.createElement('div'); c.id = 'toast-container'; document.body.appendChild(c); }
+  const el = document.createElement('div');
+  el.className = 'toast' + (opts.type ? ' ' + opts.type : '');
+  const txt = document.createElement('span'); txt.textContent = msg; el.appendChild(txt);
+  let timer;
+  const dismiss = () => { clearTimeout(timer); el.classList.remove('show'); setTimeout(() => el.remove(), 250); };
+  if (opts.action) {
+    const b = document.createElement('button'); b.className = 'toast-action'; b.textContent = opts.action.label;
+    b.onclick = () => { try { opts.action.onClick(); } catch (e) {} dismiss(); };
+    el.appendChild(b);
+  }
+  c.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  timer = setTimeout(dismiss, opts.duration || 3200);
+  el.addEventListener('mouseenter', () => clearTimeout(timer));
+  el.addEventListener('mouseleave', () => { timer = setTimeout(dismiss, 1600); });
+  return dismiss;
+}
+
 // ── 편집 서식: contenteditable WYSIWYG (볼드/취소선) ──────────────────
 // 저장 시 마크다운(**·~~)으로 직렬화, 표시 시 HTML로 변환
 function htmlFromMarkdown(t) {
@@ -1042,9 +1072,10 @@ function beginNodeEdit(paneIdx, node) {
       }
       isStable = false;
       renderPaneContent(paneIdx, node);
+      toast(isLocal ? '저장됨' : '노션에 저장됨', { type: 'success' });
     } catch (err) {
       saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
-      alert('수정 실패: ' + (err.message || err));
+      toast('저장 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
     }
   };
 }
@@ -1273,6 +1304,13 @@ function canDeleteNode(n) { return !!(n && (n.local || n.notionBlockId)); }
 async function deleteNodeSubtree(node) {
   const idArr = _subtreeIds(node.id);
   const ids = new Set(idArr);
+  // 실행 취소용 스냅샷
+  const undoEntry = {
+    rootId: node.id, local: !!node.local, level: node.level, sourcePageId: node.sourcePageId, label: node.label,
+    nodes: idArr.map(id => nodeMap[id]).filter(Boolean),
+    edges: edges.filter(e => ids.has(e.from) || ids.has(e.to)),
+    blockIds: [], cacheSnap: null
+  };
   if (!node.local) {
     // 서브트리의 모든 노션 블록(헤딩 + 본문 블록)을 삭제 — 본문은 헤딩의 형제라 따로 지워야 함
     const blockIds = [];
@@ -1281,12 +1319,15 @@ async function deleteNodeSubtree(node) {
       if (nd.notionBlockId) blockIds.push(nd.notionBlockId);
       if (nd.bodyBlocks) nd.bodyBlocks.forEach(b => blockIds.push(b.id));
     });
+    undoEntry.blockIds = blockIds;
+    if (node.notionBlockId && typeof _snapshotCacheFor === 'function') undoEntry.cacheSnap = _snapshotCacheFor('[BLOCK:' + node.notionBlockId);
     if (blockIds.length) {
       try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
-      catch (err) { alert('노션 삭제 실패: ' + (err.message || err)); return; }
+      catch (err) { toast('노션 삭제 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); return; }
     }
     if (node.notionBlockId) removeCachedBlockSection(node.notionBlockId);
   }
+  if (_undoDelete) _undoDelete.entries.push(undoEntry);
   nodes = nodes.filter(nd => !ids.has(nd.id));
   edges = edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
   ids.forEach(id => { delete nodeMap[id]; });
@@ -1302,6 +1343,37 @@ async function deleteNodeSubtree(node) {
     saveLocalPages();
   }
   isStable = false;
+}
+
+// 마지막 삭제 묶음 복원 (그래프 + 노션 블록 un-archive + 캐시)
+async function undoLastDelete() {
+  if (!_undoDelete || !_undoDelete.entries.length) return;
+  const entries = _undoDelete.entries.slice();
+  _undoDelete = null;
+  let anyLocal = false, notionFail = 0;
+  for (const e of entries) {
+    e.nodes.forEach(nd => { if (!nodeMap[nd.id]) { nodes.push(nd); nodeMap[nd.id] = nd; } nd.visible = true; });
+    e.edges.forEach(ed => { if (!edges.includes(ed)) edges.push(ed); });
+    if (e.cacheSnap && typeof _restoreCacheSnapshot === 'function') _restoreCacheSnapshot(e.cacheSnap);
+    if (e.blockIds && e.blockIds.length) {
+      // 부모(헤딩)부터 복원되도록 역순(자식 먼저 삭제됐던 순서의 반대)
+      for (let i = e.blockIds.length - 1; i >= 0; i--) {
+        try { await notionRestoreBlock(e.blockIds[i]); } catch (err) { notionFail++; }
+      }
+    }
+    if (e.local) {
+      anyLocal = true;
+      if (e.level === 0) {
+        _addedPageIds.add(e.sourcePageId);
+        if (typeof _registerLocalInList === 'function') _registerLocalInList(e.sourcePageId, e.label || '새 노드');
+      }
+    }
+  }
+  if (anyLocal) saveLocalPages();
+  if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
+  isStable = false;
+  if (notionFail) toast('일부 노션 블록 복원 실패 (' + notionFail + '개)', { type: 'error', duration: 5000 });
+  else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
   if (drag) {

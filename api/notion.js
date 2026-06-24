@@ -149,13 +149,16 @@ export default async function handler(req, res) {
         type = `heading_${lvl}`;
       }
 
-      const newBlock = { object: 'block', type, [type]: { rich_text: buildRichText(text || '') } };
-      const appendBody = afterTarget ? { children: [newBlock], after: afterTarget } : { children: [newBlock] };
-      const r2 = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
-        method: 'PATCH',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify(appendBody)
-      });
+      const doAppend = async (t) => {
+        const nb = { object: 'block', type: t, [t]: { rich_text: buildRichText(text || '') } };
+        const body = afterTarget ? { children: [nb], after: afterTarget } : { children: [nb] };
+        return fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
+          method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+      };
+      let r2 = await doAppend(type);
+      // heading_4를 지원하지 않는 워크스페이스/통합이면 heading_3로 폴백
+      if (!r2.ok && type === 'heading_4') { type = 'heading_3'; r2 = await doAppend(type); }
       if (!r2.ok) { const e = await r2.json(); return res.status(r2.status).json({ error: e.message || '추가 실패' }); }
       const data = await r2.json();
       const created = data.results?.[0];
@@ -170,6 +173,19 @@ export default async function handler(req, res) {
     try {
       const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { method: 'DELETE', headers });
       if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '삭제 실패' }); }
+      return res.status(200).json({ ok: true });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
+  // ── action: 'restoreBlock' — 삭제(보관)된 블록 복원(un-archive) ──────
+  if (action === 'restoreBlock') {
+    const { blockId } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    try {
+      const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
+        method: 'PATCH', headers, body: JSON.stringify({ archived: false })
+      });
+      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '복원 실패' }); }
       return res.status(200).json({ ok: true });
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }

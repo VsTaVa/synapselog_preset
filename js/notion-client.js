@@ -276,6 +276,25 @@ async function notionDeleteBlock(blockId) {
   return notionFetch({ action: 'deleteBlock', blockId });
 }
 
+async function notionRestoreBlock(blockId) {
+  return notionFetch({ action: 'restoreBlock', blockId });
+}
+
+// 실행 취소용: 특정 문자열을 포함하는 캐시 항목 스냅샷 / 복원
+function _snapshotCacheFor(containsStr) {
+  const snap = [];
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (!key || !key.startsWith('snlog_')) continue;
+    const val = sessionStorage.getItem(key);
+    if (val && val.includes(containsStr)) snap.push({ key, val });
+  }
+  return snap;
+}
+function _restoreCacheSnapshot(snap) {
+  (snap || []).forEach(s => { try { sessionStorage.setItem(s.key, s.val); } catch (e) {} });
+}
+
 // 캐시 마크다운에서 해당 헤딩 + 하위 섹션 제거 (삭제 시 새로고침해도 유지)
 function removeCachedBlockSection(blockId) {
   const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
