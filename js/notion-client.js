@@ -408,7 +408,7 @@ function restoreLocalPages() {
     mergeGraph(p.title || '새 노드', '', p.pageId);
     const root = nodes.find(n => n.sourcePageId === p.pageId && n.level === 0);
     if (!root) continue;
-    root.local = true; root.visible = true; root.desc = p.desc || '';
+    root.local = true; root.visible = true; root.desc = p.desc || ''; root.headingDepth = 0;
     if (p.markdown) {
       const ids = _addEntryChildNodes(root, p.markdown);
       ids.forEach(id => { const c = nodeMap[id]; if (c) { c.local = true; c.visible = true; } });
@@ -433,7 +433,7 @@ function createLocalRoot(title) {
   const pageId = 'local_' + Date.now();
   mergeGraph(title || '새 노드', '', pageId);
   const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
-  if (root) { root.local = true; root.visible = true; }
+  if (root) { root.local = true; root.visible = true; root.headingDepth = 0; }
   _addedPageIds.add(pageId);
   saveLocalPages();
   _registerLocalInList(pageId, title || '새 노드');
@@ -641,7 +641,7 @@ function renderSidebarPageList(pages) {
     const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>'
       : (p.isLocal ? ' <span style="color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;">임시</span>' : '');
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
-    const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')">⤓</button>`;
+    const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
     if (p.isLocal) {
       return `<div class="page-list-item active" data-page-id="${p.id}">

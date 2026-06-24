@@ -776,6 +776,25 @@ function renderPaneContent(i, n) {
   if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
 
+  // 하위 노드 추가 버튼 — 만들 수 있는 노드(#### 이하 제한)에만
+  let addBtn = titleRow.querySelector('.detail-addchild-btn');
+  if (!addBtn) {
+    addBtn = document.createElement('button');
+    addBtn.className = 'detail-edit-btn detail-addchild-btn';
+    addBtn.title = '하위 노드 추가';
+    addBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg>`;
+    titleRow.appendChild(addBtn);
+  }
+  if (canAddChild(n)) {
+    addBtn.style.display = 'inline-flex';
+    addBtn.onclick = async () => {
+      addBtn.style.pointerEvents = 'none';
+      try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_activePane, nodeMap[ids[0]]); } }
+      catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
+      finally { addBtn.style.pointerEvents = ''; }
+    };
+  } else { addBtn.style.display = 'none'; }
+
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   if (searchKeyword && searchMatches.has(n.id)) {
@@ -977,7 +996,8 @@ function beginNodeEdit(paneIdx, node) {
 // 이 노드에 하위 노드를 만들 수 있는가 (####/제한 노드는 false)
 function canAddChild(n) {
   if (!n) return false;
-  if (n.local) return true;
+  // 노드가 #### (깊이 4) 이상이면 그 아래 노드는 만들 수 없음
+  if (n.local) return (n.headingDepth || 0) <= 3;
   if (n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3) return true;
   if (n.entryNotionId) return true;
   if (!n.notionBlockId && !n.entryNotionId && n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('md_')) return true;
@@ -989,7 +1009,7 @@ async function createChildNode(node, rawTitle) {
   const title = (rawTitle || '').trim().replace(/\n/g, ' ') || '(제목 없음)';
   if (node.local) {
     const newIds = _addEntryChildNodes(node, `# ${title}`);
-    newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (node.headingDepth || 1) + 1; } });
+    newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (node.headingDepth || 0) + 1; } });
     saveLocalPages();
     nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
     isStable = false;
@@ -1457,7 +1477,7 @@ window.addEventListener('resize', () => {
 const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
+    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 탐색 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
@@ -1468,7 +1488,7 @@ const LANG = {
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
     'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
     'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
-    'sc-multiselectmode':'노드 선택 모드','sc-multiselectmode-sub':'노드 클릭하여 액션 메뉴 열기',
+    'sc-multiselectmode':'노드 탐색 모드','sc-multiselectmode-sub':'노드 클릭하여 액션 메뉴 열기',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
@@ -1481,7 +1501,7 @@ const LANG = {
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
+    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Explore Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
@@ -1492,7 +1512,7 @@ const LANG = {
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
     'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
     'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
-    'sc-multiselectmode':'Node Select Mode','sc-multiselectmode-sub':'Click nodes to open action menu',
+    'sc-multiselectmode':'Node Explore Mode','sc-multiselectmode-sub':'Click nodes to open action menu',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
