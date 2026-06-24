@@ -200,6 +200,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-edit-cancel:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 .detail-add-body-btn { display: block; width: 100%; margin-top: 10px; background: rgba(237,112,0,0.08); border: 1px dashed rgba(237,112,0,0.4); border-radius: 7px; padding: 8px; font-family: inherit; font-size: 12px; font-weight: 700; color: rgba(237,112,0,0.85); cursor: pointer; transition: background 0.15s; }
 .detail-add-body-btn:hover { background: rgba(237,112,0,0.16); }
+.toggle-heading-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); cursor: pointer; user-select: none; }
+.toggle-heading-row input { accent-color: #ed7000; width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-row { width: 100%; box-sizing: border-box; min-height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(237,112,0,0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; white-space: pre-wrap; word-break: break-word; }
 .body-edit-row:focus { border-color: rgba(237,112,0,0.7); }

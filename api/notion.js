@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 
   // ── action: 'updateBlock' — 기존 블록(헤딩/문단 등) 텍스트 수정 ──────
   if (action === 'updateBlock') {
-    const { blockId, text } = req.body;
+    const { blockId, text, toggleable } = req.body;
     if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
     try {
       // 블록 유형을 먼저 조회해 올바른 키로 PATCH (레벨 시프트와 무관하게 정확)
@@ -92,6 +92,7 @@ export default async function handler(req, res) {
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
+      if (typeof toggleable === 'boolean' && /^heading_[123]$/.test(type)) patchBody[type].is_toggleable = toggleable;
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -245,13 +246,13 @@ export default async function handler(req, res) {
         const type = block.type;
 
         if (type === 'heading_1') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
+          markdown += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_2') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
+          markdown += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_3') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
+          markdown += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
           markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
@@ -424,9 +425,9 @@ export default async function handler(req, res) {
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_2') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_3') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'heading_4') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'child_page') {

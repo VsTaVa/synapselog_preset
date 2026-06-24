@@ -67,10 +67,12 @@ function parseMarkdown(text, rootTitle) {
   let pendingIsChildPage = false;
   let pendingBlockId = null;
   let pendingParentId = null;
+  let pendingToggle = false;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
     if (!line || line.startsWith('---') || line.startsWith('<')) continue;
+    if (line === '[TGL]') { pendingToggle = true; continue; }
     if (line === '[DB_NODE]') { pendingIsDbNode = true; continue; }
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
@@ -96,6 +98,7 @@ function parseMarkdown(text, rootTitle) {
         if (nextLine.startsWith('#')) break;
         if (nextLine === '[DB_NODE]') break;
         if (nextLine === '[CHILD_PAGE]') break;
+        if (nextLine === '[TGL]') break;
         if (nextLine.startsWith('[NOTION_ENTRY:')) break;
         if (nextLine.startsWith('[BLOCK:')) break;
         const bbm = nextLine.match(/^\[BB:([a-f0-9]+)\]$/);
@@ -114,6 +117,7 @@ function parseMarkdown(text, rootTitle) {
         if (bodyBlocks.length) nodeMap[curId].bodyBlocks = bodyBlocks;
         if (pendingEntryId) { nodeMap[curId].entryNotionId = pendingEntryId; pendingEntryId = null; }
         if (pendingBlockId) { nodeMap[curId].notionBlockId = pendingBlockId; nodeMap[curId].notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
+        if (pendingToggle) { nodeMap[curId].notionToggle = true; pendingToggle = false; }
         if (pendingIsDbNode) { nodeMap[curId].isDbNode = true; pendingIsDbNode = false; }
         if (pendingIsChildPage) { nodeMap[curId].isChildPage = true; pendingIsChildPage = false; }
         currentParents[depth] = curId;

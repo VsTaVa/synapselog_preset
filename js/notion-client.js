@@ -264,8 +264,8 @@ async function notionFetch(body) {
 
 // ── 노션 쓰기: 블록 텍스트 수정 ──────────────────────────────────────
 
-async function notionUpdateBlock(blockId, text) {
-  return notionFetch({ action: 'updateBlock', blockId, text });
+async function notionUpdateBlock(blockId, text, toggleable) {
+  return notionFetch({ action: 'updateBlock', blockId, text, toggleable });
 }
 
 async function notionAppendBlock(parentId, afterId, text, blockType) {
@@ -317,6 +317,20 @@ function _mutateCachedMarkdown(containsStr, mutate) {
 function updateCachedBlockText(blockId, newText) {
   const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
   _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => md.replace(re, (m, p1) => p1 + newText));
+}
+
+// 토글 헤딩 여부를 세션 캐시에 반영 — [BLOCK:] 마커 앞에 [TGL] 줄 추가/제거
+function updateCachedBlockToggle(blockId, on) {
+  const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
+  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => {
+    const lines = md.split('\n');
+    const mi = lines.findIndex(l => markerRe.test(l.trim()));
+    if (mi < 0) return md;
+    const prevIsTgl = mi > 0 && lines[mi - 1].trim() === '[TGL]';
+    if (on && !prevIsTgl) lines.splice(mi, 0, '[TGL]');
+    else if (!on && prevIsTgl) lines.splice(mi - 1, 1);
+    return lines.join('\n');
+  });
 }
 
 // 수정한 본문 블록 텍스트를 세션 캐시에 반영(들여쓰기/목록 접두는 보존)
@@ -840,8 +854,10 @@ function updateBulkActionsVisibility() {
 }
 
 let _confirmCallback = null;
-function showConfirm(title, msg, onOk) {
-  document.getElementById('confirm-title').textContent = title;
+function showConfirm(title, msg, onOk, accent) {
+  const t = document.getElementById('confirm-title');
+  t.textContent = title;
+  t.style.color = accent ? '#ed7000' : '';
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-modal').classList.add('open');
   _confirmCallback = onOk;
@@ -877,17 +893,19 @@ function _addEntryChildNodes(entryNode, markdown) {
   let pendingEntryId = null;
   let pendingBlockId = null;
   let pendingParentId = null;
+  let pendingToggle = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line || line.startsWith('---')) continue;
+    if (line === '[TGL]') { pendingToggle = true; continue; }
     if (line === '[CHILD_PAGE]') { pendingIsChildPage = true; continue; }
     const entryMarker = line.match(/^\[NOTION_ENTRY:([a-f0-9]+)\]$/);
     if (entryMarker) { pendingEntryId = entryMarker[1]; continue; }
     const blockMarker = line.match(/^\[BLOCK:([a-f0-9]+)(?:\|([a-f0-9]+))?\]$/);
     if (blockMarker) { pendingBlockId = blockMarker[1]; pendingParentId = blockMarker[2] || null; continue; }
     const headerMatch = line.match(/^(#{1,5})\s+(.*)$/);
-    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; pendingBlockId = null; pendingParentId = null; continue; }
+    if (!headerMatch) { pendingIsChildPage = false; pendingEntryId = null; pendingBlockId = null; pendingParentId = null; pendingToggle = false; continue; }
 
     const mdDepth = Math.min(headerMatch[1].length, 5);
     const graphLevel = Math.min(entryNode.level + mdDepth, 5);
@@ -901,7 +919,7 @@ function _addEntryChildNodes(entryNode, markdown) {
       const rawNl = lines[nextIdx].replace(/\s+$/, '');
       const nl = rawNl.trim();
       if (!nl) { nextIdx++; continue; }
-      if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl.startsWith('[NOTION_ENTRY:') || nl.startsWith('[BLOCK:')) break;
+      if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl === '[TGL]' || nl.startsWith('[NOTION_ENTRY:') || nl.startsWith('[BLOCK:')) break;
       const bbm = nl.match(/^\[BB:([a-f0-9]+)\]$/);
       if (bbm) { pendingBlk = bbm[1]; nextIdx++; continue; }
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
@@ -936,6 +954,7 @@ function _addEntryChildNodes(entryNode, markdown) {
     };
     if (pendingEntryId) { n.entryNotionId = pendingEntryId; pendingEntryId = null; }
     if (pendingBlockId) { n.notionBlockId = pendingBlockId; n.notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
+    if (pendingToggle) { n.notionToggle = true; pendingToggle = false; }
     n.headingDepth = headerMatch[1].length;
     if (bodyBlocks.length) n.bodyBlocks = bodyBlocks;
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
@@ -977,7 +996,7 @@ async function _loadEntryNode(node, pageId) {
       if (!t) continue;
       const m = t.match(/^\[BB:([a-f0-9]+)\]$/);
       if (m) { pend = m[1]; continue; }
-      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE)[^\]]*\]$/.test(t)) { pend = null; continue; }
+      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { pend = null; continue; }
       descArr.push(raw.replace(/^#{1,5}\s+/, ''));
       if (pend) { bb.push({ id: pend, text: bodyBlockText(raw) }); pend = null; }
     }

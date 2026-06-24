@@ -516,7 +516,7 @@ function multiSelectDelete() {
   const msg = `${deletable.length}개 노드(하위 포함 총 ${totalCount}개)를 삭제할까요?`
     + (skipped ? `\n(삭제 불가 ${skipped}개는 제외)` : '')
     + (hasNotion ? '\n(노션 헤딩은 영구 삭제됩니다)' : '');
-  showConfirm('노드 삭제', msg, async () => { for (const n of deletable) { await deleteNodeSubtree(n); } });
+  showConfirm('노드 삭제', msg, async () => { for (const n of deletable) { await deleteNodeSubtree(n); } }, true);
 }
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
@@ -909,6 +909,17 @@ function beginNodeEdit(paneIdx, node) {
 
   const rows = [];
   contentEl.innerHTML = '';
+
+  // 토글 헤딩 전환 — 노션 헤딩 노드만
+  let toggleInput = null;
+  if (!isLocal && node.notionBlockId) {
+    const row = document.createElement('label'); row.className = 'toggle-heading-row';
+    toggleInput = document.createElement('input'); toggleInput.type = 'checkbox'; toggleInput.checked = !!node.notionToggle;
+    const span = document.createElement('span'); span.textContent = '토글 헤딩으로 표시';
+    row.appendChild(toggleInput); row.appendChild(span);
+    contentEl.appendChild(row);
+  }
+
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
   const addRow = (text, blk) => {
@@ -947,16 +958,22 @@ function beginNodeEdit(paneIdx, node) {
   saveBtn.onclick = async () => {
     const newTitle = titleInput ? titleInput.value.trim() : null;
     const titleChanged = !!(titleInput && newTitle && newTitle !== node.label);
+    const toggleChanged = !!(toggleInput && !!toggleInput.checked !== !!node.notionToggle);
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
-    if (!titleChanged && !dirty.length) { finish(); return; }
+    if (!titleChanged && !toggleChanged && !dirty.length) { finish(); return; }
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     try {
+      // 노션 헤딩: 제목/토글 변경 시 한 번에 PATCH
+      if (!isLocal && node.notionBlockId && (titleChanged || toggleChanged)) {
+        const newText = titleChanged ? newTitle : node.label;
+        await notionUpdateBlock(node.notionBlockId, newText, toggleInput ? !!toggleInput.checked : undefined);
+        if (titleChanged) updateCachedBlockText(node.notionBlockId, newTitle);
+        if (toggleChanged) { node.notionToggle = !!toggleInput.checked; updateCachedBlockToggle(node.notionBlockId, node.notionToggle); }
+      }
       if (titleChanged) {
-        if (!isLocal) await notionUpdateBlock(node.notionBlockId, newTitle);
         node.label = newTitle;
         _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
-        if (!isLocal) updateCachedBlockText(node.notionBlockId, newTitle);
         if (isLocal && node.level === 0 && window._sidebarPageList) {
           const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
           if (it) { it.title = newTitle; refreshSidebarRender(); }
