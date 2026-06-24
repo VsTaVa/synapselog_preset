@@ -986,7 +986,8 @@ function beginNodeEdit(paneIdx, node) {
         for (const r of dirty) {
           const nt = valOf(r).trim();
           if (r.isNew) {
-            const res = await notionAppendBlock(node.notionParentId, node.notionBlockId, nt, 'paragraph');
+            const tgt = _appendTarget(node);
+            const res = await notionAppendBlock(tgt.parentId, tgt.afterId, nt, 'paragraph');
             node.desc = node.desc ? node.desc + '\n' + nt : nt;
             if (res && res.id) {
               node.bodyBlocks = node.bodyBlocks || [];
@@ -1022,6 +1023,14 @@ function canAddChild(n) {
 }
 
 // 하위(또는 #) 노드 생성 — 로컬은 노션 호출 없이, 노션은 append. 생성된 노드 id 배열 반환
+// 새 블록을 어디에 붙일지 결정: 토글 헤딩이면 그 안(children), 일반 헤딩이면 형제로 뒤에, 페이지/엔트리면 끝에
+function _appendTarget(node) {
+  if (node.notionToggle && node.notionBlockId) return { parentId: node.notionBlockId, afterId: null };
+  if (node.notionBlockId) return { parentId: node.notionParentId, afterId: node.notionBlockId };
+  const pageLikeId = node.entryNotionId || node.sourcePageId;
+  return { parentId: String(pageLikeId).replace(/-/g, ''), afterId: null };
+}
+
 async function createChildNode(node, rawTitle) {
   const title = (rawTitle || '').trim().replace(/\n/g, ' ') || '(제목 없음)';
   if (node.local) {
@@ -1033,17 +1042,15 @@ async function createChildNode(node, rawTitle) {
     return [...newIds];
   }
   const isHeading = !!node.notionBlockId;
-  const pageLikeId = node.entryNotionId || node.sourcePageId;
-  const parentId = isHeading ? node.notionParentId : String(pageLikeId).replace(/-/g, '');
-  const afterId = isHeading ? node.notionBlockId : null;
+  const tgt = _appendTarget(node);
   const childDepth = isHeading ? (node.headingDepth || 1) + 1 : 1;
-  const res = await notionAppendBlock(parentId, afterId, title, isHeading ? 'heading' : 'heading_1');
+  const res = await notionAppendBlock(tgt.parentId, tgt.afterId, title, isHeading ? 'heading' : 'heading_1');
   if (!res || !res.id) return [];
-  const snippet = `[BLOCK:${res.id}|${parentId}]\n# ${title}`;
+  const snippet = `[BLOCK:${res.id}|${tgt.parentId}]\n# ${title}`;
   const newIds = _addEntryChildNodes(node, snippet);
   newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-  if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, parentId, title);
-  else appendCachedPageHeading(parentId, res.id, title);
+  if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, tgt.parentId, title);
+  else appendCachedPageHeading(tgt.parentId, res.id, title);
   nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
   isStable = false;
   return [...newIds];
@@ -1226,10 +1233,22 @@ function _subtreeIds(rootId) {
 }
 function canDeleteNode(n) { return !!(n && (n.local || n.notionBlockId)); }
 async function deleteNodeSubtree(node) {
-  const ids = new Set(_subtreeIds(node.id));
-  try {
-    if (!node.local && node.notionBlockId) { await notionDeleteBlock(node.notionBlockId); removeCachedBlockSection(node.notionBlockId); }
-  } catch (err) { alert('노션 삭제 실패: ' + (err.message || err)); return; }
+  const idArr = _subtreeIds(node.id);
+  const ids = new Set(idArr);
+  if (!node.local) {
+    // 서브트리의 모든 노션 블록(헤딩 + 본문 블록)을 삭제 — 본문은 헤딩의 형제라 따로 지워야 함
+    const blockIds = [];
+    idArr.forEach(id => {
+      const nd = nodeMap[id]; if (!nd) return;
+      if (nd.notionBlockId) blockIds.push(nd.notionBlockId);
+      if (nd.bodyBlocks) nd.bodyBlocks.forEach(b => blockIds.push(b.id));
+    });
+    if (blockIds.length) {
+      try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
+      catch (err) { alert('노션 삭제 실패: ' + (err.message || err)); return; }
+    }
+    if (node.notionBlockId) removeCachedBlockSection(node.notionBlockId);
+  }
   nodes = nodes.filter(nd => !ids.has(nd.id));
   edges = edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
   ids.forEach(id => { delete nodeMap[id]; });
