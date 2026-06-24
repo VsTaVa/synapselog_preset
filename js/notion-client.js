@@ -339,6 +339,23 @@ function updateCachedBodyBlock(blockId, newText) {
   _mutateCachedMarkdown(`[BB:${blockId}]`, md => md.replace(re, (m, p1) => p1 + newText));
 }
 
+// 헤딩 섹션의 본문 전체를 새 블록 목록으로 교체(순서 변경 반영)
+function rewriteCachedHeadingBody(headingBlockId, blocks) {
+  const markerRe = new RegExp(`^\\[BLOCK:${headingBlockId}(?:\\|[a-f0-9]+)?\\]$`);
+  const boundary = t => /^#{1,6}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t === '[TGL]' || t.startsWith('[NOTION_ENTRY:');
+  _mutateCachedMarkdown(`[BLOCK:${headingBlockId}`, md => {
+    const lines = md.split('\n');
+    const mi = lines.findIndex(l => markerRe.test(l.trim()));
+    if (mi < 0) return md;
+    let start = mi + 2, end = start;
+    while (end < lines.length && !boundary(lines[end].trim())) end++;
+    const ins = [];
+    blocks.forEach(b => { ins.push(`[BB:${b.id}]`, b.text.replace(/\n/g, ' ')); });
+    lines.splice(start, end - start, ...ins);
+    return lines.join('\n');
+  });
+}
+
 // 헤딩 섹션 맨 끝(다음 헤딩/마커 직전)에 새 본문 블록(마커+텍스트) 삽입 → 새로고침해도 편집 가능
 function insertCachedBodyBlock(headingBlockId, newBlockId, text) {
   const safe = text.replace(/\n/g, ' ');

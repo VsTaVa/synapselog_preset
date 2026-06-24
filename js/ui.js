@@ -922,14 +922,34 @@ function beginNodeEdit(paneIdx, node) {
 
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
+  let _bodyDrag = null;
+  const reorderBodyRow = (dragRow, targetRow) => {
+    if (dragRow === targetRow) return;
+    const fi = rows.indexOf(dragRow); if (fi >= 0) rows.splice(fi, 1);
+    const ti = rows.indexOf(targetRow); rows.splice(ti, 0, dragRow);
+    list.insertBefore(dragRow.item, targetRow.item);
+  };
   const addRow = (text, blk) => {
+    const item = document.createElement('div'); item.className = 'body-edit-item';
     const ce = document.createElement('div');
     ce.className = 'body-edit-row'; ce.contentEditable = 'true';
     ce.innerHTML = htmlFromMarkdown(text);
     if (!blk) ce.dataset.placeholder = '본문 내용…';
-    list.appendChild(ce);
+    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk };
+    // 드래그 핸들 (로컬 단일 본문은 순서 불필요)
+    if (!isLocal) {
+      const handle = document.createElement('span'); handle.className = 'body-edit-handle'; handle.textContent = '⠿'; handle.draggable = true;
+      handle.addEventListener('dragstart', e => { _bodyDrag = rowObj; item.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
+      handle.addEventListener('dragend', () => { item.classList.remove('dragging'); _bodyDrag = null; list.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over')); });
+      item.appendChild(handle);
+      item.addEventListener('dragover', e => { if (_bodyDrag && _bodyDrag !== rowObj) { e.preventDefault(); item.classList.add('drag-over'); } });
+      item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
+      item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
+    }
+    item.appendChild(ce);
+    list.appendChild(item);
     attachFormatting(ce);
-    rows.push({ blk: blk || null, el: ce, orig: text || '', isNew: !blk });
+    rows.push(rowObj);
     return ce;
   };
   if (isLocal) addRow(node.desc || '', { local: true });
@@ -961,7 +981,12 @@ function beginNodeEdit(paneIdx, node) {
     const toggleChanged = !!(toggleInput && !!toggleInput.checked !== !!node.notionToggle);
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
-    if (!titleChanged && !toggleChanged && !dirty.length) { finish(); return; }
+    const reordered = !isLocal && node.notionBlockId && hasBody && (() => {
+      const cur = rows.filter(r => !r.isNew).map(r => r.blk.id);
+      const orig = (node.bodyBlocks || []).map(b => b.id);
+      return cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
+    })();
+    if (!titleChanged && !toggleChanged && !dirty.length && !reordered) { finish(); return; }
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     try {
       // 노션 헤딩: 제목/토글 변경 시 한 번에 PATCH
@@ -982,6 +1007,19 @@ function beginNodeEdit(paneIdx, node) {
       if (isLocal) {
         node.desc = valOf(rows[0]);
         saveLocalPages();
+      } else if (reordered) {
+        // 순서 변경: 기존 본문 블록 전부 삭제 후 새 순서로 재생성 (노션엔 이동 API가 없음)
+        const ordered = rows.map(r => valOf(r).trim()).filter(t => t.length);
+        for (const b of (node.bodyBlocks || [])) { try { await notionDeleteBlock(b.id); } catch (e) {} }
+        const tgt = _appendTarget(node);
+        const newBlocks = [];
+        for (const t of ordered) {
+          const res = await notionAppendBlock(tgt.parentId, tgt.afterId, t, 'paragraph');
+          if (res && res.id) newBlocks.push({ id: res.id, text: t });
+        }
+        node.bodyBlocks = newBlocks;
+        node.desc = ordered.join('\n');
+        rewriteCachedHeadingBody(node.notionBlockId, newBlocks);
       } else {
         for (const r of dirty) {
           const nt = valOf(r).trim();
