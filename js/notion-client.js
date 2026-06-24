@@ -1148,6 +1148,7 @@ function exportGraph() {
     }
     if(n.level===0) drawStar8(ctx2, n.x, n.y, r);
     else if(n.isDbNode) drawStar4(ctx2, n.x, n.y, r);
+    else if(n.isChildPage || n.entryNotionId) drawStarX(ctx2, n.x, n.y, r);
     else { ctx2.beginPath(); ctx2.arc(n.x, n.y, r, 0, Math.PI*2); }
     ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : rgbStr(rgb, 1); ctx2.fill();
     if (_showLabels) {

@@ -330,7 +330,7 @@ function draw() {
     }
     if(n.level===0) drawStar8(ctx, n.x, n.y, r);
     else if(n.isDbNode) drawStar4(ctx, n.x, n.y, r);
-    else if(n.isChildPage) drawStarX(ctx, n.x, n.y, r);
+    else if(n.isChildPage || n.entryNotionId) drawStarX(ctx, n.x, n.y, r);
     else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); }
     if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
