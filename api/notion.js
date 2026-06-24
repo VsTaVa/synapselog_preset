@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
-      if (typeof toggleable === 'boolean' && /^heading_[123]$/.test(type)) patchBody[type].is_toggleable = toggleable;
+      if (typeof toggleable === 'boolean' && /^heading_[1234]$/.test(type)) patchBody[type].is_toggleable = toggleable;
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH',
         headers: { ...headers, 'Content-Type': 'application/json' },
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
     if (!parentId) return res.status(400).json({ error: 'parentId가 필요해요' });
     // 'heading'이면 부모 헤딩보다 한 단계 깊은 레벨로 자동 결정(아래에서)
     const wantHeading = blockType === 'heading';
-    let type = ['paragraph', 'heading_1', 'heading_2', 'heading_3'].includes(blockType) ? blockType : 'paragraph';
+    let type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
     try {
       const norm = id => (id || '').replace(/-/g, '');
       let afterTarget = afterId || null;
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         } while (cur);
         const idx = children.findIndex(b => norm(b.id) === norm(afterId));
         if (idx >= 0) {
-          const BREAK = ['heading_1', 'heading_2', 'heading_3', 'toggle', 'child_page', 'child_database'];
+          const BREAK = ['heading_1', 'heading_2', 'heading_3', 'heading_4', 'toggle', 'child_page', 'child_database'];
           let last = children[idx];
           for (let j = idx + 1; j < children.length; j++) {
             if (BREAK.includes(children[j].type)) break;
@@ -135,12 +135,18 @@ export default async function handler(req, res) {
           afterTarget = last.id;
           if (wantHeading) {
             const m = /^heading_(\d)$/.exec(children[idx].type || '');
-            const lvl = m ? Math.min(parseInt(m[1], 10) + 1, 3) : 2;
+            const lvl = m ? Math.min(parseInt(m[1], 10) + 1, 4) : 2;
             type = `heading_${lvl}`;
           }
         } else if (wantHeading) { type = 'heading_2'; }
       } else if (wantHeading) {
-        type = 'heading_1'; // 페이지 직속 → 최상위 헤딩(# 노드)
+        // afterId 없음: 토글 헤딩 안(부모가 헤딩) → 부모 레벨+1, 페이지 직속 → heading_1
+        let lvl = 1;
+        try {
+          const pr = await fetch(`https://api.notion.com/v1/blocks/${parentId}`, { headers });
+          if (pr.ok) { const pb = await pr.json(); const m = /^heading_(\d)$/.exec(pb.type || ''); if (m) lvl = Math.min(parseInt(m[1], 10) + 1, 4); }
+        } catch (e) {}
+        type = `heading_${lvl}`;
       }
 
       const newBlock = { object: 'block', type, [type]: { rich_text: buildRichText(text || '') } };
@@ -255,7 +261,7 @@ export default async function handler(req, res) {
           markdown += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
-          markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
+          markdown += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
@@ -281,7 +287,7 @@ export default async function handler(req, res) {
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingText(block.toggle?.rich_text);
-          if (title.trim()) markdown += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + title + '\n';
+          if (title.trim()) markdown += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + title + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
           continue;
         } else if (type === 'table') {
@@ -428,8 +434,8 @@ export default async function handler(req, res) {
             if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_4') { md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call
