@@ -545,16 +545,8 @@ let _panes = [{ tabs: [], activeTabId: null }];
 let _activePane = 0;
 let _splitMode = false;
 let _draggingTab = null;
-let _bodyDragState = null; // 본문 블록 드래그 상태 (같은 패널=순서변경 / 다른 패널=이동)
 let _activeNode = null; // 현재 패널에 열린(선택된) 노드 — '노드 편집' 섹션이 사용
 let _undoDelete = null; // 마지막 삭제 묶음 (실행 취소용)
-
-// 패널의 현재 활성 노드 반환
-function paneActiveNode(i) {
-  const p = _panes[i]; if (!p) return null;
-  const t = p.tabs.find(x => x.nodeId === p.activeTabId) || p.tabs[p.tabs.length - 1];
-  return t ? t.node : null;
-}
 
 // 탭을 다른 패인으로 이동
 function moveTabToPane(fromIdx, nodeId, toIdx) {
@@ -631,28 +623,16 @@ function renderPanes() {
     const closeBtn = el.querySelector('.pane-close-btn');
     if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closePanel(); };
     el.addEventListener('mousedown', () => setActivePane(i));
-    // 탭 / 본문블록 드래그&드롭: 다른 패인 위에 떨어뜨리면 그 패인으로 이동
+    // 탭 드래그&드롭: 다른 패인 위에 떨어뜨리면 그 패인으로 이동
     el.addEventListener('dragover', (e) => {
-      if (_bodyDragState && _bodyDragState.paneIdx !== i) {
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        el.classList.add('body-drop-over');
-        return;
-      }
       if (!_draggingTab || _draggingTab.pane === i) return;
       e.preventDefault();
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
       el.classList.add('drag-over');
     });
-    el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) { el.classList.remove('drag-over'); el.classList.remove('body-drop-over'); } });
+    el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
     el.addEventListener('drop', (e) => {
-      el.classList.remove('drag-over'); el.classList.remove('body-drop-over');
-      if (_bodyDragState && _bodyDragState.paneIdx !== i) {
-        e.preventDefault();
-        const st = _bodyDragState; st.moved = true;
-        moveBodyBlockToPane(st.node, st.blk, st.paneIdx, paneActiveNode(i), i);
-        return;
-      }
+      el.classList.remove('drag-over');
       if (!_draggingTab || _draggingTab.pane === i) return;
       e.preventDefault();
       moveTabToPane(_draggingTab.pane, _draggingTab.nodeId, i);
@@ -852,6 +832,7 @@ function renderBodyDraggable(contentEl, paneIdx, n) {
 
   const origIds = n.bodyBlocks.map(b => b.id).join('|');
   const list = document.createElement('div'); list.className = 'detail-body-droplist';
+  let dragItem = null;
 
   const commitIfChanged = () => {
     const order = [...list.children].map(ch => ch._blk).filter(Boolean);
@@ -861,7 +842,7 @@ function renderBodyDraggable(contentEl, paneIdx, n) {
 
   n.bodyBlocks.forEach(blk => {
     const item = document.createElement('div'); item.className = 'detail-body-block'; item._blk = blk;
-    const handle = document.createElement('span'); handle.className = 'detail-body-handle'; handle.textContent = '⠿'; handle.draggable = true; handle.title = '드래그: 같은 패널은 순서변경, 다른 패널로 끌면 이동';
+    const handle = document.createElement('span'); handle.className = 'detail-body-handle'; handle.textContent = '⠿'; handle.draggable = true; handle.title = '드래그해서 순서 변경';
     const body = document.createElement('div'); body.className = 'detail-body-text';
     let html = htmlFromMarkdown(blk.text);
     if (searchKeyword && searchMatches.has(n.id)) {
@@ -869,24 +850,12 @@ function renderBodyDraggable(contentEl, paneIdx, n) {
       html = html.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
     }
     body.innerHTML = html;
-    handle.addEventListener('dragstart', e => {
-      _bodyDragState = { node: n, blk, paneIdx, item, moved: false };
-      item.classList.add('dragging');
-      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch (err) {} }
-      // 다른 패널을 드롭존으로 강조 (분할 모드일 때)
-      document.querySelectorAll('#detail-panes .detail-pane').forEach(p => { if (+p.dataset.pane !== paneIdx) p.classList.add('body-drop-target'); });
-    });
-    handle.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      document.querySelectorAll('#detail-panes .detail-pane').forEach(p => { p.classList.remove('body-drop-target'); p.classList.remove('body-drop-over'); });
-      const st = _bodyDragState; _bodyDragState = null;
-      if (st && !st.moved) commitIfChanged(); // 다른 패널로 이동한 경우가 아니면 순서변경 반영
-    });
-    // 같은 패널 내에서만 실시간 위/아래 재정렬 (커서가 항목 중간선 위/아래인지로 결정)
+    handle.addEventListener('dragstart', e => { dragItem = item; item.classList.add('dragging'); if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch (err) {} } });
+    handle.addEventListener('dragend', () => { item.classList.remove('dragging'); const d = dragItem; dragItem = null; if (d) commitIfChanged(); });
+    // 실시간 위/아래 이동 — 커서가 항목 중간선 위/아래인지로 삽입 위치 결정
     item.addEventListener('dragover', e => {
-      if (!_bodyDragState || _bodyDragState.paneIdx !== paneIdx || _bodyDragState.item === item) return;
+      if (!dragItem || dragItem === item) return;
       e.preventDefault();
-      const dragItem = _bodyDragState.item;
       const rect = item.getBoundingClientRect();
       const after = (e.clientY - rect.top) > rect.height / 2;
       if (after) { if (item.nextSibling !== dragItem) list.insertBefore(dragItem, item.nextSibling); }
@@ -921,44 +890,6 @@ async function commitBodyReorder(paneIdx, n, orderedBlocks) {
     if (dismiss) dismiss();
     renderPaneContent(paneIdx, n);
     toast('순서 변경 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
-  }
-}
-
-// 본문 문단을 다른 패널의 노드로 이동 (원본 삭제 + 대상에 추가)
-async function moveBodyBlockToPane(srcNode, blk, srcPaneIdx, targetNode, targetPaneIdx) {
-  if (!targetNode || targetNode.local || !targetNode.notionBlockId) {
-    renderPaneContent(srcPaneIdx, srcNode);
-    toast('이 패널 노드로는 본문을 옮길 수 없어 (노션 헤딩 노드만 가능)', { type: 'error', duration: 4000 });
-    return;
-  }
-  if (targetNode.id === srcNode.id) { renderPaneContent(srcPaneIdx, srcNode); return; }
-  const dismiss = toast('문단 이동 중…', { type: 'info', duration: 60000 });
-  try {
-    const text = (blk.text || '').trim();
-    const tgt = _appendTarget(targetNode);
-    const res = await notionAppendBlock(tgt.parentId, tgt.afterId, text, 'paragraph');
-    try { await notionDeleteBlock(blk.id); } catch (e) {}
-    // 원본 노드 갱신
-    srcNode.bodyBlocks = (srcNode.bodyBlocks || []).filter(b => b.id !== blk.id);
-    srcNode.desc = srcNode.bodyBlocks.map(b => b.text).join('\n');
-    rewriteCachedHeadingBody(srcNode.notionBlockId, srcNode.bodyBlocks);
-    // 대상 노드 갱신
-    if (res && res.id) {
-      targetNode.bodyBlocks = targetNode.bodyBlocks || [];
-      targetNode.bodyBlocks.push({ id: res.id, text });
-      targetNode.desc = targetNode.desc ? targetNode.desc + '\n' + text : text;
-      insertCachedBodyBlock(targetNode.notionBlockId, res.id, text);
-    }
-    isStable = false;
-    if (dismiss) dismiss();
-    renderPaneContent(srcPaneIdx, srcNode);
-    renderPaneContent(targetPaneIdx, targetNode);
-    toast('문단을 옮겼어', { type: 'success' });
-  } catch (err) {
-    if (dismiss) dismiss();
-    renderPaneContent(srcPaneIdx, srcNode);
-    renderPaneContent(targetPaneIdx, targetNode);
-    toast('이동 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
   }
 }
 
