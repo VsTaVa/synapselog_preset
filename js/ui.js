@@ -566,6 +566,24 @@ function moveTabToPane(fromIdx, nodeId, toIdx) {
 }
 
 function anyTabs() { return _panes.some(p => p.tabs.length > 0); }
+
+// 증분 동기화로 삭제된 노드의 열린 탭 정리
+function pruneDetailTabs(removedIds) {
+  let changed = false;
+  _panes.forEach(p => {
+    const before = p.tabs.length;
+    p.tabs = p.tabs.filter(t => !removedIds.has(t.nodeId));
+    if (p.tabs.length !== before) {
+      changed = true;
+      if (p.activeTabId && removedIds.has(p.activeTabId)) p.activeTabId = p.tabs.length ? p.tabs[p.tabs.length - 1].nodeId : null;
+    }
+  });
+  if (_activeNode && removedIds.has(_activeNode.id)) _activeNode = null;
+  if (changed && !anyTabs()) closePanel();
+}
+
+// 동기화 후 열린 패널 내용 다시 그리기 (제자리 갱신된 노드 텍스트 반영)
+function refreshOpenPanes() { if (anyTabs()) renderPanes(); }
 function getPaneEl(i) { return document.querySelector(`#detail-panes .detail-pane[data-pane="${i}"]`); }
 
 function updateDetailReopenTab() {

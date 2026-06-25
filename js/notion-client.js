@@ -841,24 +841,30 @@ async function restorePageList() {
   updateBulkActionsVisibility();
 }
 
-async function syncPage(pageId) {
+async function syncPage(pageId, opts) {
+  opts = opts || {};
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const syncBtn = item?.querySelector('.btn-sync');
   if (syncBtn) syncBtn.textContent = '⟳';
-  showLoading('동기화 중...');
+  if (!opts.silent) showLoading('동기화 중...');
   try {
-    nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
-         .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
+    // 수동 동기화만 엔트리 캐시까지 새로고침 (자동 폴링은 가볍게 헤딩만)
+    if (!opts.silent) {
+      nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
+           .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
+    }
     const data = await notionFetch({ pageId, action: 'headings' });
     try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
-    const removeIds = new Set(nodes.filter(n => n.sourcePageId === pageId || n.id === 'ghost_' + pageId).map(n => n.id));
-    nodes = nodes.filter(n => !removeIds.has(n.id));
-    edges = edges.filter(e => !removeIds.has(e.from) && !removeIds.has(e.to));
-    Object.keys(nodeMap).forEach(k => { if (removeIds.has(k)) delete nodeMap[k]; });
-    mergeGraph(data.title || '추가 페이지', data.markdown || '', pageId);
+    // ghost(미로드 placeholder) 노드 제거
+    const ghostId = 'ghost_' + pageId;
+    if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
+    // 증분 동기화 — 기존 노드 위치/탭 유지, 변경분만 반영
+    const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
+    if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
+    if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
     if (syncBtn) syncBtn.textContent = '↻';
-    _loadEntriesBackground(pageId);
-  } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { hideLoading(); }
+    if (!opts.silent) _loadEntriesBackground(pageId); // 자동 폴링은 엔트리 재로드 생략
+  } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (!opts.silent) hideLoading(); }
 }
 
 // ── 노션 → 앱 자동 동기화 (창 포커스 시 last_edited_time 비교) ────────
@@ -881,7 +887,7 @@ async function checkNotionUpdatesOnFocus() {
       const edited = meta && meta.lastEdited;
       if (!edited) continue;
       if (prev && edited !== prev) {
-        await syncPage(pageId);
+        await syncPage(pageId, { silent: true });
         if (typeof toast === 'function') toast(`'${title}' 노션 변경 반영됨`, { type: 'info' });
       } else if (!prev && cached) {
         // 기준값 없으면 캐시에 기록만 (다음 변경부터 감지)

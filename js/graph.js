@@ -562,3 +562,96 @@ function mergeGraph(title, markdown, pageId) {
   const newNodeIds = new Set(Object.values(idMap));
   return revealByLevel(newNodeIds, restoreFixedPositions);
 }
+
+// 증분 동기화 — 기존 노드는 위치/id/탭참조 유지하고 내용만 갱신, 추가/삭제만 반영
+// 매칭 키: 루트=root, 헤딩=blk:<notionBlockId>, 엔트리=entry:<entryNotionId>, 그 외=lbl:<level>:<label>
+// 반환: 삭제된 노드 id Set (호출측에서 열린 탭 정리용)
+function syncPageIncremental(title, markdown, pageId) {
+  const oldNodes = nodes.filter(n => n.sourcePageId === pageId);
+  if (!oldNodes.length) { mergeGraph(title, markdown, pageId); return new Set(); }
+
+  const result = parseMarkdown(markdown, title);
+  const uniq = 'sp' + Date.now() + '_';
+  const keyOf = n => n.level === 0 ? 'root'
+    : n.notionBlockId ? 'blk:' + n.notionBlockId
+    : n.entryNotionId ? 'entry:' + n.entryNotionId
+    : 'lbl:' + n.level + ':' + n.label;
+
+  // DB 엔트리 하위(엔트리 노드의 자식들)는 headings에 없고 _loadEntriesBackground로 따로 관리 →
+  // 동기화 범위에서 제외해서 삭제/갱신 대상으로 보지 않는다 (엔트리 노드 자체는 범위에 포함)
+  const entryDescendants = new Set();
+  {
+    const q = oldNodes.filter(n => n.entryNotionId).map(n => n.id);
+    const seen = new Set(q);
+    while (q.length) {
+      const id = q.shift();
+      edges.forEach(e => { if (e.from === id && !e.weakLink && !seen.has(e.to)) { seen.add(e.to); entryDescendants.add(e.to); q.push(e.to); } });
+    }
+  }
+  const scopeOld = oldNodes.filter(n => !entryDescendants.has(n.id));
+  const scopeOldIds = new Set(scopeOld.map(n => n.id));
+
+  const oldByKey = new Map();
+  scopeOld.forEach(n => { const k = keyOf(n); if (!oldByKey.has(k)) oldByKey.set(k, n); });
+  const pageRootPos = oldByKey.get('root') || scopeOld[0] || oldNodes[0];
+
+  result.nodes.forEach(tn => { tn._tmp = tn.id; });
+  const tempParentOf = {};
+  result.edges.forEach(e => { if (!e.weakLink) tempParentOf[e.to] = e.from; });
+
+  // 내용만 덮어쓸 필드 (위치/속도/고정/표시 상태는 보존)
+  const COPY = ['label', 'desc', 'date', 'color', '_rgb', 'level', 'headingDepth', 'bodyBlocks',
+    'notionToggle', 'notionBlockId', 'notionParentId', 'entryNotionId', 'isDbNode', 'isChildPage'];
+  const idMap = {};
+  const seenOld = new Set();
+
+  result.nodes.forEach(tn => {
+    const k = keyOf(tn);
+    const old = oldByKey.get(k);
+    if (old && !seenOld.has(old.id)) {
+      COPY.forEach(f => { if (f in tn) old[f] = tn[f]; else delete old[f]; });
+      old.sourcePageId = pageId;
+      idMap[tn._tmp] = old.id;
+      seenOld.add(old.id);
+    } else {
+      const ptmp = tempParentOf[tn._tmp];
+      const parentFinal = ptmp != null ? nodeMap[idMap[ptmp]] : null;
+      const px = parentFinal ? parentFinal.x : pageRootPos.x;
+      const py = parentFinal ? parentFinal.y : pageRootPos.y;
+      const newId = uniq + tn._tmp;
+      idMap[tn._tmp] = newId;
+      tn.id = newId; tn.sourcePageId = pageId;
+      tn.x = px + (Math.random() - 0.5) * 80; tn.y = py + (Math.random() - 0.5) * 80;
+      tn.vx = 0; tn.vy = 0; tn.visible = true; tn.fixed = false;
+      nodes.push(tn); nodeMap[newId] = tn;
+    }
+  });
+
+  // 삭제된 노드 (이번 마크다운에 없는 기존 헤딩 노드 — 엔트리 하위는 제외됨)
+  const removedIds = new Set(scopeOld.filter(n => !seenOld.has(n.id)).map(n => n.id));
+
+  // 헤딩 구조 내부 엣지만 제거(양끝 모두 범위 안)하고 새 구조로 재구성
+  // — 엔트리 노드→하위 엣지는 한쪽 끝만 범위 안이라 보존됨
+  edges = edges.filter(e => !(scopeOldIds.has(e.from) && scopeOldIds.has(e.to)));
+  result.edges.forEach(e => {
+    if (e.weakLink) return;
+    const f = idMap[e.from], t = idMap[e.to];
+    if (f && t && nodeMap[f] && nodeMap[t]) edges.push({ from: f, to: t });
+  });
+  // 첫 루트 ↔ 페이지 루트 약한 링크 (없으면 복원)
+  const firstRoot = nodes.find(n => n.level === 0 && !n.sourcePageId);
+  const pageRootNode = oldByKey.get('root');
+  if (firstRoot && pageRootNode && firstRoot.id !== pageRootNode.id
+      && !edges.some(e => e.weakLink && e.from === firstRoot.id && e.to === pageRootNode.id)) {
+    edges.push({ from: firstRoot.id, to: pageRootNode.id, weakLink: true });
+  }
+
+  if (removedIds.size) {
+    nodes = nodes.filter(n => !removedIds.has(n.id));
+    removedIds.forEach(id => delete nodeMap[id]);
+    edges = edges.filter(e => !removedIds.has(e.from) && !removedIds.has(e.to));
+  }
+  result.nodes.forEach(tn => { delete tn._tmp; });
+  isStable = false;
+  return removedIds;
+}
