@@ -699,7 +699,7 @@ function renderSidebarPageList(pages) {
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
-          <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
+          <button class="btn-remove" onclick="event.stopPropagation();confirmRemoveLocalPage('${p.id}')">✕</button>
         </div>
       </div>`;
     }
@@ -892,6 +892,13 @@ async function checkNotionUpdatesOnFocus() {
 }
 window.addEventListener('focus', checkNotionUpdatesOnFocus);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkNotionUpdatesOnFocus(); });
+
+function confirmRemoveLocalPage(pageId) {
+  const el = document.querySelector(`[data-page-id="${pageId}"]`);
+  const page = (window._sidebarPageList || []).find(p => p.id === pageId);
+  const title = (page && page.title) ? page.title : '이 페이지';
+  showConfirm('임시 페이지 삭제', `'${title}'을(를) 삭제할까요?\n임시(로컬) 페이지는 복구할 수 없어요.`, () => removePage(pageId, el), true);
+}
 
 function removePage(pageId, el) {
   _addedPageIds.delete(pageId);
