@@ -496,6 +496,29 @@ export default async function handler(req, res) {
                 }
               } catch(e) {}
             }
+            // 본문 텍스트 블록 — [BB:] 마커로 본문으로 인식되게 (헤딩 사이 본문)
+            else if (type === 'paragraph') {
+              const text = extractRichText(block.paragraph?.rich_text);
+              if (text.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + text + '\n';
+            }
+            else if (type === 'bulleted_list_item') {
+              md += `[BB:${block.id.replace(/-/g,'')}]\n- ` + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
+            }
+            else if (type === 'numbered_list_item') {
+              md += `[BB:${block.id.replace(/-/g,'')}]\n1. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
+            }
+            else if (type === 'to_do') {
+              const t = extractRichText(block.to_do?.rich_text);
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + (block.to_do?.checked ? '☑ ' : '☐ ') + t + '\n';
+            }
+            else if (type === 'quote') {
+              const t = extractRichText(block.quote?.rich_text);
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n> ` + t + '\n';
+            }
+            else if (type === 'callout') {
+              const t = extractRichText(block.callout?.rich_text);
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t + '\n';
+            }
           } catch(e) {}
         }
         return md;
