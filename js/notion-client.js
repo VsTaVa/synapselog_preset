@@ -272,6 +272,12 @@ async function notionAppendBlock(parentId, afterId, text, blockType) {
   return notionFetch({ action: 'appendBlock', parentId, afterId, text, blockType });
 }
 
+// 여러 블록을 한 번의 호출로 추가 → ['id', ...] 배열 반환 (순서 보존)
+async function notionAppendBlocks(parentId, afterId, texts, blockType) {
+  const res = await notionFetch({ action: 'appendBlocks', parentId, afterId, texts, blockType });
+  return (res && res.ids) || [];
+}
+
 async function notionDeleteBlock(blockId) {
   return notionFetch({ action: 'deleteBlock', blockId });
 }

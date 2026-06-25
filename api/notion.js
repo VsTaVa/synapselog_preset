@@ -166,6 +166,44 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'appendBlocks' — 여러 본문 블록을 한 번의 호출로 추가 ──────
+  if (action === 'appendBlocks') {
+    const { parentId, afterId, texts, blockType } = req.body;
+    if (!parentId || !Array.isArray(texts)) return res.status(400).json({ error: 'parentId/texts가 필요해요' });
+    if (!texts.length) return res.status(200).json({ ok: true, ids: [] });
+    const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
+    try {
+      const norm = id => (id || '').replace(/-/g, '');
+      let afterTarget = afterId || null;
+      if (afterId) {
+        const children = []; let cur;
+        do {
+          const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+          if (!r.ok) break;
+          const d = await r.json();
+          children.push(...d.results.filter(b => b?.type));
+          cur = d.has_more ? d.next_cursor : undefined;
+        } while (cur);
+        const idx = children.findIndex(b => norm(b.id) === norm(afterId));
+        if (idx >= 0) {
+          const BREAK = ['heading_1', 'heading_2', 'heading_3', 'heading_4', 'toggle', 'child_page', 'child_database'];
+          let last = children[idx];
+          for (let j = idx + 1; j < children.length; j++) { if (BREAK.includes(children[j].type)) break; last = children[j]; }
+          afterTarget = last.id;
+        }
+      }
+      const childrenBody = texts.map(t => ({ object: 'block', type, [type]: { rich_text: buildRichText(t || '') } }));
+      const body = afterTarget ? { children: childrenBody, after: afterTarget } : { children: childrenBody };
+      const r2 = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
+        method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (!r2.ok) { const e = await r2.json(); return res.status(r2.status).json({ error: e.message || '추가 실패' }); }
+      const data = await r2.json();
+      const ids = (data.results || []).map(b => (b.id || '').replace(/-/g, ''));
+      return res.status(200).json({ ok: true, ids });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   // ── action: 'deleteBlock' — 블록(헤딩+하위) 삭제(보관) ──────────────
   if (action === 'deleteBlock') {
     const { blockId } = req.body;
