@@ -584,6 +584,18 @@ function pruneDetailTabs(removedIds) {
 
 // 동기화 후 열린 패널 내용 다시 그리기 (제자리 갱신된 노드 텍스트 반영)
 function refreshOpenPanes() { if (anyTabs()) renderPanes(); }
+
+let _optSeq = 0; // 낙관적 저장에서 새 본문 블록의 임시 id 카운터
+
+// 특정 노드를 보여주는 패널을 '읽기 모드일 때만' 다시 그림 (편집 중인 패널은 건드리지 않음)
+function rerenderNodeReadPanes(node) {
+  _panes.forEach((p, pi) => {
+    const el = getPaneEl(pi); if (!el) return;
+    if (el.querySelector('.detail-edit-actions')) return; // 편집 중 → 스킵
+    const act = p.tabs.find(t => t.nodeId === p.activeTabId) || p.tabs[p.tabs.length - 1];
+    if (act && act.node === node) renderPaneContent(pi, node);
+  });
+}
 function getPaneEl(i) { return document.querySelector(`#detail-panes .detail-pane[data-pane="${i}"]`); }
 
 function updateDetailReopenTab() {
@@ -1143,7 +1155,7 @@ function beginNodeEdit(paneIdx, node) {
   const finish = () => renderPaneContent(paneIdx, node);
   cancelBtn.onclick = finish;
   if (titleInput) titleInput.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(); } });
-  saveBtn.onclick = async () => {
+  saveBtn.onclick = () => {
     const newTitle = titleInput ? titleInput.value.trim() : null;
     const titleChanged = !!(titleInput && newTitle && newTitle !== node.label);
     const toggleChanged = !!(toggleInput && !!toggleInput.checked !== !!node.notionToggle);
@@ -1155,63 +1167,87 @@ function beginNodeEdit(paneIdx, node) {
       return cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
     })();
     if (!titleChanged && !toggleChanged && !dirty.length && !reordered) { finish(); return; }
-    saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
-    try {
-      // 노션 헤딩: 제목/토글 변경 시 한 번에 PATCH
-      if (!isLocal && node.notionBlockId && (titleChanged || toggleChanged)) {
-        const newText = titleChanged ? newTitle : node.label;
-        await notionUpdateBlock(node.notionBlockId, newText, toggleInput ? !!toggleInput.checked : undefined);
-        if (toggleChanged) node.notionToggle = !!toggleInput.checked;
+
+    const newToggle = toggleInput ? !!toggleInput.checked : !!node.notionToggle;
+    const oldBodyIds = (node.bodyBlocks || []).map(b => b.id);
+    // 본문 폼의 최종 줄 목록 (기존 줄은 유지, 빈 새 줄은 제외)
+    const finalRows = rows
+      .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim() }))
+      .filter(r => r.blk || r.text.length);
+
+    // ── 낙관적 적용: 즉시 화면 반영 + 편집 종료 (네트워크 대기 없음) ──
+    if (titleChanged) {
+      node.label = newTitle;
+      _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+      if (isLocal && node.level === 0 && window._sidebarPageList) {
+        const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
+        if (it) { it.title = newTitle; refreshSidebarRender(); }
       }
-      if (titleChanged) {
-        node.label = newTitle;
-        _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
-        if (isLocal && node.level === 0 && window._sidebarPageList) {
-          const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
-          if (it) { it.title = newTitle; refreshSidebarRender(); }
-        }
-      }
-      if (isLocal) {
-        node.desc = valOf(rows[0]);
-        saveLocalPages();
-      } else if (reordered) {
-        // 순서 변경: 기존 본문 블록 전부 삭제 후 새 순서로 재생성 (노션엔 이동 API가 없음)
-        const ordered = rows.map(r => valOf(r).trim()).filter(t => t.length);
-        for (const b of (node.bodyBlocks || [])) { try { await notionDeleteBlock(b.id); } catch (e) {} }
-        const tgt = _appendTarget(node);
-        const newBlocks = [];
-        for (const t of ordered) {
-          const res = await notionAppendBlock(tgt.parentId, tgt.afterId, t, 'paragraph');
-          if (res && res.id) newBlocks.push({ id: res.id, text: t });
-        }
-        node.bodyBlocks = newBlocks;
-        node.desc = ordered.join('\n');
-      } else {
-        for (const r of dirty) {
-          const nt = valOf(r).trim();
-          if (r.isNew) {
-            const tgt = _appendTarget(node);
-            const res = await notionAppendBlock(tgt.parentId, tgt.afterId, nt, 'paragraph');
-            node.desc = node.desc ? node.desc + '\n' + nt : nt;
-            if (res && res.id) {
-              node.bodyBlocks = node.bodyBlocks || [];
-              node.bodyBlocks.push({ id: res.id, text: nt });
-            }
-          } else {
-            await notionUpdateBlock(r.blk.id, nt);
-            if (node.desc && r.orig) node.desc = node.desc.replace(r.orig, nt);
-            r.blk.text = nt;
-          }
-        }
-      }
-      if (!isLocal) invalidateNodeCache(node);
-      isStable = false;
-      renderPaneContent(paneIdx, node);
-      toast(isLocal ? '저장됨' : '노션에 저장됨', { type: 'success' });
-    } catch (err) {
-      saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
-      toast('저장 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
     }
+    if (toggleChanged) node.notionToggle = newToggle;
+
+    if (isLocal) {
+      node.desc = valOf(rows[0]);
+      saveLocalPages();
+      isStable = false; finish();
+      toast('저장됨', { type: 'success' });
+      return;
+    }
+
+    const hasTemp = reordered || finalRows.some(r => r.isNew);
+    node.bodyBlocks = finalRows.map(r => ({ id: r.blk ? r.blk.id : ('opt_' + (_optSeq++)), text: r.text }));
+    // desc: 순서변경은 본문 전체 재구성, 그 외엔 본문 외 내용(표 등) 보존 위해 부분 치환
+    if (reordered) {
+      node.desc = finalRows.map(r => r.text).join('\n');
+    } else {
+      let d = node.desc || '';
+      finalRows.forEach(r => {
+        if (r.blk && r.text !== r.orig && r.orig) d = d.replace(r.orig, r.text);
+        else if (!r.blk) d = d ? d + '\n' + r.text : r.text;
+      });
+      node.desc = d;
+    }
+    invalidateNodeCache(node);
+    isStable = false;
+    finish(); // 편집 즉시 닫힘
+
+    // ── 백그라운드 노션 쓰기 (실제 블록 id는 나중에 화해) ──
+    (async () => {
+      const dismiss = toast('노션에 저장 중…', { type: 'info', duration: 60000 });
+      try {
+        if (titleChanged || toggleChanged) {
+          await notionUpdateBlock(node.notionBlockId, node.label, toggleInput ? newToggle : undefined);
+        }
+        let finalBlocks;
+        const tgt = _appendTarget(node);
+        if (reordered) {
+          // 순서 변경: 기존 블록 병렬 삭제 후 새 순서로 재생성 (노션엔 이동 API가 없음)
+          await Promise.all(oldBodyIds.map(id => notionDeleteBlock(id).catch(() => {})));
+          finalBlocks = [];
+          for (const r of finalRows) {
+            const res = await notionAppendBlock(tgt.parentId, tgt.afterId, r.text, 'paragraph');
+            finalBlocks.push({ id: (res && res.id) || ('opt_' + (_optSeq++)), text: r.text });
+          }
+        } else {
+          // 기존 줄 수정은 병렬, 새 줄 추가는 순차(순서 보존)
+          await Promise.all(finalRows.filter(r => r.blk && r.text !== r.orig).map(r => notionUpdateBlock(r.blk.id, r.text)));
+          const newIds = [];
+          for (const r of finalRows) { if (!r.blk) { const res = await notionAppendBlock(tgt.parentId, tgt.afterId, r.text, 'paragraph'); newIds.push(res && res.id); } }
+          let qi = 0;
+          finalBlocks = finalRows.map(r => ({ id: r.blk ? r.blk.id : (newIds[qi++] || ('opt_' + (_optSeq++))), text: r.text }));
+        }
+        // 실제 id로 화해 (desc는 낙관적 단계에서 이미 맞춰둠, 순서변경만 본문 재구성)
+        node.bodyBlocks = finalBlocks;
+        if (reordered) node.desc = finalBlocks.map(b => b.text).join('\n');
+        invalidateNodeCache(node);
+        if (hasTemp) rerenderNodeReadPanes(node);
+        dismiss();
+        toast('노션에 저장됨', { type: 'success' });
+      } catch (err) {
+        dismiss();
+        toast('노션 저장 실패: ' + (err.message || err) + ' (새로고침 시 되돌아갈 수 있어)', { type: 'error', duration: 6000 });
+      }
+    })();
   };
 }
 
