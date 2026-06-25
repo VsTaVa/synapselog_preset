@@ -218,6 +218,17 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .body-edit-handle:active { cursor: grabbing; }
 .body-edit-item.dragging { opacity: 0.45; }
 .body-edit-item.drag-over { box-shadow: 0 -2px 0 #ed7000; }
+/* 읽기 화면 본문 드래그 순서 변경 */
+.detail-body-droplist { display: flex; flex-direction: column; gap: 2px; }
+.detail-body-block { display: flex; align-items: flex-start; gap: 4px; border-radius: 6px; padding: 1px 2px; transition: background 0.12s; }
+.detail-body-block:hover { background: rgba(255,255,255,0.04); }
+.detail-body-block .detail-body-text { flex: 1; min-width: 0; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.detail-body-handle { flex-shrink: 0; opacity: 0; display: flex; align-items: center; padding-top: 2px; color: rgba(255,255,255,0.3); cursor: grab; font-size: 14px; user-select: none; transition: opacity 0.12s, color 0.12s; }
+.detail-body-block:hover .detail-body-handle { opacity: 1; }
+.detail-body-handle:hover { color: #ed7000; }
+.detail-body-handle:active { cursor: grabbing; }
+.detail-body-block.dragging { opacity: 0.45; }
+.detail-body-block.drag-over { box-shadow: 0 -2px 0 #ed7000; }
 .body-edit-row { width: 100%; box-sizing: border-box; min-height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(237,112,0,0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; white-space: pre-wrap; word-break: break-word; }
 .body-edit-row:focus { border-color: rgba(237,112,0,0.7); }
 .body-edit-row:empty:before { content: attr(data-placeholder); color: rgba(255,255,255,0.3); pointer-events: none; }
