@@ -190,6 +190,18 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'pageMeta' — 페이지 last_edited_time만 가볍게 조회 ───────
+  if (action === 'pageMeta') {
+    const metaId = pageId || (req.body && req.body.pageId);
+    if (!metaId) return res.status(400).json({ error: 'pageId가 필요해요' });
+    try {
+      const r = await fetch(`https://api.notion.com/v1/pages/${metaId}`, { headers });
+      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '조회 실패' }); }
+      const d = await r.json();
+      return res.status(200).json({ lastEdited: d.last_edited_time || null });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
   // 텍스트 추출 함수 — 볼드(**)·취소선(~~) 마크다운으로 보존 (본문용)
@@ -393,7 +405,9 @@ export default async function handler(req, res) {
     try {
       const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers });
       if (!pageRes.ok) { const e = await pageRes.json(); return res.status(pageRes.status).json({ error: e.message }); }
-      const pageTitle = extractPageTitle(await pageRes.json());
+      const pageObj = await pageRes.json();
+      const pageTitle = extractPageTitle(pageObj);
+      const lastEdited = pageObj.last_edited_time || null;
       // Block children cache + DB-type check cache (avoids double API calls)
       const _hCache = new Map();
       const _dbCache = new Map(); // id → db object | null
@@ -488,7 +502,7 @@ export default async function handler(req, res) {
       }
 
       const markdown = await fetchHeadings(pageId);
-      return res.status(200).json({ title: pageTitle, markdown, useDbNodes: globalUseDb });
+      return res.status(200).json({ title: pageTitle, markdown, useDbNodes: globalUseDb, lastEdited });
     } catch(e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
