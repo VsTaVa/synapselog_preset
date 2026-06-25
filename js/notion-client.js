@@ -892,6 +892,8 @@ async function checkNotionUpdatesOnFocus() {
 }
 window.addEventListener('focus', checkNotionUpdatesOnFocus);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkNotionUpdatesOnFocus(); });
+// 앱을 보고 있는 동안 주기적으로도 확인 → 노션에서 수정하면 동기화 버튼 없이 자동 반영
+setInterval(() => { if (!document.hidden) checkNotionUpdatesOnFocus(); }, 12000);
 
 function confirmRemoveLocalPage(pageId) {
   const el = document.querySelector(`[data-page-id="${pageId}"]`);
