@@ -820,28 +820,24 @@ function renderPaneContent(i, n) {
 
 }
 
-// 읽기 화면 본문 드래그 순서 변경 — desc가 bodyBlocks로 깔끔히 매핑될 때만 활성화
-// (표·추적되지 않는 줄이 섞여 있으면 false 반환 → 기존 렌더로 폴백, 내용 손실 방지)
+// 읽기 화면 본문 드래그 순서 변경 — 일반 문단 본문에서만 활성화
+// 게이트(내용 손실/타입변환 방지): 비로컬 + notionBlockId + 본문블록 2개 이상
+//  + desc 줄 수 == 본문블록 수(표 등 추가내용 없음) + 리스트/인용/할일 마커 없음(문단만)
 function renderBodyDraggable(contentEl, paneIdx, n) {
   if (n.local || !n.notionBlockId || !n.bodyBlocks || n.bodyBlocks.length < 2) return false;
-  const norm = s => (s || '').replace(/\s+/g, ' ').trim();
   const lines = (n.desc || '').split('\n').filter(s => s.trim().length);
   if (lines.length !== n.bodyBlocks.length) return false;
-  if (!n.bodyBlocks.every((b, idx) => norm(lines[idx]) === norm(b.text))) return false;
+  // 리스트/인용/할일/번호 — 재생성 시 문단으로 바뀌므로 드래그 비활성(기존 렌더 유지)
+  if (lines.some(l => /^\s*(?:[-*+]\s|\d+\.\s|>\s|\[[ xX]\]|☐|☑)/.test(l))) return false;
 
   const origIds = n.bodyBlocks.map(b => b.id).join('|');
-  const order = n.bodyBlocks.slice();
   const list = document.createElement('div'); list.className = 'detail-body-droplist';
-  let dragObj = null;
+  let dragItem = null;
 
-  const reflow = () => {
-    order.length = 0;
-    [...list.children].forEach(ch => { const o = ch._blk; if (o) order.push(o); });
-  };
   const commitIfChanged = () => {
-    reflow();
+    const order = [...list.children].map(ch => ch._blk).filter(Boolean);
     if (order.map(b => b.id).join('|') === origIds) return;
-    commitBodyReorder(paneIdx, n, order.slice());
+    commitBodyReorder(paneIdx, n, order);
   };
 
   n.bodyBlocks.forEach(blk => {
@@ -854,11 +850,17 @@ function renderBodyDraggable(contentEl, paneIdx, n) {
       html = html.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
     }
     body.innerHTML = html;
-    handle.addEventListener('dragstart', e => { dragObj = item; item.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
-    handle.addEventListener('dragend', () => { item.classList.remove('dragging'); list.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over')); const d = dragObj; dragObj = null; if (d) commitIfChanged(); });
-    item.addEventListener('dragover', e => { if (dragObj && dragObj !== item) { e.preventDefault(); item.classList.add('drag-over'); } });
-    item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
-    item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (dragObj && dragObj !== item) list.insertBefore(dragObj, item); });
+    handle.addEventListener('dragstart', e => { dragItem = item; item.classList.add('dragging'); if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch (err) {} } });
+    handle.addEventListener('dragend', () => { item.classList.remove('dragging'); const d = dragItem; dragItem = null; if (d) commitIfChanged(); });
+    // 실시간 위/아래 이동 — 커서가 항목 중간선 위/아래인지로 삽입 위치 결정
+    item.addEventListener('dragover', e => {
+      if (!dragItem || dragItem === item) return;
+      e.preventDefault();
+      const rect = item.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      if (after) { if (item.nextSibling !== dragItem) list.insertBefore(dragItem, item.nextSibling); }
+      else { if (item.previousSibling !== dragItem) list.insertBefore(dragItem, item); }
+    });
     item.appendChild(handle); item.appendChild(body);
     list.appendChild(item);
   });
