@@ -280,150 +280,21 @@ async function notionRestoreBlock(blockId) {
   return notionFetch({ action: 'restoreBlock', blockId });
 }
 
-// 실행 취소용: 특정 문자열을 포함하는 캐시 항목 스냅샷 / 복원
-function _snapshotCacheFor(containsStr) {
-  const snap = [];
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (!key || !key.startsWith('snlog_')) continue;
-    const val = sessionStorage.getItem(key);
-    if (val && val.includes(containsStr)) snap.push({ key, val });
+// 쓰기/삭제 후 해당 노드가 속한 세션 캐시를 버린다 → 다음 새로고침 때 노션에서 새로 받아옴
+// (예전엔 캐시 마크다운을 정규식으로 직접 수술했지만, 형식 불일치 버그가 잦아 무효화 방식으로 단순화)
+function invalidateNodeCache(node) {
+  if (!node) return;
+  const pid = node.sourcePageId;
+  if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_')) {
+    try { sessionStorage.removeItem('snlog_' + pid); } catch (e) {}
   }
-  return snap;
-}
-function _restoreCacheSnapshot(snap) {
-  (snap || []).forEach(s => { try { sessionStorage.setItem(s.key, s.val); } catch (e) {} });
-}
-
-// 캐시 마크다운에서 해당 헤딩 + 하위 섹션 제거 (삭제 시 새로고침해도 유지)
-function removeCachedBlockSection(blockId) {
-  const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
-  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => {
-    const lines = md.split('\n');
-    const mi = lines.findIndex(l => markerRe.test(l.trim()));
-    if (mi < 0) return md;
-    const depth = ((lines[mi + 1] || '').match(/^#+/) || ['#'])[0].length;
-    let end = mi + 2;
-    while (end < lines.length) {
-      const t = lines[end].trim();
-      const hm = t.match(/^(#{1,6})\s/);
-      if (hm && hm[1].length <= depth) break; // 같은/상위 레벨 헤딩 = 섹션 끝
-      end++;
-    }
-    // 다음 섹션 헤딩 바로 앞의 [BLOCK:] 마커는 남긴다
-    if (end - 1 > mi + 1 && /^\[BLOCK:/.test((lines[end - 1] || '').trim())) end -= 1;
-    lines.splice(mi, end - mi);
-    return lines.join('\n');
-  });
-}
-
-// 세션 캐시의 모든 markdown 중 containsStr를 포함하는 항목에 변형 적용
-function _mutateCachedMarkdown(containsStr, mutate) {
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (!key || !key.startsWith('snlog_')) continue;
-    const val = sessionStorage.getItem(key);
-    if (!val || !val.includes(containsStr)) continue;
-    try {
-      const obj = JSON.parse(val);
-      if (obj && typeof obj.markdown === 'string') { obj.markdown = mutate(obj.markdown); sessionStorage.setItem(key, JSON.stringify(obj)); continue; }
-    } catch (e) {}
-    sessionStorage.setItem(key, mutate(val));
+  // 엔트리(하위 페이지/DB 항목) 안의 노드면 그 엔트리 캐시도 버림
+  let cur = node, guard = 0;
+  while (cur && guard++ < 40) {
+    if (cur.entryNotionId) { try { sessionStorage.removeItem('snlog_entry_' + cur.entryNotionId); } catch (e) {} break; }
+    const pe = (typeof edges !== 'undefined') ? edges.find(e => e.to === cur.id && !e.weakLink) : null;
+    cur = pe ? nodeMap[pe.from] : null;
   }
-}
-
-// 수정한 헤딩 텍스트를 세션 캐시에도 반영 → 새로고침해도 유지
-function updateCachedBlockText(blockId, newText) {
-  const re = new RegExp(`(\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]\\n\\s*#{1,5}\\s+)[^\\n]*`);
-  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => md.replace(re, (m, p1) => p1 + newText));
-}
-
-// 토글 헤딩 여부를 세션 캐시에 반영 — [BLOCK:] 마커 앞에 [TGL] 줄 추가/제거
-function updateCachedBlockToggle(blockId, on) {
-  const markerRe = new RegExp(`^\\[BLOCK:${blockId}(?:\\|[a-f0-9]+)?\\]$`);
-  _mutateCachedMarkdown(`[BLOCK:${blockId}`, md => {
-    const lines = md.split('\n');
-    const mi = lines.findIndex(l => markerRe.test(l.trim()));
-    if (mi < 0) return md;
-    const prevIsTgl = mi > 0 && lines[mi - 1].trim() === '[TGL]';
-    if (on && !prevIsTgl) lines.splice(mi, 0, '[TGL]');
-    else if (!on && prevIsTgl) lines.splice(mi - 1, 1);
-    return lines.join('\n');
-  });
-}
-
-// 수정한 본문 블록 텍스트를 세션 캐시에 반영(들여쓰기/목록 접두는 보존)
-function updateCachedBodyBlock(blockId, newText) {
-  const re = new RegExp(`(\\[BB:${blockId}\\]\\n[ \\t]*(?:[-*]\\s+|\\d+\\.\\s+|>\\s+)?)[^\\n]*`);
-  _mutateCachedMarkdown(`[BB:${blockId}]`, md => md.replace(re, (m, p1) => p1 + newText));
-}
-
-// 헤딩 섹션의 본문 전체를 새 블록 목록으로 교체(순서 변경 반영)
-function rewriteCachedHeadingBody(headingBlockId, blocks) {
-  const markerRe = new RegExp(`^\\[BLOCK:${headingBlockId}(?:\\|[a-f0-9]+)?\\]$`);
-  const boundary = t => /^#{1,6}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t === '[TGL]' || t.startsWith('[NOTION_ENTRY:');
-  _mutateCachedMarkdown(`[BLOCK:${headingBlockId}`, md => {
-    const lines = md.split('\n');
-    const mi = lines.findIndex(l => markerRe.test(l.trim()));
-    if (mi < 0) return md;
-    let start = mi + 2, end = start;
-    while (end < lines.length && !boundary(lines[end].trim())) end++;
-    const ins = [];
-    blocks.forEach(b => { ins.push(`[BB:${b.id}]`, b.text.replace(/\n/g, ' ')); });
-    lines.splice(start, end - start, ...ins);
-    return lines.join('\n');
-  });
-}
-
-// 헤딩 섹션 맨 끝(다음 헤딩/마커 직전)에 새 본문 블록(마커+텍스트) 삽입 → 새로고침해도 편집 가능
-function insertCachedBodyBlock(headingBlockId, newBlockId, text) {
-  const safe = text.replace(/\n/g, ' ');
-  const markerRe = new RegExp(`^\\[BLOCK:${headingBlockId}(?:\\|[a-f0-9]+)?\\]$`);
-  const boundary = t => /^#{1,5}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t.startsWith('[NOTION_ENTRY:');
-  _mutateCachedMarkdown(`[BLOCK:${headingBlockId}`, md => {
-    const lines = md.split('\n');
-    const mi = lines.findIndex(l => markerRe.test(l.trim()));
-    if (mi < 0) return md;
-    let at = mi + 2; // 마커(mi) + 헤딩 줄(mi+1) 다음부터 본문
-    while (at < lines.length && !boundary(lines[at].trim())) at++;
-    lines.splice(at, 0, `[BB:${newBlockId}]`, safe);
-    return lines.join('\n');
-  });
-}
-
-// 부모 헤딩 섹션 끝에 새 하위 헤딩(자식 노드) 삽입 — 부모보다 # 한 개 더 깊게
-function insertCachedChildHeading(parentBlockId, newId, newParentId, title) {
-  const safe = title.replace(/\n/g, ' ');
-  const markerRe = new RegExp(`^\\[BLOCK:${parentBlockId}(?:\\|[a-f0-9]+)?\\]$`);
-  const boundary = t => /^#{1,5}\s/.test(t) || t.startsWith('[BLOCK:') || t === '[DB_NODE]' || t === '[CHILD_PAGE]' || t.startsWith('[NOTION_ENTRY:');
-  _mutateCachedMarkdown(`[BLOCK:${parentBlockId}`, md => {
-    const lines = md.split('\n');
-    const mi = lines.findIndex(l => markerRe.test(l.trim()));
-    if (mi < 0) return md;
-    const h = ((lines[mi + 1] || '').match(/^#+/) || ['#'])[0].length;
-    const childHashes = '#'.repeat(Math.min(h + 1, 5));
-    let at = mi + 2;
-    while (at < lines.length && !boundary(lines[at].trim())) at++;
-    lines.splice(at, 0, `[BLOCK:${newId}|${newParentId}]`, `${childHashes} ${safe}`);
-    return lines.join('\n');
-  });
-}
-
-// 페이지/엔트리 캐시 끝에 새 최상위(#) 헤딩 추가 → 새로고침해도 유지
-function appendCachedPageHeading(pageId, newId, title) {
-  const safe = title.replace(/\n/g, ' ');
-  const add = `\n[BLOCK:${newId}|${pageId}]\n# ${safe}\n`;
-  // 페이지 캐시(snlog_<id>: JSON) 또는 엔트리 캐시(snlog_entry_<id>: raw markdown)
-  const pageKey = `snlog_${pageId}`, entryKey = `snlog_entry_${pageId}`;
-  const pageVal = sessionStorage.getItem(pageKey);
-  if (pageVal) {
-    try {
-      const obj = JSON.parse(pageVal);
-      if (obj && typeof obj.markdown === 'string') { obj.markdown = obj.markdown.replace(/\s*$/, '') + add; sessionStorage.setItem(pageKey, JSON.stringify(obj)); return; }
-    } catch (e) {}
-  }
-  const entryVal = sessionStorage.getItem(entryKey);
-  if (entryVal != null) { sessionStorage.setItem(entryKey, entryVal.replace(/\s*$/, '') + add); }
 }
 
 // ── 로컬 노드(노션과 무관, 로컬 저장) + 마크다운 내보내기 ──────────────

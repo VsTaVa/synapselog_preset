@@ -911,7 +911,7 @@ async function commitBodyReorder(paneIdx, n, orderedBlocks) {
     for (const t of ordered) { const res = await notionAppendBlock(tgt.parentId, tgt.afterId, t, 'paragraph'); if (res && res.id) newBlocks.push({ id: res.id, text: t }); }
     n.bodyBlocks = newBlocks;
     n.desc = ordered.join('\n');
-    rewriteCachedHeadingBody(n.notionBlockId, newBlocks);
+    invalidateNodeCache(n);
     isStable = false;
     if (dismiss) dismiss();
     renderPaneContent(paneIdx, n);
@@ -933,19 +933,17 @@ async function syncNode(node, paneIdx) {
     const newTitle = (data.title || '').trim();
     if (newTitle && newTitle !== node.label) {
       node.label = newTitle;
-      updateCachedBlockText(node.notionBlockId, newTitle);
       _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
     }
     // 토글 헤딩 여부
     if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) {
       node.notionToggle = !!data.toggleable;
-      updateCachedBlockToggle(node.notionBlockId, node.notionToggle);
     }
     // 본문 (parseMarkdown과 동일 형식: bodyBlocks는 접두 제거, desc는 원문 줄 보존)
     const lines = Array.isArray(data.body) ? data.body : [];
     node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line) }));
     node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
-    rewriteCachedHeadingBody(node.notionBlockId, node.bodyBlocks);
+    invalidateNodeCache(node);
     isStable = false;
     if (dismiss) dismiss();
     if (typeof paneIdx === 'number') renderPaneContent(paneIdx, node);
@@ -1163,8 +1161,7 @@ function beginNodeEdit(paneIdx, node) {
       if (!isLocal && node.notionBlockId && (titleChanged || toggleChanged)) {
         const newText = titleChanged ? newTitle : node.label;
         await notionUpdateBlock(node.notionBlockId, newText, toggleInput ? !!toggleInput.checked : undefined);
-        if (titleChanged) updateCachedBlockText(node.notionBlockId, newTitle);
-        if (toggleChanged) { node.notionToggle = !!toggleInput.checked; updateCachedBlockToggle(node.notionBlockId, node.notionToggle); }
+        if (toggleChanged) node.notionToggle = !!toggleInput.checked;
       }
       if (titleChanged) {
         node.label = newTitle;
@@ -1189,7 +1186,6 @@ function beginNodeEdit(paneIdx, node) {
         }
         node.bodyBlocks = newBlocks;
         node.desc = ordered.join('\n');
-        rewriteCachedHeadingBody(node.notionBlockId, newBlocks);
       } else {
         for (const r of dirty) {
           const nt = valOf(r).trim();
@@ -1200,16 +1196,15 @@ function beginNodeEdit(paneIdx, node) {
             if (res && res.id) {
               node.bodyBlocks = node.bodyBlocks || [];
               node.bodyBlocks.push({ id: res.id, text: nt });
-              insertCachedBodyBlock(node.notionBlockId, res.id, nt);
             }
           } else {
             await notionUpdateBlock(r.blk.id, nt);
             if (node.desc && r.orig) node.desc = node.desc.replace(r.orig, nt);
-            updateCachedBodyBlock(r.blk.id, nt);
             r.blk.text = nt;
           }
         }
       }
+      if (!isLocal) invalidateNodeCache(node);
       isStable = false;
       renderPaneContent(paneIdx, node);
       toast(isLocal ? '저장됨' : '노션에 저장됨', { type: 'success' });
@@ -1258,8 +1253,7 @@ async function createChildNode(node, rawTitle) {
   const snippet = `[BLOCK:${res.id}|${tgt.parentId}]\n# ${title}`;
   const newIds = _addEntryChildNodes(node, snippet);
   newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-  if (isHeading) insertCachedChildHeading(node.notionBlockId, res.id, tgt.parentId, title);
-  else appendCachedPageHeading(tgt.parentId, res.id, title);
+  invalidateNodeCache(node);
   nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
   isStable = false;
   return [...newIds];
@@ -1449,7 +1443,7 @@ async function deleteNodeSubtree(node) {
     rootId: node.id, local: !!node.local, level: node.level, sourcePageId: node.sourcePageId, label: node.label,
     nodes: idArr.map(id => nodeMap[id]).filter(Boolean),
     edges: edges.filter(e => ids.has(e.from) || ids.has(e.to)),
-    blockIds: [], cacheSnap: null
+    blockIds: []
   };
   if (!node.local) {
     // 서브트리의 모든 노션 블록(헤딩 + 본문 블록)을 삭제 — 본문은 헤딩의 형제라 따로 지워야 함
@@ -1460,12 +1454,11 @@ async function deleteNodeSubtree(node) {
       if (nd.bodyBlocks) nd.bodyBlocks.forEach(b => blockIds.push(b.id));
     });
     undoEntry.blockIds = blockIds;
-    if (node.notionBlockId && typeof _snapshotCacheFor === 'function') undoEntry.cacheSnap = _snapshotCacheFor('[BLOCK:' + node.notionBlockId);
     if (blockIds.length) {
       try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
       catch (err) { toast('노션 삭제 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); return; }
     }
-    if (node.notionBlockId) removeCachedBlockSection(node.notionBlockId);
+    invalidateNodeCache(node);
   }
   if (_undoDelete) _undoDelete.entries.push(undoEntry);
   nodes = nodes.filter(nd => !ids.has(nd.id));
@@ -1494,13 +1487,14 @@ async function undoLastDelete() {
   for (const e of entries) {
     e.nodes.forEach(nd => { if (!nodeMap[nd.id]) { nodes.push(nd); nodeMap[nd.id] = nd; } nd.visible = true; });
     e.edges.forEach(ed => { if (!edges.includes(ed)) edges.push(ed); });
-    if (e.cacheSnap && typeof _restoreCacheSnapshot === 'function') _restoreCacheSnapshot(e.cacheSnap);
     if (e.blockIds && e.blockIds.length) {
       // 부모(헤딩)부터 복원되도록 역순(자식 먼저 삭제됐던 순서의 반대)
       for (let i = e.blockIds.length - 1; i >= 0; i--) {
         try { await notionRestoreBlock(e.blockIds[i]); } catch (err) { notionFail++; }
       }
     }
+    // 복원된 노드가 속한 페이지 캐시 무효화 → 새로고침해도 살아난 블록 반영
+    if (e.nodes && e.nodes[0]) invalidateNodeCache(e.nodes[0]);
     if (e.local) {
       anyLocal = true;
       if (e.level === 0) {
