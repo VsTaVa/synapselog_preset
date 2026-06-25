@@ -801,6 +801,18 @@ function renderPaneContent(i, n) {
   if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
 
+  // 노드 동기화 버튼 — 노션 헤딩 노드만 (이 노드의 제목+본문을 노션에서 다시 가져옴)
+  let syncBtn = titleRow.querySelector('.detail-syncnode-btn');
+  if (!syncBtn) {
+    syncBtn = document.createElement('button');
+    syncBtn.className = 'detail-edit-btn detail-syncnode-btn';
+    syncBtn.title = '이 노드만 노션에서 동기화';
+    syncBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+    titleRow.appendChild(syncBtn);
+  }
+  if (!n.local && n.notionBlockId) { syncBtn.style.display = 'inline-flex'; syncBtn.onclick = () => syncNode(n, i); }
+  else { syncBtn.style.display = 'none'; }
+
   // 하위 노드 추가 버튼 — 만들 수 있는 노드(#### 이하 제한)에만
   let addBtn = titleRow.querySelector('.detail-addchild-btn');
   if (!addBtn) {
@@ -908,6 +920,40 @@ async function commitBodyReorder(paneIdx, n, orderedBlocks) {
     if (dismiss) dismiss();
     renderPaneContent(paneIdx, n);
     toast('순서 변경 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
+  }
+}
+
+// 해당 노드 1개만 노션에서 다시 가져와 갱신 (제목 + 본문)
+async function syncNode(node, paneIdx) {
+  if (!node || node.local || !node.notionBlockId) { toast('이 노드는 동기화할 수 없어 (노션 헤딩 노드만)', { type: 'error' }); return; }
+  const dismiss = toast('노드 동기화 중…', { type: 'info', duration: 60000 });
+  try {
+    const data = await notionFetch({ action: 'headingNode', blockId: node.notionBlockId, parentId: node.notionParentId });
+    // 제목
+    const newTitle = (data.title || '').trim();
+    if (newTitle && newTitle !== node.label) {
+      node.label = newTitle;
+      updateCachedBlockText(node.notionBlockId, newTitle);
+      _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+    }
+    // 토글 헤딩 여부
+    if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) {
+      node.notionToggle = !!data.toggleable;
+      updateCachedBlockToggle(node.notionBlockId, node.notionToggle);
+    }
+    // 본문 (parseMarkdown과 동일 형식: bodyBlocks는 접두 제거, desc는 원문 줄 보존)
+    const lines = Array.isArray(data.body) ? data.body : [];
+    node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line) }));
+    node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
+    rewriteCachedHeadingBody(node.notionBlockId, node.bodyBlocks);
+    isStable = false;
+    if (dismiss) dismiss();
+    if (typeof paneIdx === 'number') renderPaneContent(paneIdx, node);
+    else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
+    toast('동기화됨', { type: 'success' });
+  } catch (err) {
+    if (dismiss) dismiss();
+    toast('동기화 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
   }
 }
 

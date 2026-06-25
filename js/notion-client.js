@@ -867,39 +867,6 @@ async function syncPage(pageId, opts) {
   } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (!opts.silent) hideLoading(); }
 }
 
-// ── 노션 → 앱 자동 동기화 (창 포커스 시 last_edited_time 비교) ────────
-let _autoSyncChecking = false;
-let _lastAutoSyncCheck = 0;
-async function checkNotionUpdatesOnFocus() {
-  if (_autoSyncChecking || !_savedToken) return;
-  const now = Date.now();
-  if (now - _lastAutoSyncCheck < 4000) return; // 과한 호출 방지
-  _lastAutoSyncCheck = now;
-  _autoSyncChecking = true;
-  try {
-    for (const pageId of Array.from(_addedPageIds)) {
-      if (pageId.startsWith('local_') || pageId.startsWith('md_')) continue;
-      const cached = sessionStorage.getItem(`snlog_${pageId}`);
-      let prev = null, title = pageId;
-      if (cached) { try { const o = JSON.parse(cached); prev = o.lastEdited || null; title = o.title || pageId; } catch (e) {} }
-      let meta;
-      try { meta = await notionFetch({ pageId, action: 'pageMeta' }); } catch (e) { continue; }
-      const edited = meta && meta.lastEdited;
-      if (!edited) continue;
-      if (prev && edited !== prev) {
-        await syncPage(pageId, { silent: true });
-        if (typeof toast === 'function') toast(`'${title}' 노션 변경 반영됨`, { type: 'info' });
-      } else if (!prev && cached) {
-        // 기준값 없으면 캐시에 기록만 (다음 변경부터 감지)
-        try { const o = JSON.parse(cached); o.lastEdited = edited; sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify(o)); } catch (e) {}
-      }
-    }
-  } finally { _autoSyncChecking = false; }
-}
-window.addEventListener('focus', checkNotionUpdatesOnFocus);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) checkNotionUpdatesOnFocus(); });
-// 앱을 보고 있는 동안 주기적으로도 확인 → 노션에서 수정하면 동기화 버튼 없이 자동 반영
-setInterval(() => { if (!document.hidden) checkNotionUpdatesOnFocus(); }, 12000);
 
 function confirmRemoveLocalPage(pageId) {
   const el = document.querySelector(`[data-page-id="${pageId}"]`);

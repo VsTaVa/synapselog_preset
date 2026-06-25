@@ -202,6 +202,72 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'headingNode' — 헤딩 노드 1개만 동기화 (제목 + 본문 블록) ─
+  if (action === 'headingNode') {
+    const { blockId, parentId } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    try {
+      const br = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { headers });
+      if (!br.ok) { const e = await br.json(); return res.status(br.status).json({ error: e.message || '조회 실패' }); }
+      const block = await br.json();
+      const type = block.type;
+      const hm = /^heading_(\d)$/.exec(type || '');
+      const isToggleBlock = type === 'toggle';
+      if (!hm && !isToggleBlock) return res.status(400).json({ error: '헤딩/토글 노드가 아니에요' });
+      const headObj = block[type] || {};
+      const title = extractHeadingText(headObj.rich_text);
+      const toggleable = isToggleBlock ? true : !!headObj.is_toggleable;
+      const headingDepth = hm ? parseInt(hm[1], 10) : 2;
+
+      const listChildren = async (id) => {
+        const out = []; let cur;
+        do {
+          const r = await fetch(`https://api.notion.com/v1/blocks/${id}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+          if (!r.ok) break;
+          const d = await r.json();
+          out.push(...d.results.filter(b => b?.type));
+          cur = d.has_more ? d.next_cursor : undefined;
+        } while (cur);
+        return out;
+      };
+      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout'];
+      const lineOf = (b) => {
+        const t = b.type;
+        if (t === 'paragraph') return extractRichText(b.paragraph?.rich_text);
+        if (t === 'bulleted_list_item') return '- ' + extractRichText(b.bulleted_list_item?.rich_text);
+        if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
+        if (t === 'to_do') return (b.to_do?.checked ? '☑ ' : '☐ ') + extractRichText(b.to_do?.rich_text);
+        if (t === 'quote') return '> ' + extractRichText(b.quote?.rich_text);
+        if (t === 'callout') return extractRichText(b.callout?.rich_text);
+        return null;
+      };
+      const body = [];
+      if (toggleable || isToggleBlock) {
+        // 토글 헤딩/블록: 자식들이 본문
+        for (const k of await listChildren(blockId)) {
+          if (!BODY_TYPES.includes(k.type)) continue;
+          const line = lineOf(k);
+          if (line != null && line.trim()) body.push({ id: k.id.replace(/-/g, ''), line });
+        }
+      } else if (parentId) {
+        // 일반 헤딩: 부모의 children에서 이 헤딩 다음 ~ 다음 헤딩/경계 전까지
+        const sibs = await listChildren(parentId);
+        const norm = s => (s || '').replace(/-/g, '');
+        const idx = sibs.findIndex(b => norm(b.id) === norm(blockId));
+        if (idx >= 0) {
+          for (let j = idx + 1; j < sibs.length; j++) {
+            const b = sibs[j];
+            if (/^heading_\d$/.test(b.type) || b.type === 'toggle' || b.type === 'child_page' || b.type === 'child_database') break;
+            if (!BODY_TYPES.includes(b.type)) continue;
+            const line = lineOf(b);
+            if (line != null && line.trim()) body.push({ id: b.id.replace(/-/g, ''), line });
+          }
+        }
+      }
+      return res.status(200).json({ title, toggleable, headingDepth, body });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
 
   // 텍스트 추출 함수 — 볼드(**)·취소선(~~) 마크다운으로 보존 (본문용)
