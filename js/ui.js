@@ -798,8 +798,9 @@ function renderPaneContent(i, n) {
   if (!notionLinkEl) {
     notionLinkEl = document.createElement('a');
     notionLinkEl.className = 'detail-notion-link'; notionLinkEl.target = '_blank';
-    notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#fff;text-decoration:none;margin-left:8px;opacity:1;';
-    notionLinkEl.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Notion에서 보기`;
+    notionLinkEl.title = 'Notion에서 보기';
+    notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;color:#fff;text-decoration:none;margin-left:8px;opacity:1;';
+    notionLinkEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
     titleRow.appendChild(notionLinkEl);
   }
   // 노션에서 보기 — 블록 id가 있으면 그 블록(텍스트)으로 바로 이동 (로컬/MD 노드는 숨김)
@@ -825,7 +826,7 @@ function renderPaneContent(i, n) {
   if (!syncBtn) {
     syncBtn = document.createElement('button');
     syncBtn.className = 'detail-edit-btn detail-syncnode-btn';
-    syncBtn.title = '이 노드만 노션에서 동기화';
+    syncBtn.title = '해당 노드 동기화';
     syncBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
     titleRow.appendChild(syncBtn);
   }

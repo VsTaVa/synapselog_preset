@@ -353,13 +353,15 @@ function draw() {
       ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
     }
     if(typeof isBookmarked === 'function' && isBookmarked(n)) {
-      // 북마크: 주황색 허브(빛나는 글로우) + 테두리
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+18, 0, Math.PI*2);
-      const gBm = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+18);
-      gBm.addColorStop(0, isDim?'rgba(237,112,0,0.2)':'rgba(237,112,0,0.55)'); gBm.addColorStop(1, 'rgba(237,112,0,0)');
+      // 북마크: 주황색 허브 글로우 (노드 연결 선택과 같은 방식, 실선 없이)
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
+      const gBm = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+16);
+      gBm.addColorStop(0, 'rgba(237,112,0,0.5)'); gBm.addColorStop(1, 'rgba(237,112,0,0)');
       ctx.fillStyle = gBm; ctx.fill();
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+4, 0, Math.PI*2);
-      ctx.strokeStyle = isDim?'rgba(237,112,0,0.4)':'rgba(237,112,0,0.95)'; ctx.lineWidth = 2/scale; ctx.stroke();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+7, 0, Math.PI*2);
+      const gBm2 = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+7);
+      gBm2.addColorStop(0, 'rgba(237,112,0,0.7)'); gBm2.addColorStop(1, 'rgba(237,112,0,0)');
+      ctx.fillStyle = gBm2; ctx.fill();
     }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
