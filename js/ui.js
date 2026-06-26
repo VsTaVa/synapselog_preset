@@ -1738,7 +1738,7 @@ window.addEventListener('resize', () => {
 const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 모드','lbl-fit':'화면 맞춤',
+    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
@@ -1749,7 +1749,7 @@ const LANG = {
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
     'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
     'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
-    'sc-multiselectmode':'노드 모드','sc-multiselectmode-sub':'노드 클릭하여 편집·탐색 메뉴 열기',
+    'sc-multiselectmode':'노드 선택 모드','sc-multiselectmode-sub':'노드 클릭하여 편집·탐색 메뉴 열기',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
@@ -1762,7 +1762,7 @@ const LANG = {
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Mode','lbl-fit':'Fit to View',
+    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
@@ -1773,7 +1773,7 @@ const LANG = {
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
     'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
     'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
-    'sc-multiselectmode':'Node Mode','sc-multiselectmode-sub':'Click nodes to open edit/explore menu',
+    'sc-multiselectmode':'Node Select Mode','sc-multiselectmode-sub':'Click nodes to open edit/explore menu',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
@@ -1806,11 +1806,11 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleMultiSelectMode: '1', fitGraph: ' ' };
+const DEFAULT_SHORTCUTS = { toggleMultiSelectMode: 'n', fitGraph: ' ' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
-// 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 모드 하나, 1번 키)
+// 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 선택 모드 하나, N 키)
 delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleLabels; delete _shortcuts.toggleEditMode;
-_shortcuts.toggleMultiSelectMode = '1';
+if (['1','2','3','4'].includes(_shortcuts.toggleMultiSelectMode)) _shortcuts.toggleMultiSelectMode = 'n';
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
@@ -1831,7 +1831,7 @@ document.addEventListener('keydown', e => {
   if (_recordingFor) {
     e.preventDefault();
     if (e.key === 'Escape') { _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(_shortcuts[_recordingFor]); _recordingFor = null; _recordingBtn = null; return; }
-    const k = e.key;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k.length === 1) { _shortcuts[_recordingFor] = k; saveShortcuts(); updateShortcutHints(); _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(k); _recordingFor = null; _recordingBtn = null; }
     return;
   }
@@ -1846,7 +1846,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
-  const k = e.key;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.fitGraph) { e.preventDefault(); fitGraph(); }
 });
