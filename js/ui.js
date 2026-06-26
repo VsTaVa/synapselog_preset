@@ -839,89 +839,14 @@ function renderPaneContent(i, n) {
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
-    // 본문 블록을 읽기 화면에서 바로 드래그로 순서 변경 (가능한 경우)
-    if (!renderBodyDraggable(contentEl, i, n)) {
-      contentEl.innerHTML = mdTableToHtml(rawDesc);
-      if (searchKeyword && searchMatches.has(n.id)) {
-        setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-      }
-    }
-  }
-
-}
-
-// 읽기 화면 본문 드래그 순서 변경 — 일반 문단 본문에서만 활성화
-// 게이트(내용 손실/타입변환 방지): 비로컬 + notionBlockId + 본문블록 2개 이상
-//  + desc 줄 수 == 본문블록 수(표 등 추가내용 없음) + 리스트/인용/할일 마커 없음(문단만)
-function renderBodyDraggable(contentEl, paneIdx, n) {
-  if (n.local || !n.notionBlockId || !n.bodyBlocks || n.bodyBlocks.length < 2) return false;
-  const lines = (n.desc || '').split('\n').filter(s => s.trim().length);
-  if (lines.length !== n.bodyBlocks.length) return false;
-  // 리스트/인용/할일/번호 — 재생성 시 문단으로 바뀌므로 드래그 비활성(기존 렌더 유지)
-  if (lines.some(l => /^\s*(?:[-*+]\s|\d+\.\s|>\s|\[[ xX]\]|☐|☑)/.test(l))) return false;
-
-  const origIds = n.bodyBlocks.map(b => b.id).join('|');
-  const list = document.createElement('div'); list.className = 'detail-body-droplist';
-  let dragItem = null;
-
-  const commitIfChanged = () => {
-    const order = [...list.children].map(ch => ch._blk).filter(Boolean);
-    if (order.map(b => b.id).join('|') === origIds) return;
-    commitBodyReorder(paneIdx, n, order);
-  };
-
-  n.bodyBlocks.forEach(blk => {
-    const item = document.createElement('div'); item.className = 'detail-body-block'; item._blk = blk;
-    const handle = document.createElement('span'); handle.className = 'detail-body-handle'; handle.textContent = '⠿'; handle.draggable = true; handle.title = '드래그해서 순서 변경';
-    const body = document.createElement('div'); body.className = 'detail-body-text';
-    let html = htmlFromMarkdown(blk.text);
+    contentEl.innerHTML = mdTableToHtml(rawDesc);
     if (searchKeyword && searchMatches.has(n.id)) {
-      const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      html = html.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
+      setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
-    body.innerHTML = html;
-    handle.addEventListener('dragstart', e => { dragItem = item; item.classList.add('dragging'); if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch (err) {} } });
-    handle.addEventListener('dragend', () => { item.classList.remove('dragging'); const d = dragItem; dragItem = null; if (d) commitIfChanged(); });
-    // 실시간 위/아래 이동 — 커서가 항목 중간선 위/아래인지로 삽입 위치 결정
-    item.addEventListener('dragover', e => {
-      if (!dragItem || dragItem === item) return;
-      e.preventDefault();
-      const rect = item.getBoundingClientRect();
-      const after = (e.clientY - rect.top) > rect.height / 2;
-      if (after) { if (item.nextSibling !== dragItem) list.insertBefore(dragItem, item.nextSibling); }
-      else { if (item.previousSibling !== dragItem) list.insertBefore(dragItem, item); }
-    });
-    item.appendChild(handle); item.appendChild(body);
-    list.appendChild(item);
-  });
-
-  contentEl.innerHTML = '';
-  contentEl.appendChild(list);
-  return true;
-}
-
-// 본문 순서 변경을 노션에 반영 (이동 API가 없어 삭제 후 재생성)
-async function commitBodyReorder(paneIdx, n, orderedBlocks) {
-  const dismiss = toast('본문 순서 반영 중…', { type: 'info', duration: 60000 });
-  try {
-    const ordered = orderedBlocks.map(b => (b.text || '').trim()).filter(t => t.length);
-    for (const b of (n.bodyBlocks || [])) { try { await notionDeleteBlock(b.id); } catch (e) {} }
-    const tgt = _appendTarget(n);
-    const newBlocks = [];
-    for (const t of ordered) { const res = await notionAppendBlock(tgt.parentId, tgt.afterId, t, 'paragraph'); if (res && res.id) newBlocks.push({ id: res.id, text: t }); }
-    n.bodyBlocks = newBlocks;
-    n.desc = ordered.join('\n');
-    invalidateNodeCache(n);
-    isStable = false;
-    if (dismiss) dismiss();
-    renderPaneContent(paneIdx, n);
-    toast('본문 순서 변경됨', { type: 'success' });
-  } catch (err) {
-    if (dismiss) dismiss();
-    renderPaneContent(paneIdx, n);
-    toast('순서 변경 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
   }
+
 }
+
 
 // 해당 노드 1개만 노션에서 다시 가져와 갱신 (제목 + 본문)
 async function syncNode(node, paneIdx) {
@@ -1869,7 +1794,8 @@ document.addEventListener('keydown', e => {
     return;
   }
   const tag = document.activeElement?.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
+  // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key;
   if (k === _shortcuts.toggleEditMode) { e.preventDefault(); document.getElementById('editmode-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
