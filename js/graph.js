@@ -17,8 +17,8 @@ let _pathConnectors = [];
 let _satelliteRemovedEdges = [];
 // 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
-// 깊이별 색: #하늘 ##파랑 ###남색 ####보라 (페이지·DB·최상위는 흰색)
-const DEPTH_RGB = { 1:[76,194,255], 2:[59,130,246], 3:[79,70,229], 4:[147,51,234], 5:[217,70,239] };
+// 깊이별 색(성운 팔레트): #전기시안 ##비비드퍼플 ###마젠타핑크 ####코랄앰버 (페이지·DB·최상위는 흰색)
+const DEPTH_RGB = { 1:[0,207,255], 2:[168,85,247], 3:[255,77,184], 4:[255,140,66], 5:[255,210,74] };
 function depthRgb(n) {
   // 최상위·페이지·DB 노드는 흰색 (깊이 색은 노션 헤딩에만)
   if (n.level === 0 || n.isChildPage || n.isDbNode || n.entryNotionId) return [245,247,250];
@@ -228,14 +228,16 @@ function draw() {
     } else if(hasSearch) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
-      if(bothMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([5,3]); }
-      else if(eitherMatch) { ctx.strokeStyle=rgbStr(na._rgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([4,5]); }
-      else { ctx.strokeStyle=rgbStr(na._rgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
+      const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
+      if(bothMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([5,3]); }
+      else if(eitherMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([4,5]); }
+      else { ctx.strokeStyle=rgbStr(eRgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
     } else {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       const alpha=isDimEdge?0.08:(isHov?0.85:0.55), width=isDimEdge?0.5:(isHov?2.2:0.8);
-      ctx.strokeStyle=rgbStr(na._rgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
+      const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
+      ctx.strokeStyle=rgbStr(eRgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
