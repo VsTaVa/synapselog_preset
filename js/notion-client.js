@@ -1022,7 +1022,7 @@ function exportGraph() {
   edges.forEach(e => {
     const a = nodeMap[e.from], b = nodeMap[e.to];
     if (!a?.visible || !b?.visible || !visibleIds.has(a.id) || !visibleIds.has(b.id)) return;
-    const edgeRgb = hexToRgb(a.color || '#ffffff');
+    const edgeRgb = _colorScheme === 'depth' ? nodeRgb(b) : hexToRgb(a.color || '#ffffff');
     if (hasSearch) {
       const bothMatch = searchMatches.has(e.from) && searchMatches.has(e.to);
       const eitherMatch = searchMatches.has(e.from) || searchMatches.has(e.to);
@@ -1038,7 +1038,7 @@ function exportGraph() {
   ctx2.setLineDash([]);
   visibleNodes.forEach(n => {
     const r = nodeR(n.level), nodeColor = n.level === 0 ? '#ffffff' : (n.color || '#74b9ff');
-    const rgb = hexToRgb(nodeColor), isMatch = searchMatches.has(n.id);
+    const rgb = _colorScheme === 'depth' ? nodeRgb(n) : hexToRgb(nodeColor), isMatch = searchMatches.has(n.id);
     if (hasSearch && isMatch) {
       ctx2.beginPath(); ctx2.arc(n.x, n.y, r+10, 0, Math.PI*2);
       const gS = ctx2.createRadialGradient(n.x, n.y, r, n.x, n.y, r+10);
@@ -1052,7 +1052,7 @@ function exportGraph() {
         const glowR = r + 8 + hubStrength * 22;
         ctx2.beginPath(); ctx2.arc(n.x, n.y, glowR, 0, Math.PI*2);
         const gH = ctx2.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
-        gH.addColorStop(0, rgbStr(hexToRgb(nodeColor), 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(hexToRgb(nodeColor), 0));
+        gH.addColorStop(0, rgbStr(rgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(rgb, 0));
         ctx2.fillStyle = gH; ctx2.fill();
       }
     }
