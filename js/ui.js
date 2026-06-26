@@ -179,6 +179,18 @@ function _modeCursor() {
   if (_multiSelectMode) return _selectModeCursor();
   return '';
 }
+// 노드 색상 표현 전환: 'node'=노드별 색, 'depth'=헤딩 깊이별 색
+function setColorScheme(mode) {
+  _colorScheme = (mode === 'depth') ? 'depth' : 'node';
+  try { localStorage.setItem('snlog_color_scheme', _colorScheme); } catch (e) {}
+  const a = document.getElementById('cs-node'), b = document.getElementById('cs-depth');
+  if (a) a.classList.toggle('active', _colorScheme === 'node');
+  if (b) b.classList.toggle('active', _colorScheme === 'depth');
+  const legend = document.getElementById('depth-legend');
+  if (legend) legend.style.display = _colorScheme === 'depth' ? 'flex' : 'none';
+  isStable = false;
+}
+
 // 모드 커서를 전역 스타일(!important)로 주입 → 스위치/사이드바 위에서도 즉시 반영
 function applyModeCursor() {
   let st = document.getElementById('mode-cursor-style');
@@ -1980,6 +1992,7 @@ function restoreSearchHistory() {
 updateConfig();
 applyLang();
 updateShortcutHints();
+setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 renderPanes();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }

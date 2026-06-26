@@ -15,6 +15,16 @@ let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
 let _pathConnectors = [];
 let _satelliteRemovedEdges = [];
+// 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
+let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
+// 깊이별 색: #흰색 ##노란색 ###초록색 ####빨간색 (그 외 보라색 폴백)
+const DEPTH_RGB = { 1:[255,255,255], 2:[255,225,77], 3:[70,209,122], 4:[255,90,90], 5:[179,136,255] };
+function depthRgb(n) {
+  if (n.level === 0) return [255,255,255];
+  const d = n.headingDepth || n.level || 1;
+  return DEPTH_RGB[Math.min(d, 5)] || [200,200,200];
+}
+function nodeRgb(n) { return _colorScheme === 'depth' ? depthRgb(n) : n._rgb; }
 
 // ── 마크다운 → 그래프 파싱 ──────────────────────────────────────────
 
@@ -294,6 +304,7 @@ function draw() {
     const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
+    const ndRgb = nodeRgb(n);
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
     if(isManualLinked && !isDim) {
@@ -309,7 +320,7 @@ function draw() {
         const glowR = r + 8 + hubStrength * 22;
         ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI*2);
         const gH = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
-        gH.addColorStop(0, rgbStr(n._rgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(n._rgb, 0));
+        gH.addColorStop(0, rgbStr(ndRgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(ndRgb, 0));
         ctx.fillStyle = gH; ctx.fill();
       }
     }
@@ -325,7 +336,7 @@ function draw() {
     } else if(isHov) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+12,0,Math.PI*2);
       const g=ctx.createRadialGradient(n.x,n.y,r,n.x,n.y,r+12);
-      g.addColorStop(0,rgbStr(n._rgb,0.3)); g.addColorStop(1,rgbStr(n._rgb,0));
+      g.addColorStop(0,rgbStr(ndRgb,0.3)); g.addColorStop(1,rgbStr(ndRgb,0));
       ctx.fillStyle=g; ctx.fill();
     }
     if(n.level===0) drawStar8(ctx, n.x, n.y, r);
@@ -335,9 +346,9 @@ function draw() {
     if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else {
-      const satRatio=[1,1,0.80,0.65,0.52][Math.min(n.level,4)];
+      const satRatio = _colorScheme === 'depth' ? 1 : [1,1,0.80,0.65,0.52][Math.min(n.level,4)];
       const bg=[12,13,18];
-      const mixed=n._rgb.map((c,i)=>Math.round(c*satRatio+bg[i]*(1-satRatio)));
+      const mixed=ndRgb.map((c,i)=>Math.round(c*satRatio+bg[i]*(1-satRatio)));
       ctx.fillStyle=isDim?rgbStr(mixed,0.15):rgbStr(mixed,1);
       ctx.strokeStyle=isDim?rgbStr(mixed,0.06):rgbStr(mixed,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
