@@ -198,9 +198,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-title { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; word-break: keep-all; flex: 1; }
 .detail-edit-btn { background: none; border: none; color: rgba(237,112,0,0.9); cursor: pointer; padding: 4px 6px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
 .detail-edit-btn:hover { color: #ed7000; }
-/* 노션에서 보기 — 다른 타이틀줄 아이콘과 동일한 색/크기 (단, detail-edit-btn 클래스는 쓰지 않음: querySelector 충돌 방지) */
-.detail-notion-link { color: rgba(237,112,0,0.9); padding: 4px 6px; flex-shrink: 0; align-items: center; transition: color 0.15s; }
-.detail-notion-link:hover { color: #ed7000; }
+/* 우측 패널 설정(⚙) 드롭다운 */
+.detail-settings-menu { position: fixed; z-index: 9500; background: #15161d; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px; box-shadow: 0 6px 24px rgba(0,0,0,0.5); display: flex; flex-direction: column; min-width: 150px; }
+.detail-settings-menu button { display: flex; align-items: center; gap: 8px; background: none; border: none; color: #ddd; font-family: inherit; font-size: 12.5px; padding: 7px 10px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; }
+.detail-settings-menu button:hover { background: rgba(237,112,0,0.15); color: #fff; }
+.detail-settings-menu button.on { color: #ed7000; }
+.detail-settings-menu button svg { flex-shrink: 0; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(237,112,0,0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
 .detail-edit-actions { display: flex; gap: 6px; margin-top: 8px; }
 .detail-edit-actions button { font-family: inherit; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 5px 12px; cursor: pointer; border: 1px solid; transition: background 0.15s, opacity 0.15s; }

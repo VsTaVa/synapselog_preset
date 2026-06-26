@@ -794,20 +794,12 @@ function renderPaneContent(i, n) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
   }
-  let notionLinkEl = titleRow.querySelector('.detail-notion-link');
-  if (!notionLinkEl) {
-    notionLinkEl = document.createElement('a');
-    notionLinkEl.className = 'detail-notion-link'; notionLinkEl.target = '_blank';
-    notionLinkEl.title = 'Notion에서 보기';
-    notionLinkEl.style.textDecoration = 'none';
-    notionLinkEl.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
-    titleRow.appendChild(notionLinkEl);
-  }
-  // 노션에서 보기 — 블록 id가 있으면 그 블록(텍스트)으로 바로 이동 (로컬/MD 노드는 숨김)
+  // 노션에서 보기 / 북마크는 설정(⚙) 메뉴로 이동 — 예전 직접 아이콘이 남아있으면 제거
+  titleRow.querySelectorAll('.detail-notion-link, .detail-bookmark-btn').forEach(el => el.remove());
+  // 노션에서 보기 링크 대상 (로컬/MD 노드는 없음)
   const isLocalLike = n.local || String(n.sourcePageId || '').startsWith('md_');
   const linkTarget = isLocalLike ? '' : (n.notionBlockId || n.entryNotionId || (n.sourcePageId || '').replace(/-/g, ''));
-  if (linkTarget) { notionLinkEl.href = `https://notion.so/${linkTarget.replace(/-/g, '')}`; notionLinkEl.style.display = 'inline-flex'; }
-  else { notionLinkEl.style.display = 'none'; }
+  const notionHref = linkTarget ? `https://notion.so/${linkTarget.replace(/-/g, '')}` : '';
 
   // 수정 버튼 — 제목(blockId) 또는 본문(bodyBlocks)을 편집할 수 있는 노드
   let editBtn = titleRow.querySelector('.detail-edit-btn');
@@ -833,18 +825,16 @@ function renderPaneContent(i, n) {
   if (!n.local && n.notionBlockId) { syncBtn.style.display = 'inline-flex'; syncBtn.onclick = () => syncNode(n, i); }
   else { syncBtn.style.display = 'none'; }
 
-  // 북마크 버튼 — 켜면 그래프에서 주황색 허브로 빛남
-  let bmBtn = titleRow.querySelector('.detail-bookmark-btn');
-  if (!bmBtn) {
-    bmBtn = document.createElement('button');
-    bmBtn.className = 'detail-edit-btn detail-bookmark-btn';
-    titleRow.appendChild(bmBtn);
+  // 설정 메뉴 버튼 — 노션에서 보기 / 북마크
+  let setBtn = titleRow.querySelector('.detail-settings-btn');
+  if (!setBtn) {
+    setBtn = document.createElement('button');
+    setBtn.className = 'detail-edit-btn detail-settings-btn';
+    setBtn.title = '설정 (노션에서 보기 · 북마크)';
+    setBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+    titleRow.appendChild(setBtn);
   }
-  const bmOn = isBookmarked(n);
-  bmBtn.title = bmOn ? '북마크 해제' : '북마크 (그래프에서 강조)';
-  bmBtn.classList.toggle('active', bmOn);
-  bmBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
-  bmBtn.onclick = () => { toggleBookmark(n); renderPaneContent(i, n); };
+  setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
 
   // 하위 노드 추가 버튼 — 만들 수 있는 노드(#### 이하 제한)에만
   let addBtn = titleRow.querySelector('.detail-addchild-btn');
@@ -911,6 +901,35 @@ async function syncNode(node, paneIdx) {
     if (dismiss) dismiss();
     toast('동기화 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
   }
+}
+
+// 우측 패널 설정 메뉴 (⚙) — 노션에서 보기 / 북마크
+function toggleDetailSettings(anchor, i, n, notionHref) {
+  const existing = document.getElementById('detail-settings-menu');
+  if (existing) { const same = existing._anchor === anchor; existing._close(); if (same) return; }
+  const menu = document.createElement('div');
+  menu.id = 'detail-settings-menu';
+  menu.className = 'detail-settings-menu';
+  const bmOn = isBookmarked(n);
+  const notionItem = notionHref
+    ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
+    : '';
+  const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
+  menu.innerHTML = notionItem + bmItem;
+  document.body.appendChild(menu);
+  const r = anchor.getBoundingClientRect();
+  const mw = 168;
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8)) + 'px';
+  const close = () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('resize', close); menu.remove(); };
+  const onDoc = (e) => { if (!menu.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) close(); };
+  menu._anchor = anchor; menu._close = close;
+  setTimeout(() => document.addEventListener('mousedown', onDoc), 0);
+  window.addEventListener('resize', close);
+  const nb = menu.querySelector('[data-act="notion"]');
+  if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
+  const bb = menu.querySelector('[data-act="bookmark"]');
+  if (bb) bb.onclick = () => { toggleBookmark(n); close(); renderPaneContent(i, n); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
