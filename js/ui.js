@@ -161,35 +161,21 @@ function toggleConnectMode() {
   isStable = false;
 }
 
+// 노드 모드 (편집+탐색 통합) 토글
 function toggleMultiSelectMode() {
   const cb = document.getElementById('multiselect-toggle-input');
   _multiSelectMode = cb ? cb.checked : !_multiSelectMode;
-  if (_multiSelectMode && _editMode) { _editMode = false; const e = document.getElementById('editmode-toggle-input'); if (e) e.checked = false; clearMultiSelect(); }
   if (!_multiSelectMode && typeof clearAllModes === 'function') clearAllModes();
   applyModeCursor();
   isStable = false;
 }
 
-function toggleEditMode() {
-  const cb = document.getElementById('editmode-toggle-input');
-  _editMode = cb ? cb.checked : !_editMode;
-  if (_editMode && _multiSelectMode) { _multiSelectMode = false; const m = document.getElementById('multiselect-toggle-input'); if (m) m.checked = false; }
-  clearMultiSelect();
-  applyModeCursor();
-  isStable = false;
-}
-
-// 모드별 커서: 선택 모드=주황 손가락, 편집 모드=노드연결(분기) 아이콘
-function _editModeCursor() {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='%23ed7000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='5' r='2.4'/><circle cx='5' cy='18' r='2.4'/><path d='M11 7.4V13a3 3 0 0 1-3 3H7.4'/><path d='M16 18h6M19 15v6'/></svg>`;
-  return `url("data:image/svg+xml,${svg}") 5 5, pointer`;
-}
+// 노드 모드 커서: 주황 손가락
 function _selectModeCursor() {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32'><path fill='%23ed7000' d='M12 2a2 2 0 0 0-2 2v12L8.5 14a2.2 2.2 0 0 0-3.1 3.1l4.5 6A6 6 0 0 0 14.7 25H19a6 6 0 0 0 6-6v-7a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0V4a2 2 0 0 0-1-2z'/></svg>`;
   return `url("data:image/svg+xml,${svg}") 10 2, pointer`;
 }
 function _modeCursor() {
-  if (_editMode) return _editModeCursor();
   if (_multiSelectMode) return _selectModeCursor();
   return '';
 }
@@ -200,12 +186,6 @@ function applyModeCursor() {
   const c = _modeCursor();
   st.textContent = c ? `*, body { cursor: ${c} !important; }` : '';
   if (canvas && !c) canvas.style.cursor = 'default';
-}
-
-// 편집 모드에서 노드 클릭 → 단일 선택 + 편집 메뉴
-function selectForEdit(n) {
-  _multiSelected = [n];
-  renderMultiSelectMenu();
 }
 
 function handleConnectClick(n) {
@@ -282,15 +262,45 @@ function clearMultiSelect() {
   renderMultiSelectMenu();
 }
 
+// 통합 노드 메뉴: 단일 선택이면 편집 툴(위) + 구분선 + 탐색 툴(아래), 다중 선택이면 탐색 툴만
 function renderMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu) return;
   if (_multiSelected.length < 1) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
+  let html;
+  if (_multiSelected.length === 1) {
+    const edit = _editToolsHtml(_multiSelected[0]);
+    const explore = _exploreToolsHtml();
+    html = edit + (edit && explore ? '<div class="ms-divider"></div>' : '') + explore;
+  } else {
+    html = _exploreToolsHtml();
+  }
+  menu.innerHTML = html || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
+  menu.classList.add('open');
+  repositionMultiSelectMenu();
+}
+
+// 편집 툴 (단일 노드): 하위 노드 추가 / 노드 동기화 / 북마크 / 노드 삭제
+function _editToolsHtml(node) {
+  if (!node) return '';
+  const branchIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/></svg>`;
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+  const bmOn = isBookmarked(node);
+  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  let html = '';
+  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
+  if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
+  html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
+  if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
+  return html;
+}
+
+// 탐색 툴: 연결 / 포커스 / 경로 / 위성 (선택 개수에 따라 달라짐)
+function _exploreToolsHtml() {
   const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
-  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-1.5a3 3 0 0 1-.88-2.12V8a5 5 0 0 0-10 0v5.38a3 3 0 0 1-.88 2.12L5 17z"/></svg>`;
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
-  if (_editMode) { renderEditMenu(menu); return; }
   let html = '';
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
@@ -303,29 +313,7 @@ function renderMultiSelectMenu() {
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">◌ 위성 모드${satOn ? ' 해제' : ''}</button>`;
-  menu.innerHTML = html;
-  menu.classList.add('open');
-  repositionMultiSelectMenu();
-}
-
-// 노드 편집 모드: 단일 노드에 대한 추가/삭제 메뉴
-function renderEditMenu(menu) {
-  const node = _multiSelected[0];
-  if (!node) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
-  const branchIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/></svg>`;
-  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
-  const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
-  const bmOn = isBookmarked(node);
-  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
-  let html = '';
-  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
-  if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
-  html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
-  if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
-  if (!html) html = `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">편집할 수 없는 노드</div>`;
-  menu.innerHTML = html;
-  menu.classList.add('open');
-  repositionMultiSelectMenu();
+  return html;
 }
 
 function repositionMultiSelectMenu() {
@@ -335,8 +323,10 @@ function repositionMultiSelectMenu() {
   const last = _multiSelected[_multiSelected.length - 1];
   const screenX = (last.x - W / 2) * scale + W / 2 + panX;
   const screenY = (last.y - H / 2) * scale + H / 2 + panY;
-  menu.style.left = screenX + 'px';
-  menu.style.top = (screenY + 20) + 'px';
+  // 노드 바로 오른쪽에, 세로로는 노드 중심에 맞춰 배치
+  const rad = (typeof nodeR === 'function' ? nodeR(last.level) : 8) * scale;
+  menu.style.left = (screenX + rad + 12) + 'px';
+  menu.style.top = (screenY - menu.offsetHeight / 2) + 'px';
 }
 
 function multiSelectStartConnect() {
@@ -1512,7 +1502,7 @@ canvas.addEventListener('mousemove', e => {
   if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
   const n = getNodeAt(e.clientX, e.clientY);
   hoveredNode = n;
-  if (!_editMode && !_multiSelectMode) canvas.style.cursor = n ? 'pointer' : 'default';
+  if (!_multiSelectMode) canvas.style.cursor = n ? 'pointer' : 'default';
   if (n && n.level > 0) {
     tooltip.textContent = n.label; tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY - 32) + 'px';
@@ -1534,8 +1524,6 @@ canvas.addEventListener('mouseup', e => {
   const n = getNodeAt(e.clientX, e.clientY);
   if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
     handleConnectClick(n);
-  } else if (elapsed < 150 && n && n === mouseDownNode && _editMode) {
-    selectForEdit(n);
   } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
     toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode) {
@@ -1666,8 +1654,6 @@ canvas.addEventListener('touchend', e => {
     const n = mouseDownNode;
     if (elapsed < 300 && n && _connectMode && n.level > 0) {
       handleConnectClick(n);
-    } else if (elapsed < 300 && n && _editMode) {
-      selectForEdit(n);
     } else if (elapsed < 300 && n && _multiSelectMode) {
       toggleMultiSelect(n);
     } else if (elapsed < 300 && n) {
@@ -1752,7 +1738,7 @@ window.addEventListener('resize', () => {
 const LANG = {
   ko: {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 탐색 모드','lbl-fit':'화면 맞춤',
+    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
@@ -1763,7 +1749,7 @@ const LANG = {
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
     'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
     'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
-    'sc-multiselectmode':'노드 탐색 모드','sc-multiselectmode-sub':'노드 클릭하여 액션 메뉴 열기',
+    'sc-multiselectmode':'노드 모드','sc-multiselectmode-sub':'노드 클릭하여 편집·탐색 메뉴 열기',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
@@ -1776,7 +1762,7 @@ const LANG = {
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Explore Mode','lbl-fit':'Fit to View',
+    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Mode','lbl-fit':'Fit to View',
     'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
@@ -1787,7 +1773,7 @@ const LANG = {
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
     'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
     'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
-    'sc-multiselectmode':'Node Explore Mode','sc-multiselectmode-sub':'Click nodes to open action menu',
+    'sc-multiselectmode':'Node Mode','sc-multiselectmode-sub':'Click nodes to open edit/explore menu',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
@@ -1820,16 +1806,15 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleEditMode: '1', toggleMultiSelectMode: '2', fitGraph: ' ' };
+const DEFAULT_SHORTCUTS = { toggleMultiSelectMode: '1', fitGraph: ' ' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
-// 구버전 단축키 정리 (포커스/연결/제목표시 제거, 노드선택 모드 4→2 이전)
-delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleLabels;
-if (!_shortcuts.toggleEditMode) _shortcuts.toggleEditMode = '1';
-if (_shortcuts.toggleMultiSelectMode === '4' || _shortcuts.toggleMultiSelectMode === '3') _shortcuts.toggleMultiSelectMode = '2';
+// 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 모드 하나, 1번 키)
+delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleLabels; delete _shortcuts.toggleEditMode;
+_shortcuts.toggleMultiSelectMode = '1';
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleEditMode','toggleMultiSelectMode','fitGraph'].forEach(action => {
+  ['toggleMultiSelectMode','fitGraph'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -1862,8 +1847,7 @@ document.addEventListener('keydown', e => {
   // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key;
-  if (k === _shortcuts.toggleEditMode) { e.preventDefault(); document.getElementById('editmode-toggle-input')?.click(); }
-  else if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
+  if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.fitGraph) { e.preventDefault(); fitGraph(); }
 });
 
@@ -1909,7 +1893,7 @@ function openSettings() {
 
   ['pages','connect'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleEditMode','toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  ['toggleMultiSelectMode','fitGraph'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts','storage'].forEach(id => {

@@ -12,7 +12,7 @@ let _showLabels = true;
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
-let _multiSelected = [], _isolateActive = false, _multiSelectMode = false, _editMode = false;
+let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
 let _pathConnectors = [];
 let _satelliteRemovedEdges = [];
 
