@@ -317,8 +317,10 @@ function renderEditMenu(menu) {
   if (!node) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
   const branchIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/></svg>`;
   const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
+  if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 해당 노드 동기화</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   if (!html) html = `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">편집할 수 없는 노드</div>`;
   menu.innerHTML = html;
@@ -513,6 +515,13 @@ function multiSelectBookmark() {
   targets.forEach(n => { const k = bookmarkKey(n); if (allOn) _bookmarkedKeys.delete(k); else _bookmarkedKeys.add(k); });
   saveBookmarks();
   isStable = false;
+}
+
+function multiSelectSyncNode() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  syncNode(node);
 }
 
 function multiSelectAddChild() {
@@ -855,6 +864,8 @@ function renderPaneContent(i, n) {
     };
   } else { addBtn.style.display = 'none'; }
 
+  // 아이콘 순서: 제목·본문 수정 → 동기화 → 하위노드 생성 → 설정
+  [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleRow.appendChild(b));
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   if (searchKeyword && searchMatches.has(n.id)) {
