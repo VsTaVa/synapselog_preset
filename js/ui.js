@@ -32,6 +32,20 @@ function toggleFavorite(pageId) {
   refreshSidebarRender();
 }
 
+// ── 노드 북마크 (켜면 주황색 허브로 강조) ─────────────────────────────
+// 안정 키로 저장: 노션 노드는 notionBlockId, 그 외는 노드 id
+let _bookmarkedKeys = new Set((() => { try { return JSON.parse(localStorage.getItem('snlog_bookmarks') || '[]'); } catch(e) { return []; } })());
+function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
+function isBookmarked(n) { return !!n && _bookmarkedKeys.has(bookmarkKey(n)); }
+function saveBookmarks() { try { localStorage.setItem('snlog_bookmarks', JSON.stringify([..._bookmarkedKeys])); } catch(e) {} }
+function toggleBookmark(n) {
+  if (!n) return;
+  const k = bookmarkKey(n);
+  if (_bookmarkedKeys.has(k)) _bookmarkedKeys.delete(k); else _bookmarkedKeys.add(k);
+  saveBookmarks();
+  isStable = false;
+}
+
 // ── DOM 레퍼런스 & 캔버스 초기화 ─────────────────────────────────────
 
 canvas = document.getElementById('c');
@@ -289,7 +303,9 @@ function renderMultiSelectMenu() {
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">◌ 위성 모드${satOn ? ' 해제' : ''}</button>`;
-  html += `<button onclick="multiSelectPin()" title="선택한 노드의 위치를 고정하거나 해제합니다">${pinIcon} 고정/해제</button>`;
+  const bmOn = _multiSelected.every(isBookmarked);
+  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  html += `<button onclick="multiSelectBookmark()" title="선택한 노드를 북마크합니다. 북마크하면 주황색 허브로 강조됩니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   menu.innerHTML = html;
   menu.classList.add('open');
   repositionMultiSelectMenu();
@@ -472,6 +488,8 @@ function releaseSatellite(node) {
   _satelliteRemovedEdges.filter(e => e._satRoot === node.id).forEach(e => { delete e._satRoot; edges.push(e); });
   _satelliteRemovedEdges = _satelliteRemovedEdges.filter(e => e._satRoot !== node.id);
   node._satelliteRoot = false;
+  // 위성 드래그로 자동 고정됐던 경우만 해제 (수동 고정은 유지)
+  if (node._satFixed) { node.fixed = false; node.vx = 0; node.vy = 0; delete node._satFixed; }
   recomputeSatelliteFlags();
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
 }
@@ -487,13 +505,14 @@ function multiSelectSatellite() {
   clearMultiSelect();
 }
 
-function multiSelectPin() {
+function multiSelectBookmark() {
   if (_multiSelected.length < 1) return;
-  const allFixed = _multiSelected.every(n => n.fixed);
-  _multiSelected.forEach(n => { n.fixed = !allFixed; if (!n.fixed) { n.vx = 0; n.vy = 0; } unfreezeSubtree(n); });
-  saveFixedPositions();
-  isStable = false;
+  const targets = _multiSelected.slice();
   clearMultiSelect();
+  const allOn = targets.every(isBookmarked);
+  targets.forEach(n => { const k = bookmarkKey(n); if (allOn) _bookmarkedKeys.delete(k); else _bookmarkedKeys.add(k); });
+  saveBookmarks();
+  isStable = false;
 }
 
 function multiSelectAddChild() {
@@ -812,6 +831,19 @@ function renderPaneContent(i, n) {
   }
   if (!n.local && n.notionBlockId) { syncBtn.style.display = 'inline-flex'; syncBtn.onclick = () => syncNode(n, i); }
   else { syncBtn.style.display = 'none'; }
+
+  // 북마크 버튼 — 켜면 그래프에서 주황색 허브로 빛남
+  let bmBtn = titleRow.querySelector('.detail-bookmark-btn');
+  if (!bmBtn) {
+    bmBtn = document.createElement('button');
+    bmBtn.className = 'detail-edit-btn detail-bookmark-btn';
+    titleRow.appendChild(bmBtn);
+  }
+  const bmOn = isBookmarked(n);
+  bmBtn.title = bmOn ? '북마크 해제' : '북마크 (그래프에서 강조)';
+  bmBtn.classList.toggle('active', bmOn);
+  bmBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  bmBtn.onclick = () => { toggleBookmark(n); renderPaneContent(i, n); };
 
   // 하위 노드 추가 버튼 — 만들 수 있는 노드(#### 이하 제한)에만
   let addBtn = titleRow.querySelector('.detail-addchild-btn');
@@ -1480,6 +1512,8 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && !n) {
     clearAllModes();
   }
+  // 위성 모드 노드를 끌어다 놓으면 그 자리에 고정 (원하는 위치에 배치)
+  if (drag && drag._satelliteRoot && elapsed >= 150 && !drag.fixed) { drag.fixed = true; drag._satFixed = true; }
   if (drag && drag.fixed) saveFixedPositions();
   drag = null; isPanning = false; applyModeCursor();
 });
