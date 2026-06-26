@@ -17,12 +17,13 @@ let _pathConnectors = [];
 let _satelliteRemovedEdges = [];
 // 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
-// 깊이별 색: #흰색 ##노란색 ###초록색 ####빨간색 (그 외 보라색 폴백)
-const DEPTH_RGB = { 1:[255,255,255], 2:[255,225,77], 3:[70,209,122], 4:[255,90,90], 5:[179,136,255] };
+// 깊이별 색: 차가운색→따뜻한색 (#흰 ##하늘 ###민트 ####앰버 #####코랄)
+const DEPTH_RGB = { 1:[245,247,250], 2:[90,176,255], 3:[46,230,166], 4:[255,194,75], 5:[255,107,138] };
 function depthRgb(n) {
-  if (n.level === 0) return [255,255,255];
+  // 최상위·페이지·DB 노드는 흰색 (헤딩 깊이 색은 헤딩에만)
+  if (n.level === 0 || n.isChildPage || n.isDbNode || n.entryNotionId) return [245,247,250];
   const d = n.headingDepth || n.level || 1;
-  return DEPTH_RGB[Math.min(d, 5)] || [200,200,200];
+  return DEPTH_RGB[Math.min(d, 5)] || [180,190,200];
 }
 function nodeRgb(n) { return _colorScheme === 'depth' ? depthRgb(n) : n._rgb; }
 
