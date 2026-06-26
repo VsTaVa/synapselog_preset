@@ -797,10 +797,10 @@ function renderPaneContent(i, n) {
   let notionLinkEl = titleRow.querySelector('.detail-notion-link');
   if (!notionLinkEl) {
     notionLinkEl = document.createElement('a');
-    notionLinkEl.className = 'detail-notion-link'; notionLinkEl.target = '_blank';
+    notionLinkEl.className = 'detail-notion-link detail-edit-btn'; notionLinkEl.target = '_blank';
     notionLinkEl.title = 'Notion에서 보기';
-    notionLinkEl.style.cssText = 'display:inline-flex;align-items:center;color:#fff;text-decoration:none;margin-left:8px;opacity:1;';
-    notionLinkEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    notionLinkEl.style.textDecoration = 'none';
+    notionLinkEl.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
     titleRow.appendChild(notionLinkEl);
   }
   // 노션에서 보기 — 블록 id가 있으면 그 블록(텍스트)으로 바로 이동 (로컬/MD 노드는 숨김)
