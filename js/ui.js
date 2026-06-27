@@ -89,7 +89,7 @@ function updateConfig() {
   CONFIG.gravity = parseFloat(cfgGrav.value);
   CONFIG.linkTension = parseFloat(cfgTension.value);
   CONFIG.nodeSize = parseFloat(cfgNodeSize.value);
-  CONFIG.linkWidth = parseFloat(cfgLinkWidth.value);
+  CONFIG.linkWidth = parseFloat(cfgLinkWidth.value) * 1.5; // 표시값 1.0 = 실제 두께 1.5
   vRep.textContent = Math.round(parseFloat(cfgRep.value) / 100);
   vGrav.textContent = Math.round(parseFloat(cfgGrav.value) * 10000);
   vTension.textContent = Math.round(parseFloat(cfgTension.value) * 1000);

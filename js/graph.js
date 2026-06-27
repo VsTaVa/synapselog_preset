@@ -6,7 +6,7 @@ let nodes = [], edges = [], nodeMap = {};
 let drag = null, hoveredNode = null;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panStartOffsetY = 0;
 let isStable = false;
-let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.0, linkTension: 0.005 };
+let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.5, linkTension: 0.005 };
 let searchKeyword = '', searchMatches = new Set();
 let _showLabels = true;
 let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
