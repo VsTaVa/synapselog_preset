@@ -278,8 +278,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .toggle-switch .r-on-center { fill: #ed7000; stroke: none; display: none; }
 .toggle-switch input:checked ~ .toggle-track .r-off-outer, .toggle-switch input:checked ~ .toggle-track .r-off-mid1 { display: none; }
 .toggle-switch input:checked ~ .toggle-track .r-on-outer, .toggle-switch input:checked ~ .toggle-track .r-on-center { display: block; }
-.label-toggle-mini { width: 17px; height: 17px; }
-.label-toggle-mini .toggle-track { width: 26px; height: 26px; transform: scale(0.65); transform-origin: top left; }
+.label-toggle-mini { transform: scale(0.62); transform-origin: center; margin: 0 -4px 0 2px; }
 #loading-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(10,12,20,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
 #loading-overlay.visible { display: flex; }
 .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(237,112,0,0.2); border-top-color: #ed7000; animation: spin 0.8s linear infinite; }
