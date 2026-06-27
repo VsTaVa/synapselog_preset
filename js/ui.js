@@ -2005,7 +2005,7 @@ if (['1','2','3','4'].includes(_shortcuts.toggleMultiSelectMode)) _shortcuts.tog
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleMultiSelectMode','fitGraph'].forEach(action => {
+  ['toggleMultiSelectMode','toggleLabels','fitGraph'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
