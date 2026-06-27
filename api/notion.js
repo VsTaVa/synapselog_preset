@@ -91,6 +91,51 @@ export default async function handler(req, res) {
       const type = block.type;
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
+
+      // 자식 있는 토글 헤딩을 일반 헤딩으로: 노션은 자식 있는 헤딩의 is_toggleable=false를 거부함
+      // → 자식을 헤딩 뒤 형제로 옮긴 뒤 토글 해제
+      let relocated = false;
+      if (toggleable === false && /^heading_[1234]$/.test(type) && block.has_children) {
+        const parent = block.parent || {};
+        const parentId = parent.type === 'page_id' ? parent.page_id : parent.block_id;
+        if (parentId) {
+          const kids = [];
+          let cur;
+          do {
+            const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+            if (!r.ok) break;
+            const d = await r.json();
+            kids.push(...d.results.filter(b => b?.type));
+            cur = d.has_more ? d.next_cursor : undefined;
+          } while (cur);
+          const SAFE = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'toggle', 'code', 'divider'];
+          const sanitizeRich = (rt) => (Array.isArray(rt) ? rt : []).map(t => (
+            t.type === 'text'
+              ? { type: 'text', text: { content: t.text?.content || '', link: t.text?.link || null }, annotations: t.annotations || undefined }
+              : { type: 'text', text: { content: t.plain_text || '' }, annotations: t.annotations || undefined }
+          ));
+          const childValue = (t, val) => {
+            val = val || {}; const out = {};
+            if ('rich_text' in val) out.rich_text = sanitizeRich(val.rich_text);
+            if (t === 'to_do') out.checked = !!val.checked;
+            if (t === 'code') { out.rich_text = sanitizeRich(val.rich_text); out.language = val.language || 'plain text'; }
+            if (/^heading_/.test(t)) out.is_toggleable = false;
+            return out;
+          };
+          const movable = kids.filter(k => SAFE.includes(k.type));
+          if (movable.length) {
+            const childrenPayload = movable.map(k => ({ object: 'block', type: k.type, [k.type]: childValue(k.type, k[k.type]) }));
+            const ap = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
+              method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ after: blockId, children: childrenPayload })
+            });
+            if (!ap.ok) { const e = await ap.json(); return res.status(ap.status).json({ error: '토글 자식 이동 실패: ' + (e.message || '') }); }
+            for (const k of movable) { try { await fetch(`https://api.notion.com/v1/blocks/${k.id}`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) }); } catch (e) {} }
+            relocated = true;
+          }
+        }
+      }
+
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
       if (typeof toggleable === 'boolean' && /^heading_[1234]$/.test(type)) patchBody[type].is_toggleable = toggleable;
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
@@ -99,7 +144,7 @@ export default async function handler(req, res) {
         body: JSON.stringify(patchBody)
       });
       if (!p.ok) { const e = await p.json(); return res.status(p.status).json({ error: e.message || '수정 실패' }); }
-      return res.status(200).json({ ok: true, type });
+      return res.status(200).json({ ok: true, type, relocated });
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 

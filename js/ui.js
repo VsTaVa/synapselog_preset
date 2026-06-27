@@ -1238,9 +1238,27 @@ function beginNodeEdit(paneIdx, node) {
         saveLocalPages();
       } else {
         const tgt = _appendTarget(node);
+        // 토글 변경은 먼저 단독 처리 — 토글 해제 시 자식이 형제로 재배치될 수 있어 본문 작업보다 선행
+        if (titleChanged || toggleChanged) {
+          const updRes = await notionUpdateBlock(node.notionBlockId, titleChanged ? newTitle : node.label, toggleInput ? newToggle : undefined);
+          if (toggleChanged) node.notionToggle = newToggle;
+          if (updRes && updRes.relocated) {
+            // 자식이 재배치되어 블록 id가 바뀜 → 본문 편집분은 적용하지 않고 노드를 다시 동기화
+            if (titleChanged) {
+              node.label = newTitle;
+              _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+            }
+            if (node.collapsed) node.collapsed = false;
+            invalidateNodeCache(node);
+            isStable = false;
+            finish();
+            toast('토글 해제됨 — 본문을 다시 불러올게', { type: 'success' });
+            if (typeof syncNode === 'function') syncNode(node, paneIdx);
+            return;
+          }
+        }
         // 독립적인 쓰기는 병렬로 묶어 실제 저장 시간을 줄인다
         const pre = [];
-        if (titleChanged || toggleChanged) pre.push(notionUpdateBlock(node.notionBlockId, titleChanged ? newTitle : node.label, toggleInput ? newToggle : undefined));
         if (reordered) {
           oldBodyIds.forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
         } else {
