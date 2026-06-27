@@ -110,6 +110,15 @@ function hideLoading() { const el = document.getElementById('loading-overlay'); 
 
 function toggleLabels() { const cb = document.getElementById('label-toggle-input'); _showLabels = cb ? cb.checked : !_showLabels; }
 
+function setLabelScale(v) {
+  v = parseFloat(v); if (!(v >= 0.5 && v <= 2.5)) v = 1;
+  _labelScale = v;
+  try { localStorage.setItem('snlog_label_scale', String(v)); } catch (e) {}
+  const out = document.getElementById('label-scale-val');
+  if (out) out.textContent = Math.round(v * 100) + '%';
+  isStable = false;
+}
+
 // ── 포커스 모드 ────────────────────────────────────────────────────────
 
 function applyFocusMode(nodeId, shallow = false) {
@@ -870,6 +879,8 @@ function renderPaneContent(i, n) {
   [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleRow.appendChild(b));
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
+  rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
@@ -884,32 +895,48 @@ function renderPaneContent(i, n) {
 }
 
 
-// 해당 노드 1개만 노션에서 다시 가져와 갱신 (제목 + 본문)
+// 노션 헤딩 노드의 하위 트리(자식 헤딩) 수집 — 약한링크/수동링크 제외
+function collectSyncDescendants(rootNode) {
+  const out = [], seen = new Set([rootNode.id]), q = [rootNode.id];
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => {
+      if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) {
+        seen.add(e.to); const cn = nodeMap[e.to];
+        if (cn) { out.push(cn); q.push(e.to); }
+      }
+    });
+  }
+  return out;
+}
+
+// 노드 1개를 노션에서 다시 가져와 제목/본문/토글 갱신 (UI 갱신·캐시 무효화는 호출자에서)
+async function _applyNodeSync(node) {
+  const data = await notionFetch({ action: 'headingNode', blockId: node.notionBlockId, parentId: node.notionParentId });
+  const newTitle = (data.title || '').trim();
+  if (newTitle && newTitle !== node.label) {
+    node.label = newTitle;
+    _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+  }
+  if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) node.notionToggle = !!data.toggleable;
+  const lines = Array.isArray(data.body) ? data.body : [];
+  node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line) }));
+  node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
+}
+
+// 해당 노드 + 하위 노드들을 노션에서 다시 가져와 갱신 (제목 + 본문)
 async function syncNode(node, paneIdx) {
   if (!node || node.local || !node.notionBlockId) { toast('이 노드는 동기화할 수 없어 (노션 헤딩 노드만)', { type: 'error' }); return; }
-  const dismiss = toast('노드 동기화 중…', { type: 'info', duration: 60000 });
+  const targets = [node, ...collectSyncDescendants(node)].filter(t => t && t.notionBlockId && !t.local);
+  const dismiss = toast(targets.length > 1 ? `노드 ${targets.length}개 동기화 중…` : '노드 동기화 중…', { type: 'info', duration: 60000 });
   try {
-    const data = await notionFetch({ action: 'headingNode', blockId: node.notionBlockId, parentId: node.notionParentId });
-    // 제목
-    const newTitle = (data.title || '').trim();
-    if (newTitle && newTitle !== node.label) {
-      node.label = newTitle;
-      _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
-    }
-    // 토글 헤딩 여부
-    if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) {
-      node.notionToggle = !!data.toggleable;
-    }
-    // 본문 (parseMarkdown과 동일 형식: bodyBlocks는 접두 제거, desc는 원문 줄 보존)
-    const lines = Array.isArray(data.body) ? data.body : [];
-    node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line) }));
-    node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
+    await Promise.all(targets.map(t => _applyNodeSync(t)));
     invalidateNodeCache(node);
     isStable = false;
     if (dismiss) dismiss();
     if (typeof paneIdx === 'number') renderPaneContent(paneIdx, node);
-    else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-    toast('동기화됨', { type: 'success' });
+    if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
+    toast(targets.length > 1 ? `${targets.length}개 동기화됨` : '동기화됨', { type: 'success' });
   } catch (err) {
     if (dismiss) dismiss();
     toast('동기화 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
@@ -1994,6 +2021,7 @@ updateConfig();
 applyLang();
 updateShortcutHints();
 setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
+(() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
 renderPanes();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }

@@ -84,7 +84,7 @@ function drawStarX(ctx, cx, cy, r) {
 }
 
 function hslColor(h, s, l) { return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`; }
-function getH1Color(label) { return hslColor(getBaseHue(label), 75, 65); }
+function getH1Color(label) { return hslColor(getBaseHue(label), 92, 64); }
 
 function extractHue(color) {
   if (!color) return 0;

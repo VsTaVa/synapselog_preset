@@ -1064,7 +1064,7 @@ function exportGraph() {
     if (_showLabels) {
       let lbl = n.label;
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
-      const fontSize = n.level <= 1 ? 12 : 10;
+      const fontSize = (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
       ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';

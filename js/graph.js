@@ -9,6 +9,7 @@ let isStable = false;
 let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.0, linkTension: 0.005 };
 let searchKeyword = '', searchMatches = new Set();
 let _showLabels = true;
+let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
@@ -46,17 +47,17 @@ function parseMarkdown(text, rootTitle) {
         const parentHue = extractHue(parentColor);
         const siblingCount = edges.filter(e => e.from === parentId).length;
         const hueOffset = (siblingCount * 47) % 120 - 60;
-        color = hslColor((parentHue + hueOffset + 360) % 360, 70, 58);
+        color = hslColor((parentHue + hueOffset + 360) % 360, 90, 57);
       } else { color = getH1Color(label); }
     } else if (level === 3) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), 65, 62);
+      if (parentColor) color = hslColor(extractHue(parentColor), 90, 51);
     } else if (level === 4) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), getSaturation(parentColor), 55);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 47);
     } else if (level === 5) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), getSaturation(parentColor), 48);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 44);
     }
     const id = 'n' + (nid++);
     const n = {
@@ -349,11 +350,9 @@ function draw() {
     if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else {
-      const satRatio = _colorScheme === 'depth' ? 1 : [1,1,0.80,0.65,0.52][Math.min(n.level,4)];
-      const bg=[12,13,18];
-      const mixed=ndRgb.map((c,i)=>Math.round(c*satRatio+bg[i]*(1-satRatio)));
-      ctx.fillStyle=isDim?rgbStr(mixed,0.15):rgbStr(mixed,1);
-      ctx.strokeStyle=isDim?rgbStr(mixed,0.06):rgbStr(mixed,1);
+      // 깊이별 명도는 HSL 단계에서 처리 — 여기선 배경 혼합 없이 원색 그대로(쨍하게)
+      ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
+      ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
     }
     if(n.fixed) {
@@ -418,6 +417,7 @@ function draw() {
       let fontSize=10;
       if(n.level===0||n.level===1) fontSize=12;
       else if(n.level===2) fontSize=11;
+      fontSize = fontSize * _labelScale;
       ctx.font=(n.level<=1)?`bold ${fontSize}px 'Noto Sans KR',sans-serif`:`500 ${fontSize}px 'Noto Sans KR',sans-serif`;
       ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
       ctx.textAlign='center'; ctx.textBaseline='top';
