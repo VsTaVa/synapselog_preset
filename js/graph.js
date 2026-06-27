@@ -443,26 +443,23 @@ function draw() {
       else if(n.level===2) fontSize=11;
       fontSize = fontSize * _labelScale;
       ctx.font=(n.level<=1)?`bold ${fontSize}px 'Noto Sans KR',sans-serif`:`500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
-      ctx.textAlign='center'; ctx.textBaseline='top';
-      ctx.fillText(lbl, n.x, n.y+r+5);
-    }
-    // 접힌 토글 노드: ▶ 표시 + 숨긴 자식 수 뱃지
-    if(n.collapsed && n._hiddenCount > 0) {
-      ctx.fillStyle = '#ed7000';
-      ctx.font = `bold ${11/scale}px sans-serif`;
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-      ctx.fillText('▶', n.x - r - 4/scale, n.y);
-      const bx = n.x + r + 7/scale, by = n.y - r - 7/scale;
-      const badge = '+' + n._hiddenCount;
-      ctx.font = `bold ${9/scale}px sans-serif`;
-      const padX = 4/scale, bw = ctx.measureText(badge).width + padX*2, bh = 13/scale;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(bx - bw/2, by - bh/2, bw, bh, 6/scale);
-      else ctx.rect(bx - bw/2, by - bh/2, bw, bh);
-      ctx.fillStyle = '#ed7000'; ctx.fill();
-      ctx.fillStyle = '#15110a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(badge, bx, by);
+      ctx.textBaseline='top';
+      // 접힌 토글 노드: 제목 옆에 하위 노드 갯수만 (주황색)
+      const showCount = n.collapsed && n._hiddenCount > 0;
+      if(showCount) {
+        const countTxt = '  ' + n._hiddenCount;
+        const lblW = ctx.measureText(lbl).width, cntW = ctx.measureText(countTxt).width;
+        const startX = n.x - (lblW + cntW)/2;
+        ctx.textAlign='left';
+        ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
+        ctx.fillText(lbl, startX, n.y+r+5);
+        ctx.fillStyle=`rgba(237,112,0,${isDim?0.2:0.95})`;
+        ctx.fillText(countTxt, startX+lblW, n.y+r+5);
+      } else {
+        ctx.textAlign='center';
+        ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
+        ctx.fillText(lbl, n.x, n.y+r+5);
+      }
     }
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
   });

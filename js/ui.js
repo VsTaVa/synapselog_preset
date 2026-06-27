@@ -125,6 +125,7 @@ function toggleCollapse(node) { if (!node) return; node.collapsed = !node.collap
 function multiSelectToggleCollapse() { if (_multiSelected.length !== 1) return; toggleCollapse(_multiSelected[0]); renderMultiSelectMenu(); }
 function collapseAllToggles() { nodes.forEach(n => { if (n.notionToggle) n.collapsed = true; }); isStable = false; }
 function expandAllToggles() { nodes.forEach(n => { n.collapsed = false; }); isStable = false; }
+function toggleAllCollapse(on) { if (on) collapseAllToggles(); else expandAllToggles(); }
 
 // ── 포커스 모드 ────────────────────────────────────────────────────────
 
@@ -319,10 +320,9 @@ function _editToolsHtml(node) {
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
-  if (node.notionToggle && nodeHasChildren(node)) { const cl = !!node.collapsed; html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${cl ? '▶' : '▼'} ${cl ? '펼치기' : '접기'}</button>`; }
+  if (node.notionToggle && nodeHasChildren(node)) { const cl = !!node.collapsed; html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${cl ? '토글 열기' : '토글 접기'}</button>`; }
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
-  if (canDeleteNode(node) && nodeHasChildren(node) && node.level > 0) html += `<button class="ms-danger" onclick="multiSelectDeleteOnly()" title="이 노드만 삭제하고 하위 노드는 상위로 올립니다">✂ 이 노드만 삭제</button>`;
-  if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
+  if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
 }
 
@@ -554,6 +554,7 @@ function multiSelectAddChild() {
 
 function multiSelectDelete() {
   if (_multiSelected.length < 1) return;
+  if (_multiSelected.length === 1) { const node = _multiSelected[0]; clearMultiSelect(); deleteNodeSmart(node); return; }
   const targets = _multiSelected.slice();
   clearMultiSelect();
   const deletable = targets.filter(canDeleteNode);
@@ -571,13 +572,6 @@ function multiSelectDelete() {
     if (cnt) toast(`${cnt}개 노드 삭제됨`, { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });
     else _undoDelete = null;
   }, true);
-}
-
-function multiSelectDeleteOnly() {
-  if (_multiSelected.length !== 1) return;
-  const node = _multiSelected[0];
-  clearMultiSelect();
-  deleteNodeConfirm(node, true);
 }
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
@@ -973,10 +967,8 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
   const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
-  const canDelOnly = canDel && typeof nodeHasChildren === 'function' && nodeHasChildren(n) && n.level > 0;
-  const delOnlyItem = canDelOnly ? `<button data-act="delete-only" class="danger"><span style="display:inline-block;width:15px;text-align:center;">✂</span> 이 노드만 삭제</button>` : '';
-  const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제${canDelOnly ? ' (하위 포함)' : ''}</button>` : '';
-  menu.innerHTML = notionItem + bmItem + delOnlyItem + delItem;
+  const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
+  menu.innerHTML = notionItem + bmItem + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const mw = 168;
@@ -991,10 +983,8 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
   const bb = menu.querySelector('[data-act="bookmark"]');
   if (bb) bb.onclick = () => { toggleBookmark(n); close(); renderPaneContent(i, n); };
-  const dOnly = menu.querySelector('[data-act="delete-only"]');
-  if (dOnly) dOnly.onclick = () => { close(); deleteNodeConfirm(n, true); };
   const dAll = menu.querySelector('[data-act="delete"]');
-  if (dAll) dAll.onclick = () => { close(); deleteNodeConfirm(n, false); };
+  if (dAll) dAll.onclick = () => { close(); deleteNodeSmart(n); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
@@ -1584,6 +1574,14 @@ async function deleteNodeOnly(node) {
   isStable = false;
 }
 
+// 단일 진입점 — 상위가 있으면 이 노드만 삭제(하위는 상위로 이동), 루트면 하위까지 삭제
+function deleteNodeSmart(node) {
+  if (!node) return;
+  const parentEdge = edges.find(e => e.to === node.id && !e.weakLink && !e.manualLink);
+  const keep = !!parentEdge && nodeHasChildren(node);
+  deleteNodeConfirm(node, keep);
+}
+
 // 노드 삭제 진입점 — keepChildren=true면 이 노드만 삭제(하위 보존)
 function deleteNodeConfirm(node, keepChildren) {
   if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
@@ -1676,6 +1674,12 @@ canvas.addEventListener('mouseup', e => {
   const n = getNodeAt(e.clientX, e.clientY);
   if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
     handleConnectClick(n);
+  } else if (elapsed < 150 && n && n === mouseDownNode && (e.ctrlKey || e.metaKey)) {
+    // Ctrl/⌘+클릭 → 노드 고정/해제
+    clearTimeout(_clickTimer);
+    n.fixed = !n.fixed;
+    if (!n.fixed) { n.vx = 0; n.vy = 0; }
+    unfreezeSubtree(n); saveFixedPositions(); isStable = false;
   } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
     toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode) {
@@ -1717,12 +1721,11 @@ canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
   const n = getNodeAt(e.clientX, e.clientY);
   if (!n) return;
-  n.fixed = !n.fixed;
-  if (!n.fixed) { n.vx = 0; n.vy = 0; }
-  unfreezeSubtree(n);
-  saveFixedPositions(); isStable = false;
-  const s = document.getElementById('status');
-  if (s) { s.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { s.textContent = ''; }, 1800); }
+  // 더블클릭 → 이 노드를 단일 선택하고 노드 메뉴 표시
+  if (!(_multiSelected.length === 1 && _multiSelected[0] === n)) {
+    clearMultiSelect();
+    toggleMultiSelect(n);
+  }
 });
 
 canvas.addEventListener('contextmenu', e => {
@@ -1904,8 +1907,8 @@ const LANG = {
     'sc-multiselectmode':'노드 선택 모드','sc-multiselectmode-sub':'노드 클릭하여 편집·탐색 메뉴 열기',
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
-    'sc-pin':'노드 고정 / 해제','sc-pin-sub':'더블클릭으로 고정','sc-dblclick':'더블클릭',
-    'sc-multiselect':'노드 다중 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift+클릭',
+    'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
+    'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시 세부조정','s-local':'로컬 저장 사용','s-local-sub':'브라우저를 닫아도 데이터가 유지됩니다',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
@@ -1928,8 +1931,8 @@ const LANG = {
     'sc-multiselectmode':'Node Select Mode','sc-multiselectmode-sub':'Click nodes to open edit/explore menu',
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
-    'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Double-click to pin','sc-dblclick':'Double-click',
-    'sc-multiselect':'Multi-Select Nodes','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift+Click',
+    'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
+    'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache Details','s-local':'Use Local Storage','s-local-sub':'Data persists after browser is closed',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
