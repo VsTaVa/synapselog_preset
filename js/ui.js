@@ -119,6 +119,13 @@ function setLabelScale(v) {
   isStable = false;
 }
 
+// ── 토글 헤딩 접기 / 펼치기 ────────────────────────────────────────────
+function nodeHasChildren(node) { return !!node && edges.some(e => e.from === node.id && !e.weakLink && !e.manualLink); }
+function toggleCollapse(node) { if (!node) return; node.collapsed = !node.collapsed; isStable = false; }
+function multiSelectToggleCollapse() { if (_multiSelected.length !== 1) return; toggleCollapse(_multiSelected[0]); renderMultiSelectMenu(); }
+function collapseAllToggles() { nodes.forEach(n => { if (n.notionToggle) n.collapsed = true; }); isStable = false; }
+function expandAllToggles() { nodes.forEach(n => { n.collapsed = false; }); isStable = false; }
+
 // ── 포커스 모드 ────────────────────────────────────────────────────────
 
 function applyFocusMode(nodeId, shallow = false) {
@@ -312,7 +319,9 @@ function _editToolsHtml(node) {
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
+  if (node.notionToggle && nodeHasChildren(node)) { const cl = !!node.collapsed; html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${cl ? '▶' : '▼'} ${cl ? '펼치기' : '접기'}</button>`; }
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
+  if (canDeleteNode(node) && nodeHasChildren(node) && node.level > 0) html += `<button class="ms-danger" onclick="multiSelectDeleteOnly()" title="이 노드만 삭제하고 하위 노드는 상위로 올립니다">✂ 이 노드만 삭제</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드와 하위 노드를 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
 }
@@ -562,6 +571,13 @@ function multiSelectDelete() {
     if (cnt) toast(`${cnt}개 노드 삭제됨`, { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });
     else _undoDelete = null;
   }, true);
+}
+
+function multiSelectDeleteOnly() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  deleteNodeConfirm(node, true);
 }
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
@@ -955,7 +971,12 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
     ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
     : '';
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
-  menu.innerHTML = notionItem + bmItem;
+  const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
+  const canDelOnly = canDel && typeof nodeHasChildren === 'function' && nodeHasChildren(n) && n.level > 0;
+  const delOnlyItem = canDelOnly ? `<button data-act="delete-only" class="danger"><span style="display:inline-block;width:15px;text-align:center;">✂</span> 이 노드만 삭제</button>` : '';
+  const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제${canDelOnly ? ' (하위 포함)' : ''}</button>` : '';
+  menu.innerHTML = notionItem + bmItem + delOnlyItem + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const mw = 168;
@@ -970,6 +991,10 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
   const bb = menu.querySelector('[data-act="bookmark"]');
   if (bb) bb.onclick = () => { toggleBookmark(n); close(); renderPaneContent(i, n); };
+  const dOnly = menu.querySelector('[data-act="delete-only"]');
+  if (dOnly) dOnly.onclick = () => { close(); deleteNodeConfirm(n, true); };
+  const dAll = menu.querySelector('[data-act="delete"]');
+  if (dAll) dAll.onclick = () => { close(); deleteNodeConfirm(n, false); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
@@ -1134,6 +1159,23 @@ function beginNodeEdit(paneIdx, node) {
     item.appendChild(ce);
     list.appendChild(item);
     attachFormatting(ce);
+    // 빈 본문 블록에서 백스페이스 → 블록 삭제 후 이전 행 끝으로 포커스 (노션식)
+    ce.addEventListener('keydown', e => {
+      if (e.key !== 'Backspace') return;
+      if ((ce.textContent || '').trim() !== '') return;
+      if (isLocal) return; // 로컬 단일 본문은 삭제 대상 아님
+      const idx = rows.indexOf(rowObj);
+      if (rows.length <= 1 || idx < 0) return;
+      e.preventDefault();
+      rows.splice(idx, 1);
+      item.remove();
+      const prev = rows[idx - 1] || rows[idx];
+      if (prev && prev.el) {
+        prev.el.focus();
+        const range = document.createRange(); range.selectNodeContents(prev.el); range.collapse(false);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      }
+    });
     rows.push(rowObj);
     return ce;
   };
@@ -1174,7 +1216,8 @@ function beginNodeEdit(paneIdx, node) {
     if (!titleChanged && !toggleChanged && !dirty.length && !reordered) { finish(); return; }
 
     const newToggle = toggleInput ? !!toggleInput.checked : !!node.notionToggle;
-    const oldBodyIds = (node.bodyBlocks || []).map(b => b.id);
+    const origBody = (node.bodyBlocks || []).slice();
+    const oldBodyIds = origBody.map(b => b.id);
     const finalRows = rows
       .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim() }))
       .filter(r => r.blk || r.text.length);
@@ -1194,6 +1237,9 @@ function beginNodeEdit(paneIdx, node) {
           oldBodyIds.forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
         } else {
           finalRows.filter(r => r.blk && r.text !== r.orig).forEach(r => pre.push(notionUpdateBlock(r.blk.id, r.text)));
+          // 편집 중 삭제된 기존 본문 블록은 노션에서도 삭제
+          const keptIds = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
+          oldBodyIds.filter(id => !keptIds.has(id)).forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
         }
         await Promise.all(pre);
         // 새/재생성 본문은 한 번의 호출로 일괄 추가
@@ -1213,7 +1259,10 @@ function beginNodeEdit(paneIdx, node) {
             if (r.blk && r.text !== r.orig && r.orig) d = d.replace(r.orig, r.text);
             else if (!r.blk) d = d ? d + '\n' + r.text : r.text;
           });
-          node.desc = d;
+          // 삭제된 블록 텍스트는 desc에서 제거 (best-effort; 정확한 본문은 재동기화 시 반영)
+          const keptIds2 = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
+          origBody.filter(b => !keptIds2.has(b.id) && b.text).forEach(b => { d = d.replace(b.text, ''); });
+          node.desc = d.replace(/\n{3,}/g, '\n\n').trim();
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
         if (toggleChanged) node.notionToggle = newToggle;
@@ -1500,6 +1549,68 @@ async function deleteNodeSubtree(node) {
   isStable = false;
 }
 
+// 이 노드만 삭제 — 하위 노드는 상위 노드로 재연결해 보존
+async function deleteNodeOnly(node) {
+  const id = node.id;
+  const parentEdge = edges.find(e => e.to === id && !e.weakLink && !e.manualLink);
+  const parentId = parentEdge ? parentEdge.from : null;
+  const origTouching = edges.filter(e => e.from === id || e.to === id); // 복원용 원본 엣지 참조
+  const childStructEdges = origTouching.filter(e => e.from === id && !e.weakLink && !e.manualLink);
+  const addedEdges = parentId ? childStructEdges.map(ce => ({ from: parentId, to: ce.to })) : [];
+
+  const undoEntry = {
+    rootId: id, local: !!node.local, level: node.level, sourcePageId: node.sourcePageId, label: node.label,
+    nodes: [node], edges: origTouching, addedEdges, blockIds: []
+  };
+  if (!node.local) {
+    const blockIds = [];
+    if (node.notionBlockId) blockIds.push(node.notionBlockId);
+    if (node.bodyBlocks) node.bodyBlocks.forEach(b => blockIds.push(b.id));
+    undoEntry.blockIds = blockIds;
+    if (blockIds.length) {
+      try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
+      catch (err) { toast('노션 삭제 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); return; }
+    }
+    invalidateNodeCache(node);
+  }
+  if (_undoDelete) _undoDelete.entries.push(undoEntry);
+  // 노드와 닿는 엣지 모두 제거 후, 자식들을 상위로 재연결
+  edges = edges.filter(e => e.from !== id && e.to !== id).concat(addedEdges);
+  nodes = nodes.filter(nd => nd.id !== id);
+  delete nodeMap[id];
+  _panes.forEach(p => { p.tabs = p.tabs.filter(t => t.nodeId !== id); if (p.activeTabId === id) p.activeTabId = p.tabs.length ? p.tabs[p.tabs.length - 1].nodeId : null; });
+  if (_activeNode && _activeNode.id === id) _activeNode = null;
+  if (!anyTabs()) closePanel(); else renderPanes();
+  isStable = false;
+}
+
+// 노드 삭제 진입점 — keepChildren=true면 이 노드만 삭제(하위 보존)
+function deleteNodeConfirm(node, keepChildren) {
+  if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
+  if (keepChildren) {
+    const parentEdge = edges.find(e => e.to === node.id && !e.weakLink && !e.manualLink);
+    if (!parentEdge) { toast('상위 노드가 없어 이 노드만 삭제할 수 없어요', { type: 'error' }); return; }
+    const childCount = edges.filter(e => e.from === node.id && !e.weakLink && !e.manualLink).length;
+    const msg = `'${node.label}' 노드만 삭제할까요?\n하위 ${childCount}개는 상위 노드로 옮겨집니다.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
+    showConfirm('이 노드만 삭제', msg, async () => {
+      _undoDelete = { entries: [] };
+      await deleteNodeOnly(node);
+      if (_undoDelete.entries.length) toast('노드 삭제됨 (하위 보존)', { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });
+      else _undoDelete = null;
+    }, true);
+  } else {
+    const total = _subtreeIds(node.id).length;
+    const msg = `'${node.label}' 노드(하위 포함 총 ${total}개)를 삭제할까요?` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
+    showConfirm('노드 삭제', msg, async () => {
+      _undoDelete = { entries: [] };
+      await deleteNodeSubtree(node);
+      const cnt = _undoDelete.entries.length;
+      if (cnt) toast(`${cnt}개 노드 삭제됨`, { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });
+      else _undoDelete = null;
+    }, true);
+  }
+}
+
 // 마지막 삭제 묶음 복원 (그래프 + 노션 블록 un-archive + 캐시)
 async function undoLastDelete() {
   if (!_undoDelete || !_undoDelete.entries.length) return;
@@ -1507,6 +1618,8 @@ async function undoLastDelete() {
   _undoDelete = null;
   let anyLocal = false, notionFail = 0;
   for (const e of entries) {
+    // 이 노드만 삭제로 추가됐던 재연결 엣지 제거 (원본 구조 복원 전에)
+    if (e.addedEdges && e.addedEdges.length) edges = edges.filter(ed => !e.addedEdges.includes(ed));
     e.nodes.forEach(nd => { if (!nodeMap[nd.id]) { nodes.push(nd); nodeMap[nd.id] = nd; } nd.visible = true; });
     e.edges.forEach(ed => { if (!edges.includes(ed)) edges.push(ed); });
     if (e.blockIds && e.blockIds.length) {

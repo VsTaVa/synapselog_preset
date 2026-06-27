@@ -718,6 +718,28 @@ async function restorePageList() {
   updateBulkActionsVisibility();
 }
 
+// 엔트리(DB/하위페이지) 노드의 하위 트리만 제거 — 엔트리 노드 자체는 보존.
+// 수동 동기화 시 _loadEntriesBackground가 새로 만들기 전에 호출해 중복 생성 방지.
+function _clearEntryDescendants(pageId) {
+  const entryDesc = new Set();
+  const q = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId).map(n => n.id);
+  const seen = new Set(q);
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => {
+      if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) {
+        seen.add(e.to); entryDesc.add(e.to); q.push(e.to);
+      }
+    });
+  }
+  if (entryDesc.size) {
+    nodes = nodes.filter(n => !entryDesc.has(n.id));
+    edges = edges.filter(e => !entryDesc.has(e.from) && !entryDesc.has(e.to));
+    entryDesc.forEach(id => delete nodeMap[id]);
+  }
+  return entryDesc;
+}
+
 async function syncPage(pageId, opts) {
   opts = opts || {};
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
@@ -738,9 +760,14 @@ async function syncPage(pageId, opts) {
     // 증분 동기화 — 기존 노드 위치/탭 유지, 변경분만 반영
     const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
     if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
-    if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
     if (syncBtn) syncBtn.textContent = '↻';
-    if (!opts.silent) _loadEntriesBackground(pageId); // 자동 폴링은 엔트리 재로드 생략
+    if (!opts.silent) {
+      // 기존 엔트리 하위 노드 제거 후 새로 로드 → 중복·구조변경 미반영 방지
+      const cleared = _clearEntryDescendants(pageId);
+      if (cleared.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(cleared);
+      if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
+      _loadEntriesBackground(pageId);
+    } else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
   } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (!opts.silent) hideLoading(); }
 }
 
@@ -1001,7 +1028,7 @@ function exportGraph() {
   const SIZE = _exportSize || 2048, PADDING = 60;
   const hasSearch = searchKeyword.length > 0;
   const visibleNodes = nodes.filter(n => {
-    if (!n.visible) return false;
+    if (!n.visible || n._collapsedHidden) return false;
     if (_focusMode && n.dimmed) return false;
     if (hasSearch && !searchMatches.has(n.id)) return false;
     return true;
