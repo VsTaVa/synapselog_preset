@@ -38,6 +38,16 @@ let _bookmarkedKeys = new Set((() => { try { return JSON.parse(localStorage.getI
 function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
 function isBookmarked(n) { return !!n && _bookmarkedKeys.has(bookmarkKey(n)); }
 function saveBookmarks() { try { localStorage.setItem('snlog_bookmarks', JSON.stringify([..._bookmarkedKeys])); } catch(e) {} }
+
+// 위성 모드 지속: 위성 루트 label 저장 (fixed_pos와 동일 규칙·스코프) → 새로고침해도 복원
+let _satelliteKeys = new Set((() => { try { return JSON.parse(snGet('snlog_satellites', 'pages') || '[]'); } catch(e) { return []; } })());
+function saveSatellites() { snSet('snlog_satellites', JSON.stringify([..._satelliteKeys]), 'pages'); }
+function restoreSatellites() {
+  if (!_satelliteKeys.size || typeof activateSatellite !== 'function') return;
+  nodes.forEach(n => { if (_satelliteKeys.has(n.label) && !n._satelliteRoot) activateSatellite(n); });
+  if (typeof recomputeSatelliteFlags === 'function') recomputeSatelliteFlags();
+  isStable = false;
+}
 function toggleBookmark(n) {
   if (!n) return;
   const k = bookmarkKey(n);
@@ -509,6 +519,7 @@ function activateSatellite(node) {
   parentEdges.forEach(e => { e._satRoot = node.id; _satelliteRemovedEdges.push(e); });
   edges = edges.filter(e => !parentEdges.includes(e));
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+  if (typeof _satelliteKeys !== 'undefined') { _satelliteKeys.add(node.label); saveSatellites(); }
 }
 
 function releaseSatellite(node) {
@@ -516,6 +527,7 @@ function releaseSatellite(node) {
   _satelliteRemovedEdges.filter(e => e._satRoot === node.id).forEach(e => { delete e._satRoot; edges.push(e); });
   _satelliteRemovedEdges = _satelliteRemovedEdges.filter(e => e._satRoot !== node.id);
   node._satelliteRoot = false;
+  if (typeof _satelliteKeys !== 'undefined') { _satelliteKeys.delete(node.label); saveSatellites(); }
   // 위성 드래그로 자동 고정됐던 경우만 해제 (수동 고정은 유지)
   if (node._satFixed) { node.fixed = false; node.vx = 0; node.vy = 0; delete node._satFixed; }
   recomputeSatelliteFlags();

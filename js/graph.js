@@ -448,7 +448,7 @@ function draw() {
       // 접힌 토글 노드: 제목 옆에 하위 노드 갯수 뱃지 (주황 박스) — 비활성(흐림) 노드는 숨김
       const showCount = n.collapsed && n._hiddenCount > 0 && !isDim;
       if(showCount) {
-        const countTxt = String(n._hiddenCount);
+        const countTxt = '+' + n._hiddenCount;
         const gap = fontSize*0.4, bFont = `bold ${(fontSize*0.82).toFixed(2)}px 'Noto Sans KR',sans-serif`;
         const lblW = ctx.measureText(lbl).width;
         ctx.font = bFont; const cW = ctx.measureText(countTxt).width;
@@ -495,6 +495,7 @@ function restoreFixedPositions() {
     const data = JSON.parse(snGet('snlog_fixed_pos', 'pages') || '{}');
     nodes.forEach(n => { if (data[n.label]) { n.fixed=true; n.x=data[n.label].x; n.y=data[n.label].y; n.vx=0; n.vy=0; } });
   } catch(e) {}
+  if (typeof restoreSatellites === 'function') restoreSatellites();
 }
 
 function placeChildrenAroundParent(parentNode, children, radius) {
