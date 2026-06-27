@@ -47,17 +47,17 @@ function parseMarkdown(text, rootTitle) {
         const parentHue = extractHue(parentColor);
         const siblingCount = edges.filter(e => e.from === parentId).length;
         const hueOffset = (siblingCount * 47) % 120 - 60;
-        color = hslColor((parentHue + hueOffset + 360) % 360, 90, 57);
+        color = hslColor((parentHue + hueOffset + 360) % 360, 90, 60);
       } else { color = getH1Color(label); }
     } else if (level === 3) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), 90, 51);
+      if (parentColor) color = hslColor(extractHue(parentColor), 90, 48);
     } else if (level === 4) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 47);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 41);
     } else if (level === 5) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 44);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 38);
     }
     const id = 'n' + (nid++);
     const n = {
