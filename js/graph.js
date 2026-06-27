@@ -391,11 +391,11 @@ function draw() {
       ctx.setLineDash([2.5,2.5]); ctx.stroke(); ctx.setLineDash([]);
     }
     if(n._satelliteRoot && SATELLITE_ICON) {
-      // 위성 모드 아이콘을 노드 위에 띄움
-      const iconW = r * 3.0;
+      // 위성 모드 아이콘 — 노드 바로 위 중앙
+      const iconW = r * 4.2;
       const s = iconW / SAT_BBOX.w;
       const ih = SAT_BBOX.h * s;
-      const cy = n.y - r - ih*0.6 - 3;
+      const cy = n.y - r - ih*0.5 - 2;   // 아이콘 바닥이 노드 위에 거의 붙도록
       ctx.save();
       ctx.translate(n.x, cy);
       ctx.scale(s, s);
