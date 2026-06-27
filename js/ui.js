@@ -320,7 +320,13 @@ function _editToolsHtml(node) {
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
-  if (node.notionToggle && nodeHasChildren(node)) { const cl = !!node.collapsed; html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${cl ? '토글 열기' : '토글 접기'}</button>`; }
+  if (node.notionToggle && nodeHasChildren(node)) {
+    const cl = !!node.collapsed;
+    const chevron = cl
+      ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`
+      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${chevron} ${cl ? '토글 열기' : '토글 접기'}</button>`;
+  }
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;

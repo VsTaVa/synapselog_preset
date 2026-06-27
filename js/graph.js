@@ -442,23 +442,31 @@ function draw() {
       if(n.level===0||n.level===1) fontSize=12;
       else if(n.level===2) fontSize=11;
       fontSize = fontSize * _labelScale;
-      ctx.font=(n.level<=1)?`bold ${fontSize}px 'Noto Sans KR',sans-serif`:`500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.textBaseline='top';
-      // 접힌 토글 노드: 제목 옆에 하위 노드 갯수만 (주황색)
-      const showCount = n.collapsed && n._hiddenCount > 0;
+      const lblFont = (n.level<=1)?`bold ${fontSize}px 'Noto Sans KR',sans-serif`:`500 ${fontSize}px 'Noto Sans KR',sans-serif`;
+      ctx.font=lblFont; ctx.textBaseline='top';
+      const y = n.y+r+5;
+      // 접힌 토글 노드: 제목 옆에 하위 노드 갯수 뱃지 (주황 박스) — 비활성(흐림) 노드는 숨김
+      const showCount = n.collapsed && n._hiddenCount > 0 && !isDim;
       if(showCount) {
-        const countTxt = '  ' + n._hiddenCount;
-        const lblW = ctx.measureText(lbl).width, cntW = ctx.measureText(countTxt).width;
-        const startX = n.x - (lblW + cntW)/2;
-        ctx.textAlign='left';
-        ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
-        ctx.fillText(lbl, startX, n.y+r+5);
-        ctx.fillStyle=`rgba(237,112,0,${isDim?0.2:0.95})`;
-        ctx.fillText(countTxt, startX+lblW, n.y+r+5);
+        const countTxt = String(n._hiddenCount);
+        const gap = fontSize*0.4, bFont = `bold ${(fontSize*0.82).toFixed(2)}px 'Noto Sans KR',sans-serif`;
+        const lblW = ctx.measureText(lbl).width;
+        ctx.font = bFont; const cW = ctx.measureText(countTxt).width;
+        const padX = fontSize*0.42, bh = fontSize*1.2, bw = cW + padX*2;
+        const startX = n.x - (lblW + gap + bw)/2;
+        ctx.font=lblFont; ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillStyle=isMatch?'#ffffff':'rgba(215,220,230,0.85)';
+        ctx.fillText(lbl, startX, y);
+        const bx = startX + lblW + gap, by = y + fontSize/2 - bh/2;
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, bh*0.45); else ctx.rect(bx, by, bw, bh);
+        ctx.fillStyle='#ed7000'; ctx.fill();
+        ctx.font=bFont; ctx.fillStyle='#15110a'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(countTxt, bx + bw/2, by + bh/2 + fontSize*0.04);
       } else {
         ctx.textAlign='center';
         ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
-        ctx.fillText(lbl, n.x, n.y+r+5);
+        ctx.fillText(lbl, n.x, y);
       }
     }
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
