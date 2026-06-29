@@ -841,7 +841,7 @@ function renderPaneContent(i, n) {
     if (oldLink) oldLink.style.display = 'none';
     return;
   }
-  if (titleEl) titleEl.textContent = n.label;
+  if (titleEl) { titleEl.textContent = n.label; titleEl.title = n.label; }
   if (dateEl) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
@@ -1774,11 +1774,8 @@ canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
   const n = getNodeAt(e.clientX, e.clientY);
   if (!n) return;
-  // 더블클릭 → 이 노드를 단일 선택하고 노드 메뉴 표시
-  if (!(_multiSelected.length === 1 && _multiSelected[0] === n)) {
-    clearMultiSelect();
-    toggleMultiSelect(n);
-  }
+  // 더블클릭 → 선택에 추가 (기존 선택 유지, 여러 개 누적 가능)
+  if (!_multiSelected.includes(n)) toggleMultiSelect(n);
 });
 
 canvas.addEventListener('contextmenu', e => {
@@ -1867,9 +1864,9 @@ canvas.addEventListener('touchend', e => {
     } else if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {
-        // 더블탭 → 노드 선택 (메뉴 표시)
+        // 더블탭 → 선택에 추가 (기존 선택 유지)
         clearTimeout(_clickTimer);
-        if (!(_multiSelected.length === 1 && _multiSelected[0] === n)) { clearMultiSelect(); toggleMultiSelect(n); }
+        if (!_multiSelected.includes(n)) toggleMultiSelect(n);
         _lastTapNode = null; _lastTapTime = 0;
       } else {
         clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
