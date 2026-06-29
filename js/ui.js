@@ -701,7 +701,7 @@ function renderPanes() {
           `<button class="pane-close-btn" title="전체 닫기" style="color:#ed7000;">✕</button>`) +
       `</div>` +
       `<div class="detail-body">` +
-        `<div class="detail-title-row"><div class="detail-title"></div></div>` +
+        `<div class="detail-title-row"><div class="detail-title-main"><div class="detail-title"></div></div><div class="detail-title-actions"></div></div>` +
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
         `<div class="detail-divider"></div>` +
         `<div class="detail-content"></div>` +
@@ -853,6 +853,7 @@ function renderPaneContent(i, n) {
   const linkTarget = isLocalLike ? '' : (n.notionBlockId || n.entryNotionId || (n.sourcePageId || '').replace(/-/g, ''));
   const notionHref = linkTarget ? `https://notion.so/${linkTarget.replace(/-/g, '')}` : '';
 
+  const titleActions = titleRow.querySelector('.detail-title-actions') || titleRow;
   // 수정 버튼 — 제목(blockId) 또는 본문(bodyBlocks)을 편집할 수 있는 노드
   let editBtn = titleRow.querySelector('.detail-edit-btn');
   if (!editBtn) {
@@ -860,7 +861,7 @@ function renderPaneContent(i, n) {
     editBtn.className = 'detail-edit-btn';
     editBtn.title = '제목·본문 수정';
     editBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
-    titleRow.appendChild(editBtn);
+    titleActions.appendChild(editBtn);
   }
   if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
   else { editBtn.style.display = 'none'; }
@@ -872,7 +873,7 @@ function renderPaneContent(i, n) {
     syncBtn.className = 'detail-edit-btn detail-syncnode-btn';
     syncBtn.title = '노드 동기화';
     syncBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
-    titleRow.appendChild(syncBtn);
+    titleActions.appendChild(syncBtn);
   }
   if (!n.local && n.notionBlockId) { syncBtn.style.display = 'inline-flex'; syncBtn.onclick = () => syncNode(n, i); }
   else { syncBtn.style.display = 'none'; }
@@ -884,7 +885,7 @@ function renderPaneContent(i, n) {
     setBtn.className = 'detail-edit-btn detail-settings-btn';
     setBtn.title = '설정 (노션에서 보기 · 북마크)';
     setBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
-    titleRow.appendChild(setBtn);
+    titleActions.appendChild(setBtn);
   }
   setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
 
@@ -895,7 +896,7 @@ function renderPaneContent(i, n) {
     addBtn.className = 'detail-edit-btn detail-addchild-btn';
     addBtn.title = '하위 노드 추가';
     addBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg>`;
-    titleRow.appendChild(addBtn);
+    titleActions.appendChild(addBtn);
   }
   if (canAddChild(n)) {
     addBtn.style.display = 'inline-flex';
@@ -908,7 +909,7 @@ function renderPaneContent(i, n) {
   } else { addBtn.style.display = 'none'; }
 
   // 아이콘 순서: 제목·본문 수정 → 동기화 → 하위노드 생성 → 설정
-  [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleRow.appendChild(b));
+  [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleActions.appendChild(b));
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)

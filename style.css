@@ -202,8 +202,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .detail-body::-webkit-scrollbar { width: 3px; }
 .detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 .detail-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.detail-title-row button { flex-shrink: 0; }
-.detail-title { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; word-break: break-word; flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+.detail-title-main { flex: 1; min-width: 0; }
+.detail-title-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.detail-title { font-size: 18px; font-weight: 700; color: #fff; line-height: 1.4; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
 .detail-edit-btn { background: none; border: none; color: rgba(237,112,0,0.9); cursor: pointer; padding: 4px 6px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
 .detail-edit-btn:hover { color: #ed7000; }
 /* 우측 패널 설정(⚙) 드롭다운 */
