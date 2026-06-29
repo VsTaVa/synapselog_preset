@@ -136,7 +136,7 @@ function setViewRotation(deg) {
   const out = document.getElementById('rotation-val'); if (out) out.textContent = Math.round(deg) + '°';
   const sl = document.getElementById('cfg-rotation'); if (sl && Math.round(parseFloat(sl.value)) !== Math.round(deg)) sl.value = Math.round(deg);
 }
-let _rotating = false, _rotStartY = 0, _rotStartAngle = 0;
+let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
 // 데스크탑 노드 선택: 우클릭 고정 (모바일은 더블탭)
 const _pcSelectGesture = 'rightclick';
@@ -1713,7 +1713,7 @@ async function undoLastDelete() {
   else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
-  if (_rotating) { const dy = e.clientY - _rotStartY; setViewRotation((_rotStartAngle + dy * 0.005) * 180 / Math.PI); return; }
+  if (_rotating) { const dy = e.clientY - _rotStartY; if (Math.abs(dy) > 2) { _rotMoved = true; canvas.style.cursor = 'ns-resize'; } setViewRotation((_rotStartAngle + dy * 0.005) * 180 / Math.PI); return; }
   if (drag) {
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
     nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
@@ -1732,8 +1732,8 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('mousedown', e => {
   if (e.button === 2) {
-    // Ctrl/⌘ + 우클릭 드래그 → 화면 회전, 일반 우클릭은 contextmenu(선택)에서 처리
-    if (e.ctrlKey || e.metaKey) { _rotating = true; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; canvas.style.cursor = 'ns-resize'; }
+    // 빈 공간 우클릭 상하 드래그 → 화면 회전. 노드 위 우클릭은 선택(contextmenu)
+    if (!getNodeAt(e.clientX, e.clientY)) { _rotating = true; _rotMoved = false; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; }
     e.preventDefault(); return;
   }
   mouseDownTime = Date.now();
@@ -1746,7 +1746,7 @@ canvas.addEventListener('mousedown', e => {
 let _clickTimer = null;
 
 canvas.addEventListener('mouseup', e => {
-  if (_rotating) { _rotating = false; canvas.style.cursor = ''; return; }
+  if (_rotating) { _rotating = false; canvas.style.cursor = ''; if (_rotMoved) _suppressContext = true; return; }
   if (e.button === 2) return; // 우클릭은 contextmenu에서 처리
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
@@ -1806,7 +1806,7 @@ canvas.addEventListener('dblclick', e => {
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
-  if (e.ctrlKey || e.metaKey) return; // Ctrl+우클릭은 회전 제스처 — 선택/메뉴 안 함
+  if (_suppressContext) { _suppressContext = false; return; } // 방금 빈 곳 우클릭 드래그(회전)였음 — 메뉴/선택 안 함
   // 우클릭 → 노드 위면 선택(누적)하고 종료
   if (_pcSelectGesture === 'rightclick') {
     const node = getNodeAt(e.clientX, e.clientY);
