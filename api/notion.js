@@ -399,7 +399,8 @@ export default async function handler(req, res) {
   // 헤딩 텍스트 추출 — 볼드 무시
   function extractHeadingText(richTextArr) {
     if (!richTextArr) return '';
-    return richTextArr.map(t => t.plain_text || '').join('');
+    // 헤딩 내부 줄바꿈(Shift+Enter)을 공백으로 합쳐 한 줄로 — 마크다운 줄 파싱에서 본문으로 새지 않게
+    return richTextArr.map(t => t.plain_text || '').join('').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   // 데이터베이스 하위 페이지 목록 조회
