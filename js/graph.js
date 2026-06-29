@@ -589,13 +589,17 @@ function fitGraph() {
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
-  const minX = Math.min(...visibleNodes.map(n => n.x)), maxX = Math.max(...visibleNodes.map(n => n.x));
-  const minY = Math.min(...visibleNodes.map(n => n.y)), maxY = Math.max(...visibleNodes.map(n => n.y));
+  // 뷰 회전을 반영해 회전된 좌표(스케일/팬 적용 전)로 경계를 계산
+  const cosR = Math.cos(_viewRotation), sinR = Math.sin(_viewRotation);
+  const rxs = visibleNodes.map(n => (n.x - W/2)*cosR - (n.y - H/2)*sinR);
+  const rys = visibleNodes.map(n => (n.x - W/2)*sinR + (n.y - H/2)*cosR);
+  const minX = Math.min(...rxs), maxX = Math.max(...rxs);
+  const minY = Math.min(...rys), maxY = Math.max(...rys);
   const graphW = maxX-minX || 1, graphH = maxY-minY || 1;
   const targetScale = Math.min(availW/graphW, availH/graphH, 1.5) * 0.82;
-  const centerX = (minX+maxX)/2, centerY = (minY+maxY)/2;
-  const targetPanX = (offsetLeft+availW/2) - W/2 - (centerX-W/2)*targetScale;
-  const targetPanY = (availH/2+20) - H/2 - (centerY-H/2)*targetScale;
+  const centerRX = (minX+maxX)/2, centerRY = (minY+maxY)/2;
+  const targetPanX = (offsetLeft+availW/2) - W/2 - centerRX*targetScale;
+  const targetPanY = (availH/2+20) - H/2 - centerRY*targetScale;
   if (_fitAnimId) cancelAnimationFrame(_fitAnimId);
   const DURATION = 600, startTime = performance.now();
   const startScale = scale, startPanX = panX, startPanY = panY;
