@@ -408,12 +408,16 @@ function multiSelectConnect() {
 
 function multiSelectChainConnect() {
   if (_multiSelected.length < 3) return;
-  for (let i = 0; i < _multiSelected.length - 1; i++) {
-    const a = _multiSelected[i], b = _multiSelected[i + 1];
-    const existing = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
-    if (!existing) edges.push({ from: a.id, to: b.id, manualLink: true });
+  const linked = (a, b) => edges.some(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
+  const pairs = [];
+  for (let i = 0; i < _multiSelected.length - 1; i++) pairs.push([_multiSelected[i], _multiSelected[i + 1]]);
+  if (pairs.every(([a, b]) => linked(a, b))) {
+    // 이미 전부 연결돼 있으면 해제
+    pairs.forEach(([a, b]) => removeManualLink(a.id, b.id));
+  } else {
+    pairs.forEach(([a, b]) => { if (!linked(a, b)) edges.push({ from: a.id, to: b.id, manualLink: true }); });
+    saveManualLinks();
   }
-  saveManualLinks();
   isStable = false;
   clearMultiSelect();
 }
@@ -954,7 +958,15 @@ async function _applyNodeSync(node) {
 
 // 해당 노드 + 하위 노드들을 노션에서 다시 가져와 갱신 (제목 + 본문)
 async function syncNode(node, paneIdx) {
-  if (!node || node.local || !node.notionBlockId) { toast('이 노드는 동기화할 수 없어 (노션 헤딩 노드만)', { type: 'error' }); return; }
+  if (!node || node.local) { toast('이 노드는 동기화할 수 없어 (노션 노드만)', { type: 'error' }); return; }
+  // 노션 페이지에 속한 노드는 페이지 전체를 증분 동기화 → 하위 헤딩 추가/삭제/이동 등 구조 변경까지 반영
+  const pid = node.sourcePageId;
+  if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_') && typeof syncPage === 'function') {
+    try { await syncPage(pid, {}); toast('동기화됨', { type: 'success' }); }
+    catch (err) { toast('동기화 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); }
+    return;
+  }
+  if (!node.notionBlockId) { toast('이 노드는 동기화할 수 없어 (노션 헤딩 노드만)', { type: 'error' }); return; }
   const targets = [node, ...collectSyncDescendants(node)].filter(t => t && t.notionBlockId && !t.local);
   const dismiss = toast(targets.length > 1 ? `노드 ${targets.length}개 동기화 중…` : '노드 동기화 중…', { type: 'info', duration: 60000 });
   try {
@@ -1083,6 +1095,8 @@ function _showFmtToolbar(x, y) {
 function applyFmt(cmd) {
   if (!_fmtField) return;
   _fmtField.focus();
+  // 태그 기반(<b>/<strike>)으로 강제 → 색 입힌 span 생성 방지 (취소선 해제 후 검은 글씨 버그)
+  try { document.execCommand('styleWithCSS', false, false); } catch (e) {}
   try { document.execCommand(cmd, false, null); } catch (e) {}
 }
 // contenteditable 요소에 서식 단축키/툴바 연결
@@ -1113,7 +1127,7 @@ function beginNodeEdit(paneIdx, node) {
   const isLocal = !!node.local;
   const hasTitle = isLocal || !!node.notionBlockId;
   const hasBody = isLocal || !!(node.bodyBlocks && node.bodyBlocks.length);
-  const canAdd = !isLocal && !!(node.notionBlockId && node.notionParentId);
+  const canAdd = isLocal || !!(node.notionBlockId && node.notionParentId);
   if (!hasTitle && !hasBody && !canAdd) return;
   if (!contentEl) return;
 
@@ -1171,7 +1185,6 @@ function beginNodeEdit(paneIdx, node) {
     ce.addEventListener('keydown', e => {
       if (e.key !== 'Backspace') return;
       if ((ce.textContent || '').trim() !== '') return;
-      if (isLocal) return; // 로컬 단일 본문은 삭제 대상 아님
       const idx = rows.indexOf(rowObj);
       if (rows.length <= 1 || idx < 0) return;
       e.preventDefault();
@@ -1187,14 +1200,18 @@ function beginNodeEdit(paneIdx, node) {
     rows.push(rowObj);
     return ce;
   };
-  if (isLocal) addRow(node.desc || '', { local: true });
+  if (isLocal) {
+    const lines = (node.desc || '').split('\n');
+    if (!lines.length || (lines.length === 1 && lines[0] === '')) addRow('', { local: true });
+    else lines.forEach(line => addRow(line, { local: true }));
+  }
   else if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
 
-  // 노션 헤딩 노드: 수정 화면 안에서 본문 블록 추가
+  // 본문 블록 추가 (노션 헤딩 노드 + 로컬 페이지)
   if (canAdd) {
     const addBody = document.createElement('button');
     addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
-    addBody.onclick = () => { addRow('', null).focus(); };
+    addBody.onclick = () => { addRow('', isLocal ? { local: true } : null).focus(); };
     contentEl.appendChild(addBody);
   }
 
@@ -1234,7 +1251,7 @@ function beginNodeEdit(paneIdx, node) {
     try {
       if (isLocal) {
         if (titleChanged) node.label = newTitle;
-        node.desc = valOf(rows[0]);
+        node.desc = rows.map(valOf).join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
         saveLocalPages();
       } else {
         const tgt = _appendTarget(node);
@@ -1850,12 +1867,9 @@ canvas.addEventListener('touchend', e => {
     } else if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {
+        // 더블탭 → 노드 선택 (메뉴 표시)
         clearTimeout(_clickTimer);
-        n.fixed = !n.fixed;
-        if (!n.fixed) { n.vx = 0; n.vy = 0; }
-        unfreezeSubtree(n);
-        saveFixedPositions(); isStable = false;
-        if (statusEl) { statusEl.textContent = n.fixed ? `📌 "${n.label}" 고정됨` : `"${n.label}" 고정 해제`; clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1800); }
+        if (!(_multiSelected.length === 1 && _multiSelected[0] === n)) { clearMultiSelect(); toggleMultiSelect(n); }
         _lastTapNode = null; _lastTapTime = 0;
       } else {
         clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
