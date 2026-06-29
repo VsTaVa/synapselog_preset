@@ -129,6 +129,24 @@ function setLabelScale(v) {
   isStable = false;
 }
 
+function setViewRotation(deg) {
+  deg = parseFloat(deg) || 0;
+  _viewRotation = deg * Math.PI / 180;
+  try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
+  const out = document.getElementById('rotation-val');
+  if (out) out.textContent = Math.round(deg) + '°';
+}
+
+// 데스크탑 노드 선택 제스처: 'rightclick'(기본) | 'dblclick' — 모바일은 항상 더블탭
+let _pcSelectGesture = (() => { try { return localStorage.getItem('snlog_pc_select') || 'rightclick'; } catch (e) { return 'rightclick'; } })();
+function setPcSelectGesture(mode) {
+  _pcSelectGesture = (mode === 'dblclick') ? 'dblclick' : 'rightclick';
+  try { localStorage.setItem('snlog_pc_select', _pcSelectGesture); } catch (e) {}
+  const a = document.getElementById('pcsel-dbl'), b = document.getElementById('pcsel-right');
+  if (a) a.classList.toggle('active', _pcSelectGesture === 'dblclick');
+  if (b) b.classList.toggle('active', _pcSelectGesture === 'rightclick');
+}
+
 // ── 토글 헤딩 접기 / 펼치기 ────────────────────────────────────────────
 function nodeHasChildren(node) { return !!node && edges.some(e => e.from === node.id && !e.weakLink && !e.manualLink); }
 function toggleCollapse(node) { if (!node) return; node.collapsed = !node.collapsed; isStable = false; }
@@ -367,8 +385,8 @@ function repositionMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu || !menu.classList.contains('open')) return;
   const last = _multiSelected[_multiSelected.length - 1];
-  const screenX = (last.x - W / 2) * scale + W / 2 + panX;
-  const screenY = (last.y - H / 2) * scale + H / 2 + panY;
+  const _sp = (typeof worldToScreen === 'function') ? worldToScreen(last.x, last.y) : { x: (last.x - W / 2) * scale + W / 2 + panX, y: (last.y - H / 2) * scale + H / 2 + panY };
+  const screenX = _sp.x, screenY = _sp.y;
   // 노드 바로 오른쪽에, 세로로는 노드 중심에 맞춰 배치
   const rad = (typeof nodeR === 'function' ? nodeR(last.level) : 8) * scale;
   menu.style.left = (screenX + rad + 12) + 'px';
@@ -1777,6 +1795,7 @@ function unfreezeSubtree(node) {
 
 canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
+  if (_pcSelectGesture !== 'dblclick') return; // 우클릭 모드면 더블클릭 무시(단일클릭이 패널 염)
   const n = getNodeAt(e.clientX, e.clientY);
   if (!n) return;
   // 더블클릭 → 선택에 추가 (기존 선택 유지, 여러 개 누적 가능)
@@ -1785,6 +1804,11 @@ canvas.addEventListener('dblclick', e => {
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
+  // 우클릭 선택 모드: 노드 위 우클릭이면 선택(누적)하고 종료
+  if (_pcSelectGesture === 'rightclick') {
+    const node = getNodeAt(e.clientX, e.clientY);
+    if (node) { if (!_multiSelected.includes(node)) toggleMultiSelect(node); return; }
+  }
   const w = screenToWorld(e.clientX, e.clientY);
   let closest = null, minDist = 12 / scale;
   edges.filter(e2 => e2.manualLink).forEach(e2 => {
@@ -1804,9 +1828,12 @@ canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const factor = e.deltaY < 0 ? 1.06 : 0.94;
   const mx = e.clientX, my = e.clientY;
-  const wx = (mx - W / 2 - panX) / scale, wy = (my - H / 2 - panY) / scale;
+  const wpt = screenToWorld(mx, my);
   scale = Math.max(0.15, Math.min(4, scale * factor));
-  panX = mx - W / 2 - wx * scale; panY = my - H / 2 - wy * scale;
+  const c = Math.cos(_viewRotation), s = Math.sin(_viewRotation);
+  const dx = wpt.x - W / 2, dy = wpt.y - H / 2;
+  panX = mx - W / 2 - (dx * c - dy * s) * scale;
+  panY = my - H / 2 - (dx * s + dy * c) * scale;
   statusEl.textContent = `확대: ${Math.round(scale * 100)}%`;
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
 }, { passive: false });
@@ -2190,6 +2217,12 @@ applyLang();
 updateShortcutHints();
 setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
+(() => {
+  const deg = Math.round(_viewRotation * 180 / Math.PI);
+  const sl = document.getElementById('cfg-rotation'); if (sl) sl.value = deg;
+  const out = document.getElementById('rotation-val'); if (out) out.textContent = deg + '°';
+  setPcSelectGesture(_pcSelectGesture);
+})();
 renderPanes();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }

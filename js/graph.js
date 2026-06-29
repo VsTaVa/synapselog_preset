@@ -10,6 +10,8 @@ let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0,
 let searchKeyword = '', searchMatches = new Set();
 let _showLabels = true;
 let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
+// 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
+let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
 // 토글 헤딩 접기: collapsed=true 인 노드의 하위 트리를 숨긴다.
 // draw()마다 호출 — 접힌 노드가 없으면 사실상 O(n) 플래그 리셋만.
@@ -231,8 +233,10 @@ function draw() {
   ctx.save();
   ctx.translate(W/2+panX, H/2+panY);
   ctx.scale(scale, scale);
+  if (_viewRotation) ctx.rotate(_viewRotation);
   ctx.translate(-W/2, -H/2);
   recomputeCollapse();
+  const labelQueue = [];
   const hasSearch = searchKeyword.length > 0;
   const childCountMap = new Map(), manualLinkedSet = new Set();
   edges.forEach(e => {
@@ -448,48 +452,66 @@ function draw() {
         ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
-    if(_showLabels) {
-      let lbl=n.label;
-      if(n.level>=2&&lbl.length>14) lbl=lbl.substring(0,13)+'…';
-      let fontSize=10;
-      if(n.level===0||n.level===1) fontSize=12;
-      else if(n.level===2) fontSize=11;
-      fontSize = fontSize * _labelScale;
-      const lblFont = (n.level<=1)?`bold ${fontSize}px 'Noto Sans KR',sans-serif`:`500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.font=lblFont; ctx.textBaseline='top';
-      const y = n.y+r+5;
-      // 접힌 토글 노드: 제목 옆에 하위 노드 갯수 뱃지 (주황 박스) — 비활성(흐림) 노드는 숨김
-      const showCount = n.collapsed && n._hiddenCount > 0 && !isDim;
-      if(showCount) {
-        const countTxt = '+' + n._hiddenCount;
-        const gap = fontSize*0.4, bFont = `bold ${(fontSize*0.82).toFixed(2)}px 'Noto Sans KR',sans-serif`;
-        const lblW = ctx.measureText(lbl).width;
-        ctx.font = bFont; const cW = ctx.measureText(countTxt).width;
-        const padX = fontSize*0.42, bh = fontSize*1.2, bw = cW + padX*2;
-        const startX = n.x - (lblW + gap + bw)/2;
-        ctx.font=lblFont; ctx.textAlign='left'; ctx.textBaseline='top';
-        ctx.fillStyle=isMatch?'#ffffff':'rgba(215,220,230,0.85)';
-        ctx.fillText(lbl, startX, y);
-        const bx = startX + lblW + gap, by = y + fontSize/2 - bh/2;
-        ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, bh*0.45); else ctx.rect(bx, by, bw, bh);
-        ctx.fillStyle='#ed7000'; ctx.fill();
-        ctx.font=bFont; ctx.fillStyle='#15110a'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(countTxt, bx + bw/2, by + bh/2 + fontSize*0.04);
-      } else {
-        ctx.textAlign='center';
-        ctx.fillStyle=isMatch?'#ffffff':`rgba(215,220,230,${isDim?0.12:0.85})`;
-        ctx.fillText(lbl, n.x, y);
-      }
-    }
-    ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
   });
   ctx.restore();
+
+  // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로
+  if (_showLabels && labelQueue.length) {
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    labelQueue.forEach(({ n, r, isMatch, isDim }) => {
+      const sp = worldToScreen(n.x, n.y);
+      const sr = r * scale;
+      let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
+      if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
+      let fontSize = 10;
+      if (n.level === 0 || n.level === 1) fontSize = 12;
+      else if (n.level === 2) fontSize = 11;
+      fontSize = fontSize * _labelScale * scale;
+      const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
+      ctx.font = lblFont; ctx.textBaseline = 'top';
+      const y = sp.y + sr + 5 * scale;
+      const showCount = n.collapsed && n._hiddenCount > 0 && !isDim;
+      if (showCount) {
+        const countTxt = '+' + n._hiddenCount;
+        const gap = fontSize * 0.4, bFont = `bold ${(fontSize * 0.82).toFixed(2)}px 'Noto Sans KR',sans-serif`;
+        const lblW = ctx.measureText(lbl).width;
+        ctx.font = bFont; const cW = ctx.measureText(countTxt).width;
+        const padX = fontSize * 0.42, bh = fontSize * 1.2, bw = cW + padX * 2;
+        const startX = sp.x - (lblW + gap + bw) / 2;
+        ctx.font = lblFont; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillStyle = isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
+        ctx.fillText(lbl, startX, y);
+        const bx = startX + lblW + gap, by = y + fontSize / 2 - bh / 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, bh * 0.45); else ctx.rect(bx, by, bw, bh);
+        ctx.fillStyle = '#ed7000'; ctx.fill();
+        ctx.font = bFont; ctx.fillStyle = '#15110a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(countTxt, bx + bw / 2, by + bh / 2 + fontSize * 0.04);
+      } else {
+        ctx.textAlign = 'center';
+        ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
+        ctx.fillText(lbl, sp.x, y);
+      }
+    });
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+    ctx.restore();
+  }
 }
 
 // ── 그래프 빌드/병합/공개 ────────────────────────────────────────────
 
-function screenToWorld(sx, sy) { return { x:(sx-W/2-panX)/scale+W/2, y:(sy-H/2-panY)/scale+H/2 }; }
+function screenToWorld(sx, sy) {
+  let rx = (sx-W/2-panX)/scale, ry = (sy-H/2-panY)/scale;
+  if (_viewRotation) { const c=Math.cos(-_viewRotation), s=Math.sin(-_viewRotation); const nx=rx*c-ry*s, ny=rx*s+ry*c; rx=nx; ry=ny; }
+  return { x: rx+W/2, y: ry+H/2 };
+}
+function worldToScreen(wx, wy) {
+  let dx = wx-W/2, dy = wy-H/2;
+  if (_viewRotation) { const c=Math.cos(_viewRotation), s=Math.sin(_viewRotation); const nx=dx*c-dy*s, ny=dx*s+dy*c; dx=nx; dy=ny; }
+  return { x: W/2+panX+dx*scale, y: H/2+panY+dy*scale };
+}
 // 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
 function isNodeInteractable(n) {
   if (searchKeyword.length > 0 && !searchMatches.has(n.id)) return false;
