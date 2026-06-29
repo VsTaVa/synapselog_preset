@@ -1850,7 +1850,7 @@ canvas.addEventListener('wheel', e => {
 // ── 터치 지원 (모바일 팬/탭 + 핀치 줌) ─────────────────────────────────
 
 let _touchMode = null, _touchMoved = false, _touchStartX = 0, _touchStartY = 0;
-let _pinchStartDist = 0, _pinchStartScale = 1;
+let _pinchStartDist = 0, _pinchStartScale = 1, _pinchStartAngle = 0, _pinchStartRotation = 0;
 let _lastTapTime = 0, _lastTapNode = null;
 
 canvas.addEventListener('touchstart', e => {
@@ -1868,6 +1868,7 @@ canvas.addEventListener('touchstart', e => {
     drag = null; isPanning = false; _touchMode = 'pinch';
     const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
     _pinchStartDist = Math.sqrt(dx*dx + dy*dy); _pinchStartScale = scale;
+    _pinchStartAngle = Math.atan2(dy, dx); _pinchStartRotation = _viewRotation;
   }
 }, { passive: false });
 
@@ -1877,9 +1878,15 @@ canvas.addEventListener('touchmove', e => {
     const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
     const pinchDist = Math.sqrt(dx*dx + dy*dy);
     const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2, midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    const wx = (midX - W / 2 - panX) / scale, wy = (midY - H / 2 - panY) / scale;
+    const wpt = screenToWorld(midX, midY); // 회전·확대 적용 전 중점의 월드 좌표
     scale = Math.max(0.15, Math.min(4, _pinchStartScale * (pinchDist / _pinchStartDist)));
-    panX = midX - W / 2 - wx * scale; panY = midY - H / 2 - wy * scale;
+    // 두 손가락 회전 → 화면 회전
+    setViewRotation((_pinchStartRotation + (Math.atan2(dy, dx) - _pinchStartAngle)) * 180 / Math.PI);
+    // 중점이 그대로 손가락 사이에 있도록 팬 재계산
+    const c = Math.cos(_viewRotation), s = Math.sin(_viewRotation);
+    const ddx = wpt.x - W / 2, ddy = wpt.y - H / 2;
+    panX = midX - W / 2 - (ddx * c - ddy * s) * scale;
+    panY = midY - H / 2 - (ddx * s + ddy * c) * scale;
     statusEl.textContent = `확대: ${Math.round(scale * 100)}%`;
     clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
   } else if (_touchMode === 'single' && e.touches.length === 1) {
