@@ -1720,7 +1720,7 @@ async function undoLastDelete() {
   else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
-  if (_rotating) { const dy = e.clientY - _rotStartY; setViewRotation((_rotStartAngle + dy * 0.01) * 180 / Math.PI); return; }
+  if (_rotating) { const dy = e.clientY - _rotStartY; setViewRotation((_rotStartAngle + dy * 0.005) * 180 / Math.PI); return; }
   if (drag) {
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
     nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
@@ -1804,9 +1804,9 @@ function unfreezeSubtree(node) {
 
 canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
-  if (_pcSelectGesture !== 'dblclick') return; // 우클릭 모드면 더블클릭 무시(단일클릭이 패널 염)
   const n = getNodeAt(e.clientX, e.clientY);
-  if (!n) return;
+  if (!n) { fitGraph(); return; } // 빈 공간 더블클릭 → 화면 맞춤
+  if (_pcSelectGesture !== 'dblclick') return; // 우클릭 모드면 노드 더블클릭은 무시(단일클릭이 패널 염)
   // 더블클릭 → 선택에 추가 (기존 선택 유지, 여러 개 누적 가능)
   if (!_multiSelected.includes(n)) toggleMultiSelect(n);
 });

@@ -19,7 +19,7 @@ canvas { display: block; }
 #multi-select-menu .ms-divider { height: 1px; background: rgba(255,255,255,0.14); margin: 3px 8px; }
 /* 노드 색상 표현 세그먼트 토글 */
 .seg-toggle { display: inline-flex; border: 1px solid rgba(237,112,0,0.4); border-radius: 6px; overflow: hidden; }
-.seg-toggle button { background: none; border: none; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.seg-toggle button { background: none; border: none; color: #fff; font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .seg-toggle button.active { background: rgba(237,112,0,0.9); color: #15110a; font-weight: 700; }
 .seg-toggle button:not(.active):hover { background: rgba(237,112,0,0.18); color: #fff; }
 #depth-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 3px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
