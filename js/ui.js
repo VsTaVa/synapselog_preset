@@ -130,12 +130,13 @@ function setLabelScale(v) {
 }
 
 function setViewRotation(deg) {
-  deg = parseFloat(deg) || 0;
+  deg = ((parseFloat(deg) || 0) % 360 + 360) % 360;
   _viewRotation = deg * Math.PI / 180;
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
-  const out = document.getElementById('rotation-val');
-  if (out) out.textContent = Math.round(deg) + '°';
+  const out = document.getElementById('rotation-val'); if (out) out.textContent = Math.round(deg) + '°';
+  const sl = document.getElementById('cfg-rotation'); if (sl && Math.round(parseFloat(sl.value)) !== Math.round(deg)) sl.value = Math.round(deg);
 }
+let _rotating = false, _rotStartY = 0, _rotStartAngle = 0;
 
 // 데스크탑 노드 선택 제스처: 'rightclick'(기본) | 'dblclick' — 모바일은 항상 더블탭
 let _pcSelectGesture = (() => { try { return localStorage.getItem('snlog_pc_select') || 'rightclick'; } catch (e) { return 'rightclick'; } })();
@@ -1719,6 +1720,7 @@ async function undoLastDelete() {
   else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
+  if (_rotating) { const dy = e.clientY - _rotStartY; setViewRotation((_rotStartAngle + dy * 0.01) * 180 / Math.PI); return; }
   if (drag) {
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
     nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
@@ -1736,6 +1738,12 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
+  if (e.button === 2) { e.preventDefault(); return; } // 우클릭은 contextmenu(선택)에서만 — 드래그/네이티브 동작 차단
+  // Ctrl/⌘ + 빈 공간 상하 드래그 → 화면 회전
+  if ((e.ctrlKey || e.metaKey) && !getNodeAt(e.clientX, e.clientY)) {
+    _rotating = true; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; canvas.style.cursor = 'ns-resize';
+    e.preventDefault(); return;
+  }
   mouseDownTime = Date.now();
   const n = getNodeAt(e.clientX, e.clientY);
   mouseDownNode = n;
@@ -1746,6 +1754,7 @@ canvas.addEventListener('mousedown', e => {
 let _clickTimer = null;
 
 canvas.addEventListener('mouseup', e => {
+  if (_rotating) { _rotating = false; canvas.style.cursor = ''; return; }
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
   if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
@@ -1782,7 +1791,7 @@ function clearAllModes() {
   }
 }
 
-canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; drag = null; isPanning = false; });
+canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; drag = null; isPanning = false; if (_rotating) { _rotating = false; canvas.style.cursor = ''; } });
 
 function unfreezeSubtree(node) {
   node._frozen = false; node._frozenFrames = 0;
