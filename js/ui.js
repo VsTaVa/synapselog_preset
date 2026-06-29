@@ -910,6 +910,10 @@ function renderPaneContent(i, n) {
 
   // 아이콘 순서: 제목·본문 수정 → 동기화 → 하위노드 생성 → 설정
   [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleActions.appendChild(b));
+  // 제목 우측에 아이콘 너비만큼 여백 확보 (긴 제목이 아이콘과 겹치지 않게)
+  if (titleEl && titleActions && titleActions !== titleRow) {
+    requestAnimationFrame(() => { titleEl.style.paddingRight = (titleActions.offsetWidth + 10) + 'px'; });
+  }
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
