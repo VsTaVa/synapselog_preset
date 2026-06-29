@@ -138,15 +138,8 @@ function setViewRotation(deg) {
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0;
 
-// 데스크탑 노드 선택 제스처: 'rightclick'(기본) | 'dblclick' — 모바일은 항상 더블탭
-let _pcSelectGesture = (() => { try { return localStorage.getItem('snlog_pc_select') || 'rightclick'; } catch (e) { return 'rightclick'; } })();
-function setPcSelectGesture(mode) {
-  _pcSelectGesture = (mode === 'dblclick') ? 'dblclick' : 'rightclick';
-  try { localStorage.setItem('snlog_pc_select', _pcSelectGesture); } catch (e) {}
-  const a = document.getElementById('pcsel-dbl'), b = document.getElementById('pcsel-right');
-  if (a) a.classList.toggle('active', _pcSelectGesture === 'dblclick');
-  if (b) b.classList.toggle('active', _pcSelectGesture === 'rightclick');
-}
+// 데스크탑 노드 선택: 우클릭 고정 (모바일은 더블탭)
+const _pcSelectGesture = 'rightclick';
 
 // ── 토글 헤딩 접기 / 펼치기 ────────────────────────────────────────────
 function nodeHasChildren(node) { return !!node && edges.some(e => e.from === node.id && !e.weakLink && !e.manualLink); }
@@ -1738,10 +1731,9 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
-  if (e.button === 2) { e.preventDefault(); return; } // 우클릭은 contextmenu(선택)에서만 — 드래그/네이티브 동작 차단
-  // Ctrl/⌘ + 빈 공간 상하 드래그 → 화면 회전
-  if ((e.ctrlKey || e.metaKey) && !getNodeAt(e.clientX, e.clientY)) {
-    _rotating = true; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; canvas.style.cursor = 'ns-resize';
+  if (e.button === 2) {
+    // Ctrl/⌘ + 우클릭 드래그 → 화면 회전, 일반 우클릭은 contextmenu(선택)에서 처리
+    if (e.ctrlKey || e.metaKey) { _rotating = true; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; canvas.style.cursor = 'ns-resize'; }
     e.preventDefault(); return;
   }
   mouseDownTime = Date.now();
@@ -1755,6 +1747,7 @@ let _clickTimer = null;
 
 canvas.addEventListener('mouseup', e => {
   if (_rotating) { _rotating = false; canvas.style.cursor = ''; return; }
+  if (e.button === 2) return; // 우클릭은 contextmenu에서 처리
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
   if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
@@ -1813,7 +1806,8 @@ canvas.addEventListener('dblclick', e => {
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
-  // 우클릭 선택 모드: 노드 위 우클릭이면 선택(누적)하고 종료
+  if (e.ctrlKey || e.metaKey) return; // Ctrl+우클릭은 회전 제스처 — 선택/메뉴 안 함
+  // 우클릭 → 노드 위면 선택(누적)하고 종료
   if (_pcSelectGesture === 'rightclick') {
     const node = getNodeAt(e.clientX, e.clientY);
     if (node) { if (!_multiSelected.includes(node)) toggleMultiSelect(node); return; }
@@ -1921,7 +1915,15 @@ canvas.addEventListener('touchend', e => {
         _lastTapNode = n; _lastTapTime = now;
       }
     } else if (elapsed < 300 && !n) {
-      clearAllModes();
+      const now = Date.now();
+      if (_lastTapNode === null && _lastTapTime && now - _lastTapTime < 350) {
+        // 빈 공간 더블탭 → 화면 맞춤
+        fitGraph();
+        _lastTapTime = 0;
+      } else {
+        clearAllModes();
+        _lastTapNode = null; _lastTapTime = now;
+      }
     }
   }
   if (drag && drag.fixed) saveFixedPositions();
@@ -2237,7 +2239,6 @@ setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
   const deg = Math.round(_viewRotation * 180 / Math.PI);
   const sl = document.getElementById('cfg-rotation'); if (sl) sl.value = deg;
   const out = document.getElementById('rotation-val'); if (out) out.textContent = deg + '°';
-  setPcSelectGesture(_pcSelectGesture);
 })();
 renderPanes();
 
