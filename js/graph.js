@@ -588,8 +588,10 @@ function fitGraph() {
     const a = visibleNodes.filter(n => !n.dimmed);
     if (a.length) visibleNodes = a;
   }
-  const sbEl = document.getElementById('sidebar'), dpEl = document.getElementById('detail-panel');
-  const sidebarWidth = sbEl.classList.contains('collapsed') ? 0 : sbEl.offsetWidth;
+  const railEl = document.getElementById('activity-rail'), sbEl = document.getElementById('sidebar'), dpEl = document.getElementById('detail-panel');
+  const railW = railEl ? railEl.offsetWidth : 0;
+  const flyoutW = (sbEl && sbEl.classList.contains('open')) ? sbEl.offsetWidth : 0;
+  const sidebarWidth = railW + flyoutW;
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;

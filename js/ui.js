@@ -613,13 +613,26 @@ function multiSelectDelete() {
 // 패널 열고/닫을 때 트랜지션(0.28s) 후 화면 맞춤
 function _autoFitPanel() { setTimeout(() => { try { fitGraph(); } catch (e) {} }, 320); }
 
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const btn = document.getElementById('sidebar-toggle');
-  const collapsed = sidebar.classList.toggle('collapsed');
-  if (btn) btn.classList.toggle('collapsed-visible', collapsed);
+// ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
+let _activeRailSection = null;
+const _railSections = ['pages', 'search', 'nodemode', 'graphcfg'];
+function openRailSection(name) {
+  if (_activeRailSection === name) { closeRailFlyout(); return; }
+  _activeRailSection = name;
+  document.querySelectorAll('#sidebar .rail-pane').forEach(el => el.classList.toggle('active', el.dataset.section === name));
+  _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
+  const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
+  if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
   _autoFitPanel();
 }
+function closeRailFlyout() {
+  if (!_activeRailSection) return;
+  _activeRailSection = null;
+  const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('open');
+  _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
+  _autoFitPanel();
+}
+function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 
 // ── 디테일 패널 (탭) ──────────────────────────────────────────────────
 
@@ -1970,7 +1983,7 @@ window.addEventListener('resize', () => {
   let active = null;
   function onMove(clientX) {
     if (active === 'sidebar') {
-      const w = Math.max(260, Math.min(640, clientX));
+      const w = Math.max(260, Math.min(640, clientX - 56)); // 56px 레일 보정
       document.documentElement.style.setProperty('--sidebar-w', w + 'px');
     } else if (active === 'detail') {
       const w = Math.max(280, Math.min(720, window.innerWidth - clientX - 12));
@@ -2024,6 +2037,7 @@ const LANG = {
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
+    'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시 세부조정','s-local':'로컬 저장 사용','s-local-sub':'브라우저를 닫아도 데이터가 유지됩니다',
@@ -2050,6 +2064,7 @@ const LANG = {
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
+    'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache Details','s-local':'Use Local Storage','s-local-sub':'Data persists after browser is closed',
@@ -2110,10 +2125,8 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') {
     if (document.getElementById('settings-modal').classList.contains('open')) { closeSettings(); return; }
+    if (_activeRailSection) { closeRailFlyout(); return; }
     if (detailPanel.classList.contains('open')) { hidePanel(); return; }
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && !sidebar.classList.contains('collapsed')) { toggleSidebar(); return; }
-    if (sidebar && sidebar.classList.contains('collapsed')) { toggleSidebar(); if (anyTabs()) showPanel(); return; }
     return;
   }
   const tag = document.activeElement?.tagName;
