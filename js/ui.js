@@ -371,7 +371,7 @@ function _exploreToolsHtml() {
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   const satIcon = (typeof SATELLITE_ICON_PATH === 'string')
-    ? `<svg width="14" height="14" viewBox="150 380 740 290" fill="currentColor"><circle cx="519" cy="521" r="95"/><path d="${SATELLITE_ICON_PATH}"/></svg>`
+    ? `<svg width="14" height="14" viewBox="150 380 740 290" fill="currentColor"><circle cx="519" cy="521" r="175"/><path d="${SATELLITE_ICON_PATH}"/></svg>`
     : '◌';
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">${satIcon} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
