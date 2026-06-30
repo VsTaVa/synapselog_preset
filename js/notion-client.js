@@ -868,19 +868,21 @@ function _addEntryChildNodes(entryNode, markdown) {
     let parentId = entryNode.id;
     for (let d = mdDepth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
 
-    let descLines = [], bodyBlocks = [], pendingBlk = null, nextIdx = i + 1;
+    let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
+    const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n') }); curBlk = null; } };
     while (nextIdx < lines.length) {
       const rawNl = lines[nextIdx].replace(/\s+$/, '');
       const nl = rawNl.trim();
       if (!nl) { nextIdx++; continue; }
       if (nl.startsWith('#') || nl === '[CHILD_PAGE]' || nl === '[TGL]' || nl.startsWith('[NOTION_ENTRY:') || nl.startsWith('[BLOCK:')) break;
       const bbm = nl.match(/^\[BB:([a-f0-9]+)\]$/);
-      if (bbm) { pendingBlk = bbm[1]; nextIdx++; continue; }
+      if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
       descLines.push(rawNl);
-      if (pendingBlk) { bodyBlocks.push({ id: pendingBlk, text: bodyBlockText(rawNl) }); pendingBlk = null; }
+      if (curBlk) curBlk.lines.push(bodyBlockText(rawNl));
       nextIdx++;
     }
+    flushBlk();
 
     const parentColor = nodeMap[parentId]?.color;
     let color = null;
@@ -944,16 +946,18 @@ async function _loadEntryNode(node, pageId) {
   } else {
     // 헤딩 없는 엔트리: 본문 블록 마커를 파싱해 desc + bodyBlocks 구성
     const bb = [], descArr = [];
-    let pend = null;
+    let cur = null;
+    const flush = () => { if (cur) { bb.push({ id: cur.id, text: cur.lines.join('\n') }); cur = null; } };
     for (const raw of md.split('\n')) {
       const t = raw.trim();
       if (!t) continue;
       const m = t.match(/^\[BB:([a-f0-9]+)\]$/);
-      if (m) { pend = m[1]; continue; }
-      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { pend = null; continue; }
+      if (m) { flush(); cur = { id: m[1], lines: [] }; continue; }
+      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { flush(); continue; }
       descArr.push(raw.replace(/^#{1,5}\s+/, ''));
-      if (pend) { bb.push({ id: pend, text: bodyBlockText(raw) }); pend = null; }
+      if (cur) cur.lines.push(bodyBlockText(raw));
     }
+    flush();
     node.desc = cleanDesc(descArr.join('\n').substring(0, 5000).trim());
     if (bb.length) node.bodyBlocks = bb;
   }

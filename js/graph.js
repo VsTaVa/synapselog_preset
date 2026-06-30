@@ -112,7 +112,8 @@ function parseMarkdown(text, rootTitle) {
       let parentId = null;
       for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
       if (!parentId) parentId = rootId;
-      let descLines = [], bodyBlocks = [], pendingBlk = null, nextIdx = i + 1;
+      let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
+      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n') }); curBlk = null; } };
       while (nextIdx < lines.length) {
         const rawLine = lines[nextIdx].replace(/\s+$/, '');
         let nextLine = rawLine.trim();
@@ -124,15 +125,16 @@ function parseMarkdown(text, rootTitle) {
         if (nextLine.startsWith('[NOTION_ENTRY:')) break;
         if (nextLine.startsWith('[BLOCK:')) break;
         const bbm = nextLine.match(/^\[BB:([a-f0-9]+)\]$/);
-        if (bbm) { pendingBlk = bbm[1]; nextIdx++; continue; }
+        if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
         const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
         if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
         descLines.push(rawLine);
-        if (pendingBlk) { bodyBlocks.push({ id: pendingBlk, text: bodyBlockText(rawLine) }); pendingBlk = null; }
+        if (curBlk) curBlk.lines.push(bodyBlockText(rawLine)); // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집
         nextIdx++;
       }
+      flushBlk();
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
         nodeMap[curId].headingDepth = rawDepth;
