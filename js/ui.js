@@ -610,11 +610,15 @@ function multiSelectDelete() {
 
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
 
+// 패널 열고/닫을 때 트랜지션(0.28s) 후 화면 맞춤
+function _autoFitPanel() { setTimeout(() => { try { fitGraph(); } catch (e) {} }, 320); }
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const btn = document.getElementById('sidebar-toggle');
   const collapsed = sidebar.classList.toggle('collapsed');
   if (btn) btn.classList.toggle('collapsed-visible', collapsed);
+  _autoFitPanel();
 }
 
 // ── 디테일 패널 (탭) ──────────────────────────────────────────────────
@@ -680,6 +684,7 @@ function toggleDetailPanel() {
   _detailPanelCollapsed = !_detailPanelCollapsed;
   detailPanel.classList.toggle('panel-collapsed', _detailPanelCollapsed);
   updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 function reopenDetailPanel() {
@@ -687,6 +692,7 @@ function reopenDetailPanel() {
   if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
   else { showPanel(); }
   updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
@@ -1447,10 +1453,12 @@ function showPanel() {
   statusEl.classList.add('panel-open');
   renderPanes();
   updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 function openPanel(n) {
   _activeNode = n;
+  const _wasOpen = detailPanel.classList.contains('open');
   const pane = _panes[_activePane] || _panes[0];
   const existing = pane.tabs.find(t => t.nodeId === n.id);
   if (existing) {
@@ -1473,6 +1481,7 @@ function openPanel(n) {
     applyFocusMode(n.id, shallow);
   }
   if (n.level === 0) highlightSidebarPage(n.sourcePageId || null);
+  if (!_wasOpen) _autoFitPanel(); // 패널이 새로 열릴 때만 화면 맞춤
 }
 
 function closePanel() {
@@ -1482,6 +1491,7 @@ function closePanel() {
   statusEl.classList.remove('panel-open');
   renderPanes();
   updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 function hidePanel() {
@@ -1490,6 +1500,7 @@ function hidePanel() {
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
   updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 // ── 검색 ──────────────────────────────────────────────────────────────
