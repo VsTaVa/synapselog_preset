@@ -1987,6 +1987,7 @@ window.addEventListener('resize', () => {
     const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--detail-w'));
     if (v) localStorage.setItem('snlog_detail_w', v);
     document.body.classList.remove('resizing-panel'); dH.classList.remove('dragging'); active = false;
+    try { fitGraph(); } catch (e) {} // 폭 바뀐 만큼 화면 맞춤
   }
   dH.addEventListener('mousedown', start);
   window.addEventListener('mousemove', e => onMove(e.clientX));
