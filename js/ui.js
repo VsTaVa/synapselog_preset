@@ -710,19 +710,20 @@ function reopenDetailPanel() {
 
 const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
-// 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할
-function renderPanes() {
+// 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
+function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
   wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
   _stack.forEach((node, i) => {
     const el = document.createElement('div');
-    el.className = 'detail-pane';
+    el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : '');
     el.dataset.pane = i;
     el.innerHTML =
       `<div class="detail-pane-bar">` +
-        (i === 0 ? `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` : `<span></span>`) +
+        `<span class="pane-bar-spacer"></span>` +
+        `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
         `<button class="pane-x" title="이 패널 닫기">✕</button>` +
       `</div>` +
       `<div class="detail-body">` +
@@ -731,8 +732,7 @@ function renderPanes() {
         `<div class="detail-divider"></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
-    const cb = el.querySelector('.pane-collapse-btn');
-    if (cb) cb.onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
+    el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
     wrap.appendChild(el);
     renderPaneContent(i, node);
@@ -1377,14 +1377,16 @@ function openPanel(n) {
   _activeNode = n;
   const _wasOpen = detailPanel.classList.contains('open');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
+  let added = false;
   if (!_stack.some(x => x.id === n.id)) {
     _stack.push(n);
     if (_stack.length > MAX_STACK) _stack.shift();
+    added = true;
   }
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
-  renderPanes();
+  renderPanes(added ? n.id : null);
   updateDetailReopenTab();
   if (_focusMode) {
     const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
