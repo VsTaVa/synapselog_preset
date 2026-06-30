@@ -1116,7 +1116,7 @@ function exportGraph() {
     const cy = SIZE - pad - logoSize / 2;
     ctx2.font = `bold ${fontPx}px 'Noto Sans KR', sans-serif`;
     ctx2.textAlign = 'right'; ctx2.textBaseline = 'middle';
-    ctx2.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx2.fillStyle = 'rgba(237,112,0,0.9)';
     ctx2.fillText('SynapseLog', SIZE - pad, cy + fontPx * 0.04);
     const tw = ctx2.measureText('SynapseLog').width;
     if (_exportLogo && _exportLogo.complete && _exportLogo.naturalWidth) {
