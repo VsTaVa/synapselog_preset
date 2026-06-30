@@ -13,28 +13,6 @@ let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlo
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
-// 토글 헤딩 접기: collapsed=true 인 노드의 하위 트리를 숨긴다.
-// draw()마다 호출 — 접힌 노드가 없으면 사실상 O(n) 플래그 리셋만.
-function recomputeCollapse() {
-  for (let i = 0; i < nodes.length; i++) { nodes[i]._collapsedHidden = false; nodes[i]._hiddenCount = 0; }
-  for (let i = 0; i < nodes.length; i++) {
-    const n = nodes[i];
-    if (!n.collapsed) continue;
-    let count = 0;
-    const q = [n.id];
-    while (q.length) {
-      const id = q.shift();
-      for (let j = 0; j < edges.length; j++) {
-        const e = edges[j];
-        if (e.from === id && !e.weakLink && !e.manualLink) {
-          const c = nodeMap[e.to];
-          if (c && !c._collapsedHidden) { c._collapsedHidden = true; count++; q.push(e.to); }
-        }
-      }
-    }
-    n._hiddenCount = count;
-  }
-}
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
@@ -182,12 +160,12 @@ function simulate() {
     const q=[fn.id], v=new Set([fn.id]);
     while(q.length){ const id=q.shift(); edges.forEach(e=>{ if(e.from===id&&!e.weakLink&&!v.has(e.to)){v.add(e.to);fixedDescendants.add(e.to);q.push(e.to);} }); }
   });
-  const activeNodes = nodes.filter(n => n.visible && !n._collapsedHidden && !n.fixed && !n._frozen && n !== drag);
+  const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && n !== drag);
   let totalVelocity = 0;
   activeNodes.forEach(n => {
     let fx = 0, fy = 0;
     nodes.forEach(m => {
-      if(m === n || !m.visible || m._collapsedHidden) return;
+      if(m === n || !m.visible) return;
       const dx = n.x-m.x, dy = n.y-m.y, d = Math.max(dist(n,m), 1);
       if(d < 400) { const f = repulsion/(d*d); fx += dx/d*f; fy += dy/d*f; }
     });
@@ -235,7 +213,6 @@ function draw() {
   ctx.scale(scale, scale);
   if (_viewRotation) ctx.rotate(_viewRotation);
   ctx.translate(-W/2, -H/2);
-  recomputeCollapse();
   const labelQueue = [];
   const hasSearch = searchKeyword.length > 0;
   const childCountMap = new Map(), manualLinkedSet = new Set();
@@ -246,7 +223,7 @@ function draw() {
 
   edges.forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
-    if(!na||!nb||!na.visible||!nb.visible||na._collapsedHidden||nb._collapsedHidden) return;
+    if(!na||!nb||!na.visible||!nb.visible) return;
     const isHov = hoveredNode&&(hoveredNode.id===e.from||hoveredNode.id===e.to);
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
@@ -338,7 +315,7 @@ function draw() {
   }
 
   nodes.forEach(n => {
-    if(!n.visible || n._collapsedHidden) return;
+    if(!n.visible) return;
     const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
@@ -476,28 +453,9 @@ function draw() {
       const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
       ctx.font = lblFont; ctx.textBaseline = 'top';
       const y = sp.y + sr + 5 * scale;
-      const showCount = n.collapsed && n._hiddenCount > 0 && !isDim;
-      if (showCount) {
-        const countTxt = '+' + n._hiddenCount;
-        const gap = fontSize * 0.4, bFont = `bold ${(fontSize * 0.82).toFixed(2)}px 'Noto Sans KR',sans-serif`;
-        const lblW = ctx.measureText(lbl).width;
-        ctx.font = bFont; const cW = ctx.measureText(countTxt).width;
-        const padX = fontSize * 0.42, bh = fontSize * 1.2, bw = cW + padX * 2;
-        const startX = sp.x - (lblW + gap + bw) / 2;
-        ctx.font = lblFont; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-        ctx.fillStyle = isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
-        ctx.fillText(lbl, startX, y);
-        const bx = startX + lblW + gap, by = y + fontSize / 2 - bh / 2;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, bh * 0.45); else ctx.rect(bx, by, bw, bh);
-        ctx.fillStyle = '#ed7000'; ctx.fill();
-        ctx.font = bFont; ctx.fillStyle = '#15110a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(countTxt, bx + bw / 2, by + bh / 2 + fontSize * 0.04);
-      } else {
-        ctx.textAlign = 'center';
-        ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
-        ctx.fillText(lbl, sp.x, y);
-      }
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
+      ctx.fillText(lbl, sp.x, y);
     });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
@@ -522,7 +480,7 @@ function isNodeInteractable(n) {
   if ((_focusMode || _isolateActive) && n.dimmed) return false;
   return true;
 }
-function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>n.visible&&!n._collapsedHidden&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+5)||null; }
+function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>n.visible&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+5)||null; }
 
 function saveFixedPositions() {
   const data = {};
@@ -578,7 +536,7 @@ function revealByLevel(nodeIds, onComplete) {
 
 function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
-  let visibleNodes = nodes.filter(n => n.visible && !n._collapsedHidden);
+  let visibleNodes = nodes.filter(n => n.visible);
   if (visibleNodes.length === 0) return;
   // 검색/포커스/경로/격리 활성 시: 활성(밝은) 노드만 기준으로 맞춤
   let subsetActive = false;

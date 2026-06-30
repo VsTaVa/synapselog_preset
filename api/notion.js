@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 
   // ── action: 'updateBlock' — 기존 블록(헤딩/문단 등) 텍스트 수정 ──────
   if (action === 'updateBlock') {
-    const { blockId, text, toggleable } = req.body;
+    const { blockId, text } = req.body;
     if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
     try {
       // 블록 유형을 먼저 조회해 올바른 키로 PATCH (레벨 시프트와 무관하게 정확)
@@ -92,91 +92,12 @@ export default async function handler(req, res) {
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
 
-      // 토글 헤딩 전환 시 본문 재배치 공용 헬퍼
-      const BREAK = ['heading_1', 'heading_2', 'heading_3', 'heading_4', 'toggle', 'child_page', 'child_database'];
-      const SAFE = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'toggle', 'code', 'divider'];
-      const norm = id => (id || '').replace(/-/g, '');
-      const sanitizeRich = (rt) => (Array.isArray(rt) ? rt : []).map(t => (
-        t.type === 'text'
-          ? { type: 'text', text: { content: t.text?.content || '', link: t.text?.link || null }, annotations: t.annotations || undefined }
-          : { type: 'text', text: { content: t.plain_text || '' }, annotations: t.annotations || undefined }
-      ));
-      const childValue = (t, val) => {
-        val = val || {}; const out = {};
-        if ('rich_text' in val) out.rich_text = sanitizeRich(val.rich_text);
-        if (t === 'to_do') out.checked = !!val.checked;
-        if (t === 'code') { out.rich_text = sanitizeRich(val.rich_text); out.language = val.language || 'plain text'; }
-        if (/^heading_/.test(t)) out.is_toggleable = false;
-        return out;
-      };
-      const listChildrenOf = async (id) => {
-        const out = []; let cur;
-        do {
-          const r = await fetch(`https://api.notion.com/v1/blocks/${id}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
-          if (!r.ok) break;
-          const d = await r.json();
-          out.push(...d.results.filter(b => b?.type));
-          cur = d.has_more ? d.next_cursor : undefined;
-        } while (cur);
-        return out;
-      };
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
-      if (typeof toggleable === 'boolean' && /^heading_[1234]$/.test(type)) patchBody[type].is_toggleable = toggleable;
-      const patchSelf = async () => fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
+      const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(patchBody)
       });
-
-      let relocated = false;
-      const parent = block.parent || {};
-      const parentId = parent.type === 'page_id' ? parent.page_id : parent.block_id;
-
-      // (A) 토글 해제: 자식 있는 헤딩의 is_toggleable=false는 노션이 거부 → 자식을 헤딩 뒤 형제로 옮긴 뒤 해제
-      if (toggleable === false && /^heading_[1234]$/.test(type) && block.has_children && parentId) {
-        const kids = (await listChildrenOf(blockId)).filter(k => SAFE.includes(k.type));
-        if (kids.length) {
-          const payload = kids.map(k => ({ object: 'block', type: k.type, [k.type]: childValue(k.type, k[k.type]) }));
-          const ap = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
-            method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ after: blockId, children: payload })
-          });
-          if (!ap.ok) { const e = await ap.json(); return res.status(ap.status).json({ error: '토글 자식 이동 실패: ' + (e.message || '') }); }
-          for (const k of kids) { try { await fetch(`https://api.notion.com/v1/blocks/${k.id}`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) }); } catch (e) {} }
-          relocated = true;
-        }
-        const p = await patchSelf();
-        if (!p.ok) { const e = await p.json(); return res.status(p.status).json({ error: e.message || '수정 실패' }); }
-        return res.status(200).json({ ok: true, type, relocated });
-      }
-
-      // (B) 토글 설정: is_toggleable=true 먼저 적용 후, 헤딩 다음 형제 본문을 헤딩 안 자식으로 이동
-      if (toggleable === true && /^heading_[1234]$/.test(type) && parentId) {
-        const p = await patchSelf();
-        if (!p.ok) { const e = await p.json(); return res.status(p.status).json({ error: e.message || '수정 실패' }); }
-        const sibs = await listChildrenOf(parentId);
-        const idx = sibs.findIndex(b => norm(b.id) === norm(blockId));
-        const body = [];
-        if (idx >= 0) {
-          for (let j = idx + 1; j < sibs.length; j++) {
-            const b = sibs[j];
-            if (BREAK.includes(b.type)) break;
-            if (SAFE.includes(b.type)) body.push(b);
-          }
-        }
-        if (body.length) {
-          const payload = body.map(b => ({ object: 'block', type: b.type, [b.type]: childValue(b.type, b[b.type]) }));
-          const ap = await fetch(`https://api.notion.com/v1/blocks/${blockId}/children`, {
-            method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ children: payload })
-          });
-          if (!ap.ok) { const e = await ap.json(); return res.status(ap.status).json({ error: '토글 본문 이동 실패: ' + (e.message || '') }); }
-          for (const b of body) { try { await fetch(`https://api.notion.com/v1/blocks/${b.id}`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) }); } catch (e) {} }
-          relocated = true;
-        }
-        return res.status(200).json({ ok: true, type, relocated });
-      }
-
-      // (기본) 텍스트/토글 단순 수정
-      const p = await patchSelf();
       if (!p.ok) { const e = await p.json(); return res.status(p.status).json({ error: e.message || '수정 실패' }); }
-      return res.status(200).json({ ok: true, type, relocated });
+      return res.status(200).json({ ok: true, type });
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 

@@ -264,8 +264,8 @@ async function notionFetch(body) {
 
 // ── 노션 쓰기: 블록 텍스트 수정 ──────────────────────────────────────
 
-async function notionUpdateBlock(blockId, text, toggleable) {
-  return notionFetch({ action: 'updateBlock', blockId, text, toggleable });
+async function notionUpdateBlock(blockId, text) {
+  return notionFetch({ action: 'updateBlock', blockId, text });
 }
 
 async function notionAppendBlock(parentId, afterId, text, blockType) {
@@ -1028,7 +1028,7 @@ function exportGraph() {
   const SIZE = _exportSize || 2048, PADDING = 60;
   const hasSearch = searchKeyword.length > 0;
   const visibleNodes = nodes.filter(n => {
-    if (!n.visible || n._collapsedHidden) return false;
+    if (!n.visible) return false;
     if (_focusMode && n.dimmed) return false;
     if (hasSearch && !searchMatches.has(n.id)) return false;
     return true;

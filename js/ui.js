@@ -148,13 +148,7 @@ let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _s
 // 데스크탑 노드 선택: 우클릭 고정 (모바일은 더블탭)
 const _pcSelectGesture = 'rightclick';
 
-// ── 토글 헤딩 접기 / 펼치기 ────────────────────────────────────────────
 function nodeHasChildren(node) { return !!node && edges.some(e => e.from === node.id && !e.weakLink && !e.manualLink); }
-function toggleCollapse(node) { if (!node) return; node.collapsed = !node.collapsed; isStable = false; }
-function multiSelectToggleCollapse() { if (_multiSelected.length !== 1) return; toggleCollapse(_multiSelected[0]); renderMultiSelectMenu(); }
-function collapseAllToggles() { nodes.forEach(n => { if (n.notionToggle) n.collapsed = true; }); isStable = false; }
-function expandAllToggles() { nodes.forEach(n => { n.collapsed = false; }); isStable = false; }
-function toggleAllCollapse(on) { if (on) collapseAllToggles(); else expandAllToggles(); }
 
 // ── 포커스 모드 ────────────────────────────────────────────────────────
 
@@ -349,13 +343,6 @@ function _editToolsHtml(node) {
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
-  if (node.notionToggle && nodeHasChildren(node)) {
-    const cl = !!node.collapsed;
-    const chevron = cl
-      ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`
-      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-    html += `<button onclick="multiSelectToggleCollapse()" title="이 토글 헤딩의 하위 노드를 접거나 펼칩니다">${chevron} ${cl ? '토글 열기' : '토글 접기'}</button>`;
-  }
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
@@ -1071,16 +1058,6 @@ function beginNodeEdit(paneIdx, node) {
   const rows = [];
   contentEl.innerHTML = '';
 
-  // 토글 헤딩 전환 — 노션 헤딩 노드만
-  let toggleInput = null;
-  if (!isLocal && node.notionBlockId) {
-    const row = document.createElement('label'); row.className = 'toggle-heading-row';
-    toggleInput = document.createElement('input'); toggleInput.type = 'checkbox'; toggleInput.checked = !!node.notionToggle;
-    const span = document.createElement('span'); span.textContent = '토글 헤딩으로 표시';
-    row.appendChild(toggleInput); row.appendChild(span);
-    contentEl.appendChild(row);
-  }
-
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
   let _bodyDrag = null;
@@ -1159,7 +1136,6 @@ function beginNodeEdit(paneIdx, node) {
   saveBtn.onclick = async () => {
     const newTitle = titleInput ? titleInput.value.trim() : null;
     const titleChanged = !!(titleInput && newTitle && newTitle !== node.label);
-    const toggleChanged = !!(toggleInput && !!toggleInput.checked !== !!node.notionToggle);
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
     const reordered = !isLocal && node.notionBlockId && hasBody && (() => {
@@ -1167,9 +1143,8 @@ function beginNodeEdit(paneIdx, node) {
       const orig = (node.bodyBlocks || []).map(b => b.id);
       return cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
     })();
-    if (!titleChanged && !toggleChanged && !dirty.length && !reordered) { finish(); return; }
+    if (!titleChanged && !dirty.length && !reordered) { finish(); return; }
 
-    const newToggle = toggleInput ? !!toggleInput.checked : !!node.notionToggle;
     const origBody = (node.bodyBlocks || []).slice();
     const oldBodyIds = origBody.map(b => b.id);
     const finalRows = rows
@@ -1184,25 +1159,8 @@ function beginNodeEdit(paneIdx, node) {
         saveLocalPages();
       } else {
         const tgt = _appendTarget(node);
-        // 토글 변경은 먼저 단독 처리 — 토글 해제 시 자식이 형제로 재배치될 수 있어 본문 작업보다 선행
-        if (titleChanged || toggleChanged) {
-          const updRes = await notionUpdateBlock(node.notionBlockId, titleChanged ? newTitle : node.label, toggleInput ? newToggle : undefined);
-          if (toggleChanged) node.notionToggle = newToggle;
-          if (updRes && updRes.relocated) {
-            // 본문이 재배치되어 블록 id가 바뀜 → 본문 편집분은 적용하지 않고 노드를 다시 동기화
-            if (titleChanged) {
-              node.label = newTitle;
-              refreshOpenPanes();
-            }
-            if (!newToggle && node.collapsed) node.collapsed = false;
-            invalidateNodeCache(node);
-            isStable = false;
-            finish();
-            toast(newToggle ? '토글 설정됨 — 본문을 다시 불러올게' : '토글 해제됨 — 본문을 다시 불러올게', { type: 'success' });
-            if (typeof syncNode === 'function') syncNode(node, paneIdx);
-            return;
-          }
-        }
+        // 제목 변경 먼저 적용
+        if (titleChanged) await notionUpdateBlock(node.notionBlockId, newTitle);
         // 독립적인 쓰기는 병렬로 묶어 실제 저장 시간을 줄인다
         const pre = [];
         if (reordered) {
@@ -1237,7 +1195,6 @@ function beginNodeEdit(paneIdx, node) {
           node.desc = d.replace(/\n{3,}/g, '\n\n').trim();
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
-        if (toggleChanged) node.notionToggle = newToggle;
         invalidateNodeCache(node);
       }
       if (titleChanged) {
