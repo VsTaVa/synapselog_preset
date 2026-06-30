@@ -581,12 +581,13 @@ function fitGraph(rotate = true) {
   let visibleNodes = nodes.filter(n => n.visible && !n._collapsedHidden);
   if (visibleNodes.length === 0) return;
   // 검색/포커스/경로/격리 활성 시: 활성(밝은) 노드만 기준으로 맞춤
+  let subsetActive = false;
   if (searchKeyword.length > 0 && searchMatches.size > 0) {
     const m = visibleNodes.filter(n => searchMatches.has(n.id));
-    if (m.length) visibleNodes = m;
+    if (m.length) { visibleNodes = m; subsetActive = true; }
   } else if (_focusMode || _isolateActive) {
     const a = visibleNodes.filter(n => !n.dimmed);
-    if (a.length) visibleNodes = a;
+    if (a.length) { visibleNodes = a; subsetActive = true; }
   }
   const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
@@ -596,8 +597,8 @@ function fitGraph(rotate = true) {
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
   let targetRot = startRot;
-  // 가장 잘 맞는 회전각 탐색(가로로 긴 그래프면 세로 뷰에 맞게) — 명시적 화면 맞춤일 때만
-  if (rotate) {
+  // 가장 잘 맞는 회전각 탐색 — 검색/경로/포커스 등 부분집합이 활성일 때만 회전(그 외엔 회전 유지)
+  if (rotate && subsetActive) {
     let best = startRot, bestScore = -Infinity;
     for (let deg = 0; deg < 180; deg += 6) {
       const rr = deg * Math.PI / 180, c = Math.cos(rr), s = Math.sin(rr);
