@@ -8,6 +8,7 @@ let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panSta
 let isStable = false;
 let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.5, linkTension: 0.005 };
 let searchKeyword = '', searchMatches = new Set();
+let searchDirect = new Set(); // 키워드 직접 매칭 노드(글로우 대상). searchMatches는 조상 경로 포함
 let _showLabels = true;
 let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
@@ -317,6 +318,7 @@ function draw() {
   nodes.forEach(n => {
     if(!n.visible) return;
     const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
+    const isDirectMatch=searchDirect.has(n.id);
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const ndRgb = nodeRgb(n);
@@ -342,7 +344,7 @@ function draw() {
         ctx.fillStyle = gH; ctx.fill();
       }
     }
-    if(isMatch) {
+    if(isDirectMatch) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+18,0,Math.PI*2);
       const g1=ctx.createRadialGradient(n.x,n.y,r,n.x,n.y,r+18);
       g1.addColorStop(0,'rgba(255,255,255,0.25)'); g1.addColorStop(1,'rgba(255,255,255,0)');

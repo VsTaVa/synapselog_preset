@@ -1392,6 +1392,7 @@ function deleteHistory(idx, e) { e.stopPropagation(); _searchHistory.splice(idx,
 function doSearch(kw) {
   searchKeyword = kw.trim().toLowerCase();
   searchMatches.clear();
+  searchDirect.clear();
   const resultEl = document.getElementById('search-result-count');
   if (searchKeyword) {
     const directMatches = new Set();
@@ -1400,6 +1401,7 @@ function doSearch(kw) {
       const lt = n.label.toLowerCase(), dt = n.desc.toLowerCase();
       if (lt.includes(searchKeyword) || dt.includes(searchKeyword)) directMatches.add(n.id);
     });
+    directMatches.forEach(id => searchDirect.add(id));
     function getAncestors(nodeId) {
       const ancestors = []; let cur = nodeId;
       for (let i = 0; i < 10; i++) { const parentEdge = edges.find(e => e.to === cur && !e.weakLink); if (!parentEdge) break; ancestors.push(parentEdge.from); cur = parentEdge.from; }
