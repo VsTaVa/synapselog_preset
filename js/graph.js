@@ -576,7 +576,7 @@ function revealByLevel(nodeIds, onComplete) {
   });
 }
 
-function fitGraph(rotate) {
+function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible && !n._collapsedHidden);
   if (visibleNodes.length === 0) return;
