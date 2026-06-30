@@ -29,6 +29,18 @@ export default async function handler(req, res) {
     return out.length ? out : [{ type: 'text', text: { content: '' } }];
   }
 
+  // 본문 한 줄의 줄머리 마크다운(- , 1. , > , 체크박스)을 노션 블록 타입으로 변환
+  // (마커는 첫 줄 머리만 제거하고 나머지(소프트 줄바꿈 포함)는 보존)
+  function lineToBlock(raw) {
+    const t = raw || '';
+    if (/^\s*[-*]\s+/.test(t)) return { type: 'bulleted_list_item', value: { rich_text: buildRichText(t.replace(/^\s*[-*]\s+/, '')) } };
+    if (/^\s*\d+\.\s+/.test(t)) return { type: 'numbered_list_item', value: { rich_text: buildRichText(t.replace(/^\s*\d+\.\s+/, '')) } };
+    if (/^\s*>\s+/.test(t)) return { type: 'quote', value: { rich_text: buildRichText(t.replace(/^\s*>\s+/, '')) } };
+    if (/^\s*(?:☑|\[[xX]\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☑|\[[xX]\])\s+/, '')), checked: true } };
+    if (/^\s*(?:☐|\[ ?\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☐|\[ ?\])\s+/, '')), checked: false } };
+    return { type: 'paragraph', value: { rich_text: buildRichText(t) } };
+  }
+
   // 프로필 조회
   if (action === 'profile') {
     try {
@@ -148,7 +160,10 @@ export default async function handler(req, res) {
       }
 
       const doAppend = async (t) => {
-        const nb = { object: 'block', type: t, [t]: { rich_text: buildRichText(text || '') } };
+        // 본문(paragraph)이면 줄머리 마커를 보고 리스트/인용/체크박스 블록으로 변환
+        const nb = (t === 'paragraph')
+          ? (() => { const lb = lineToBlock(text || ''); return { object: 'block', type: lb.type, [lb.type]: lb.value }; })()
+          : { object: 'block', type: t, [t]: { rich_text: buildRichText(text || '') } };
         const body = afterTarget ? { children: [nb], after: afterTarget } : { children: [nb] };
         return fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
           method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -190,7 +205,10 @@ export default async function handler(req, res) {
           afterTarget = last.id;
         }
       }
-      const childrenBody = texts.map(t => ({ object: 'block', type, [type]: { rich_text: buildRichText(t || '') } }));
+      const childrenBody = texts.map(t => {
+        if (type === 'paragraph') { const lb = lineToBlock(t || ''); return { object: 'block', type: lb.type, [lb.type]: lb.value }; }
+        return { object: 'block', type, [type]: { rich_text: buildRichText(t || '') } };
+      });
       const body = afterTarget ? { children: childrenBody, after: afterTarget } : { children: childrenBody };
       const r2 = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children`, {
         method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
