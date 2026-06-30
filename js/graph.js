@@ -576,7 +576,7 @@ function revealByLevel(nodeIds, onComplete) {
   });
 }
 
-function fitGraph() {
+function fitGraph(rotate) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible && !n._collapsedHidden);
   if (visibleNodes.length === 0) return;
@@ -594,6 +594,24 @@ function fitGraph() {
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
+  // 가장 잘 맞는 회전각 탐색(가로로 긴 그래프면 세로 뷰에 맞게 돌림) — 명시적 화면 맞춤일 때만
+  if (rotate) {
+    let best = _viewRotation, bestScore = -Infinity;
+    for (let deg = 0; deg < 180; deg += 6) {
+      const rr = deg * Math.PI / 180, c = Math.cos(rr), s = Math.sin(rr);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const n of visibleNodes) {
+        const dx = n.x - W/2, dy = n.y - H/2;
+        const rx = dx*c - dy*s, ry = dx*s + dy*c;
+        if (rx < x0) x0 = rx; if (rx > x1) x1 = rx; if (ry < y0) y0 = ry; if (ry > y1) y1 = ry;
+      }
+      const gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
+      const score = Math.min(availW / gw, availH / gh);
+      if (score > bestScore + 1e-6) { bestScore = score; best = rr; }
+    }
+    if (typeof setViewRotation === 'function') setViewRotation(best * 180 / Math.PI);
+    else _viewRotation = best;
+  }
   // 뷰 회전을 반영해 회전된 좌표(스케일/팬 적용 전)로 경계를 계산
   const cosR = Math.cos(_viewRotation), sinR = Math.sin(_viewRotation);
   const rxs = visibleNodes.map(n => (n.x - W/2)*cosR - (n.y - H/2)*sinR);

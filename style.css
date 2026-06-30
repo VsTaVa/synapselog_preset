@@ -181,8 +181,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #confirm-ok:hover { background: rgba(237,112,0,0.25); }
 .detail-pane-bar { width: 100%; min-height: 28px; display: flex; align-items: center; padding: 0 5px; background: rgba(0,0,0,0.18); border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
 .pane-bar-spacer { flex: 1; }
-.pane-collapse-btn, .pane-x { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-.pane-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.pane-collapse-btn, .pane-x, .pane-swap-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.pane-collapse-btn:hover, .pane-swap-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
 .pane-x { color: #ed7000; font-size: 16px; line-height: 1; }
 .pane-x:hover { color: #fff; background: rgba(237,112,0,0.25); }
 #detail-panel { display: flex; flex-direction: column; }

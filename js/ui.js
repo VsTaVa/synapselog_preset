@@ -133,8 +133,15 @@ function setViewRotation(deg) {
   deg = ((parseFloat(deg) || 0) % 360 + 360) % 360;
   _viewRotation = deg * Math.PI / 180;
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
-  const out = document.getElementById('rotation-val'); if (out) out.textContent = Math.round(deg) + '°';
-  const sl = document.getElementById('cfg-rotation'); if (sl && Math.round(parseFloat(sl.value)) !== Math.round(deg)) sl.value = Math.round(deg);
+  showViewStatus();
+}
+// 하단 중앙 상태바: 확대 % + 회전 ° 같이 표시
+function showViewStatus() {
+  if (!statusEl) return;
+  const pct = Math.round(scale * 100);
+  const deg = Math.round(((_viewRotation * 180 / Math.PI) % 360 + 360) % 360);
+  statusEl.textContent = `확대 ${pct}%` + (deg ? `   ·   회전 ${deg}°` : '');
+  clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1400);
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
@@ -664,6 +671,13 @@ let _undoDelete = null; // 마지막 삭제 묶음 (실행 취소용)
 
 function anyTabs() { return _stack.length > 0; }
 
+// 위·아래 패널 순서 교체
+function swapPanes() {
+  if (_stack.length < 2) return;
+  _stack.reverse();
+  renderPanes();
+}
+
 // 특정 패널(스택 i번)만 닫기
 function closePaneAt(i) {
   if (i < 0 || i >= _stack.length) return;
@@ -723,6 +737,7 @@ function renderPanes(animateId) {
     el.innerHTML =
       `<div class="detail-pane-bar">` +
         `<span class="pane-bar-spacer"></span>` +
+        (_stack.length >= 2 ? `<button class="pane-swap-btn" title="위·아래 패널 교체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>` : '') +
         `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
         `<button class="pane-x" title="이 패널 닫기">✕</button>` +
       `</div>` +
@@ -732,6 +747,8 @@ function renderPanes(animateId) {
         `<div class="detail-divider"></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
+    const swb = el.querySelector('.pane-swap-btn');
+    if (swb) swb.onclick = (e) => { e.stopPropagation(); swapPanes(); };
     el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
     wrap.appendChild(el);
@@ -1696,7 +1713,7 @@ function unfreezeSubtree(node) {
 canvas.addEventListener('dblclick', e => {
   clearTimeout(_clickTimer);
   const n = getNodeAt(e.clientX, e.clientY);
-  if (!n) { fitGraph(); return; } // 빈 공간 더블클릭 → 화면 맞춤
+  if (!n) { fitGraph(true); return; } // 빈 공간 더블클릭 → 화면 맞춤
   if (_pcSelectGesture !== 'dblclick') return; // 우클릭 모드면 노드 더블클릭은 무시(단일클릭이 패널 염)
   // 더블클릭 → 선택에 추가 (기존 선택 유지, 여러 개 누적 가능)
   if (!_multiSelected.includes(n)) toggleMultiSelect(n);
@@ -1735,8 +1752,7 @@ canvas.addEventListener('wheel', e => {
   const dx = wpt.x - W / 2, dy = wpt.y - H / 2;
   panX = mx - W / 2 - (dx * c - dy * s) * scale;
   panY = my - H / 2 - (dx * s + dy * c) * scale;
-  statusEl.textContent = `확대: ${Math.round(scale * 100)}%`;
-  clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
+  showViewStatus();
 }, { passive: false });
 
 // ── 터치 지원 (모바일 팬/탭 + 핀치 줌) ─────────────────────────────────
@@ -1779,8 +1795,7 @@ canvas.addEventListener('touchmove', e => {
     const ddx = wpt.x - W / 2, ddy = wpt.y - H / 2;
     panX = midX - W / 2 - (ddx * c - ddy * s) * scale;
     panY = midY - H / 2 - (ddx * s + ddy * c) * scale;
-    statusEl.textContent = `확대: ${Math.round(scale * 100)}%`;
-    clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1200);
+    showViewStatus();
   } else if (_touchMode === 'single' && e.touches.length === 1) {
     const t = e.touches[0];
     if (Math.abs(t.clientX - _touchStartX) > 4 || Math.abs(t.clientY - _touchStartY) > 4) _touchMoved = true;
@@ -1815,8 +1830,8 @@ canvas.addEventListener('touchend', e => {
     } else if (elapsed < 300 && !n) {
       const now = Date.now();
       if (_lastTapNode === null && _lastTapTime && now - _lastTapTime < 350) {
-        // 빈 공간 더블탭 → 화면 맞춤
-        fitGraph();
+        // 빈 공간 더블탭 → 화면 맞춤(회전 포함)
+        fitGraph(true);
         _lastTapTime = 0;
       } else {
         clearAllModes();
@@ -1987,7 +2002,7 @@ document.addEventListener('keydown', e => {
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleLabels) { e.preventDefault(); const cb = document.getElementById('label-toggle-input'); if (cb) cb.checked = !cb.checked; toggleLabels(); }
-  else if (e.key === ' ') { e.preventDefault(); fitGraph(); } // 스페이스바 → 화면 맞춤
+  else if (e.key === ' ') { e.preventDefault(); fitGraph(true); } // 스페이스바 → 화면 맞춤
 });
 
 // ── 프로필 ────────────────────────────────────────────────────────────
