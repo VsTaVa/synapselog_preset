@@ -637,7 +637,7 @@ function multiSelectDelete() {
 // ── 사이드바 토글 ─────────────────────────────────────────────────────
 
 // 패널 열고/닫을 때 트랜지션(0.28s) 후 화면 맞춤
-function _autoFitPanel() { setTimeout(() => { try { fitGraph(); } catch (e) {} }, 320); }
+function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e) {} }, 320); }
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;

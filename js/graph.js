@@ -594,9 +594,11 @@ function fitGraph(rotate = true) {
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
-  // 가장 잘 맞는 회전각 탐색(가로로 긴 그래프면 세로 뷰에 맞게 돌림) — 명시적 화면 맞춤일 때만
+  const startRot = _viewRotation;
+  let targetRot = startRot;
+  // 가장 잘 맞는 회전각 탐색(가로로 긴 그래프면 세로 뷰에 맞게) — 명시적 화면 맞춤일 때만
   if (rotate) {
-    let best = _viewRotation, bestScore = -Infinity;
+    let best = startRot, bestScore = -Infinity;
     for (let deg = 0; deg < 180; deg += 6) {
       const rr = deg * Math.PI / 180, c = Math.cos(rr), s = Math.sin(rr);
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -609,30 +611,47 @@ function fitGraph(rotate = true) {
       const score = Math.min(availW / gw, availH / gh);
       if (score > bestScore + 1e-6) { bestScore = score; best = rr; }
     }
-    if (typeof setViewRotation === 'function') setViewRotation(best * 180 / Math.PI);
-    else _viewRotation = best;
+    targetRot = best;
+    // π 대칭이라 같은 결과 → 시작각에서 가장 가까운 등가각으로(회전 거리 최소화)
+    while (targetRot - startRot > Math.PI / 2) targetRot -= Math.PI;
+    while (targetRot - startRot < -Math.PI / 2) targetRot += Math.PI;
   }
-  // 뷰 회전을 반영해 회전된 좌표(스케일/팬 적용 전)로 경계를 계산
-  const cosR = Math.cos(_viewRotation), sinR = Math.sin(_viewRotation);
-  const rxs = visibleNodes.map(n => (n.x - W/2)*cosR - (n.y - H/2)*sinR);
-  const rys = visibleNodes.map(n => (n.x - W/2)*sinR + (n.y - H/2)*cosR);
-  const minX = Math.min(...rxs), maxX = Math.max(...rxs);
-  const minY = Math.min(...rys), maxY = Math.max(...rys);
-  const graphW = maxX-minX || 1, graphH = maxY-minY || 1;
+  // 목표 회전각 기준 타이트 경계 → 스케일 + 중심으로 잡을 월드 점
+  const tc = Math.cos(targetRot), tsn = Math.sin(targetRot);
+  let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+  for (const n of visibleNodes) {
+    const dx = n.x - W/2, dy = n.y - H/2;
+    const rx = dx*tc - dy*tsn, ry = dx*tsn + dy*tc;
+    if (rx < bx0) bx0 = rx; if (rx > bx1) bx1 = rx; if (ry < by0) by0 = ry; if (ry > by1) by1 = ry;
+  }
+  const graphW = (bx1 - bx0) || 1, graphH = (by1 - by0) || 1;
   const targetScale = Math.min(availW/graphW, availH/graphH, 1.5) * 0.82;
-  const centerRX = (minX+maxX)/2, centerRY = (minY+maxY)/2;
-  const targetPanX = (offsetLeft+availW/2) - W/2 - centerRX*targetScale;
-  const targetPanY = (availH/2+20) - H/2 - centerRY*targetScale;
+  const cbx = (bx0 + bx1)/2, cby = (by0 + by1)/2; // 목표 회전 좌표계의 경계 중심
+  const itc = Math.cos(-targetRot), itsn = Math.sin(-targetRot);
+  const w0x = W/2 + (cbx*itc - cby*itsn), w0y = H/2 + (cbx*itsn + cby*itc); // 항상 가운데 둘 월드 점
+  const vcx = offsetLeft + availW/2, vcy = availH/2 + 20;
   if (_fitAnimId) cancelAnimationFrame(_fitAnimId);
-  const DURATION = 600, startTime = performance.now();
+  const DURATION = 620, startTime = performance.now();
   const startScale = scale, startPanX = panX, startPanY = panY;
   function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
   function animate(now) {
     const t = Math.min((now-startTime)/DURATION, 1), e = easeInOut(t);
-    scale = startScale + (targetScale-startScale)*e;
-    panX = startPanX + (targetPanX-startPanX)*e;
-    panY = startPanY + (targetPanY-startPanY)*e;
-    if (t < 1) { _fitAnimId = requestAnimationFrame(animate); } else { _fitAnimId = null; }
+    const curRot = startRot + (targetRot-startRot)*e;
+    const curScale = startScale + (targetScale-startScale)*e;
+    _viewRotation = curRot; scale = curScale;
+    // 회전·스케일에 맞춰 w0가 화면 중앙에 오는 팬 — 시작 팬에서 부드럽게 블렌딩
+    const c = Math.cos(curRot), s = Math.sin(curRot);
+    const dx = w0x - W/2, dy = w0y - H/2;
+    const keepPanX = vcx - W/2 - (dx*c - dy*s)*curScale;
+    const keepPanY = vcy - H/2 - (dx*s + dy*c)*curScale;
+    panX = startPanX + (keepPanX-startPanX)*e;
+    panY = startPanY + (keepPanY-startPanY)*e;
+    if (t < 1) { _fitAnimId = requestAnimationFrame(animate); }
+    else {
+      _fitAnimId = null;
+      try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (ex) {}
+      if (typeof showViewStatus === 'function') showViewStatus();
+    }
   }
   _fitAnimId = requestAnimationFrame(animate);
 }
