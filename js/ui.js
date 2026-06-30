@@ -339,9 +339,12 @@ function _editToolsHtml(node) {
   const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   const bmOn = isBookmarked(node);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const pinOn = !!node.fixed;
+  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M6 17h12l-1.7-3.2V7a2 2 0 0 0-2-2h-4.6a2 2 0 0 0-2 2v6.8L6 17z"/></svg>`;
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
+  html += `<button onclick="multiSelectPin()" title="이 노드를 제자리에 고정하거나 해제합니다">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
   if (node.notionToggle && nodeHasChildren(node)) {
     const cl = !!node.collapsed;
     const chevron = cl
@@ -370,8 +373,26 @@ function _exploreToolsHtml() {
   }
   html += `<button onclick="multiSelectPath()" title="${n === 1 ? '이 노드에서 최상위까지의 경로를 표시합니다' : '선택한 노드들 사이의 최단 경로만 표시합니다'}">↔ 경로 찾기</button>`;
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
-  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">◌ 위성 모드${satOn ? ' 해제' : ''}</button>`;
+  const satIcon = (typeof SATELLITE_ICON_PATH === 'string')
+    ? `<svg width="14" height="14" viewBox="150 380 740 290" fill="currentColor"><path d="${SATELLITE_ICON_PATH}"/></svg>`
+    : '◌';
+  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">${satIcon} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   return html;
+}
+
+// 선택 노드 고정/해제 (노드 선택 툴바)
+function multiSelectPin() {
+  if (_multiSelected.length < 1) return;
+  const targets = _multiSelected.slice();
+  const allFixed = targets.every(n => n.fixed);
+  targets.forEach(n => {
+    n.fixed = !allFixed;
+    if (!n.fixed) { n.vx = 0; n.vy = 0; delete n._satFixed; }
+    if (typeof unfreezeSubtree === 'function') unfreezeSubtree(n);
+  });
+  if (typeof saveFixedPositions === 'function') saveFixedPositions();
+  isStable = false;
+  renderMultiSelectMenu();
 }
 
 function repositionMultiSelectMenu() {
@@ -1793,8 +1814,6 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && !n) {
     clearAllModes();
   }
-  // 위성 모드 노드를 끌어다 놓으면 그 자리에 고정 (원하는 위치에 배치)
-  if (drag && drag._satelliteRoot && elapsed >= 150 && !drag.fixed) { drag.fixed = true; drag._satFixed = true; }
   if (drag && drag.fixed) saveFixedPositions();
   drag = null; isPanning = false; applyModeCursor();
 });
