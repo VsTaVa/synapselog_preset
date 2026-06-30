@@ -1034,8 +1034,17 @@ function exportGraph() {
     return true;
   });
   if (visibleNodes.length === 0) return;
-  const minX = Math.min(...visibleNodes.map(n => n.x)), maxX = Math.max(...visibleNodes.map(n => n.x));
-  const minY = Math.min(...visibleNodes.map(n => n.y)), maxY = Math.max(...visibleNodes.map(n => n.y));
+  // 뷰 회전 반영: 그래프 중심 기준으로 노드 좌표를 회전시켜 사용(라벨은 아래·수평 유지)
+  const _rot = (typeof _viewRotation === 'number') ? _viewRotation : 0;
+  const _cos = Math.cos(_rot), _sin = Math.sin(_rot);
+  const _cx0 = (Math.min(...visibleNodes.map(n => n.x)) + Math.max(...visibleNodes.map(n => n.x))) / 2;
+  const _cy0 = (Math.min(...visibleNodes.map(n => n.y)) + Math.max(...visibleNodes.map(n => n.y))) / 2;
+  const RP = new Map();
+  visibleNodes.forEach(n => { const dx = n.x - _cx0, dy = n.y - _cy0; RP.set(n.id, { x: _cx0 + dx * _cos - dy * _sin, y: _cy0 + dx * _sin + dy * _cos }); });
+  const _px = id => RP.get(id) || { x: 0, y: 0 };
+  const rxv = visibleNodes.map(n => RP.get(n.id).x), ryv = visibleNodes.map(n => RP.get(n.id).y);
+  const minX = Math.min(...rxv), maxX = Math.max(...rxv);
+  const minY = Math.min(...ryv), maxY = Math.max(...ryv);
   const graphW = maxX - minX || 1, graphH = maxY - minY || 1;
   const exportScale = (SIZE - PADDING * 2) / Math.max(graphW, graphH);
   const offscreen = document.createElement('canvas');
@@ -1060,15 +1069,17 @@ function exportGraph() {
     } else if (e.manualLink) { ctx2.setLineDash([4,5]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.6); ctx2.lineWidth = 0.8 * CONFIG.linkWidth; }
     else if (e.weakLink) { ctx2.setLineDash([4,4]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.2); ctx2.lineWidth = 0.6 * CONFIG.linkWidth; }
     else { ctx2.setLineDash([]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.55); ctx2.lineWidth = 0.7 * CONFIG.linkWidth; }
-    ctx2.beginPath(); ctx2.moveTo(a.x, a.y); ctx2.lineTo(b.x, b.y); ctx2.stroke();
+    const pa = _px(a.id), pb = _px(b.id);
+    ctx2.beginPath(); ctx2.moveTo(pa.x, pa.y); ctx2.lineTo(pb.x, pb.y); ctx2.stroke();
   });
   ctx2.setLineDash([]);
   visibleNodes.forEach(n => {
+    const p = _px(n.id), nx = p.x, ny = p.y;
     const r = nodeR(n.level), nodeColor = n.level === 0 ? '#ffffff' : (n.color || '#74b9ff');
     const rgb = _colorScheme === 'depth' ? nodeRgb(n) : hexToRgb(nodeColor), isMatch = searchMatches.has(n.id);
     if (hasSearch && isMatch) {
-      ctx2.beginPath(); ctx2.arc(n.x, n.y, r+10, 0, Math.PI*2);
-      const gS = ctx2.createRadialGradient(n.x, n.y, r, n.x, n.y, r+10);
+      ctx2.beginPath(); ctx2.arc(nx, ny, r+10, 0, Math.PI*2);
+      const gS = ctx2.createRadialGradient(nx, ny, r, nx, ny, r+10);
       gS.addColorStop(0, 'rgba(255,255,255,0.4)'); gS.addColorStop(1, 'rgba(255,255,255,0)');
       ctx2.fillStyle = gS; ctx2.fill();
     }
@@ -1077,25 +1088,25 @@ function exportGraph() {
       if (childCount >= 3) {
         const hubStrength = Math.min((childCount - 2) / 4, 1);
         const glowR = r + 8 + hubStrength * 22;
-        ctx2.beginPath(); ctx2.arc(n.x, n.y, glowR, 0, Math.PI*2);
-        const gH = ctx2.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
+        ctx2.beginPath(); ctx2.arc(nx, ny, glowR, 0, Math.PI*2);
+        const gH = ctx2.createRadialGradient(nx, ny, r, nx, ny, glowR);
         gH.addColorStop(0, rgbStr(rgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(rgb, 0));
         ctx2.fillStyle = gH; ctx2.fill();
       }
     }
-    if(n.level===0) drawStar8(ctx2, n.x, n.y, r);
-    else if(n.isDbNode) drawStar4(ctx2, n.x, n.y, r);
-    else if(n.isChildPage || n.entryNotionId) drawStarX(ctx2, n.x, n.y, r);
-    else { ctx2.beginPath(); ctx2.arc(n.x, n.y, r, 0, Math.PI*2); }
+    if(n.level===0) drawStar8(ctx2, nx, ny, r);
+    else if(n.isDbNode) drawStar4(ctx2, nx, ny, r);
+    else if(n.isChildPage || n.entryNotionId) drawStarX(ctx2, nx, ny, r);
+    else { ctx2.beginPath(); ctx2.arc(nx, ny, r, 0, Math.PI*2); }
     ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : rgbStr(rgb, 1); ctx2.fill();
     if (_showLabels) {
-      let lbl = n.label;
+      let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
       const fontSize = (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
       ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
-      ctx2.fillText(lbl, n.x, n.y + r + 4);
+      ctx2.fillText(lbl, nx, ny + r + 4);
     }
   });
   ctx2.restore();

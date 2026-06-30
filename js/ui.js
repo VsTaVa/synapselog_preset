@@ -1713,7 +1713,13 @@ async function undoLastDelete() {
   else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
-  if (_rotating) { const dy = e.clientY - _rotStartY; if (Math.abs(dy) > 2) { _rotMoved = true; canvas.style.cursor = 'ns-resize'; } setViewRotation((_rotStartAngle + dy * 0.005) * 180 / Math.PI); return; }
+  if (_rotating) {
+    const dy = e.clientY - _rotStartY;
+    if (Math.abs(dy) > 2) { _rotMoved = true; canvas.style.cursor = 'ns-resize'; }
+    let deg = (_rotStartAngle + dy * 0.005) * 180 / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg / 45) * 45; // Shift → 45° 스냅
+    setViewRotation(deg); return;
+  }
   if (drag) {
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
     nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
@@ -2007,7 +2013,7 @@ const LANG = {
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
-    'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'빈 공간 더블클릭 / 더블탭','sc-dblclick2':'더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
+    'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시 세부조정','s-local':'로컬 저장 사용','s-local-sub':'브라우저를 닫아도 데이터가 유지됩니다',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
@@ -2033,7 +2039,7 @@ const LANG = {
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
-    'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Double-click empty space / double-tap','sc-dblclick2':'Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
+    'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache Details','s-local':'Use Local Storage','s-local-sub':'Data persists after browser is closed',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
@@ -2105,6 +2111,7 @@ document.addEventListener('keydown', e => {
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
   else if (k === _shortcuts.toggleLabels) { e.preventDefault(); const cb = document.getElementById('label-toggle-input'); if (cb) cb.checked = !cb.checked; toggleLabels(); }
+  else if (e.key === ' ') { e.preventDefault(); fitGraph(); } // 스페이스바 → 화면 맞춤
 });
 
 // ── 프로필 ────────────────────────────────────────────────────────────
