@@ -588,10 +588,9 @@ function fitGraph() {
     const a = visibleNodes.filter(n => !n.dimmed);
     if (a.length) visibleNodes = a;
   }
-  const railEl = document.getElementById('activity-rail'), sbEl = document.getElementById('sidebar'), dpEl = document.getElementById('detail-panel');
-  const railW = railEl ? railEl.offsetWidth : 0;
-  const flyoutW = (sbEl && sbEl.classList.contains('open')) ? sbEl.offsetWidth : 0;
-  const sidebarWidth = railW + flyoutW;
+  const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
+  const sidebarWidth = railEl ? railEl.offsetWidth : 0;
   const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;

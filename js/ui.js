@@ -623,14 +623,12 @@ function openRailSection(name) {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
-  _autoFitPanel();
 }
 function closeRailFlyout() {
   if (!_activeRailSection) return;
   _activeRailSection = null;
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('open');
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
-  _autoFitPanel();
 }
 function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 
