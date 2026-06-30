@@ -656,47 +656,30 @@ function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 let _detailPanelCollapsed = false;
 
 // 우측 패널: 1개(단일) 또는 2개(상하 분할)의 독립 패인.
-// 각 패인은 자체 탭 목록(tabs)과 활성 탭(activeTabId)을 가진다.
-const MAX_TABS = 3;
-let _panes = [{ tabs: [], activeTabId: null }];
-let _activePane = 0;
-let _splitMode = false;
-let _draggingTab = null;
-let _activeNode = null; // 현재 패널에 열린(선택된) 노드 — '노드 편집' 섹션이 사용
+// 우측 패널: 탭 없이 노드 패널을 세로로 쌓는다(최대 2개, FIFO). 새 노드 클릭 시 아래에 추가, 넘치면 맨 위 제거.
+const MAX_STACK = 2;
+let _stack = []; // 열린 노드(위→아래), 최신이 마지막
+let _activeNode = null; // 현재 패널에 열린(선택된) 노드
 let _undoDelete = null; // 마지막 삭제 묶음 (실행 취소용)
 
-// 탭을 다른 패인으로 이동
-function moveTabToPane(fromIdx, nodeId, toIdx) {
-  if (fromIdx === toIdx || !_panes[fromIdx] || !_panes[toIdx]) return;
-  const from = _panes[fromIdx], to = _panes[toIdx];
-  const t = from.tabs.find(x => x.nodeId === nodeId);
-  if (!t) return;
-  from.tabs = from.tabs.filter(x => x.nodeId !== nodeId);
-  if (from.activeTabId === nodeId) from.activeTabId = from.tabs.length ? from.tabs[from.tabs.length - 1].nodeId : null;
-  to.tabs = to.tabs.filter(x => x.nodeId !== nodeId);
-  if (to.tabs.length >= MAX_TABS) to.tabs.shift();
-  to.tabs.push(t);
-  to.activeTabId = nodeId;
-  _activePane = toIdx;
-  if (!anyTabs()) { closePanel(); return; }
-  renderPanes();
+function anyTabs() { return _stack.length > 0; }
+
+// 특정 패널(스택 i번)만 닫기
+function closePaneAt(i) {
+  if (i < 0 || i >= _stack.length) return;
+  const removed = _stack[i];
+  _stack.splice(i, 1);
+  if (_activeNode === removed) _activeNode = _stack.length ? _stack[_stack.length - 1] : null;
+  if (!_stack.length) closePanel();
+  else { renderPanes(); updateDetailReopenTab(); }
 }
 
-function anyTabs() { return _panes.some(p => p.tabs.length > 0); }
-
-// 증분 동기화로 삭제된 노드의 열린 탭 정리
+// 증분 동기화/삭제로 사라진 노드를 스택에서 정리
 function pruneDetailTabs(removedIds) {
-  let changed = false;
-  _panes.forEach(p => {
-    const before = p.tabs.length;
-    p.tabs = p.tabs.filter(t => !removedIds.has(t.nodeId));
-    if (p.tabs.length !== before) {
-      changed = true;
-      if (p.activeTabId && removedIds.has(p.activeTabId)) p.activeTabId = p.tabs.length ? p.tabs[p.tabs.length - 1].nodeId : null;
-    }
-  });
+  const before = _stack.length;
+  _stack = _stack.filter(n => !removedIds.has(n.id));
   if (_activeNode && removedIds.has(_activeNode.id)) _activeNode = null;
-  if (changed && !anyTabs()) closePanel();
+  if (_stack.length !== before) { if (!_stack.length) closePanel(); else renderPanes(); }
 }
 
 // 동기화 후 열린 패널 내용 다시 그리기 (제자리 갱신된 노드 텍스트 반영)
@@ -726,27 +709,21 @@ function reopenDetailPanel() {
 }
 
 const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
-const _paneSplitIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
-// 패인 DOM 구조 전체를 _panes 상태에 맞춰 재생성한다(분할/복귀 시 호출).
+// 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할
 function renderPanes() {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
-  wrap.classList.toggle('split', _splitMode);
+  wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
-  _panes.forEach((pane, i) => {
+  _stack.forEach((node, i) => {
     const el = document.createElement('div');
-    el.className = 'detail-pane' + (_splitMode && i === _activePane ? ' pane-active' : '');
+    el.className = 'detail-pane';
     el.dataset.pane = i;
-    // 분할 모드의 하단 패인(i===1)은 분할/복귀 버튼만 둔다
-    const onlySplit = _splitMode && i === 1;
     el.innerHTML =
-      `<div class="detail-tabs-bar">` +
-        `<div class="detail-tabs"></div>` +
-        `<button class="pane-split-btn${_splitMode ? ' active' : ''}" title="패널 상하 분할 / 복귀">${_paneSplitIcon}</button>` +
-        (onlySplit ? '' :
-          `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
-          `<button class="pane-close-btn" title="전체 닫기" style="color:#ed7000;">✕</button>`) +
+      `<div class="detail-pane-bar">` +
+        (i === 0 ? `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` : `<span></span>`) +
+        `<button class="pane-x" title="이 패널 닫기">✕</button>` +
       `</div>` +
       `<div class="detail-body">` +
         `<div class="detail-title-row"><div class="detail-title-main"><div class="detail-title"></div></div><div class="detail-title-actions"></div></div>` +
@@ -754,102 +731,12 @@ function renderPanes() {
         `<div class="detail-divider"></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
-    el.querySelector('.pane-split-btn').onclick = (e) => { e.stopPropagation(); toggleDetailSplit(); };
-    const collapseBtn = el.querySelector('.pane-collapse-btn');
-    if (collapseBtn) collapseBtn.onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
-    const closeBtn = el.querySelector('.pane-close-btn');
-    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closePanel(); };
-    el.addEventListener('mousedown', () => setActivePane(i));
-    // 탭 드래그&드롭: 다른 패인 위에 떨어뜨리면 그 패인으로 이동
-    el.addEventListener('dragover', (e) => {
-      if (!_draggingTab || _draggingTab.pane === i) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      el.classList.add('drag-over');
-    });
-    el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
-    el.addEventListener('drop', (e) => {
-      el.classList.remove('drag-over');
-      if (!_draggingTab || _draggingTab.pane === i) return;
-      e.preventDefault();
-      moveTabToPane(_draggingTab.pane, _draggingTab.nodeId, i);
-    });
+    const cb = el.querySelector('.pane-collapse-btn');
+    if (cb) cb.onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
+    el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
     wrap.appendChild(el);
-    renderPaneTabs(i);
-    const active = pane.tabs.find(t => t.nodeId === pane.activeTabId) || pane.tabs[pane.tabs.length - 1];
-    if (active) renderPaneContent(i, active.node);
+    renderPaneContent(i, node);
   });
-}
-
-function setActivePane(i) {
-  if (_activePane === i) return;
-  _activePane = i;
-  document.querySelectorAll('#detail-panes .detail-pane').forEach(el => {
-    el.classList.toggle('pane-active', _splitMode && +el.dataset.pane === i);
-  });
-}
-
-function toggleDetailSplit() {
-  if (!_splitMode) {
-    _panes.push({ tabs: [], activeTabId: null });
-    _splitMode = true;
-    _activePane = 1; // 새로 연 아래쪽 패널을 활성으로
-  } else {
-    // 활성 패인을 남기고 단일 패널로 복귀
-    _panes = [_panes[_activePane]];
-    _activePane = 0;
-    _splitMode = false;
-  }
-  renderPanes();
-  updateDetailReopenTab();
-}
-
-function renderPaneTabs(i) {
-  const paneEl = getPaneEl(i);
-  if (!paneEl) return;
-  const tabsEl = paneEl.querySelector('.detail-tabs');
-  const pane = _panes[i];
-  tabsEl.innerHTML = '';
-  [...pane.tabs].reverse().forEach(tab => {
-    const el = document.createElement('div');
-    el.className = 'detail-tab' + (tab.nodeId === pane.activeTabId ? ' active' : '');
-    el.draggable = true;
-    el.innerHTML = `<span class="tab-label">${escapeHtml(tab.label)}</span><span class="tab-close">✕</span>`;
-    el.querySelector('.tab-label').onclick = () => { setActivePane(i); switchTab(i, tab.nodeId); };
-    el.querySelector('.tab-close').onclick = (e) => { e.stopPropagation(); closeTab(i, tab.nodeId); };
-    el.addEventListener('dragstart', (e) => {
-      _draggingTab = { pane: i, nodeId: tab.nodeId };
-      el.classList.add('dragging');
-      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tab.nodeId); }
-    });
-    el.addEventListener('dragend', () => {
-      _draggingTab = null;
-      document.querySelectorAll('#detail-panes .detail-pane').forEach(p => p.classList.remove('drag-over'));
-      el.classList.remove('dragging');
-    });
-    tabsEl.appendChild(el);
-  });
-}
-
-function switchTab(i, nodeId) {
-  const pane = _panes[i];
-  pane.activeTabId = nodeId;
-  const tab = pane.tabs.find(t => t.nodeId === nodeId);
-  if (tab) { renderPaneContent(i, tab.node); _activeNode = tab.node; }
-  renderPaneTabs(i);
-}
-
-function closeTab(i, nodeId) {
-  const pane = _panes[i];
-  const idx = pane.tabs.findIndex(t => t.nodeId === nodeId);
-  pane.tabs = pane.tabs.filter(t => t.nodeId !== nodeId);
-  if (pane.tabs.length === 0) {
-    if (_splitMode) { renderPaneTabs(i); renderPaneContent(i, null); pane.activeTabId = null; if (!anyTabs()) closePanel(); }
-    else closePanel();
-  } else {
-    const next = pane.tabs[Math.min(idx, pane.tabs.length - 1)];
-    switchTab(i, next.nodeId);
-  }
 }
 
 function mdTableToHtml(text) {
@@ -950,7 +837,7 @@ function renderPaneContent(i, n) {
     addBtn.style.display = 'inline-flex';
     addBtn.onclick = async () => {
       addBtn.style.pointerEvents = 'none';
-      try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_activePane, nodeMap[ids[0]]); } }
+      try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_stack.length - 1, nodeMap[ids[0]]); } }
       catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
       finally { addBtn.style.pointerEvents = ''; }
     };
@@ -1001,7 +888,7 @@ async function _applyNodeSync(node) {
   const newTitle = (data.title || '').trim();
   if (newTitle && newTitle !== node.label) {
     node.label = newTitle;
-    _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+    refreshOpenPanes();
   }
   if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) node.notionToggle = !!data.toggleable;
   const lines = Array.isArray(data.body) ? data.body : [];
@@ -1316,7 +1203,7 @@ function beginNodeEdit(paneIdx, node) {
             // 본문이 재배치되어 블록 id가 바뀜 → 본문 편집분은 적용하지 않고 노드를 다시 동기화
             if (titleChanged) {
               node.label = newTitle;
-              _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+              refreshOpenPanes();
             }
             if (!newToggle && node.collapsed) node.collapsed = false;
             invalidateNodeCache(node);
@@ -1366,7 +1253,7 @@ function beginNodeEdit(paneIdx, node) {
       }
       if (titleChanged) {
         node.label = newTitle;
-        _panes.forEach((p, pi) => { let t = false; p.tabs.forEach(tb => { if (tb.nodeId === node.id) { tb.label = newTitle; t = true; } }); if (t) renderPaneTabs(pi); });
+        refreshOpenPanes();
         if (isLocal && node.level === 0 && window._sidebarPageList) {
           const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
           if (it) { it.title = newTitle; refreshSidebarRender(); }
@@ -1489,22 +1376,15 @@ function showPanel() {
 function openPanel(n) {
   _activeNode = n;
   const _wasOpen = detailPanel.classList.contains('open');
-  const pane = _panes[_activePane] || _panes[0];
-  const existing = pane.tabs.find(t => t.nodeId === n.id);
-  if (existing) {
-    pane.activeTabId = n.id;
-    renderPaneContent(_activePane, n);
-    renderPaneTabs(_activePane);
-  } else {
-    if (pane.tabs.length >= MAX_TABS) pane.tabs.shift();
-    pane.tabs.push({ nodeId: n.id, label: n.label, node: n });
-    pane.activeTabId = n.id;
-    renderPaneContent(_activePane, n);
-    renderPaneTabs(_activePane);
+  // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
+  if (!_stack.some(x => x.id === n.id)) {
+    _stack.push(n);
+    if (_stack.length > MAX_STACK) _stack.shift();
   }
   _detailPanelCollapsed = false;
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
+  renderPanes();
   updateDetailReopenTab();
   if (_focusMode) {
     const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
@@ -1515,8 +1395,7 @@ function openPanel(n) {
 }
 
 function closePanel() {
-  _panes = [{ tabs: [], activeTabId: null }];
-  _activePane = 0; _splitMode = false; _detailPanelCollapsed = false;
+  _stack = []; _activeNode = null; _detailPanelCollapsed = false;
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
   renderPanes();
@@ -1636,7 +1515,7 @@ async function deleteNodeSubtree(node) {
   nodes = nodes.filter(nd => !ids.has(nd.id));
   edges = edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
   ids.forEach(id => { delete nodeMap[id]; });
-  _panes.forEach(p => { p.tabs = p.tabs.filter(t => !ids.has(t.nodeId)); if (p.activeTabId && ids.has(p.activeTabId)) p.activeTabId = p.tabs.length ? p.tabs[p.tabs.length - 1].nodeId : null; });
+  _stack = _stack.filter(nd => !ids.has(nd.id));
   if (_activeNode && ids.has(_activeNode.id)) _activeNode = null;
   if (!anyTabs()) closePanel(); else renderPanes();
   if (node.local) {
@@ -1679,7 +1558,7 @@ async function deleteNodeOnly(node) {
   edges = edges.filter(e => e.from !== id && e.to !== id).concat(addedEdges);
   nodes = nodes.filter(nd => nd.id !== id);
   delete nodeMap[id];
-  _panes.forEach(p => { p.tabs = p.tabs.filter(t => t.nodeId !== id); if (p.activeTabId === id) p.activeTabId = p.tabs.length ? p.tabs[p.tabs.length - 1].nodeId : null; });
+  _stack = _stack.filter(nd => nd.id !== id);
   if (_activeNode && _activeNode.id === id) _activeNode = null;
   if (!anyTabs()) closePanel(); else renderPanes();
   isStable = false;
