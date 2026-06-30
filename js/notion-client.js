@@ -1110,10 +1110,23 @@ function exportGraph() {
     }
   });
   ctx2.restore();
-  ctx2.fillStyle = 'rgba(255,255,255,0.15)'; ctx2.font = 'bold 13px sans-serif';
-  ctx2.textAlign = 'right'; ctx2.textBaseline = 'bottom';
-  ctx2.fillText('SynapseLog', SIZE-16, SIZE-14);
-  const link = document.createElement('a');
-  link.download = `SynapseLog_${new Date().toISOString().slice(0,10)}.png`;
-  link.href = offscreen.toDataURL('image/png'); link.click();
+  const finalize = () => {
+    // 우측 하단 워터마크: 로고 + SynapseLog
+    const pad = SIZE * 0.014, logoSize = SIZE * 0.026, fontPx = SIZE * 0.017, gap = SIZE * 0.006;
+    const cy = SIZE - pad - logoSize / 2;
+    ctx2.font = `bold ${fontPx}px 'Noto Sans KR', sans-serif`;
+    ctx2.textAlign = 'right'; ctx2.textBaseline = 'middle';
+    ctx2.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx2.fillText('SynapseLog', SIZE - pad, cy + fontPx * 0.04);
+    const tw = ctx2.measureText('SynapseLog').width;
+    if (_exportLogo && _exportLogo.complete && _exportLogo.naturalWidth) {
+      try { ctx2.drawImage(_exportLogo, SIZE - pad - tw - gap - logoSize, cy - logoSize / 2, logoSize, logoSize); } catch (e) {}
+    }
+    const link = document.createElement('a');
+    link.download = `SynapseLog_${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = offscreen.toDataURL('image/png'); link.click();
+  };
+  if (_exportLogo && !_exportLogo.complete) { _exportLogo.onload = finalize; _exportLogo.onerror = finalize; }
+  else finalize();
 }
+const _exportLogo = (typeof Image !== 'undefined') ? Object.assign(new Image(), { src: 'icon.png' }) : null;

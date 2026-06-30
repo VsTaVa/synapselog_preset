@@ -789,63 +789,16 @@ function renderPaneContent(i, n) {
   const notionHref = linkTarget ? `https://notion.so/${linkTarget.replace(/-/g, '')}` : '';
 
   const titleActions = titleRow.querySelector('.detail-title-actions') || titleRow;
-  // 수정 버튼 — 제목(blockId) 또는 본문(bodyBlocks)을 편집할 수 있는 노드
-  let editBtn = titleRow.querySelector('.detail-edit-btn');
-  if (!editBtn) {
-    editBtn = document.createElement('button');
-    editBtn.className = 'detail-edit-btn';
-    editBtn.title = '제목·본문 수정';
-    editBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
-    titleActions.appendChild(editBtn);
-  }
-  if (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) { editBtn.style.display = 'inline-flex'; editBtn.onclick = () => beginNodeEdit(i, n); }
-  else { editBtn.style.display = 'none'; }
-
-  // 노드 동기화 버튼 — 노션 헤딩 노드만 (이 노드의 제목+본문을 노션에서 다시 가져옴)
-  let syncBtn = titleRow.querySelector('.detail-syncnode-btn');
-  if (!syncBtn) {
-    syncBtn = document.createElement('button');
-    syncBtn.className = 'detail-edit-btn detail-syncnode-btn';
-    syncBtn.title = '노드 동기화';
-    syncBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
-    titleActions.appendChild(syncBtn);
-  }
-  if (!n.local && n.notionBlockId) { syncBtn.style.display = 'inline-flex'; syncBtn.onclick = () => syncNode(n, i); }
-  else { syncBtn.style.display = 'none'; }
-
-  // 설정 메뉴 버튼 — 노션에서 보기 / 북마크
+  // 모든 동작(수정·동기화·하위추가·노션보기·북마크·삭제)을 ⚙ 메뉴 하나로 통합
   let setBtn = titleRow.querySelector('.detail-settings-btn');
   if (!setBtn) {
     setBtn = document.createElement('button');
     setBtn.className = 'detail-edit-btn detail-settings-btn';
-    setBtn.title = '설정 (노션에서 보기 · 북마크)';
-    setBtn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+    setBtn.title = '메뉴 (수정·동기화·추가·북마크·삭제)';
+    setBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
     titleActions.appendChild(setBtn);
   }
   setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
-
-  // 하위 노드 추가 버튼 — 만들 수 있는 노드(#### 이하 제한)에만
-  let addBtn = titleRow.querySelector('.detail-addchild-btn');
-  if (!addBtn) {
-    addBtn = document.createElement('button');
-    addBtn.className = 'detail-edit-btn detail-addchild-btn';
-    addBtn.title = '하위 노드 추가';
-    addBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg>`;
-    titleActions.appendChild(addBtn);
-  }
-  if (canAddChild(n)) {
-    addBtn.style.display = 'inline-flex';
-    addBtn.onclick = async () => {
-      addBtn.style.pointerEvents = 'none';
-      try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_stack.length - 1, nodeMap[ids[0]]); } }
-      catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
-      finally { addBtn.style.pointerEvents = ''; }
-    };
-  } else { addBtn.style.display = 'none'; }
-
-  // 아이콘 순서: 제목·본문 수정 → 동기화 → 하위노드 생성 → 설정
-  [editBtn, syncBtn, addBtn, setBtn].forEach(b => titleActions.appendChild(b));
-  // 제목 우측에 아이콘 너비만큼 여백 확보 (긴 제목이 아이콘과 겹치지 않게)
   if (titleEl && titleActions && titleActions !== titleRow) {
     requestAnimationFrame(() => { titleEl.style.paddingRight = (titleActions.offsetWidth + 10) + 'px'; });
   }
@@ -936,9 +889,18 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
     : '';
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
   const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const canEdit = n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length);
+  const canSync = !n.local && n.notionBlockId;
+  const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
+  const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목·본문 수정</button>` : '';
+  const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
+  const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
-  menu.innerHTML = notionItem + bmItem + delItem;
+  const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
+  const topGroup = editItem + addItem + syncItem;
+  const midGroup = notionItem + bmItem;
+  menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const mw = 168;
@@ -949,6 +911,16 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   menu._anchor = anchor; menu._close = close;
   setTimeout(() => document.addEventListener('mousedown', onDoc), 0);
   window.addEventListener('resize', close);
+  const eb = menu.querySelector('[data-act="edit"]');
+  if (eb) eb.onclick = () => { close(); beginNodeEdit(i, n); };
+  const ab = menu.querySelector('[data-act="add"]');
+  if (ab) ab.onclick = async () => {
+    close();
+    try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_stack.length - 1, nodeMap[ids[0]]); } }
+    catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
+  };
+  const sb = menu.querySelector('[data-act="sync"]');
+  if (sb) sb.onclick = () => { close(); syncNode(n, i); };
   const nb = menu.querySelector('[data-act="notion"]');
   if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
   const bb = menu.querySelector('[data-act="bookmark"]');
