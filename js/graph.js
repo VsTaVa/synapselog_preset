@@ -345,6 +345,9 @@ function draw() {
     const ndRgb = nodeRgb(n);
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
+    // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택표시·위성 등)은 똑바로 유지 — 역회전 적용
+    ctx.save();
+    if(_viewRotation){ ctx.translate(n.x, n.y); ctx.rotate(-_viewRotation); ctx.translate(-n.x, -n.y); }
     if(isManualLinked && !isDim) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+14, 0, Math.PI*2);
       const gM = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+14);
@@ -452,6 +455,7 @@ function draw() {
         ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
+    ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
   });
   ctx.restore();
