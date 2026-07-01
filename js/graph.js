@@ -14,8 +14,8 @@ let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlo
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
-// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리) | 'tree'(계층형 트리)
-let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial' || v === 'tree') ? v : 'force'; } catch(e) { return 'force'; } })();
+// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리)
+let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial') ? v : 'force'; } catch(e) { return 'force'; } })();
 let _layoutSig = -1; // 마지막 트리 배치 시 노드 수(변하면 재배치)
 
 let _focusMode = false, _focusNodeId = null;
@@ -458,26 +458,16 @@ function draw() {
       const sp = worldToScreen(n.x, n.y);
       const sr = r * scale;
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
-      const maxLen = _layoutMode === 'tree' ? 24 : 14;
-      if (n.level >= 2 && lbl.length > maxLen) lbl = lbl.substring(0, maxLen - 1) + '…';
+      if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
       let fontSize = 10;
       if (n.level === 0 || n.level === 1) fontSize = 12;
       else if (n.level === 2) fontSize = 11;
       fontSize = fontSize * _labelScale * scale;
       const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.font = lblFont;
+      ctx.font = lblFont; ctx.textBaseline = 'top';
+      ctx.textAlign = 'center';
       ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
-      if (_layoutMode === 'tree') {
-        // 계층형: 라벨을 자식 방향(월드 +x)의 바깥쪽으로 → 행마다 한 줄, 회전(0/90/180/270)에도 정렬 유지
-        const rc = Math.cos(_viewRotation), rs = Math.sin(_viewRotation);
-        const off = sr + 5 * scale;
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = rc >= 0 ? 'left' : 'right';
-        ctx.fillText(lbl, sp.x + rc * off, sp.y + rs * off);
-      } else {
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-        ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
-      }
+      ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
     });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
@@ -577,28 +567,8 @@ function fitGraph(rotate = true) {
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
   let targetRot = startRot;
-  // 계층형: 화면 맞춤 시 0/90/180/270 중 가장 잘 맞는 각으로 스냅
-  if (rotate && _layoutMode === 'tree') {
-    let best = 0, bestScore = -Infinity;
-    for (let k = 0; k < 4; k++) {
-      const rr = k * Math.PI / 2, c = Math.cos(rr), s = Math.sin(rr);
-      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      for (const n of visibleNodes) {
-        const dx = n.x - W/2, dy = n.y - H/2;
-        const rx = dx*c - dy*s, ry = dx*s + dy*c;
-        if (rx < x0) x0 = rx; if (rx > x1) x1 = rx; if (ry < y0) y0 = ry; if (ry > y1) y1 = ry;
-      }
-      const gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
-      const score = Math.min(availW / gw, availH / gh);
-      if (score > bestScore + 1e-6) { bestScore = score; best = rr; }
-    }
-    targetRot = best;
-    // startRot에서 가장 가까운 등가각으로(2π 주기) → 회전 애니메이션 최소화
-    while (targetRot - startRot > Math.PI) targetRot -= Math.PI * 2;
-    while (targetRot - startRot < -Math.PI) targetRot += Math.PI * 2;
-  }
   // 가장 잘 맞는 회전각 탐색 — 검색/경로/포커스 등 부분집합이 활성일 때만 회전(그 외엔 회전 유지)
-  else if (rotate && subsetActive) {
+  if (rotate && subsetActive) {
     let best = startRot, bestScore = -Infinity;
     for (let deg = 0; deg < 180; deg += 6) {
       const rr = deg * Math.PI / 180, c = Math.cos(rr), s = Math.sin(rr);
@@ -700,39 +670,32 @@ function applyTreeLayout() {
   nodes.forEach(n => { if (!pos[n.id]) pos[n.id] = { slot: leafCursor++, depth: 0 }; }); // 고아 보정
   const totalLeaves = Math.max(leafCursor, 1);
 
-  const colGap = 260, rowGap = 46, rStep = 155; // tree: colGap=깊이 열 간격, rowGap=리프 행 간격
+  const rStep = 155;
   const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
   nodes.forEach(n => {
     const p = pos[n.id];
-    if (_layoutMode === 'radial') {
-      const ang = (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2;
-      const r = baseR + p.depth * rStep;
-      n.x = WORLD_CX + Math.cos(ang) * r;
-      n.y = WORLD_CY + Math.sin(ang) * r;
-    } else {
-      // 계층형: 왼→오(깊이=x), 리프=y → 세로로 길게, 리프마다 한 줄
-      n.x = WORLD_CX + p.depth * colGap;
-      n.y = WORLD_CY + (p.slot - totalLeaves / 2) * rowGap;
-    }
+    const ang = (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2;
+    const r = baseR + p.depth * rStep;
+    n.x = WORLD_CX + Math.cos(ang) * r;
+    n.y = WORLD_CY + Math.sin(ang) * r;
     n.vx = n.vy = 0; n._frozen = true; n._frozenFrames = 0;
   });
   isStable = true;
 }
 
 function setLayoutMode(mode) {
-  _layoutMode = (mode === 'radial' || mode === 'tree') ? mode : 'force';
+  _layoutMode = (mode === 'radial') ? mode : 'force';
   try { localStorage.setItem('snlog_layout', _layoutMode); } catch(e) {}
   if (_layoutMode === 'force') {
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     _layoutSig = -1; isStable = false;
   } else {
-    _viewRotation = 0; // 트리는 똑바로(회전 리셋)
+    _viewRotation = 0; // 방사형은 똑바로(회전 리셋)
     try { localStorage.setItem('snlog_rotation', '0'); } catch(e) {}
     applyTreeLayout();
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
-  // 계층형은 화면 맞춤 시 최적 카디널 각으로 스냅(rotate=true), 그 외는 회전 유지
-  if (typeof fitGraph === 'function') fitGraph(_layoutMode === 'tree');
+  if (typeof fitGraph === 'function') fitGraph(false);
 }
 
 function buildGraph() {
