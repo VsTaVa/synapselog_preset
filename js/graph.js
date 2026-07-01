@@ -458,17 +458,23 @@ function draw() {
       const sp = worldToScreen(n.x, n.y);
       const sr = r * scale;
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
-      if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
+      const maxLen = _layoutMode === 'tree' ? 24 : 14;
+      if (n.level >= 2 && lbl.length > maxLen) lbl = lbl.substring(0, maxLen - 1) + '…';
       let fontSize = 10;
       if (n.level === 0 || n.level === 1) fontSize = 12;
       else if (n.level === 2) fontSize = 11;
       fontSize = fontSize * _labelScale * scale;
       const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.font = lblFont; ctx.textBaseline = 'top';
-      const y = sp.y + sr + 5 * scale;
-      ctx.textAlign = 'center';
+      ctx.font = lblFont;
       ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
-      ctx.fillText(lbl, sp.x, y);
+      if (_layoutMode === 'tree') {
+        // 계층형: 라벨을 노드 오른쪽 세로 중앙에 → 행마다 한 줄, 세로 겹침 없음
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(lbl, sp.x + sr + 5 * scale, sp.y);
+      } else {
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
+      }
     });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
@@ -671,7 +677,7 @@ function applyTreeLayout() {
   nodes.forEach(n => { if (!pos[n.id]) pos[n.id] = { slot: leafCursor++, depth: 0 }; }); // 고아 보정
   const totalLeaves = Math.max(leafCursor, 1);
 
-  const xGap = 92, yGap = 128, rStep = 155;
+  const colGap = 260, rowGap = 46, rStep = 155; // tree: colGap=깊이 열 간격, rowGap=리프 행 간격
   const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
   nodes.forEach(n => {
     const p = pos[n.id];
@@ -681,8 +687,9 @@ function applyTreeLayout() {
       n.x = WORLD_CX + Math.cos(ang) * r;
       n.y = WORLD_CY + Math.sin(ang) * r;
     } else {
-      n.x = WORLD_CX + (p.slot - totalLeaves / 2) * xGap;
-      n.y = WORLD_CY + p.depth * yGap;
+      // 계층형: 왼→오(깊이=x), 리프=y → 세로로 길게, 리프마다 한 줄
+      n.x = WORLD_CX + p.depth * colGap;
+      n.y = WORLD_CY + (p.slot - totalLeaves / 2) * rowGap;
     }
     n.vx = n.vy = 0; n._frozen = true; n._frozenFrames = 0;
   });
@@ -696,6 +703,8 @@ function setLayoutMode(mode) {
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     _layoutSig = -1; isStable = false;
   } else {
+    _viewRotation = 0; // 트리는 똑바로(회전 리셋)
+    try { localStorage.setItem('snlog_rotation', '0'); } catch(e) {}
     applyTreeLayout();
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
