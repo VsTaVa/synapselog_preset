@@ -231,6 +231,14 @@ function setColorScheme(mode) {
   isStable = false;
 }
 
+function syncLayoutButtons() {
+  const ids = { force: 'lm-force', radial: 'lm-radial', tree: 'lm-tree' };
+  Object.keys(ids).forEach(k => {
+    const el = document.getElementById(ids[k]);
+    if (el) el.classList.toggle('active', _layoutMode === k);
+  });
+}
+
 // 모드 커서를 전역 스타일(!important)로 주입 → 스위치/사이드바 위에서도 즉시 반영
 function applyModeCursor() {
   let st = document.getElementById('mode-cursor-style');
@@ -1862,7 +1870,7 @@ const LANG = {
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
-    'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
+    'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-tree-btn':'계층형','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
@@ -1889,7 +1897,7 @@ const LANG = {
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
-    'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
+    'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-tree-btn':'Tree','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
@@ -2094,6 +2102,7 @@ updateConfig();
 applyLang();
 updateShortcutHints();
 setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
+syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
 (() => {
   const deg = Math.round(_viewRotation * 180 / Math.PI);

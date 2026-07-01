@@ -14,6 +14,10 @@ let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlo
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
+// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리) | 'tree'(계층형 트리)
+let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial' || v === 'tree') ? v : 'force'; } catch(e) { return 'force'; } })();
+let _layoutSig = -1; // 마지막 트리 배치 시 노드 수(변하면 재배치)
+
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
@@ -156,6 +160,11 @@ function parseMarkdown(text, rootTitle) {
 // ── 물리 시뮬레이션 ─────────────────────────────────────────────────
 
 function simulate() {
+  // 트리/방사형 배치: 물리 끄고 계산 좌표 유지. 노드 수 바뀌면(페이지 로드/삭제 등) 재배치
+  if (_layoutMode !== 'force') {
+    if (nodes.length !== _layoutSig) applyTreeLayout();
+    return;
+  }
   if (isStable && !drag) return;
   const repulsion = CONFIG.repulsion, damping = 0.92, centerForce = CONFIG.gravity;
   const fixedDescendants = new Set();
@@ -617,6 +626,80 @@ function fitGraph(rotate = true) {
     }
   }
   _fitAnimId = requestAnimationFrame(animate);
+}
+
+// ── 트리/방사형 레이아웃 ────────────────────────────────────────────
+// 1차 링크(약한/수동 제외)로 부모→자식 숲(forest) 구성
+function _buildForest() {
+  const childrenOf = {}; nodes.forEach(n => childrenOf[n.id] = []);
+  const hasParent = {};
+  edges.forEach(e => {
+    if (e.weakLink || e.manualLink) return;
+    if (!nodeMap[e.from] || !nodeMap[e.to]) return;
+    childrenOf[e.from].push(e.to);
+    hasParent[e.to] = true;
+  });
+  // 뿌리 = 들어오는 1차 링크 없는 노드(페이지·최상위). 레벨 낮은 순으로
+  const roots = nodes.filter(n => !hasParent[n.id]).map(n => n.id)
+    .sort((a, b) => (nodeMap[a].level || 0) - (nodeMap[b].level || 0));
+  return { childrenOf, roots };
+}
+
+// 계산된 좌표를 노드에 적용(전체 노드 대상 → reveal/격리와 무관하게 안정적)
+function applyTreeLayout() {
+  _layoutSig = nodes.length;
+  if (!nodes.length) return;
+  const { childrenOf, roots } = _buildForest();
+  const visited = new Set();
+  const pos = {}; // id -> { slot, depth }
+  let leafCursor = 0;
+  // 후위순회: 리프는 순차 슬롯, 내부노드는 자식 슬롯 평균
+  function walk(id, depth) {
+    if (visited.has(id)) return null;
+    visited.add(id);
+    const kids = childrenOf[id].filter(k => !visited.has(k));
+    let slot;
+    if (!kids.length) { slot = leafCursor++; }
+    else {
+      const cs = kids.map(k => walk(k, depth + 1)).filter(s => s != null);
+      slot = cs.length ? (cs[0] + cs[cs.length - 1]) / 2 : leafCursor++;
+    }
+    pos[id] = { slot, depth };
+    return slot;
+  }
+  roots.forEach(r => { walk(r, 0); leafCursor += 1; }); // 뿌리 사이 한 칸 띄움
+  nodes.forEach(n => { if (!pos[n.id]) pos[n.id] = { slot: leafCursor++, depth: 0 }; }); // 고아 보정
+  const totalLeaves = Math.max(leafCursor, 1);
+
+  const xGap = 92, yGap = 128, rStep = 155;
+  const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
+  nodes.forEach(n => {
+    const p = pos[n.id];
+    if (_layoutMode === 'radial') {
+      const ang = (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2;
+      const r = baseR + p.depth * rStep;
+      n.x = WORLD_CX + Math.cos(ang) * r;
+      n.y = WORLD_CY + Math.sin(ang) * r;
+    } else {
+      n.x = WORLD_CX + (p.slot - totalLeaves / 2) * xGap;
+      n.y = WORLD_CY + p.depth * yGap;
+    }
+    n.vx = n.vy = 0; n._frozen = true; n._frozenFrames = 0;
+  });
+  isStable = true;
+}
+
+function setLayoutMode(mode) {
+  _layoutMode = (mode === 'radial' || mode === 'tree') ? mode : 'force';
+  try { localStorage.setItem('snlog_layout', _layoutMode); } catch(e) {}
+  if (_layoutMode === 'force') {
+    nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+    _layoutSig = -1; isStable = false;
+  } else {
+    applyTreeLayout();
+  }
+  if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
+  if (typeof fitGraph === 'function') fitGraph(false);
 }
 
 function buildGraph() {
