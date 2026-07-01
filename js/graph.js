@@ -486,6 +486,14 @@ function worldToScreen(wx, wy) {
   if (_viewRotation) { const c=Math.cos(_viewRotation), s=Math.sin(_viewRotation); const nx=dx*c-dy*s, ny=dx*s+dy*c; dx=nx; dy=ny; }
   return { x: W/2+panX+dx*scale, y: H/2+panY+dy*scale };
 }
+// 보이는 영역(레일·우측 패널 제외)의 화면 중심 — 회전 축·화면맞춤 기준점
+function viewportCenter() {
+  const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  const sidebarWidth = railEl ? railEl.offsetWidth : 0;
+  const detailWidth = (dpEl && dpEl.classList.contains('open')) ? dpEl.offsetWidth + 20 : 0;
+  const availW = W - sidebarWidth - detailWidth - 40;
+  return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
+}
 // 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
 function isNodeInteractable(n) {
   if (searchKeyword.length > 0 && !searchMatches.has(n.id)) return false;
@@ -670,7 +678,10 @@ function applyTreeLayout() {
   nodes.forEach(n => { if (!pos[n.id]) pos[n.id] = { slot: leafCursor++, depth: 0 }; }); // 고아 보정
   const totalLeaves = Math.max(leafCursor, 1);
 
-  const rStep = 155;
+  // 방사형 간격: 반발력↑ → 노드 간 넓게, 중력↑ → 계층(링) 간 촘촘
+  const repK = Math.max(0.3, CONFIG.repulsion / 500);   // 기본 500 → 1
+  const gravK = Math.max(0.3, CONFIG.gravity / 0.0010); // 기본 0.0010 → 1
+  const rStep = 155 * repK / gravK;
   const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
   nodes.forEach(n => {
     const p = pos[n.id];

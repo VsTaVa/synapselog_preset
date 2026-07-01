@@ -97,6 +97,8 @@ function updateConfig() {
   vLinkWidth.textContent = parseFloat(cfgLinkWidth.value).toFixed(1);
   isStable = false;
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+  // 방사형은 물리를 안 쓰므로 반발력/중력 반영하려면 좌표 재계산
+  if (_layoutMode !== 'force') applyTreeLayout();
   snSet('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value }), 'slider');
 }
 cfgRep.addEventListener('input', updateConfig);
@@ -131,7 +133,15 @@ function setLabelScale(v) {
 
 function setViewRotation(deg) {
   deg = ((parseFloat(deg) || 0) % 360 + 360) % 360;
-  _viewRotation = deg * Math.PI / 180;
+  const newRot = deg * Math.PI / 180;
+  // 보이는 영역 중심을 축으로 회전 — 회전 후에도 중심 아래 월드점이 그대로 있도록 팬 보정
+  const vc = viewportCenter();
+  const wp = screenToWorld(vc.x, vc.y);
+  _viewRotation = newRot;
+  const dx = wp.x - W/2, dy = wp.y - H/2;
+  const c = Math.cos(newRot), s = Math.sin(newRot);
+  panX = vc.x - W/2 - (dx*c - dy*s) * scale;
+  panY = vc.y - H/2 - (dx*s + dy*c) * scale;
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
   showViewStatus();
 }
