@@ -468,9 +468,12 @@ function draw() {
       ctx.font = lblFont;
       ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
       if (_layoutMode === 'tree') {
-        // 계층형: 라벨을 노드 오른쪽 세로 중앙에 → 행마다 한 줄, 세로 겹침 없음
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(lbl, sp.x + sr + 5 * scale, sp.y);
+        // 계층형: 라벨을 자식 방향(월드 +x)의 바깥쪽으로 → 행마다 한 줄, 회전(0/90/180/270)에도 정렬 유지
+        const rc = Math.cos(_viewRotation), rs = Math.sin(_viewRotation);
+        const off = sr + 5 * scale;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = rc >= 0 ? 'left' : 'right';
+        ctx.fillText(lbl, sp.x + rc * off, sp.y + rs * off);
       } else {
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
         ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
@@ -574,8 +577,28 @@ function fitGraph(rotate = true) {
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
   let targetRot = startRot;
+  // 계층형: 화면 맞춤 시 0/90/180/270 중 가장 잘 맞는 각으로 스냅
+  if (rotate && _layoutMode === 'tree') {
+    let best = 0, bestScore = -Infinity;
+    for (let k = 0; k < 4; k++) {
+      const rr = k * Math.PI / 2, c = Math.cos(rr), s = Math.sin(rr);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const n of visibleNodes) {
+        const dx = n.x - W/2, dy = n.y - H/2;
+        const rx = dx*c - dy*s, ry = dx*s + dy*c;
+        if (rx < x0) x0 = rx; if (rx > x1) x1 = rx; if (ry < y0) y0 = ry; if (ry > y1) y1 = ry;
+      }
+      const gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
+      const score = Math.min(availW / gw, availH / gh);
+      if (score > bestScore + 1e-6) { bestScore = score; best = rr; }
+    }
+    targetRot = best;
+    // startRot에서 가장 가까운 등가각으로(2π 주기) → 회전 애니메이션 최소화
+    while (targetRot - startRot > Math.PI) targetRot -= Math.PI * 2;
+    while (targetRot - startRot < -Math.PI) targetRot += Math.PI * 2;
+  }
   // 가장 잘 맞는 회전각 탐색 — 검색/경로/포커스 등 부분집합이 활성일 때만 회전(그 외엔 회전 유지)
-  if (rotate && subsetActive) {
+  else if (rotate && subsetActive) {
     let best = startRot, bestScore = -Infinity;
     for (let deg = 0; deg < 180; deg += 6) {
       const rr = deg * Math.PI / 180, c = Math.cos(rr), s = Math.sin(rr);
@@ -708,7 +731,8 @@ function setLayoutMode(mode) {
     applyTreeLayout();
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
-  if (typeof fitGraph === 'function') fitGraph(false);
+  // 계층형은 화면 맞춤 시 최적 카디널 각으로 스냅(rotate=true), 그 외는 회전 유지
+  if (typeof fitGraph === 'function') fitGraph(_layoutMode === 'tree');
 }
 
 function buildGraph() {

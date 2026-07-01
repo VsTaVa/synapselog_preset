@@ -1595,7 +1595,8 @@ canvas.addEventListener('mousemove', e => {
     const dy = e.clientY - _rotStartY;
     if (Math.abs(dy) > 2) { _rotMoved = true; canvas.style.cursor = 'ns-resize'; }
     let deg = (_rotStartAngle + dy * 0.005) * 180 / Math.PI;
-    if (e.shiftKey) deg = Math.round(deg / 45) * 45; // Shift → 45° 스냅
+    // Shift → 스냅. 계층형은 90°(0/90/180/270), 그 외는 45°
+    if (e.shiftKey) { const snap = (_layoutMode === 'tree') ? 90 : 45; deg = Math.round(deg / snap) * snap; }
     setViewRotation(deg); return;
   }
   if (drag) {
