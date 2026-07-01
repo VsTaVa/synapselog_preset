@@ -1647,6 +1647,7 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && n && n === mouseDownNode) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
   } else if (elapsed < 150 && !n) {
+    if (searchKeyword) { searchInput.value = ''; doSearch(''); } // 바탕 클릭 → 검색 해제
     clearAllModes();
   }
   if (drag && drag.fixed) saveFixedPositions();
@@ -1801,6 +1802,7 @@ canvas.addEventListener('touchend', e => {
         fitGraph(true);
         _lastTapTime = 0;
       } else {
+        if (searchKeyword) { searchInput.value = ''; doSearch(''); } // 바탕 탭 → 검색 해제
         clearAllModes();
         _lastTapNode = null; _lastTapTime = now;
       }
