@@ -1159,7 +1159,12 @@ function beginNodeEdit(paneIdx, node) {
     const reordered = !isLocal && node.notionBlockId && hasBody && (() => {
       const cur = rows.filter(r => !r.isNew).map(r => r.blk.id);
       const orig = (node.bodyBlocks || []).map(b => b.id);
-      return cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
+      const existingReordered = cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
+      // 새 블록이 기존 블록들 '끝'이 아니라 중간/앞에 삽입된 경우도 위치 반영 필요(안 그러면 무조건 섹션 끝에 붙음)
+      let lastExistingIdx = -1;
+      rows.forEach((r, i) => { if (!r.isNew) lastExistingIdx = i; });
+      const newNotAtEnd = rows.some((r, i) => r.isNew && valOf(r).trim() && i < lastExistingIdx);
+      return existingReordered || newNotAtEnd;
     })();
     if (!titleChanged && !dirty.length && !reordered) { finish(); return; }
 
