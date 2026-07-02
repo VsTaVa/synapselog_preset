@@ -1433,7 +1433,15 @@ function openPanel(n) {
     applyFocusMode(n.id, shallow);
   }
   if (n.level === 0) highlightSidebarPage(n.sourcePageId || null);
-  if (!_wasOpen) _autoFitPanel(); // 패널이 새로 열릴 때만 화면 맞춤
+  // 선택한 노드를 보이는 영역 중심으로 맞춤(패널 폭 반영해서). 패널 슬라이드 후 실행
+  setTimeout(() => { try { focusViewOnNode(n); } catch (e) {} }, _wasOpen ? 40 : 320);
+}
+
+// 노드 클릭 토글: 이미 패널에 열린 노드를 다시 클릭하면 그 패널을 닫음(선택 해제)
+function toggleNodePanel(n) {
+  const i = _stack.findIndex(x => x.id === n.id);
+  if (i >= 0) closePaneAt(i);
+  else openPanel(n);
 }
 
 function closePanel() {
@@ -1731,7 +1739,7 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
     toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode) {
-    clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
+    clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
   } else if (elapsed < 150 && !n) {
     if (searchKeyword) { searchInput.value = ''; doSearch(''); } // 바탕 클릭 → 검색 해제
     clearAllModes();
@@ -1878,7 +1886,7 @@ canvas.addEventListener('touchend', e => {
         if (!_multiSelected.includes(n)) toggleMultiSelect(n);
         _lastTapNode = null; _lastTapTime = 0;
       } else {
-        clearTimeout(_clickTimer); _clickTimer = setTimeout(() => openPanel(n), 220);
+        clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
         _lastTapNode = n; _lastTapTime = now;
       }
     } else if (elapsed < 300 && !n) {

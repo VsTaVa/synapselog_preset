@@ -668,6 +668,27 @@ function fitGraph(rotate = true) {
   _fitAnimId = requestAnimationFrame(animate);
 }
 
+// 특정 노드를 보이는 영역 중심으로 부드럽게 이동(줌은 유지). 노드가 움직여도 매 프레임 목표 재계산
+function focusViewOnNode(node) {
+  if (!node) return;
+  if (_fitAnimId) cancelAnimationFrame(_fitAnimId);
+  const dur = 440, t0 = performance.now();
+  const sx0 = panX, sy0 = panY;
+  const ease = t => t < 0.5 ? 2*t*t : -1 + (4-2*t)*t;
+  function anim(now) {
+    const t = Math.min((now - t0) / dur, 1), e = ease(t);
+    const vc = viewportCenter();
+    const c = Math.cos(_viewRotation), s = Math.sin(_viewRotation);
+    const dx = node.x - W/2, dy = node.y - H/2;
+    const rx = dx*c - dy*s, ry = dx*s + dy*c;
+    const tx = vc.x - W/2 - rx*scale, ty = vc.y - H/2 - ry*scale;
+    panX = sx0 + (tx - sx0) * e;
+    panY = sy0 + (ty - sy0) * e;
+    if (t < 1) { _fitAnimId = requestAnimationFrame(anim); } else { _fitAnimId = null; }
+  }
+  _fitAnimId = requestAnimationFrame(anim);
+}
+
 // ── 트리/방사형 레이아웃 ────────────────────────────────────────────
 // 1차 링크(약한/수동 제외)로 부모→자식 숲(forest) 구성
 function _buildForest() {
