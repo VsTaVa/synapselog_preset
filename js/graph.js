@@ -669,40 +669,23 @@ function fitGraph(rotate = true) {
   _fitAnimId = requestAnimationFrame(animate);
 }
 
-// 특정 노드를 보이는 영역 중심으로 부드럽게 이동 + 노드·1홉 이웃이 담기게 줌 맞춤
+// 특정 노드를 보이는 영역 중심으로 부드럽게 이동(줌은 유지). 노드가 움직여도 매 프레임 목표 재계산
 function focusViewOnNode(node) {
   if (!node) return;
   if (_fitAnimId) cancelAnimationFrame(_fitAnimId);
-  // 대상: 노드 + 바로 연결된 보이는 이웃 → 그 무리에 줌 맞춤(회전 좌표계 기준 경계)
-  const group = [node];
-  edges.forEach(e => {
-    if (e.weakLink) return;
-    const other = e.from === node.id ? nodeMap[e.to] : (e.to === node.id ? nodeMap[e.from] : null);
-    if (other && other.visible) group.push(other);
-  });
-  const rc = Math.cos(_viewRotation), rs = Math.sin(_viewRotation);
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const g of group) { const dx = g.x - W/2, dy = g.y - H/2; const rx = dx*rc - dy*rs, ry = dx*rs + dy*rc; if (rx < x0) x0 = rx; if (rx > x1) x1 = rx; if (ry < y0) y0 = ry; if (ry > y1) y1 = ry; }
-  const gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
-  const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
-  const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = (dpEl && dpEl.classList.contains('open')) ? dpEl.offsetWidth + 20 : 0;
-  const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
-  let targetScale = Math.min(availW / gw, availH / gh, 1.3) * 0.82;
-  targetScale = Math.max(0.25, Math.min(targetScale, 1.5));
-  const dur = 460, t0 = performance.now();
-  const sx0 = panX, sy0 = panY, sc0 = scale;
+  const dur = 440, t0 = performance.now();
+  const sx0 = panX, sy0 = panY;
   const ease = t => t < 0.5 ? 2*t*t : -1 + (4-2*t)*t;
   function anim(now) {
     const t = Math.min((now - t0) / dur, 1), e = ease(t);
-    scale = sc0 + (targetScale - sc0) * e;
     const vc = viewportCenter();
+    const c = Math.cos(_viewRotation), s = Math.sin(_viewRotation);
     const dx = node.x - W/2, dy = node.y - H/2;
-    const rx = dx*rc - dy*rs, ry = dx*rs + dy*rc;
+    const rx = dx*c - dy*s, ry = dx*s + dy*c;
     const tx = vc.x - W/2 - rx*scale, ty = vc.y - H/2 - ry*scale;
     panX = sx0 + (tx - sx0) * e;
     panY = sy0 + (ty - sy0) * e;
-    if (t < 1) { _fitAnimId = requestAnimationFrame(anim); } else { _fitAnimId = null; if (typeof showViewStatus === 'function') showViewStatus(); }
+    if (t < 1) { _fitAnimId = requestAnimationFrame(anim); } else { _fitAnimId = null; }
   }
   _fitAnimId = requestAnimationFrame(anim);
 }
