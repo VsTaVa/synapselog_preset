@@ -1180,23 +1180,19 @@ function beginNodeEdit(paneIdx, node) {
         // 제목 변경 먼저 적용
         if (titleChanged) await notionUpdateBlock(node.notionBlockId, newTitle);
         // 독립적인 쓰기는 병렬로 묶어 실제 저장 시간을 줄인다
-        const pre = [];
+        let finalBlocks;
         if (reordered) {
-          oldBodyIds.forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
+          // A안: 자리 바뀐 블록만 옮김(최소 이동) + create-before-delete → 대량 블록도 안 어지럽혀짐
+          finalBlocks = await _applyReorder(node, tgt, finalRows, origBody, oldBodyIds);
+          node.desc = finalRows.map(r => r.text).join('\n');
         } else {
+          const pre = [];
           finalRows.filter(r => r.blk && r.text !== r.orig).forEach(r => pre.push(notionUpdateBlock(r.blk.id, r.text)));
           // 편집 중 삭제된 기존 본문 블록은 노션에서도 삭제
           const keptIds = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
           oldBodyIds.filter(id => !keptIds.has(id)).forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
-        }
-        await Promise.all(pre);
-        // 새/재생성 본문은 한 번의 호출로 일괄 추가
-        let finalBlocks;
-        if (reordered) {
-          const ids = finalRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, finalRows.map(r => r.text), 'paragraph') : [];
-          finalBlocks = finalRows.map((r, i) => ({ id: ids[i] || r.blk?.id, text: r.text }));
-          node.desc = finalRows.map(r => r.text).join('\n');
-        } else {
+          await Promise.all(pre);
+          // 새 본문은 한 번의 호출로 일괄 추가
           const newRows = finalRows.filter(r => !r.blk);
           const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph') : [];
           let qi = 0;
@@ -1251,6 +1247,72 @@ function _appendTarget(node) {
   if (node.notionBlockId) return { parentId: node.notionParentId, afterId: node.notionBlockId };
   const pageLikeId = node.entryNotionId || node.sourcePageId;
   return { parentId: String(pageLikeId).replace(/-/g, ''), afterId: null };
+}
+
+// 최장 증가 부분수열(LIS)의 인덱스 목록 — 순서 유지되는 블록(제자리)을 고르는 데 사용
+function _lisIndices(arr) {
+  const n = arr.length; if (!n) return [];
+  const tails = [], tailsIdx = [], prev = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const x = arr[i];
+    let lo = 0, hi = tails.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (tails[mid] < x) lo = mid + 1; else hi = mid; }
+    tails[lo] = x; tailsIdx[lo] = i; prev[i] = lo > 0 ? tailsIdx[lo - 1] : -1;
+  }
+  const res = []; let k = tailsIdx[tails.length - 1];
+  while (k >= 0) { res.push(k); k = prev[k]; }
+  return res.reverse();
+}
+
+// A안: 본문 블록 순서 변경 시 "실제로 자리가 바뀐 블록"만 옮긴다.
+//  - 상대 순서 유지되는 최대 집합(LIS)은 그대로 둠(노션 블록 ID 보존)
+//  - 나머지만 앵커(바로 앞 유지 블록) '바로 뒤'에 새로 만들고(create) 옛 복사본 삭제(delete)
+//  - create-before-delete → 도중에 끊겨도 데이터 손실 없음(최악: 중복). 호출 수 최소화 → 대량 블록 안전
+// 반환: 새 순서의 [{ id, text }] (bodyBlocks 용)
+async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
+  const oldIndex = {}; origBody.forEach((b, i) => { oldIndex[b.id] = i; });
+  // 유지되는(기존) 행을 새 순서로 나열 → 옛 인덱스 수열
+  const keptSeq = [];
+  finalRows.forEach((r, pos) => { if (r.blk && oldIndex[r.blk.id] != null) keptSeq.push({ pos, oldIdx: oldIndex[r.blk.id] }); });
+  const lis = _lisIndices(keptSeq.map(k => k.oldIdx));
+  const stayPos = new Set(lis.map(i => keptSeq[i].pos)); // 제자리 유지할 finalRows 위치(ID 보존)
+
+  // 삽입 런 구성: 유지 블록(안정 앵커) 사이에 낀 이동/신규 블록 묶음 (모두 안정 앵커라 병렬 삽입 가능)
+  const START = tgt.afterId || null; // 본문 첫 위치 앵커(일반 헤딩=헤딩ID / 토글·페이지=null)
+  const runs = []; let cur = null, anchor = START;
+  for (let pos = 0; pos < finalRows.length; pos++) {
+    if (stayPos.has(pos)) { if (cur) { runs.push(cur); cur = null; } anchor = finalRows[pos].blk.id; }
+    else { if (!cur) cur = { anchorId: anchor, rows: [] }; cur.rows.push({ pos, r: finalRows[pos] }); }
+  }
+  if (cur) runs.push(cur);
+
+  // 맨 앞 삽입인데 앵커가 없으면(토글/페이지 직속) 정밀 이동 불가 → 안전 폴백(전부 새로 만든 뒤 옛것 삭제)
+  if (runs.length && runs[0].anchorId == null) {
+    const ids = finalRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, finalRows.map(r => r.text), 'paragraph') : [];
+    await Promise.all(oldBodyIds.map(id => notionDeleteBlock(id).catch(() => {})));
+    return finalRows.map((r, i) => ({ id: ids[i] || (r.blk && r.blk.id), text: r.text }));
+  }
+
+  // 1) 제자리 유지 블록의 텍스트 변경은 병렬 갱신(블록 내용 PATCH — 부모 children과 별개)
+  const stayUpdates = [];
+  finalRows.forEach((r, pos) => { if (stayPos.has(pos) && r.text !== r.orig) stayUpdates.push(notionUpdateBlock(r.blk.id, r.text)); });
+  const updatesP = Promise.all(stayUpdates);
+  // 런은 같은 부모 children 동시 쓰기 충돌을 피하려 순차 삽입(보통 1~2개)
+  const newIdByPos = {};
+  for (const run of runs) {
+    const ids = await notionAppendBlocks(tgt.parentId, run.anchorId, run.rows.map(x => x.r.text), 'paragraph', true);
+    run.rows.forEach((x, k) => { newIdByPos[x.pos] = ids[k]; });
+  }
+  await updatesP;
+
+  // 2) append 성공 후에만 옛 블록 삭제(제자리 유지 제외 = 이동된 옛 복사본 + 제거된 블록)
+  const stayedIds = new Set([...stayPos].map(pos => finalRows[pos].blk.id));
+  await Promise.all(oldBodyIds.filter(id => !stayedIds.has(id)).map(id => notionDeleteBlock(id).catch(() => {})));
+
+  // 3) 새 순서 + 라이브 ID로 bodyBlocks 구성
+  return finalRows.map((r, pos) => stayPos.has(pos)
+    ? { id: r.blk.id, text: r.text }
+    : { id: newIdByPos[pos], text: r.text });
 }
 
 async function createChildNode(node, rawTitle) {

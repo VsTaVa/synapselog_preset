@@ -273,8 +273,9 @@ async function notionAppendBlock(parentId, afterId, text, blockType) {
 }
 
 // 여러 블록을 한 번의 호출로 추가 → ['id', ...] 배열 반환 (순서 보존)
-async function notionAppendBlocks(parentId, afterId, texts, blockType) {
-  const res = await notionFetch({ action: 'appendBlocks', parentId, afterId, texts, blockType });
+// exact=true면 afterId 블록 '바로 뒤'에 정밀 삽입(섹션 끝으로 안 밀림) — 최소 이동용
+async function notionAppendBlocks(parentId, afterId, texts, blockType, exact) {
+  const res = await notionFetch({ action: 'appendBlocks', parentId, afterId, texts, blockType, exact: !!exact });
   return (res && res.ids) || [];
 }
 

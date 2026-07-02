@@ -181,14 +181,15 @@ export default async function handler(req, res) {
 
   // ── action: 'appendBlocks' — 여러 본문 블록을 한 번의 호출로 추가 ──────
   if (action === 'appendBlocks') {
-    const { parentId, afterId, texts, blockType } = req.body;
+    const { parentId, afterId, texts, blockType, exact } = req.body;
     if (!parentId || !Array.isArray(texts)) return res.status(400).json({ error: 'parentId/texts가 필요해요' });
     if (!texts.length) return res.status(200).json({ ok: true, ids: [] });
     const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
     try {
       const norm = id => (id || '').replace(/-/g, '');
       let afterTarget = afterId || null;
-      if (afterId) {
+      // exact=true면 섹션 끝까지 걷지 않고 지정한 블록 '바로 뒤'에 삽입(정밀 이동용)
+      if (afterId && !exact) {
         const children = []; let cur;
         do {
           const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
