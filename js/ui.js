@@ -1176,7 +1176,7 @@ function beginNodeEdit(paneIdx, node) {
     const oldBodyIds = origBody.map(b => b.id);
     const finalRows = rows
       .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim() }))
-      .filter(r => r.blk || r.text.length);
+      .filter(r => r.text.length); // 내용 비운 기존 블록은 삭제로 처리(빈 블록 유지 X)
 
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     try {
