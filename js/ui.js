@@ -134,14 +134,18 @@ function setLabelScale(v) {
 function setViewRotation(deg) {
   deg = ((parseFloat(deg) || 0) % 360 + 360) % 360;
   const newRot = deg * Math.PI / 180;
-  // 보이는 영역 중심을 축으로 회전 — 회전 후에도 중심 아래 월드점이 그대로 있도록 팬 보정
-  const vc = viewportCenter();
-  const wp = screenToWorld(vc.x, vc.y);
-  _viewRotation = newRot;
-  const dx = wp.x - W/2, dy = wp.y - H/2;
-  const c = Math.cos(newRot), s = Math.sin(newRot);
-  panX = vc.x - W/2 - (dx*c - dy*s) * scale;
-  panY = vc.y - H/2 - (dx*s + dy*c) * scale;
+  // 보이는 노드 무게중심을 축으로 제자리 회전 — 회전 전 화면상 위치를 유지하도록 팬 보정
+  const c = visibleCentroid();
+  if (c) {
+    const sb = worldToScreen(c.x, c.y); // 회전 전 무게중심의 화면 위치
+    _viewRotation = newRot;
+    const dx = c.x - W/2, dy = c.y - H/2;
+    const rc = Math.cos(newRot), rs = Math.sin(newRot);
+    panX = sb.x - W/2 - (dx*rc - dy*rs) * scale;
+    panY = sb.y - H/2 - (dx*rs + dy*rc) * scale;
+  } else {
+    _viewRotation = newRot; // 노드 없으면 중력중심(W/2,H/2) 기준
+  }
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
   showViewStatus();
 }

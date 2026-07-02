@@ -494,6 +494,12 @@ function viewportCenter() {
   const availW = W - sidebarWidth - detailWidth - 40;
   return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
 }
+// 보이는 노드들의 무게중심(월드 좌표) — 회전 축(제자리 회전) 기준
+function visibleCentroid() {
+  let sx = 0, sy = 0, n = 0;
+  for (const nd of nodes) { if (nd.visible) { sx += nd.x; sy += nd.y; n++; } }
+  return n ? { x: sx / n, y: sy / n } : null;
+}
 // 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
 function isNodeInteractable(n) {
   if (searchKeyword.length > 0 && !searchMatches.has(n.id)) return false;
