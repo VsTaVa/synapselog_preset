@@ -232,6 +232,9 @@ function draw() {
     if (!e.weakLink && !e.manualLink) childCountMap.set(e.from, (childCountMap.get(e.from) || 0) + 1);
     if (e.manualLink) { manualLinkedSet.add(e.from); manualLinkedSet.add(e.to); }
   });
+  // 우측 패널에 열린 노드 → 표시용(id → 스택 순번 1=위,2=아래)
+  const openPanelIdx = new Map();
+  if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
   edges.forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
@@ -442,6 +445,22 @@ function draw() {
         ctx.fillStyle = '#ed7000'; ctx.fill();
         ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
         ctx.fillText(order, n.x+r+6, n.y-r-6);
+        ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+      }
+    }
+    // 우측 패널에 열린 노드: 주황 실선 링 + 은은한 글로우(흐려져도 표시). 2개 열림이면 좌상단에 번호
+    if(openPanelIdx.has(n.id)) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
+      const gOp = ctx.createRadialGradient(n.x, n.y, r+5, n.x, n.y, r+13);
+      gOp.addColorStop(0, 'rgba(237,112,0,0.35)'); gOp.addColorStop(1, 'rgba(237,112,0,0)');
+      ctx.fillStyle = gOp; ctx.fill();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+6, 0, Math.PI*2);
+      ctx.strokeStyle = '#ed7000'; ctx.lineWidth = 2.5/scale; ctx.stroke();
+      if (_stack.length >= 2) {
+        ctx.beginPath(); ctx.arc(n.x-r-6, n.y-r-6, 7/scale, 0, Math.PI*2);
+        ctx.fillStyle = '#ed7000'; ctx.fill();
+        ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(openPanelIdx.get(n.id), n.x-r-6, n.y-r-6);
         ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
