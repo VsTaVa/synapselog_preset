@@ -1170,7 +1170,12 @@ function beginNodeEdit(paneIdx, node) {
       const newNotAtEnd = rows.some((r, i) => r.isNew && valOf(r).trim() && i < lastExistingIdx);
       return existingReordered || newNotAtEnd;
     })();
-    if (!titleChanged && !dirty.length && !reordered) { finish(); return; }
+    // 기존 본문 블록을 지운 경우(행 제거 or 내용 비움) → 저장 필요. dirty만으론 못 잡음
+    const deleted = !isLocal && hasBody && (() => {
+      const keptExistingIds = new Set(rows.filter(r => !r.isNew && valOf(r).trim()).map(r => r.blk.id));
+      return (node.bodyBlocks || []).some(b => !keptExistingIds.has(b.id));
+    })();
+    if (!titleChanged && !dirty.length && !reordered && !deleted) { finish(); return; }
 
     const origBody = (node.bodyBlocks || []).slice();
     const oldBodyIds = origBody.map(b => b.id);
