@@ -494,11 +494,19 @@ function viewportCenter() {
   const availW = W - sidebarWidth - detailWidth - 40;
   return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
 }
-// 보이는 노드들의 무게중심(월드 좌표) — 회전 축(제자리 회전) 기준
+// 회전 축 기준 무게중심(월드 좌표) — 검색/포커스/경로 활성 시엔 '활성 노드'만, 그 외엔 보이는 전체
 function visibleCentroid() {
-  let sx = 0, sy = 0, n = 0;
-  for (const nd of nodes) { if (nd.visible) { sx += nd.x; sy += nd.y; n++; } }
-  return n ? { x: sx / n, y: sy / n } : null;
+  let pool = null;
+  if (searchKeyword.length > 0 && searchMatches.size > 0) {
+    pool = nodes.filter(n => n.visible && searchMatches.has(n.id));
+  } else if (_focusMode || _isolateActive) {
+    pool = nodes.filter(n => n.visible && !n.dimmed);
+  }
+  if (!pool || !pool.length) pool = nodes.filter(n => n.visible);
+  if (!pool.length) return null;
+  let sx = 0, sy = 0;
+  for (const nd of pool) { sx += nd.x; sy += nd.y; }
+  return { x: sx / pool.length, y: sy / pool.length };
 }
 // 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
 function isNodeInteractable(n) {
