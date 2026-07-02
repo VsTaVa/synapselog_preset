@@ -448,21 +448,22 @@ function draw() {
         ctx.textAlign='start'; ctx.textBaseline='alphabetic';
       }
     }
-    // 우측 패널에 열린 노드: 주황 실선 링 + 은은한 글로우(흐려져도 표시). 2개 열림이면 좌상단에 번호
+    // 우측 패널에 열린 노드: 녹색 체크 배지 + 은은한 녹색 글로우(흐려져도 표시)
     if(openPanelIdx.has(n.id)) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
-      const gOp = ctx.createRadialGradient(n.x, n.y, r+5, n.x, n.y, r+13);
-      gOp.addColorStop(0, 'rgba(237,112,0,0.35)'); gOp.addColorStop(1, 'rgba(237,112,0,0)');
+      const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
+      gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+6, 0, Math.PI*2);
-      ctx.strokeStyle = '#ed7000'; ctx.lineWidth = 2.5/scale; ctx.stroke();
-      if (_stack.length >= 2) {
-        ctx.beginPath(); ctx.arc(n.x-r-6, n.y-r-6, 7/scale, 0, Math.PI*2);
-        ctx.fillStyle = '#ed7000'; ctx.fill();
-        ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(openPanelIdx.get(n.id), n.x-r-6, n.y-r-6);
-        ctx.textAlign='start'; ctx.textBaseline='alphabetic';
-      }
+      const bx = n.x + r + 5, by = n.y - r - 5, rr = 7/scale;
+      ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
+      ctx.fillStyle = '#27ae60'; ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx - 3.2/scale, by + 0.3/scale);
+      ctx.lineTo(bx - 0.8/scale, by + 2.6/scale);
+      ctx.lineTo(bx + 3.4/scale, by - 2.4/scale);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
     }
     ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
