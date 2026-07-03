@@ -262,24 +262,29 @@ function applyModeCursor() {
   if (canvas && !c) canvas.style.cursor = 'default';
 }
 
-// 수동연결 = A 본문에 {{B}} 자동 작성 → 위키 엣지. 동명 헤딩이면 경로로 구분
-function _wikiRefFor(b) {
-  const dupes = nodes.filter(x => x.label && x.label.toLowerCase().trim() === b.label.toLowerCase().trim());
-  if (dupes.length <= 1) return b.label;
-  let cur = b.id, g = 0, root = '';
-  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (pn) root = pn.label; }
-  return (root && root !== b.label) ? `${root} > ${b.label}` : b.label;
+// 수동연결 = A 본문에 [B](B의 노션URL) 자동 작성 → ID 기반 링크 엣지
+function _wikiUrlFor(b) {
+  if (b.notionBlockId) {
+    const blk = b.notionBlockId.replace(/-/g, '');
+    const page = String(b.sourcePageId || '').replace(/-/g, '');
+    return page ? `https://www.notion.so/${page}?pvs=4#${blk}` : `https://www.notion.so/${blk}`;
+  }
+  const pid = b.entryNotionId || b.sourcePageId || '';
+  if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_')) return `https://www.notion.so/${String(pid).replace(/-/g, '')}`;
+  return `snlog:node:${b.sourcePageId || ''}:${encodeURIComponent(b.label)}`; // 로컬 폴백
 }
+function _wikiLinkText(b) { return `[${b.label}](${_wikiUrlFor(b)})`; }
+function _linkResolvesTo(url, b) { const t = _nodeFromLinkUrl(url); return !!(t && t.id === b.id); }
 function _hasWikiLinkTo(a, b) {
   const text = (a.bodyBlocks && a.bodyBlocks.length) ? a.bodyBlocks.map(x => x.text).join('\n') : (a.desc || '');
-  const re = /\{\{([^{}\n]+)\}\}/g; let m;
-  while ((m = re.exec(text))) { const tgt = resolveWikiRef(m[1].trim(), a); if (tgt && tgt.id === b.id) return true; }
+  const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m;
+  while ((m = re.exec(text))) { if (_linkResolvesTo(m[2], b)) return true; }
   return false;
 }
 function _wikiReflect() { if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); isStable = false; refreshOpenPanes(); }
 // A→B 위키 연결: 그래프 즉시 반영 + 노션 저장은 백그라운드(실패 시 롤백)
 function _wikiConnect(a, b) {
-  const text = `{{${_wikiRefFor(b)}}}`;
+  const text = _wikiLinkText(b);
   if (a.local) {
     a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
     _wikiReflect(); saveLocalPages(); return;
@@ -300,14 +305,14 @@ function _wikiConnect(a, b) {
   });
 }
 function _wikiDisconnect(a, b) {
-  const stripLine = line => line.replace(/\{\{([^{}\n]+)\}\}/g, (mm, ref) => { const t = resolveWikiRef(ref.trim(), a); return (t && t.id === b.id) ? '' : mm; });
+  const stripLine = line => line.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => _linkResolvesTo(url, b) ? '' : mm);
   if (a.local) {
     const out = [];
     (a.desc || '').split('\n').forEach(line => { const st = stripLine(line); if (st.trim() === '' && st !== line) return; out.push(st); });
     a.desc = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
     _wikiReflect(); saveLocalPages(); return;
   }
-  const blk = (a.bodyBlocks || []).find(x => { const re = /\{\{([^{}\n]+)\}\}/g; let m; while ((m = re.exec(x.text || ''))) { const t = resolveWikiRef(m[1].trim(), a); if (t && t.id === b.id) return true; } return false; });
+  const blk = (a.bodyBlocks || []).find(x => { const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m; while ((m = re.exec(x.text || ''))) { if (_linkResolvesTo(m[2], b)) return true; } return false; });
   if (!blk) return;
   const oldText = blk.text, snapshot = a.bodyBlocks.slice();
   const newText = stripLine(blk.text), removeWhole = newText.trim() === '';
@@ -888,12 +893,12 @@ function renderPaneContent(i, n) {
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
-  // {{X}} 위키링크 → 클릭 가능한 링크(원문 이스케이프됨: > 는 &gt;). 편집모드는 원문 유지(별도 경로)
-  rawDesc = rawDesc.replace(/\{\{([^{}\n]+)\}\}/g, (mm, ref) => {
-    const raw = ref.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
-    const target = (typeof resolveWikiRef === 'function') ? resolveWikiRef(raw, n) : null;
-    const shown = escapeHtml(raw.split('>').pop().trim());
-    return target ? `<span class="wl-ref" data-nid="${target.id}">${shown}</span>` : `<span class="wl-ref wl-unresolved">${shown}</span>`;
+  // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
+  rawDesc = rawDesc.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => {
+    const decUrl = url.replace(/&amp;/g, '&');
+    const target = (typeof _nodeFromLinkUrl === 'function') ? _nodeFromLinkUrl(decUrl) : null;
+    if (target) return `<span class="wl-ref" data-nid="${target.id}">${txt}</span>`;
+    return `<a class="wl-ref wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -1048,7 +1053,10 @@ function toast(msg, opts) {
 // ── 편집 서식: contenteditable WYSIWYG (볼드/취소선) ──────────────────
 // 저장 시 마크다운(**·~~)으로 직렬화, 표시 시 HTML로 변환
 function htmlFromMarkdown(t) {
-  return escapeHtml(t || '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  return escapeHtml(t || '')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    // [텍스트](url) → 편집기에서 원자적 링크 칩(긴 URL 숨김). href엔 원본 유지
+    .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (m, txt, url) => `<a href="${url}" class="wl-ref wl-chip" contenteditable="false">${txt}</a>`);
 }
 function markdownFromHtml(el) {
   function walk(node) {
@@ -1058,6 +1066,7 @@ function markdownFromHtml(el) {
       else if (c.nodeType === 1) {
         const tag = c.tagName.toLowerCase();
         if (tag === 'br') s += '\n';
+        else if (tag === 'a') s += '[' + walk(c) + '](' + (c.getAttribute('href') || '') + ')';
         else if (tag === 'strong' || tag === 'b') s += '**' + walk(c) + '**';
         else if (tag === 'del' || tag === 's' || tag === 'strike') s += '~~' + walk(c) + '~~';
         else if (tag === 'div' || tag === 'p') s += (s && !s.endsWith('\n') ? '\n' : '') + walk(c);
@@ -1195,7 +1204,7 @@ function _applyWikiSelection() {
   const q = _wikiQueryAtCaret(), n = _wikiItems[_wikiSel];
   if (!q || !n) { _hideWikiMenu(); return; }
   const node = q.node, full = node.textContent;
-  const insert = '{{' + n.label + '}}';
+  const insert = _wikiLinkText(n); // [라벨](노션URL)
   node.textContent = full.slice(0, q.start) + insert + full.slice(q.end);
   const pos = q.start + insert.length;
   const sel = window.getSelection(), range = document.createRange();

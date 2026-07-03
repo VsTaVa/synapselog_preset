@@ -20,9 +20,15 @@ export default async function handler(req, res) {
     const out = [];
     let i = 0, buf = '', bold = false, strike = false;
     const flush = () => { if (buf) { out.push({ type: 'text', text: { content: buf }, annotations: { bold, strikethrough: strike } }); buf = ''; } };
+    const linkRe = /^\[([^\]]+)\]\(([^)\s]+)\)/;
     while (i < text.length) {
       if (text.startsWith('**', i)) { flush(); bold = !bold; i += 2; }
       else if (text.startsWith('~~', i)) { flush(); strike = !strike; i += 2; }
+      else if (text[i] === '[') {
+        const m = linkRe.exec(text.slice(i));
+        if (m) { flush(); out.push({ type: 'text', text: { content: m[1], link: { url: m[2] } }, annotations: { bold, strikethrough: strike } }); i += m[0].length; }
+        else { buf += text[i]; i++; }
+      }
       else { buf += text[i]; i++; }
     }
     flush();
@@ -332,6 +338,8 @@ export default async function handler(req, res) {
       let str = t.plain_text || '';
       if (t.annotations?.strikethrough) str = `~~${str}~~`;
       if (t.annotations?.bold) str = `**${str}**`;
+      const url = t.href || t.text?.link?.url;
+      if (url) str = `[${str}](${url})`; // 노션 인라인 링크 → 마크다운 링크로 보존
       return str;
     }).join('');
   }

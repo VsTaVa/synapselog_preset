@@ -813,47 +813,33 @@ function setLayoutMode(mode) {
   if (typeof fitGraph === 'function') fitGraph(false);
 }
 
-// ── {{ }} 위키링크 해석 ────────────────────────────────────────────
-function _wikiRootId(n) {
-  let cur = n.id, g = 0;
-  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; }
-  return cur;
-}
-function _wikiAncestorLabels(n) {
-  const set = new Set(); let cur = n.id, g = 0;
-  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (pn && pn.label) set.add(pn.label.toLowerCase().trim()); }
-  return set;
-}
-// '헤딩' 또는 '페이지 > 섹션 > 헤딩' 참조를 노드로 해석. 못 찾으면 null
-function resolveWikiRef(ref, src) {
-  const parts = String(ref).split('>').map(s => s.trim()).filter(Boolean);
-  if (!parts.length) return null;
-  const targetLabel = parts[parts.length - 1].toLowerCase();
-  let cands = nodes.filter(n => n.label && n.label.toLowerCase().trim() === targetLabel);
-  if (!cands.length) return null;
-  if (parts.length > 1) {
-    const want = parts.slice(0, -1).map(s => s.toLowerCase());
-    const f = cands.filter(c => { const anc = _wikiAncestorLabels(c); return want.every(w => anc.has(w)); });
-    if (f.length) cands = f;
+// ── 링크 해석: [텍스트](노션URL)의 URL 속 ID로 노드 매칭 ──────────────
+// 로컬 노드는 노션 ID가 없어 내부 링크 snlog:node:<pageId>:<label> 사용
+function _nodeFromLinkUrl(url) {
+  if (!url) return null;
+  if (url.indexOf('snlog:node:') === 0) {
+    const rest = url.slice('snlog:node:'.length), idx = rest.indexOf(':');
+    const pid = idx >= 0 ? rest.slice(0, idx) : '', label = idx >= 0 ? decodeURIComponent(rest.slice(idx + 1)) : '';
+    return nodes.find(n => String(n.sourcePageId || '') === pid && n.label === label) || nodes.find(n => n.label === label) || null;
   }
-  if (cands.length > 1 && src) {
-    const sr = _wikiRootId(src);
-    const same = cands.filter(c => _wikiRootId(c) === sr);
-    if (same.length) cands = same;
-  }
-  return cands[0] || null;
+  const ids = (url.replace(/-/g, '').match(/[0-9a-f]{32}/gi) || []).map(s => s.toLowerCase());
+  if (!ids.length) return null;
+  const norm = v => String(v || '').replace(/-/g, '').toLowerCase();
+  for (const id of ids) { const n = nodes.find(x => x.notionBlockId && norm(x.notionBlockId) === id); if (n) return n; }
+  for (const id of ids) { const n = nodes.find(x => (x.entryNotionId && norm(x.entryNotionId) === id) || (x.sourcePageId && norm(x.sourcePageId) === id)); if (n) return n; }
+  return null;
 }
-// 모든 노드의 본문에서 {{ }}를 스캔 → 약한(힘 없는) 위키 엣지 재생성. 멱등
+// 모든 노드의 본문에서 [텍스트](url) 링크를 스캔 → 노드로 해석되는 것만 약한 위키 엣지 재생성. 멱등
+const _LINK_RE = /\[([^\]]*)\]\(([^)\s]+)\)/g;
 function resolveWikiLinks() {
   edges = edges.filter(e => !e.wikiLink);
   const seen = new Set();
   nodes.forEach(src => {
     const text = (src.bodyBlocks && src.bodyBlocks.length) ? src.bodyBlocks.map(b => b.text).join('\n') : (src.desc || '');
-    if (!text || text.indexOf('{{') < 0) return;
-    const re = /\{\{([^{}\n]+)\}\}/g; let m;
-    while ((m = re.exec(text))) {
-      const ref = m[1].trim(); if (!ref) continue;
-      const target = resolveWikiRef(ref, src);
+    if (!text || text.indexOf('](') < 0) return;
+    _LINK_RE.lastIndex = 0; let m;
+    while ((m = _LINK_RE.exec(text))) {
+      const target = _nodeFromLinkUrl(m[2]);
       if (target && target.id !== src.id) {
         const key = src.id + '>' + target.id;
         if (seen.has(key)) continue; seen.add(key);
