@@ -444,7 +444,7 @@ function draw() {
       ctx.fillStyle = gSel2; ctx.fill();
     }
     if(_connectMode && _connectFirstNode && !n.connectSelected) {
-      const alreadyLinked = edges.some(e => e.manualLink && ((e.from === _connectFirstNode.id && e.to === n.id) || (e.from === n.id && e.to === _connectFirstNode.id)));
+      const alreadyLinked = edges.some(e => (e.manualLink || e.wikiLink) && ((e.from === _connectFirstNode.id && e.to === n.id) || (e.from === n.id && e.to === _connectFirstNode.id)));
       if(alreadyLinked) {
         ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
         const gDel = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+16);

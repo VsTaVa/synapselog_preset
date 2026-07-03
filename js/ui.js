@@ -262,25 +262,73 @@ function applyModeCursor() {
   if (canvas && !c) canvas.style.cursor = 'default';
 }
 
-function handleConnectClick(n) {
+// 수동연결 = A 본문에 {{B}} 자동 작성 → 위키 엣지. 동명 헤딩이면 경로로 구분
+function _wikiRefFor(b) {
+  const dupes = nodes.filter(x => x.label && x.label.toLowerCase().trim() === b.label.toLowerCase().trim());
+  if (dupes.length <= 1) return b.label;
+  let cur = b.id, g = 0, root = '';
+  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (pn) root = pn.label; }
+  return (root && root !== b.label) ? `${root} > ${b.label}` : b.label;
+}
+function _hasWikiLinkTo(a, b) {
+  const text = (a.bodyBlocks && a.bodyBlocks.length) ? a.bodyBlocks.map(x => x.text).join('\n') : (a.desc || '');
+  const re = /\{\{([^{}\n]+)\}\}/g; let m;
+  while ((m = re.exec(text))) { const tgt = resolveWikiRef(m[1].trim(), a); if (tgt && tgt.id === b.id) return true; }
+  return false;
+}
+async function _addWikiLink(a, b) {
+  const text = `{{${_wikiRefFor(b)}}}`;
+  if (a.local) {
+    a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
+    saveLocalPages();
+  } else {
+    const tgt = _appendTarget(a);
+    const ids = await notionAppendBlocks(tgt.parentId, tgt.afterId, [text], 'paragraph');
+    if (ids[0]) a.bodyBlocks = (a.bodyBlocks || []).concat([{ id: ids[0], text }]);
+    a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
+    invalidateNodeCache(a);
+  }
+}
+async function _removeWikiLink(a, b) {
+  const stripLine = line => line.replace(/\{\{([^{}\n]+)\}\}/g, (mm, ref) => { const t = resolveWikiRef(ref.trim(), a); return (t && t.id === b.id) ? '' : mm; });
+  if (a.local) {
+    const out = [];
+    (a.desc || '').split('\n').forEach(line => { const st = stripLine(line); if (st.trim() === '' && st !== line) return; out.push(st); });
+    a.desc = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    saveLocalPages();
+    return;
+  }
+  // 노션: b로 해석되는 {{}}가 든 블록 찾아 처리(링크만 있으면 삭제, 텍스트 섞였으면 토큰만 제거)
+  const blk = (a.bodyBlocks || []).find(x => { const re = /\{\{([^{}\n]+)\}\}/g; let m; while ((m = re.exec(x.text || ''))) { const t = resolveWikiRef(m[1].trim(), a); if (t && t.id === b.id) return true; } return false; });
+  if (blk) {
+    const newText = stripLine(blk.text);
+    if (newText.trim() === '') { await notionDeleteBlock(blk.id).catch(() => {}); a.bodyBlocks = a.bodyBlocks.filter(x => x.id !== blk.id); }
+    else { await notionUpdateBlock(blk.id, newText); blk.text = newText; }
+    a.desc = (a.bodyBlocks || []).map(x => x.text).join('\n');
+    invalidateNodeCache(a);
+  }
+}
+async function handleConnectClick(n) {
   const s = document.getElementById('status');
   if (!_connectFirstNode) {
     _connectFirstNode = n; n.connectSelected = true;
     if (s) s.textContent = `"${n.label}" 선택됨 — 연결할 노드를 클릭하세요`;
-  } else if (_connectFirstNode.id === n.id) {
+    isStable = false; return;
+  }
+  if (_connectFirstNode.id === n.id) {
     _connectFirstNode.connectSelected = false; _connectFirstNode = null;
     if (s) s.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
-  } else {
-    const a = _connectFirstNode, b = n;
-    const existingManual = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
-    if (existingManual) {
-      removeManualLink(a.id, b.id);
-      if (s) s.textContent = `"${a.label}" ↔ "${b.label}" 연결 삭제 — 계속 연결할 노드를 클릭하세요`;
-    } else {
-      edges.push({ from: a.id, to: b.id, manualLink: true }); saveManualLinks();
-      if (s) s.textContent = `"${a.label}" ↔ "${b.label}" 연결됨 — 계속 연결할 노드를 클릭하세요`;
-    }
+    isStable = false; return;
   }
+  const a = _connectFirstNode, b = n;
+  const exists = _hasWikiLinkTo(a, b);
+  if (s) s.textContent = '저장중…';
+  try {
+    if (exists) { await _removeWikiLink(a, b); if (s) s.textContent = `"${a.label}" → "${b.label}" 연결 해제 — 계속 클릭`; }
+    else { await _addWikiLink(a, b); if (s) s.textContent = `"${a.label}" → "${b.label}" 연결 — 계속 클릭`; }
+    if (typeof resolveWikiLinks === 'function') resolveWikiLinks();
+    refreshOpenPanes();
+  } catch (e) { toast('연결 실패: ' + (e.message || e), { type: 'error', duration: 4000 }); if (s) s.textContent = '연결 실패'; }
   isStable = false;
 }
 
