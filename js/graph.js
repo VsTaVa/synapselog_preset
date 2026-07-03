@@ -256,12 +256,12 @@ function draw() {
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
-      // {{ }} 위키링크: 청록 점선(구조 링크·수동 링크와 구분)
+      // {{ }} 위키링크: 흰색 글로우 점선 + A→B 화살표
       if(hasSearch && !eitherMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
-      const wActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
-      ctx.strokeStyle = `rgba(56,209,197,${isHov||wActive ? 0.85 : 0.4})`;
-      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([2, 5]);
+      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.75 : 0.4})`;
+      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+      ctx.shadowColor = 'rgba(255,255,255,0.55)'; ctx.shadowBlur = 6;
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
@@ -288,6 +288,20 @@ function draw() {
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
+    if(e.wikiLink) {
+      // A→B 방향 화살표 (B 노드 앞에)
+      const ang = Math.atan2(nb.y-na.y, nb.x-na.x);
+      const rB = nodeR(nb.level) + 3/scale;
+      const tipX = nb.x - Math.cos(ang)*rB, tipY = nb.y - Math.sin(ang)*rB;
+      const ah = 9/scale;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX - Math.cos(ang-0.42)*ah, tipY - Math.sin(ang-0.42)*ah);
+      ctx.lineTo(tipX - Math.cos(ang+0.42)*ah, tipY - Math.sin(ang+0.42)*ah);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(255,255,255,${isHov?0.85:0.55})`; ctx.fill();
+    }
+    ctx.shadowBlur = 0;
   });
 
   if(_isolateActive && _pathConnectors.length) {
