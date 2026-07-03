@@ -832,12 +832,23 @@ function renderPaneContent(i, n) {
   let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
+  // {{X}} 위키링크 → 클릭 가능한 링크(원문 이스케이프됨: > 는 &gt;). 편집모드는 원문 유지(별도 경로)
+  rawDesc = rawDesc.replace(/\{\{([^{}\n]+)\}\}/g, (mm, ref) => {
+    const raw = ref.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
+    const target = (typeof resolveWikiRef === 'function') ? resolveWikiRef(raw, n) : null;
+    const shown = escapeHtml(raw.split('>').pop().trim());
+    return target ? `<span class="wl-ref" data-nid="${target.id}">${shown}</span>` : `<span class="wl-ref wl-unresolved">${shown}</span>`;
+  });
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
     contentEl.innerHTML = mdTableToHtml(rawDesc);
+    // 위키링크 클릭 → 해당 노드 열기
+    contentEl.querySelectorAll('.wl-ref[data-nid]').forEach(el => {
+      el.addEventListener('click', () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); });
+    });
     if (searchKeyword && searchMatches.has(n.id)) {
       setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
@@ -1324,6 +1335,7 @@ function beginNodeEdit(paneIdx, node) {
           if (it) { it.title = newTitle; refreshSidebarRender(); }
         }
       }
+      if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); // 본문 변경 → 위키링크 재해석
       isStable = false;
       finish();
       toast(isLocal ? '저장됨' : '노션에 저장됨', { type: 'success' });

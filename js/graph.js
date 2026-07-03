@@ -196,6 +196,7 @@ function simulate() {
       if(other.fixed && e.from === n.id) return;
       const dx = other.x-n.x, dy = other.y-n.y, d = Math.max(dist(n,other), 1);
       let natural = CONFIG.linkDistance, strength = CONFIG.linkTension;
+      if(e.wikiLink) return; // 위키링크({{ }})는 렌더만, 레이아웃 힘 없음
       if(e.weakLink) { natural = 600; strength = 0.001; }
       else if(e.manualLink) { return; }
       else {
@@ -254,7 +255,14 @@ function draw() {
     const isHov = hoveredNode&&(hoveredNode.id===e.from||hoveredNode.id===e.to);
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
-    if(e.manualLink) {
+    if(e.wikiLink) {
+      // {{ }} 위키링크: 청록 점선(구조 링크·수동 링크와 구분)
+      if(hasSearch && !eitherMatch) return;
+      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
+      const wActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
+      ctx.strokeStyle = `rgba(56,209,197,${isHov||wActive ? 0.85 : 0.4})`;
+      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([2, 5]);
+    } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
@@ -791,6 +799,56 @@ function setLayoutMode(mode) {
   if (typeof fitGraph === 'function') fitGraph(false);
 }
 
+// ── {{ }} 위키링크 해석 ────────────────────────────────────────────
+function _wikiRootId(n) {
+  let cur = n.id, g = 0;
+  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; }
+  return cur;
+}
+function _wikiAncestorLabels(n) {
+  const set = new Set(); let cur = n.id, g = 0;
+  while (g++ < 40) { const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink); if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (pn && pn.label) set.add(pn.label.toLowerCase().trim()); }
+  return set;
+}
+// '헤딩' 또는 '페이지 > 섹션 > 헤딩' 참조를 노드로 해석. 못 찾으면 null
+function resolveWikiRef(ref, src) {
+  const parts = String(ref).split('>').map(s => s.trim()).filter(Boolean);
+  if (!parts.length) return null;
+  const targetLabel = parts[parts.length - 1].toLowerCase();
+  let cands = nodes.filter(n => n.label && n.label.toLowerCase().trim() === targetLabel);
+  if (!cands.length) return null;
+  if (parts.length > 1) {
+    const want = parts.slice(0, -1).map(s => s.toLowerCase());
+    const f = cands.filter(c => { const anc = _wikiAncestorLabels(c); return want.every(w => anc.has(w)); });
+    if (f.length) cands = f;
+  }
+  if (cands.length > 1 && src) {
+    const sr = _wikiRootId(src);
+    const same = cands.filter(c => _wikiRootId(c) === sr);
+    if (same.length) cands = same;
+  }
+  return cands[0] || null;
+}
+// 모든 노드의 본문에서 {{ }}를 스캔 → 약한(힘 없는) 위키 엣지 재생성. 멱등
+function resolveWikiLinks() {
+  edges = edges.filter(e => !e.wikiLink);
+  const seen = new Set();
+  nodes.forEach(src => {
+    const text = (src.bodyBlocks && src.bodyBlocks.length) ? src.bodyBlocks.map(b => b.text).join('\n') : (src.desc || '');
+    if (!text || text.indexOf('{{') < 0) return;
+    const re = /\{\{([^{}\n]+)\}\}/g; let m;
+    while ((m = re.exec(text))) {
+      const ref = m[1].trim(); if (!ref) continue;
+      const target = resolveWikiRef(ref, src);
+      if (target && target.id !== src.id) {
+        const key = src.id + '>' + target.id;
+        if (seen.has(key)) continue; seen.add(key);
+        edges.push({ from: src.id, to: target.id, weakLink: true, wikiLink: true });
+      }
+    }
+  });
+}
+
 function buildGraph() {
   _hueIndex = 0;
   const markdown = window._NOTION_MARKDOWN || '';
@@ -805,6 +863,7 @@ function buildGraph() {
   if (root) { root.x = W/2; root.y = H/2; root.vx = 0; root.vy = 0; }
   nodes.forEach(n => { n.visible = n.level === 0; });
   revealByLevel(new Set(nodes.map(n => n.id)), restoreFixedPositions);
+  resolveWikiLinks();
 }
 
 function mergeGraph(title, markdown, pageId) {
@@ -849,7 +908,9 @@ function mergeGraph(title, markdown, pageId) {
     edges.push({ from: firstRoot.id, to: newRootNewId, weakLink: true });
   }
   const newNodeIds = new Set(Object.values(idMap));
-  return revealByLevel(newNodeIds, restoreFixedPositions);
+  const ret = revealByLevel(newNodeIds, restoreFixedPositions);
+  resolveWikiLinks();
+  return ret;
 }
 
 // 증분 동기화 — 기존 노드는 위치/id/탭참조 유지하고 내용만 갱신, 추가/삭제만 반영
