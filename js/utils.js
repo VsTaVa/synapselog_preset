@@ -129,9 +129,15 @@ function cleanLabel(str) {
 
 function cleanDesc(str) {
   if (!str) return '';
-  return str
+  // [텍스트](url) 마크다운 링크는 그대로 두고, 링크가 아닌 구간에서만 대괄호/서식 마커 제거
+  const clean = s => s
     .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/[\[\]#`]/g, '').replace(/\{[^}]*\}/g, '').trim();
+    .replace(/[\[\]#`]/g, '').replace(/\{[^}]*\}/g, '');
+  const linkRe = /\[([^\]]*)\]\(([^)\s]+)\)/g;
+  let out = '', last = 0, m;
+  while ((m = linkRe.exec(str))) { out += clean(str.slice(last, m.index)) + m[0]; last = m.index + m[0].length; }
+  out += clean(str.slice(last));
+  return out.trim();
 }
 
 // 본문 블록 마커 다음 줄에서 노션 rich_text 원문 추출(목록/인용 접두·들여쓰기만 제거, **·~~ 서식 마커는 보존)
