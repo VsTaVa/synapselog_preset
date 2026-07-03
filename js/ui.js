@@ -97,8 +97,8 @@ function updateConfig() {
   vLinkWidth.textContent = parseFloat(cfgLinkWidth.value).toFixed(1);
   isStable = false;
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-  // 방사형은 물리를 안 쓰므로 반발력/중력 반영하려면 좌표 재계산
-  if (_layoutMode !== 'force') applyTreeLayout();
+  // 방사형만 물리를 안 쓰므로 좌표 재계산. (클러스터는 물리라 슬라이더가 매 프레임 반영됨)
+  if (_layoutMode === 'radial') applyTreeLayout();
   snSet('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value }), 'slider');
 }
 cfgRep.addEventListener('input', updateConfig);
