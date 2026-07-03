@@ -14,9 +14,10 @@ let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlo
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
-// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리)
-let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial') ? v : 'force'; } catch(e) { return 'force'; } })();
+// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리) | 'cluster'(페이지별 클러스터)
+let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial' || v === 'cluster') ? v : 'force'; } catch(e) { return 'force'; } })();
 let _layoutSig = -1; // 마지막 트리 배치 시 노드 수(변하면 재배치)
+let _pageAnchors = null, _clusterSig = -1; // 클러스터 모드: 페이지별 중력 앵커
 
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
@@ -160,12 +161,15 @@ function parseMarkdown(text, rootTitle) {
 // ── 물리 시뮬레이션 ─────────────────────────────────────────────────
 
 function simulate() {
-  // 트리/방사형 배치: 물리 끄고 계산 좌표 유지. 노드 수 바뀌면(페이지 로드/삭제 등) 재배치
-  if (_layoutMode !== 'force') {
+  // 방사형 배치: 물리 끄고 계산 좌표 유지. 노드 수 바뀌면(페이지 로드/삭제 등) 재배치
+  if (_layoutMode === 'radial') {
     if (nodes.length !== _layoutSig) applyTreeLayout();
     return;
   }
   if (isStable && !drag) return;
+  // 페이지별 클러스터: 페이지마다 중력 앵커를 따로 둬서 섬처럼 뭉침. 페이지 집합 바뀌면 앵커 재계산
+  const clusterMode = _layoutMode === 'cluster';
+  if (clusterMode && (!_pageAnchors || nodes.length !== _clusterSig)) { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
   const repulsion = CONFIG.repulsion, damping = 0.92, centerForce = CONFIG.gravity;
   const fixedDescendants = new Set();
   nodes.filter(n => n.fixed && n.visible).forEach(fn => {
@@ -176,10 +180,14 @@ function simulate() {
   let totalVelocity = 0;
   activeNodes.forEach(n => {
     let fx = 0, fy = 0;
+    const nKey = clusterMode ? (n.sourcePageId || '_root') : null;
     nodes.forEach(m => {
       if(m === n || !m.visible) return;
       const dx = n.x-m.x, dy = n.y-m.y, d = Math.max(dist(n,m), 1);
-      if(d < 400) { const f = repulsion/(d*d); fx += dx/d*f; fy += dy/d*f; }
+      // 클러스터 모드: 다른 페이지끼리는 더 멀리·세게 밀어내 섬을 분리
+      const diffPage = clusterMode && (m.sourcePageId || '_root') !== nKey;
+      const range = diffPage ? 750 : 400;
+      if(d < range) { const f = repulsion * (diffPage ? 2.4 : 1)/(d*d); fx += dx/d*f; fy += dy/d*f; }
     });
     edges.forEach(e => {
       if(e.from !== n.id && e.to !== n.id) return;
@@ -201,6 +209,10 @@ function simulate() {
     else if(n._satellite){
       const sdx=n.x-WORLD_CX, sdy=n.y-WORLD_CY, sd=Math.max(Math.sqrt(sdx*sdx+sdy*sdy),1);
       const sf=(sd-700)*0.0016; fx-=sdx/sd*sf; fy-=sdy/sd*sf;
+    }
+    else if(clusterMode){
+      const a = (_pageAnchors && _pageAnchors[nKey]) || { x: WORLD_CX, y: WORLD_CY };
+      fx += (a.x-n.x)*centerForce; fy += (a.y-n.y)*centerForce;
     }
     else { fx += (WORLD_CX-n.x)*centerForce; fy += (WORLD_CY-n.y)*centerForce; }
     n.vx = Math.max(-3, Math.min(3, (n.vx+fx)*damping));
@@ -749,16 +761,31 @@ function applyTreeLayout() {
   isStable = true;
 }
 
+// 클러스터 모드: 보이는 노드의 페이지별로 중력 앵커를 원형 배치
+function computePageAnchors() {
+  const keys = [...new Set(nodes.filter(n => n.visible).map(n => n.sourcePageId || '_root'))];
+  const anchors = {};
+  if (keys.length <= 1) { anchors[keys[0] != null ? keys[0] : '_root'] = { x: WORLD_CX, y: WORLD_CY }; return anchors; }
+  const R = Math.max(420, keys.length * 220); // 페이지 많을수록 크게
+  keys.forEach((k, i) => {
+    const ang = (i / keys.length) * Math.PI * 2 - Math.PI / 2;
+    anchors[k] = { x: WORLD_CX + Math.cos(ang) * R, y: WORLD_CY + Math.sin(ang) * R };
+  });
+  return anchors;
+}
+
 function setLayoutMode(mode) {
-  _layoutMode = (mode === 'radial') ? mode : 'force';
+  _layoutMode = (mode === 'radial' || mode === 'cluster') ? mode : 'force';
   try { localStorage.setItem('snlog_layout', _layoutMode); } catch(e) {}
-  if (_layoutMode === 'force') {
-    nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-    _layoutSig = -1; isStable = false;
-  } else {
+  if (_layoutMode === 'radial') {
     _viewRotation = 0; // 방사형은 똑바로(회전 리셋)
     try { localStorage.setItem('snlog_rotation', '0'); } catch(e) {}
     applyTreeLayout();
+  } else {
+    // force / cluster: 물리 시뮬 재가동
+    nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+    _layoutSig = -1; isStable = false;
+    if (_layoutMode === 'cluster') { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
   if (typeof fitGraph === 'function') fitGraph(false);
