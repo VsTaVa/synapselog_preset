@@ -1131,7 +1131,7 @@ function attachFormatting(field) {
 }
 
 // 제목 + 본문 인라인 수정 (contenteditable WYSIWYG). 로컬 노드는 노션 호출 없이 로컬 저장
-// ── {{ }} 위키링크 자동완성 ────────────────────────────────────────────
+// ── '[' 입력 → 헤딩 링크 자동완성 ────────────────────────────────────────
 let _wikiMenu = null, _wikiItems = [], _wikiSel = 0, _wikiRow = null;
 function _wikiEsc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function _ensureWikiMenu() {
@@ -1151,7 +1151,7 @@ function _wikiCtxLabel(n) {
   }
   return ctx;
 }
-// 캐럿 바로 앞이 '{{query' 형태인지 검사 → {열림위치, 캐럿위치, query}
+// 캐럿 바로 앞이 '[query' 형태인지 검사 → {열림위치, 캐럿위치, query}
 function _wikiQueryAtCaret() {
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return null;
@@ -1159,7 +1159,7 @@ function _wikiQueryAtCaret() {
   if (!range.collapsed || range.startContainer.nodeType !== Node.TEXT_NODE) return null;
   const node = range.startContainer;
   const pre = node.textContent.slice(0, range.startOffset);
-  const m = pre.match(/\{\{([^{}\n]*)$/);
+  const m = pre.match(/\[([^\[\]\n]*)$/); // '[' 뒤 텍스트가 헤딩 자동완성 트리거
   if (!m) return null;
   return { node, start: range.startOffset - m[0].length, end: range.startOffset, query: m[1] };
 }
@@ -1273,7 +1273,7 @@ function beginNodeEdit(paneIdx, node) {
     item.appendChild(ce);
     list.appendChild(item);
     attachFormatting(ce);
-    attachWikiAutocomplete(ce); // {{ 입력 시 헤딩 자동완성
+    attachWikiAutocomplete(ce); // '[' 입력 시 헤딩 자동완성
     // 빈 본문 블록에서 백스페이스 → 블록 삭제 후 이전 행 끝으로 포커스 (노션식)
     ce.addEventListener('keydown', e => {
       if (e.key !== 'Backspace') return;
