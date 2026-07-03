@@ -894,8 +894,9 @@ function renderPaneContent(i, n) {
   rawDesc = rawDesc.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => {
     const decUrl = url.replace(/&amp;/g, '&');
     const target = (typeof _nodeFromLinkUrl === 'function') ? _nodeFromLinkUrl(decUrl) : null;
-    if (target) return `<span class="wl-ref" data-nid="${target.id}">${txt}</span>`;
-    return `<a class="wl-ref wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
+    // 수정 모드와 동일하게 칩(🔗 + 제목만, URL 숨김)으로 표시
+    if (target) return `<span class="wl-ref wl-chip" data-nid="${target.id}">${txt}</span>`;
+    return `<a class="wl-ref wl-chip wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
   if (searchKeyword && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
