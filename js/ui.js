@@ -264,11 +264,8 @@ function applyModeCursor() {
 
 // 수동연결 = A 본문에 [B](B의 노션URL) 자동 작성 → ID 기반 링크 엣지
 function _wikiUrlFor(b) {
-  if (b.notionBlockId) {
-    const blk = b.notionBlockId.replace(/-/g, '');
-    const page = String(b.sourcePageId || '').replace(/-/g, '');
-    return page ? `https://www.notion.so/${page}?pvs=4#${blk}` : `https://www.notion.so/${blk}`;
-  }
+  // 블록ID는 전역 유일 → 페이지ID 없이 블록ID만으로 노션이 그 블록으로 리다이렉트(엉뚱한 sourcePageId 회피)
+  if (b.notionBlockId) return `https://www.notion.so/${b.notionBlockId.replace(/-/g, '')}`;
   const pid = b.entryNotionId || b.sourcePageId || '';
   if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_')) return `https://www.notion.so/${String(pid).replace(/-/g, '')}`;
   return `snlog:node:${b.sourcePageId || ''}:${encodeURIComponent(b.label)}`; // 로컬 폴백
