@@ -1057,6 +1057,96 @@ function attachFormatting(field) {
 }
 
 // 제목 + 본문 인라인 수정 (contenteditable WYSIWYG). 로컬 노드는 노션 호출 없이 로컬 저장
+// ── {{ }} 위키링크 자동완성 ────────────────────────────────────────────
+let _wikiMenu = null, _wikiItems = [], _wikiSel = 0, _wikiRow = null;
+function _wikiEsc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function _ensureWikiMenu() {
+  if (_wikiMenu) return _wikiMenu;
+  _wikiMenu = document.createElement('div'); _wikiMenu.id = 'wikilink-menu'; _wikiMenu.style.display = 'none';
+  document.body.appendChild(_wikiMenu);
+  return _wikiMenu;
+}
+function _hideWikiMenu() { if (_wikiMenu) _wikiMenu.style.display = 'none'; _wikiItems = []; _wikiRow = null; }
+// 대상 노드의 최상위(페이지/루트) 라벨 — 동명 헤딩 구분용 맥락
+function _wikiCtxLabel(n) {
+  let cur = n.id, guard = 0, ctx = '';
+  while (guard++ < 20) {
+    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (!pn) break;
+    ctx = pn.label; if (pn.level === 0) break;
+  }
+  return ctx;
+}
+// 캐럿 바로 앞이 '{{query' 형태인지 검사 → {열림위치, 캐럿위치, query}
+function _wikiQueryAtCaret() {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!range.collapsed || range.startContainer.nodeType !== Node.TEXT_NODE) return null;
+  const node = range.startContainer;
+  const pre = node.textContent.slice(0, range.startOffset);
+  const m = pre.match(/\{\{([^{}\n]*)$/);
+  if (!m) return null;
+  return { node, start: range.startOffset - m[0].length, end: range.startOffset, query: m[1] };
+}
+function _renderWikiSel() {
+  if (!_wikiMenu) return;
+  _wikiMenu.querySelectorAll('.wl-item').forEach((el, i) => el.classList.toggle('sel', i === _wikiSel));
+  const cur = _wikiMenu.querySelector('.wl-item.sel');
+  if (cur) cur.scrollIntoView({ block: 'nearest' });
+}
+function _updateWikiMenu(ce) {
+  const q = _wikiQueryAtCaret();
+  if (!q) { _hideWikiMenu(); return; }
+  const query = q.query.trim().toLowerCase();
+  let cands = nodes.filter(n => n.label && n.label.trim());
+  if (query) cands = cands.filter(n => n.label.toLowerCase().includes(query));
+  cands.sort((a, b) => {
+    const as = a.label.toLowerCase().startsWith(query) ? 0 : 1, bs = b.label.toLowerCase().startsWith(query) ? 0 : 1;
+    return as - bs || a.label.length - b.label.length;
+  });
+  cands = cands.slice(0, 8);
+  if (!cands.length) { _hideWikiMenu(); return; }
+  _wikiItems = cands; _wikiSel = 0; _wikiRow = ce;
+  const menu = _ensureWikiMenu();
+  menu.innerHTML = cands.map((n, i) => {
+    const ctx = _wikiCtxLabel(n);
+    return `<div class="wl-item${i === 0 ? ' sel' : ''}" data-i="${i}"><span class="wl-label">${_wikiEsc(n.label)}</span>${ctx ? `<span class="wl-ctx">${_wikiEsc(ctx)}</span>` : ''}</div>`;
+  }).join('');
+  menu.querySelectorAll('.wl-item').forEach(el => {
+    el.addEventListener('mousedown', e => { e.preventDefault(); _wikiSel = +el.dataset.i; _applyWikiSelection(); });
+  });
+  let rect = null;
+  try { rect = window.getSelection().getRangeAt(0).getBoundingClientRect(); } catch (e) {}
+  if (!rect || (!rect.left && !rect.top)) rect = ce.getBoundingClientRect();
+  menu.style.display = 'block';
+  const mw = menu.offsetWidth || 220;
+  menu.style.left = Math.min(rect.left, window.innerWidth - mw - 8) + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+}
+function _applyWikiSelection() {
+  const q = _wikiQueryAtCaret(), n = _wikiItems[_wikiSel];
+  if (!q || !n) { _hideWikiMenu(); return; }
+  const node = q.node, full = node.textContent;
+  const insert = '{{' + n.label + '}}';
+  node.textContent = full.slice(0, q.start) + insert + full.slice(q.end);
+  const pos = q.start + insert.length;
+  const sel = window.getSelection(), range = document.createRange();
+  try { range.setStart(node, pos); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); } catch (e) {}
+  _hideWikiMenu();
+}
+function attachWikiAutocomplete(ce) {
+  ce.addEventListener('input', () => _updateWikiMenu(ce));
+  ce.addEventListener('keydown', e => {
+    if (!_wikiMenu || _wikiMenu.style.display === 'none' || _wikiRow !== ce) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); _wikiSel = Math.min(_wikiSel + 1, _wikiItems.length - 1); _renderWikiSel(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _wikiSel = Math.max(_wikiSel - 1, 0); _renderWikiSel(); }
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); _applyWikiSelection(); }
+    else if (e.key === 'Escape') { e.preventDefault(); _hideWikiMenu(); }
+  }, true);
+  ce.addEventListener('blur', () => setTimeout(_hideWikiMenu, 150));
+}
+
 function beginNodeEdit(paneIdx, node) {
   const paneEl = getPaneEl(paneIdx);
   if (!paneEl) return;
@@ -1109,6 +1199,7 @@ function beginNodeEdit(paneIdx, node) {
     item.appendChild(ce);
     list.appendChild(item);
     attachFormatting(ce);
+    attachWikiAutocomplete(ce); // {{ 입력 시 헤딩 자동완성
     // 빈 본문 블록에서 백스페이스 → 블록 삭제 후 이전 행 끝으로 포커스 (노션식)
     ce.addEventListener('keydown', e => {
       if (e.key !== 'Backspace') return;
