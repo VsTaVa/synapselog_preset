@@ -276,39 +276,61 @@ function _hasWikiLinkTo(a, b) {
   while ((m = re.exec(text))) { const tgt = resolveWikiRef(m[1].trim(), a); if (tgt && tgt.id === b.id) return true; }
   return false;
 }
-async function _addWikiLink(a, b) {
+function _wikiReflect() { if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); isStable = false; refreshOpenPanes(); }
+// A→B 위키 연결: 그래프 즉시 반영 + 노션 저장은 백그라운드(실패 시 롤백)
+function _wikiConnect(a, b) {
   const text = `{{${_wikiRefFor(b)}}}`;
   if (a.local) {
     a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
-    saveLocalPages();
-  } else {
-    const tgt = _appendTarget(a);
-    const ids = await notionAppendBlocks(tgt.parentId, tgt.afterId, [text], 'paragraph');
-    if (ids[0]) a.bodyBlocks = (a.bodyBlocks || []).concat([{ id: ids[0], text }]);
-    a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
-    invalidateNodeCache(a);
+    _wikiReflect(); saveLocalPages(); return;
   }
+  const blk = { id: '_tmp_' + Date.now() + Math.random().toString(36).slice(2), text, _pending: true };
+  a.bodyBlocks = (a.bodyBlocks || []).concat([blk]);
+  a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
+  _wikiReflect(); // 그래프 즉시
+  const tgt = _appendTarget(a);
+  notionAppendBlocks(tgt.parentId, tgt.afterId, [text], 'paragraph').then(ids => {
+    if (ids && ids[0]) { blk.id = ids[0]; delete blk._pending; invalidateNodeCache(a); }
+    else throw new Error('append 실패');
+  }).catch(err => {
+    a.bodyBlocks = (a.bodyBlocks || []).filter(x => x.id !== blk.id);
+    a.desc = (a.bodyBlocks || []).map(x => x.text).join('\n');
+    _wikiReflect();
+    toast('연결 저장 실패(되돌림): ' + (err.message || err), { type: 'error', duration: 4000 });
+  });
 }
-async function _removeWikiLink(a, b) {
+function _wikiDisconnect(a, b) {
   const stripLine = line => line.replace(/\{\{([^{}\n]+)\}\}/g, (mm, ref) => { const t = resolveWikiRef(ref.trim(), a); return (t && t.id === b.id) ? '' : mm; });
   if (a.local) {
     const out = [];
     (a.desc || '').split('\n').forEach(line => { const st = stripLine(line); if (st.trim() === '' && st !== line) return; out.push(st); });
     a.desc = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-    saveLocalPages();
-    return;
+    _wikiReflect(); saveLocalPages(); return;
   }
-  // 노션: b로 해석되는 {{}}가 든 블록 찾아 처리(링크만 있으면 삭제, 텍스트 섞였으면 토큰만 제거)
   const blk = (a.bodyBlocks || []).find(x => { const re = /\{\{([^{}\n]+)\}\}/g; let m; while ((m = re.exec(x.text || ''))) { const t = resolveWikiRef(m[1].trim(), a); if (t && t.id === b.id) return true; } return false; });
-  if (blk) {
-    const newText = stripLine(blk.text);
-    if (newText.trim() === '') { await notionDeleteBlock(blk.id).catch(() => {}); a.bodyBlocks = a.bodyBlocks.filter(x => x.id !== blk.id); }
-    else { await notionUpdateBlock(blk.id, newText); blk.text = newText; }
-    a.desc = (a.bodyBlocks || []).map(x => x.text).join('\n');
-    invalidateNodeCache(a);
-  }
+  if (!blk) return;
+  const oldText = blk.text, snapshot = a.bodyBlocks.slice();
+  const newText = stripLine(blk.text), removeWhole = newText.trim() === '';
+  if (removeWhole) a.bodyBlocks = a.bodyBlocks.filter(x => x.id !== blk.id); else blk.text = newText;
+  a.desc = (a.bodyBlocks || []).map(x => x.text).join('\n');
+  _wikiReflect(); // 그래프 즉시
+  (removeWhole ? notionDeleteBlock(blk.id) : notionUpdateBlock(blk.id, newText))
+    .then(() => invalidateNodeCache(a))
+    .catch(err => {
+      a.bodyBlocks = snapshot; blk.text = oldText;
+      a.desc = snapshot.map(x => x.text).join('\n');
+      _wikiReflect();
+      toast('연결 해제 저장 실패(되돌림): ' + (err.message || err), { type: 'error', duration: 4000 });
+    });
 }
-async function handleConnectClick(n) {
+// 공통 토글 — 단일/멀티/순서대로 연결에서 모두 사용
+function toggleWikiConnect(a, b) {
+  if (!a || !b || a.id === b.id) return false;
+  const existed = _hasWikiLinkTo(a, b);
+  if (existed) _wikiDisconnect(a, b); else _wikiConnect(a, b);
+  return existed;
+}
+function handleConnectClick(n) {
   const s = document.getElementById('status');
   if (!_connectFirstNode) {
     _connectFirstNode = n; n.connectSelected = true;
@@ -321,15 +343,8 @@ async function handleConnectClick(n) {
     isStable = false; return;
   }
   const a = _connectFirstNode, b = n;
-  const exists = _hasWikiLinkTo(a, b);
-  if (s) s.textContent = '저장중…';
-  try {
-    if (exists) { await _removeWikiLink(a, b); if (s) s.textContent = `"${a.label}" → "${b.label}" 연결 해제 — 계속 클릭`; }
-    else { await _addWikiLink(a, b); if (s) s.textContent = `"${a.label}" → "${b.label}" 연결 — 계속 클릭`; }
-    if (typeof resolveWikiLinks === 'function') resolveWikiLinks();
-    refreshOpenPanes();
-  } catch (e) { toast('연결 실패: ' + (e.message || e), { type: 'error', duration: 4000 }); if (s) s.textContent = '연결 실패'; }
-  isStable = false;
+  const existed = toggleWikiConnect(a, b);
+  if (s) s.textContent = existed ? `"${a.label}" → "${b.label}" 연결 해제 — 계속 클릭` : `"${a.label}" → "${b.label}" 연결 — 계속 클릭`;
 }
 
 function saveManualLinks() {
@@ -494,26 +509,19 @@ function multiSelectFocus() {
 
 function multiSelectConnect() {
   if (_multiSelected.length !== 2) return;
-  const [a, b] = _multiSelected;
-  const existing = edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
-  if (existing) removeManualLink(a.id, b.id);
-  else { edges.push({ from: a.id, to: b.id, manualLink: true }); saveManualLinks(); isStable = false; }
+  const [a, b] = _multiSelected; // a→b 방향
+  toggleWikiConnect(a, b);
   clearMultiSelect();
 }
 
 function multiSelectChainConnect() {
   if (_multiSelected.length < 3) return;
-  const linked = (a, b) => edges.some(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id)));
+  const seq = _multiSelected.slice(); // 선택 순서대로 a→b→c
   const pairs = [];
-  for (let i = 0; i < _multiSelected.length - 1; i++) pairs.push([_multiSelected[i], _multiSelected[i + 1]]);
-  if (pairs.every(([a, b]) => linked(a, b))) {
-    // 이미 전부 연결돼 있으면 해제
-    pairs.forEach(([a, b]) => removeManualLink(a.id, b.id));
-  } else {
-    pairs.forEach(([a, b]) => { if (!linked(a, b)) edges.push({ from: a.id, to: b.id, manualLink: true }); });
-    saveManualLinks();
-  }
-  isStable = false;
+  for (let i = 0; i < seq.length - 1; i++) pairs.push([seq[i], seq[i + 1]]);
+  const allLinked = pairs.every(([a, b]) => _hasWikiLinkTo(a, b));
+  if (allLinked) pairs.forEach(([a, b]) => _wikiDisconnect(a, b));
+  else pairs.forEach(([a, b]) => { if (!_hasWikiLinkTo(a, b)) _wikiConnect(a, b); });
   clearMultiSelect();
 }
 
