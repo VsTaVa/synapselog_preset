@@ -303,19 +303,23 @@ function _wikiConnect(a, b) {
 }
 function _wikiDisconnect(a, b) {
   const stripLine = line => line.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => _linkResolvesTo(url, b) ? '' : mm);
-  if (a.local) {
+  const stripDesc = () => {
     const out = [];
     (a.desc || '').split('\n').forEach(line => { const st = stripLine(line); if (st.trim() === '' && st !== line) return; out.push(st); });
     a.desc = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-    _wikiReflect(); saveLocalPages(); return;
-  }
+  };
+  if (a.local) { stripDesc(); _wikiReflect(); saveLocalPages(); return; }
   const blk = (a.bodyBlocks || []).find(x => { const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m; while ((m = re.exec(x.text || ''))) { if (_linkResolvesTo(m[2], b)) return true; } return false; });
-  if (!blk) return;
-  const oldText = blk.text, snapshot = a.bodyBlocks.slice();
+  if (!blk) {
+    // 최상위/페이지 노드처럼 링크가 desc에만 있는 경우 → desc에서 제거해 그래프 즉시 반영
+    stripDesc(); _wikiReflect(); return;
+  }
+  const oldText = blk.text, snapshot = (a.bodyBlocks || []).slice();
   const newText = stripLine(blk.text), removeWhole = newText.trim() === '';
   if (removeWhole) a.bodyBlocks = a.bodyBlocks.filter(x => x.id !== blk.id); else blk.text = newText;
   a.desc = (a.bodyBlocks || []).map(x => x.text).join('\n');
   _wikiReflect(); // 그래프 즉시
+  if (String(blk.id).startsWith('_tmp_')) return; // 아직 노션에 안 올라간 임시 블록 → 로컬 제거로 충분(삭제 호출 시 롤백 방지)
   (removeWhole ? notionDeleteBlock(blk.id) : notionUpdateBlock(blk.id, newText))
     .then(() => invalidateNodeCache(a))
     .catch(err => {
