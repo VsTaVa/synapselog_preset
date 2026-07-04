@@ -53,6 +53,8 @@ canvas { display: block; }
 /* 체크: translate로 중앙정렬 후 회전(광학 보정으로 살짝 위/좌) */
 .ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 50%; top: 44%; width: 4px; height: 8px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
 .ck-orange:hover .ck-box { border-color: #ff9d3c; }
+.s-trash-btn { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 4px 6px; display: inline-flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.s-trash-btn:hover { color: #ff6b6b; background: rgba(255,90,90,0.12); }
 .cfg-subtitle { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 10px; }
 #bulk-actions { display: flex; gap: 6px; }
 .icon-btn-sm { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(237,112,0,0.12); border: 1px solid rgba(237,112,0,0.35); color: #ed7000; transition: background 0.2s; }
