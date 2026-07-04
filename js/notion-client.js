@@ -990,6 +990,7 @@ async function _loadEntriesBackground(pageId) {
     if (c) { const p = JSON.parse(c); delete p._headingsOnly; sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify(p)); }
   } catch(e) {}
   loadManualLinks();
+  if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); // 엔트리 본문까지 로드된 뒤 [](url) 링크 재해석
 }
 
 // ── 파일 임포트 / 내보내기 ───────────────────────────────────────────
