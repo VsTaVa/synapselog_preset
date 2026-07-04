@@ -263,9 +263,27 @@ function applyModeCursor() {
 }
 
 // 수동연결 = A 본문에 [B](B의 노션URL) 자동 작성 → ID 기반 링크 엣지
+// b가 속한 페이지의 노션 ID — 구조 부모를 올라가며 하위페이지(entryNotionId)/최상위(sourcePageId) 탐색
+function _wikiPageIdFor(b) {
+  let cur = b.id, g = 0;
+  while (g++ < 60) {
+    const n = nodeMap[cur];
+    if (n) {
+      if (n.entryNotionId) return String(n.entryNotionId).replace(/-/g, '');
+      if (n.isChildPage && n.notionBlockId) return String(n.notionBlockId).replace(/-/g, '');
+      if (n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('local_') && !String(n.sourcePageId).startsWith('md_')) return String(n.sourcePageId).replace(/-/g, '');
+    }
+    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink && !e.wikiLink);
+    if (!pe) break; cur = pe.from;
+  }
+  return '';
+}
 function _wikiUrlFor(b) {
-  // 블록ID는 전역 유일 → 페이지ID 없이 블록ID만으로 노션이 그 블록으로 리다이렉트(엉뚱한 sourcePageId 회피)
-  if (b.notionBlockId) return `https://www.notion.so/${b.notionBlockId.replace(/-/g, '')}`;
+  // 페이지ID?pvs=4#블록ID → 노션에서 그 페이지로 이동 후 블록 위치로 스크롤(단독 팝업 대신)
+  if (b.notionBlockId) {
+    const blk = b.notionBlockId.replace(/-/g, ''), page = _wikiPageIdFor(b);
+    return page ? `https://www.notion.so/${page}?pvs=4#${blk}` : `https://www.notion.so/${blk}`;
+  }
   const pid = b.entryNotionId || b.sourcePageId || '';
   if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_')) return `https://www.notion.so/${String(pid).replace(/-/g, '')}`;
   return `snlog:node:${b.sourcePageId || ''}:${encodeURIComponent(b.label)}`; // 로컬 폴백
@@ -712,7 +730,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'nodemode', 'graphcfg'];
+const _railSections = ['pages', 'search', 'graphcfg'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -1602,7 +1620,10 @@ function openPanel(n) {
     const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
     applyFocusMode(n.id, shallow);
   }
-  if (n.level === 0) highlightSidebarPage(n.sourcePageId || null);
+  if (n.level === 0) {
+    highlightSidebarPage(n.sourcePageId || null);
+    if (_activeRailSection !== 'pages') openRailSection('pages'); // 최상위 노드 → 페이지 목록 열기
+  }
   // 선택한 노드를 보이는 영역 중심으로 맞춤(패널 폭 반영해서). 패널 슬라이드 후 실행
   setTimeout(() => { try { focusViewOnNode(n); } catch (e) {} }, _wasOpen ? 40 : 320);
 }
@@ -1911,7 +1932,6 @@ canvas.addEventListener('mouseup', e => {
   } else if (elapsed < 150 && n && n === mouseDownNode) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
   } else if (elapsed < 150 && !n) {
-    if (searchKeyword) { searchInput.value = ''; doSearch(''); } // 바탕 클릭 → 검색 해제
     clearAllModes();
   }
   if (drag && drag.fixed) saveFixedPositions();
@@ -2066,7 +2086,6 @@ canvas.addEventListener('touchend', e => {
         fitGraph(true);
         _lastTapTime = 0;
       } else {
-        if (searchKeyword) { searchInput.value = ''; doSearch(''); } // 바탕 탭 → 검색 해제
         clearAllModes();
         _lastTapNode = null; _lastTapTime = now;
       }
@@ -2194,15 +2213,14 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleMultiSelectMode: 'n', toggleLabels: 't' };
+const DEFAULT_SHORTCUTS = { toggleLabels: 't' };
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
 // 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 선택 모드 하나, N 키)
-delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleEditMode;
-if (['1','2','3','4'].includes(_shortcuts.toggleMultiSelectMode)) _shortcuts.toggleMultiSelectMode = 'n';
+delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleEditMode; delete _shortcuts.toggleMultiSelectMode;
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleMultiSelectMode','toggleLabels'].forEach(action => {
+  ['toggleLabels'].forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -2233,8 +2251,7 @@ document.addEventListener('keydown', e => {
   // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  if (k === _shortcuts.toggleMultiSelectMode) { e.preventDefault(); document.getElementById('multiselect-toggle-input')?.click(); }
-  else if (k === _shortcuts.toggleLabels) { e.preventDefault(); const cb = document.getElementById('label-toggle-input'); if (cb) cb.checked = !cb.checked; toggleLabels(); }
+  if (k === _shortcuts.toggleLabels) { e.preventDefault(); const cb = document.getElementById('label-toggle-input'); if (cb) cb.checked = !cb.checked; toggleLabels(); }
   else if (e.key === ' ') { e.preventDefault(); fitGraph(true); } // 스페이스바 → 화면 맞춤
 });
 
@@ -2280,7 +2297,7 @@ function openSettings() {
 
   ['pages','connect'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleMultiSelectMode','toggleLabels'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  ['toggleLabels'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts','storage'].forEach(id => {
