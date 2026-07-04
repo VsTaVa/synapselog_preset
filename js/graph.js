@@ -14,6 +14,8 @@ let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlo
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
+// 노드 연결(위키링크 엣지) 표시 여부
+let _showConnections = (() => { try { return localStorage.getItem('snlog_show_conn') !== 'false'; } catch(e) { return true; } })();
 // 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리) | 'cluster'(페이지별 클러스터)
 let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'radial' || v === 'cluster') ? v : 'force'; } catch(e) { return 'force'; } })();
 let _layoutSig = -1; // 마지막 트리 배치 시 노드 수(변하면 재배치)
@@ -258,6 +260,7 @@ function draw() {
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
       // {{ }} 위키링크: 흰색 글로우 점선 + A→B 화살표
+      if(!_showConnections) return; // 노드 연결 표시 끔
       if(hasSearch && !eitherMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.75 : 0.4})`;
