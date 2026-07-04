@@ -915,6 +915,8 @@ function renderPaneContent(i, n) {
     .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
+  // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
+  rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
   rawDesc = rawDesc.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => {
     const decUrl = url.replace(/&amp;/g, '&');
@@ -1117,7 +1119,7 @@ function _getFmtToolbar() {
   let tb = document.getElementById('fmt-toolbar');
   if (!tb) {
     tb = document.createElement('div'); tb.id = 'fmt-toolbar';
-    tb.innerHTML = `<button data-cmd="bold" title="볼드 (Ctrl+B)"><b>B</b></button><button data-cmd="italic" title="기울임 (Ctrl+I)"><i>I</i></button><button data-cmd="strikeThrough" title="취소선 (Ctrl+U)"><s>S</s></button>`;
+    tb.innerHTML = `<button data-cmd="bold" title="볼드 (Ctrl+B)"><b>B</b></button><button data-cmd="italic" title="기울임 (Ctrl+I)"><i>I</i></button><button data-cmd="strikeThrough" title="취소선 (Ctrl+U)"><s>S</s></button><button data-cmd="code" title="코드 (Ctrl+E)" style="font-family:monospace;">&lt;/&gt;</button>`;
     tb.querySelectorAll('button').forEach(b => {
       b.addEventListener('mousedown', e => e.preventDefault()); // 선택 유지
       b.addEventListener('click', e => { e.preventDefault(); applyFmt(b.dataset.cmd); });
@@ -1137,6 +1139,15 @@ function _showFmtToolbar(x, y) {
 function applyFmt(cmd) {
   if (!_fmtField) return;
   _fmtField.focus();
+  if (cmd === 'code') {
+    // execCommand에 code 없음 → 선택 텍스트를 <code>로 감쌈
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed) {
+      const text = sel.toString().replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      try { document.execCommand('insertHTML', false, `<code>${text}</code>`); } catch (e) {}
+    }
+    return;
+  }
   // 태그 기반(<b>/<strike>)으로 강제 → 색 입힌 span 생성 방지 (취소선 해제 후 검은 글씨 버그)
   try { document.execCommand('styleWithCSS', false, false); } catch (e) {}
   try { document.execCommand(cmd, false, null); } catch (e) {}
@@ -1147,6 +1158,7 @@ function attachFormatting(field) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); _fmtField = field; applyFmt('bold'); }
     else if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); _fmtField = field; applyFmt('italic'); }
     else if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); _fmtField = field; applyFmt('strikeThrough'); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); _fmtField = field; applyFmt('code'); }
   });
   const upd = (e) => {
     const sel = window.getSelection();
