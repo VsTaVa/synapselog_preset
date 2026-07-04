@@ -249,7 +249,8 @@ function draw() {
   const openPanelIdx = new Map();
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
-  edges.forEach(e => {
+  // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
+  [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
     if(!na||!nb||!na.visible||!nb.visible) return;
     const isHov = hoveredNode&&(hoveredNode.id===e.from||hoveredNode.id===e.to);
