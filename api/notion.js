@@ -18,15 +18,18 @@ export default async function handler(req, res) {
   function buildRichText(text) {
     if (!text) return [{ type: 'text', text: { content: '' } }];
     const out = [];
-    let i = 0, buf = '', bold = false, strike = false;
-    const flush = () => { if (buf) { out.push({ type: 'text', text: { content: buf }, annotations: { bold, strikethrough: strike } }); buf = ''; } };
+    let i = 0, buf = '', bold = false, strike = false, italic = false, code = false;
+    const ann = () => ({ bold, italic, strikethrough: strike, code });
+    const flush = () => { if (buf) { out.push({ type: 'text', text: { content: buf }, annotations: ann() }); buf = ''; } };
     const linkRe = /^\[([^\]]+)\]\(([^)\s]+)\)/;
     while (i < text.length) {
       if (text.startsWith('**', i)) { flush(); bold = !bold; i += 2; }
       else if (text.startsWith('~~', i)) { flush(); strike = !strike; i += 2; }
+      else if (text[i] === '`') { flush(); code = !code; i += 1; }
+      else if (text[i] === '*' && text[i + 1] !== '*') { flush(); italic = !italic; i += 1; }
       else if (text[i] === '[') {
         const m = linkRe.exec(text.slice(i));
-        if (m) { flush(); out.push({ type: 'text', text: { content: m[1], link: { url: m[2] } }, annotations: { bold, strikethrough: strike } }); i += m[0].length; }
+        if (m) { flush(); out.push({ type: 'text', text: { content: m[1], link: { url: m[2] } }, annotations: ann() }); i += m[0].length; }
         else { buf += text[i]; i++; }
       }
       else { buf += text[i]; i++; }
@@ -336,7 +339,9 @@ export default async function handler(req, res) {
     if (!richTextArr) return '';
     return richTextArr.map(t => {
       let str = t.plain_text || '';
+      if (t.annotations?.code) str = `\`${str}\``;
       if (t.annotations?.strikethrough) str = `~~${str}~~`;
+      if (t.annotations?.italic) str = `*${str}*`;
       if (t.annotations?.bold) str = `**${str}**`;
       const url = t.href || t.text?.link?.url;
       if (url) str = `[${str}](${url})`; // 노션 인라인 링크 → 마크다운 링크로 보존
@@ -648,6 +653,7 @@ export default async function handler(req, res) {
             else if (type === 'callout') {
               const t = extractRichText(block.callout?.rich_text);
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t + '\n';
+              if (block.has_children) md += await fetchHeadings(block.id, depth + 1); // 콜아웃 내부 중첩 텍스트도 로드
             }
           } catch(e) {}
         }

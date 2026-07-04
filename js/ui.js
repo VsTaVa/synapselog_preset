@@ -909,7 +909,10 @@ function renderPaneContent(i, n) {
     requestAnimationFrame(() => { titleEl.style.paddingRight = (titleActions.offsetWidth + 10) + 'px'; });
   }
 
-  let rawDesc = escapeHtml(n.desc || '(내용 없음)').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  let rawDesc = escapeHtml(n.desc || '(내용 없음)')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    .replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>')
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
   // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
@@ -1075,6 +1078,8 @@ function toast(msg, opts) {
 function htmlFromMarkdown(t) {
   return escapeHtml(t || '')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
     // [텍스트](url) → 편집기에서 원자적 링크 칩(긴 URL 숨김). href엔 원본 유지
     .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (m, txt, url) => `<a href="${url}" class="wl-ref wl-chip" contenteditable="false">${txt}</a>`);
 }
@@ -1088,12 +1093,15 @@ function markdownFromHtml(el) {
         if (tag === 'br') s += '\n';
         else if (tag === 'a') s += '[' + walk(c) + '](' + (c.getAttribute('href') || '') + ')';
         else if (tag === 'strong' || tag === 'b') s += '**' + walk(c) + '**';
+        else if (tag === 'em' || tag === 'i') s += '*' + walk(c) + '*';
+        else if (tag === 'code') s += '`' + walk(c) + '`';
         else if (tag === 'del' || tag === 's' || tag === 'strike') s += '~~' + walk(c) + '~~';
         else if (tag === 'div' || tag === 'p') s += (s && !s.endsWith('\n') ? '\n' : '') + walk(c);
         else if (tag === 'span') {
           const st = c.getAttribute('style') || '';
           let inner = walk(c);
           if (/text-decoration[^;]*line-through/.test(st)) inner = '~~' + inner + '~~';
+          if (/font-style\s*:\s*italic/.test(st)) inner = '*' + inner + '*';
           if (/font-weight\s*:\s*(bold|[6-9]00)/.test(st)) inner = '**' + inner + '**';
           s += inner;
         } else s += walk(c);
@@ -1109,7 +1117,7 @@ function _getFmtToolbar() {
   let tb = document.getElementById('fmt-toolbar');
   if (!tb) {
     tb = document.createElement('div'); tb.id = 'fmt-toolbar';
-    tb.innerHTML = `<button data-cmd="bold" title="볼드 (Ctrl+B)"><b>B</b></button><button data-cmd="strikeThrough" title="취소선 (Ctrl+U)"><s>S</s></button>`;
+    tb.innerHTML = `<button data-cmd="bold" title="볼드 (Ctrl+B)"><b>B</b></button><button data-cmd="italic" title="기울임 (Ctrl+I)"><i>I</i></button><button data-cmd="strikeThrough" title="취소선 (Ctrl+U)"><s>S</s></button>`;
     tb.querySelectorAll('button').forEach(b => {
       b.addEventListener('mousedown', e => e.preventDefault()); // 선택 유지
       b.addEventListener('click', e => { e.preventDefault(); applyFmt(b.dataset.cmd); });
@@ -1137,6 +1145,7 @@ function applyFmt(cmd) {
 function attachFormatting(field) {
   field.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); _fmtField = field; applyFmt('bold'); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); _fmtField = field; applyFmt('italic'); }
     else if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); _fmtField = field; applyFmt('strikeThrough'); }
   });
   const upd = (e) => {
@@ -1243,6 +1252,36 @@ function attachWikiAutocomplete(ce) {
   ce.addEventListener('blur', () => setTimeout(_hideWikiMenu, 150));
 }
 
+// ── 본문 편집 캐럿 헬퍼(블록 간 방향키 이동·Enter 분할용) ──────────────
+function _ceCaretAtStart(ce) {
+  const s = window.getSelection(); if (!s || !s.rangeCount) return false;
+  const r = s.getRangeAt(0); if (!r.collapsed) return false;
+  const t = r.cloneRange(); t.selectNodeContents(ce); t.setEnd(r.startContainer, r.startOffset);
+  return t.toString().length === 0;
+}
+function _ceCaretAtEnd(ce) {
+  const s = window.getSelection(); if (!s || !s.rangeCount) return false;
+  const r = s.getRangeAt(0); if (!r.collapsed) return false;
+  const t = r.cloneRange(); t.selectNodeContents(ce); t.setStart(r.startContainer, r.startOffset);
+  return t.toString().length === 0;
+}
+function _ceCaretRect(ce) {
+  const s = window.getSelection(); if (!s || !s.rangeCount) return null;
+  const r = s.getRangeAt(0).cloneRange();
+  const rects = r.getClientRects();
+  let cr = rects && rects.length ? rects[rects.length - 1] : null;
+  if (!cr || (!cr.top && !cr.height)) cr = r.getBoundingClientRect();
+  return cr && (cr.top || cr.height) ? cr : null;
+}
+function _ceCaretFirstLine(ce) { if (_ceCaretAtStart(ce)) return true; const cr = _ceCaretRect(ce); return !cr || (cr.top - ce.getBoundingClientRect().top) < 10; }
+function _ceCaretLastLine(ce) { if (_ceCaretAtEnd(ce)) return true; const cr = _ceCaretRect(ce); return !cr || (ce.getBoundingClientRect().bottom - cr.bottom) < 10; }
+function _focusEditRow(row, atEnd) {
+  if (!row || !row.el) return;
+  row.el.focus();
+  const range = document.createRange(); range.selectNodeContents(row.el); range.collapse(!atEnd);
+  const s = window.getSelection(); s.removeAllRanges(); s.addRange(range);
+}
+
 function beginNodeEdit(paneIdx, node) {
   const paneEl = getPaneEl(paneIdx);
   if (!paneEl) return;
@@ -1275,7 +1314,7 @@ function beginNodeEdit(paneIdx, node) {
     const ti = rows.indexOf(targetRow); rows.splice(ti, 0, dragRow);
     list.insertBefore(dragRow.item, targetRow.item);
   };
-  const addRow = (text, blk) => {
+  const addRow = (text, blk, afterRow) => {
     const item = document.createElement('div'); item.className = 'body-edit-item';
     const ce = document.createElement('div');
     ce.className = 'body-edit-row'; ce.contentEditable = 'true';
@@ -1296,23 +1335,44 @@ function beginNodeEdit(paneIdx, node) {
     list.appendChild(item);
     attachFormatting(ce);
     attachWikiAutocomplete(ce); // '[' 입력 시 헤딩 자동완성
-    // 빈 본문 블록에서 백스페이스 → 블록 삭제 후 이전 행 끝으로 포커스 (노션식)
     ce.addEventListener('keydown', e => {
-      if (e.key !== 'Backspace') return;
-      if ((ce.textContent || '').trim() !== '') return;
+      const menuOpen = _wikiMenu && _wikiMenu.style.display !== 'none' && _wikiRow === ce;
       const idx = rows.indexOf(rowObj);
-      if (rows.length <= 1 || idx < 0) return;
-      e.preventDefault();
-      rows.splice(idx, 1);
-      item.remove();
-      const prev = rows[idx - 1] || rows[idx];
-      if (prev && prev.el) {
-        prev.el.focus();
-        const range = document.createRange(); range.selectNodeContents(prev.el); range.collapse(false);
-        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      // 빈 블록 백스페이스 → 삭제 후 이전 행 끝으로 (노션식)
+      if (e.key === 'Backspace' && (ce.textContent || '').trim() === '') {
+        if (rows.length <= 1 || idx < 0) return;
+        e.preventDefault(); rows.splice(idx, 1); item.remove();
+        _focusEditRow(rows[idx - 1] || rows[idx], true); return;
       }
+      // Enter → 캐럿 뒤 내용을 새 블록으로 분리(아래에 추가)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        if (menuOpen) return; // 자동완성 선택은 그쪽에서
+        e.preventDefault();
+        let afterMd = '';
+        const s = window.getSelection();
+        if (s && s.rangeCount) {
+          const r = s.getRangeAt(0);
+          const tail = document.createRange(); tail.selectNodeContents(ce); tail.setStart(r.endContainer, r.endOffset);
+          const tmp = document.createElement('div'); tmp.appendChild(tail.extractContents());
+          afterMd = markdownFromHtml(tmp);
+        }
+        addRow(afterMd, isLocal ? { local: true } : null, rowObj);
+        _focusEditRow(rows[idx + 1], false); return;
+      }
+      // Shift+Enter → 같은 블록 내 소프트 줄바꿈
+      if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); document.execCommand('insertLineBreak'); return; }
+      // 방향키 → 블록 경계에서 인접 블록으로 이동
+      if (e.key === 'ArrowUp' && !menuOpen && _ceCaretFirstLine(ce) && idx > 0) { e.preventDefault(); _focusEditRow(rows[idx - 1], true); return; }
+      if (e.key === 'ArrowDown' && !menuOpen && _ceCaretLastLine(ce) && idx < rows.length - 1) { e.preventDefault(); _focusEditRow(rows[idx + 1], false); return; }
+      if (e.key === 'ArrowLeft' && _ceCaretAtStart(ce) && idx > 0) { e.preventDefault(); _focusEditRow(rows[idx - 1], true); return; }
+      if (e.key === 'ArrowRight' && _ceCaretAtEnd(ce) && idx < rows.length - 1) { e.preventDefault(); _focusEditRow(rows[idx + 1], false); return; }
     });
     rows.push(rowObj);
+    if (afterRow && afterRow.item && afterRow.item.parentNode === list) {
+      list.insertBefore(item, afterRow.item.nextSibling);
+      const cur = rows.indexOf(rowObj); if (cur >= 0) rows.splice(cur, 1);
+      const ai = rows.indexOf(afterRow); rows.splice(ai + 1, 0, rowObj);
+    }
     return ce;
   };
   if (isLocal) {

@@ -124,15 +124,13 @@ function cleanLabel(str) {
   if (!str) return '';
   return str
     .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1')
-    .replace(/[\[\]#`]/g, '').replace(/\{([^}]*)\}/g, '$1').replace(/→|⇒|—/g, '').trim();
+    .replace(/[\[\]#`]/g, '').replace(/\{([^}]*)\}/g, '$1').trim();
 }
 
 function cleanDesc(str) {
   if (!str) return '';
-  // [텍스트](url) 마크다운 링크는 그대로 두고, 링크가 아닌 구간에서만 대괄호/서식 마커 제거
-  const clean = s => s
-    .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/[\[\]#`]/g, '').replace(/\{[^}]*\}/g, '');
+  // [텍스트](url) 링크는 보존. 링크 아닌 구간에서만 대괄호/# 제거(기울임*·코드`·화살표→는 보존)
+  const clean = s => s.replace(/[\[\]#]/g, '').replace(/\{[^}]*\}/g, '');
   const linkRe = /\[([^\]]*)\]\(([^)\s]+)\)/g;
   let out = '', last = 0, m;
   while ((m = linkRe.exec(str))) { out += clean(str.slice(last, m.index)) + m[0]; last = m.index + m[0].length; }
