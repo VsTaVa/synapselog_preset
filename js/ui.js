@@ -2238,7 +2238,7 @@ const LANG = {
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
-    's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ API 토큰을 이 기기의 브라우저에 저장합니다. 공용 기기에서 사용을 권장하지 않습니다.',
+    's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
     's-all-cache':'전체 캐시','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
