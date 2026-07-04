@@ -50,7 +50,7 @@ canvas { display: block; }
 .ck-orange input { display: none; }
 .ck-orange .ck-box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #ed7000; background: transparent; position: relative; transition: background 0.15s; }
 .ck-orange input:checked + .ck-box { background: #ed7000; }
-.ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 5.5px; top: 1px; width: 4px; height: 9px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 9px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .ck-orange:hover .ck-box { border-color: #ff9d3c; }
 .cfg-subtitle { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 10px; }
 #bulk-actions { display: flex; gap: 6px; }
