@@ -124,7 +124,8 @@ function cleanLabel(str) {
   if (!str) return '';
   return str
     .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1')
-    .replace(/[\[\]#`]/g, '').replace(/\{([^}]*)\}/g, '$1').trim();
+    .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, '$1') // 마크다운 링크는 텍스트만 남김
+    .replace(/\{([^}]*)\}/g, '$1').trim(); // 리터럴 [ ] # ` 는 보존
 }
 
 function cleanDesc(str) {
