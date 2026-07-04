@@ -891,8 +891,8 @@ function renderPaneContent(i, n) {
   titleRow.querySelectorAll('.detail-notion-link, .detail-bookmark-btn').forEach(el => el.remove());
   // 노션에서 보기 링크 대상 (로컬/MD 노드는 없음)
   const isLocalLike = n.local || String(n.sourcePageId || '').startsWith('md_');
-  const linkTarget = isLocalLike ? '' : (n.notionBlockId || n.entryNotionId || (n.sourcePageId || '').replace(/-/g, ''));
-  const notionHref = linkTarget ? `https://notion.so/${linkTarget.replace(/-/g, '')}` : '';
+  // 노드 연결 링크와 동일하게 페이지ID 포함(notion.so/<page>?pvs=4#<block>) → 페이지 이동+블록 스크롤
+  const notionHref = isLocalLike ? '' : _wikiUrlFor(n);
 
   const titleActions = titleRow.querySelector('.detail-title-actions') || titleRow;
   // 모든 동작(수정·동기화·하위추가·노션보기·북마크·삭제)을 ⚙ 메뉴 하나로 통합
