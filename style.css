@@ -400,3 +400,5 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-ref:hover { background: rgba(237,112,0,0.22); }
 .aichat-bar { margin-top: 2px; }
 .rail-txt-btn { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; font-family: inherit; }
+.aichat-messages::-webkit-scrollbar { width: 3px; }
+.aichat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }

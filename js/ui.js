@@ -519,24 +519,35 @@ async function geminiSummarize(text) {
   return geminiGenerate(prompt);
 }
 
-// 다중선택한 노드들의 내용만 모아 AI 요약 → 우측 패널에 표시 (노션엔 저장 안 함)
-async function multiSelectSummarize() {
-  if (_multiSelected.length < 1) return;
+// 노드들의 내용만 모아 AI 요약 → 좌측 AI 대화창에 표시 (노션엔 저장 안 함)
+async function aiSummarizeNodes(nodeList) {
+  const list = (nodeList || []).filter(Boolean);
+  if (!list.length) return;
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
-  const nodes = _multiSelected.slice();
-  const combined = nodes.map(nd => {
+  const combined = list.map(nd => {
     const title = (nd.label || '(제목 없음)').trim();
     const body = (nd.desc || '').trim();
     return body ? `## ${title}\n${body}` : `## ${title}`;
   }).join('\n\n');
-  clearMultiSelect();
-  openAiSummaryPane('요약하는 중… ⏳');
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  const titles = list.map(nd => (nd.label || '(제목 없음)').trim()).join(', ');
+  _aiChatPush('user', `요약: ${titles}`);
+  const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
   try {
     const summary = await geminiSummarize(combined);
-    openAiSummaryPane(summary);
+    _aiChatReplace(waitId, summary, list);
   } catch (e) {
-    openAiSummaryPane('요약 실패: ' + (e.message || e));
+    _aiChatReplace(waitId, '요약 실패: ' + (e.message || e), []);
   }
+}
+
+// 다중선택 → AI 요약 (좌측 대화창)
+function multiSelectSummarize() {
+  if (_multiSelected.length < 1) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  const nodes = _multiSelected.slice();
+  clearMultiSelect();
+  aiSummarizeNodes(nodes);
 }
 
 // ── AI 대화 (그래프 검색 기반) ────────────────────────────────────────
@@ -1183,9 +1194,10 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
   const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
+  const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg> AI 요약</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem + syncItem;
-  const midGroup = notionItem + bmItem;
+  const midGroup = notionItem + bmItem + aiItem;
   menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
@@ -1213,6 +1225,8 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (bb) bb.onclick = () => { toggleBookmark(n); close(); renderPaneContent(i, n); };
   const dAll = menu.querySelector('[data-act="delete"]');
   if (dAll) dAll.onclick = () => { close(); deleteNodeSmart(n); };
+  const aib = menu.querySelector('[data-act="aisummary"]');
+  if (aib) aib.onclick = () => { close(); aiSummarizeNodes([n]); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
@@ -1861,21 +1875,6 @@ function openPanel(n) {
   }
   // 선택한 노드를 보이는 영역 중심으로 맞춤(패널 폭 반영해서). 패널 슬라이드 후 실행
   setTimeout(() => { try { focusViewOnNode(n); } catch (e) {} }, _wasOpen ? 40 : 320);
-}
-
-// AI 요약 결과를 우측 패널에 띄움 (그래프 노드가 아닌 가짜 노드). 기존 요약 패널 있으면 교체
-function openAiSummaryPane(text) {
-  const ex = _stack.findIndex(x => x._aiSummary);
-  if (ex >= 0) _stack.splice(ex, 1);
-  const n = { id: 'ai_summary', _aiSummary: true, local: true, label: 'AI 요약', desc: text };
-  _stack.push(n);
-  if (_stack.length > MAX_STACK) _stack.shift();
-  _detailPanelCollapsed = false;
-  detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
-  statusEl.classList.add('panel-open');
-  renderPanes(n.id);
-  updateDetailReopenTab();
-  _autoFitPanel();
 }
 
 // 노드 클릭 토글: 이미 패널에 열린 노드를 다시 클릭하면 그 패널을 닫음(선택 해제)
