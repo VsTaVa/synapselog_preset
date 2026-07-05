@@ -42,9 +42,9 @@ canvas { display: block; }
 .login-help a:hover { color: #ed7000; }
 .login-help b { color: rgba(237,112,0,0.9); }
 .panel-box { background: rgba(14,16,24,0.9); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); backdrop-filter: blur(10px); }
-.panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 10px; }
+.panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 12px; }
 .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.cfg-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 14px 0 12px; }
+.cfg-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 12px; }
 /* 주황 체크박스: 기본 주황 라인, 체크 시 주황 칠 + 흰 체크 */
 .ck-orange { display: inline-flex; align-items: center; cursor: pointer; }
 .ck-orange input { display: none; }
@@ -53,10 +53,10 @@ canvas { display: block; }
 /* 체크: translate로 중앙정렬 후 회전(광학 보정으로 살짝 위/좌) */
 .ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 50%; top: 44%; width: 4px; height: 8px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
 .ck-orange:hover .ck-box { border-color: #ff9d3c; }
-.s-trash-btn { background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 4px 6px; display: inline-flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.s-trash-btn { background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 4px 0 4px 8px; display: inline-flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
 .s-trash-btn:hover { color: #ff8a8a; background: rgba(255,90,90,0.14); }
 .settings-row-sub.s-warn-sub { color: rgba(237,112,0,0.7); }
-.cfg-subtitle { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 10px; }
+.cfg-subtitle { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 12px; }
 #bulk-actions { display: flex; gap: 6px; }
 .icon-btn-sm { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(237,112,0,0.12); border: 1px solid rgba(237,112,0,0.35); color: #ed7000; transition: background 0.2s; }
 .icon-btn-sm:hover { background: rgba(237,112,0,0.22); }
@@ -161,9 +161,9 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .search-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .search-history-del { background: none; border: none; color: rgba(255,255,255,0.35); cursor: pointer; font-size: 11px; flex-shrink: 0; padding: 0 2px; }
 .search-history-del:hover { color: #ff6b6b; }
-.ctrl-group { margin-bottom: 10px; }
+.ctrl-group { margin-bottom: 16px; }
 .ctrl-group:last-child { margin-bottom: 0; }
-.ctrl-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #fff; margin-bottom: 4px; }
+.ctrl-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #fff; margin-bottom: 6px; }
 .ctrl-label-row .val { color: #ed7000; font-weight: 700; font-family: monospace; font-size: 13px; }
 input[type=range] { -webkit-appearance: none; width: 100%; background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #ed7000; cursor: pointer; box-shadow: 0 0 5px rgba(237,112,0,0.5); }
@@ -348,7 +348,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-profile-info .s-name { font-size: 15px; font-weight: 700; color: #fff; }
 .settings-profile-info .s-email { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
 .settings-profile-info .s-workspace { font-size: 11px; color: rgba(237,112,0,0.6); margin-top: 2px; }
-.settings-section { margin-bottom: 20px; }
+.settings-section { margin: 20px 0 0; }
 .settings-section-title { font-size: 13px; font-weight: 700; color: #ed7000; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .settings-row:last-child { border-bottom: none; }

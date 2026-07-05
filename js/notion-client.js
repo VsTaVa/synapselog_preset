@@ -1117,16 +1117,21 @@ function exportGraph() {
   });
   ctx2.restore();
   const finalize = () => {
-    // 우측 하단 워터마크: 로고 + SynapseLog
-    const pad = SIZE * 0.014, logoSize = SIZE * 0.026, fontPx = SIZE * 0.017, gap = SIZE * 0.006;
-    const cy = SIZE - pad - logoSize / 2;
-    ctx2.font = `bold ${fontPx}px 'Noto Sans KR', sans-serif`;
-    ctx2.textAlign = 'right'; ctx2.textBaseline = 'middle';
-    ctx2.fillStyle = 'rgba(237,112,0,0.9)';
-    ctx2.fillText('SynapseLog', SIZE - pad, cy + fontPx * 0.04);
-    const tw = ctx2.measureText('SynapseLog').width;
+    // 우측 하단 워터마크: 로고만(흰색 + 투명도 50%)
+    const pad = SIZE * 0.016, logoSize = Math.round(SIZE * 0.032);
+    const x = SIZE - pad - logoSize, y = SIZE - pad - logoSize;
     if (_exportLogo && _exportLogo.complete && _exportLogo.naturalWidth) {
-      try { ctx2.drawImage(_exportLogo, SIZE - pad - tw - gap - logoSize, cy - logoSize / 2, logoSize, logoSize); } catch (e) {}
+      try {
+        // 로고를 흰색으로 틴트
+        const tc = document.createElement('canvas'); tc.width = logoSize; tc.height = logoSize;
+        const tctx = tc.getContext('2d');
+        tctx.drawImage(_exportLogo, 0, 0, logoSize, logoSize);
+        tctx.globalCompositeOperation = 'source-in';
+        tctx.fillStyle = '#ffffff'; tctx.fillRect(0, 0, logoSize, logoSize);
+        ctx2.globalAlpha = 0.5;
+        ctx2.drawImage(tc, x, y);
+        ctx2.globalAlpha = 1;
+      } catch (e) {}
     }
     const link = document.createElement('a');
     link.download = `SynapseLog_${new Date().toISOString().slice(0, 10)}.png`;

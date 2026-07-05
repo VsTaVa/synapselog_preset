@@ -259,13 +259,12 @@ function draw() {
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
-      // {{ }} 위키링크: 흰색 글로우 점선 + A→B 화살표
+      // 노드연결: 흰색 점선 한 줄 + A→B 화살표 (글로우 제거 → 한 줄로)
       if(!_showConnections) return; // 노드 연결 표시 끔
       if(hasSearch && !eitherMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
-      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.75 : 0.4})`;
-      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
-      ctx.shadowColor = 'rgba(255,255,255,0.55)'; ctx.shadowBlur = 6;
+      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.9 : 0.62})`;
+      ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
@@ -293,19 +292,19 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
     if(e.wikiLink) {
-      // A→B 방향 화살표 (B 노드 앞에)
+      // A→B 방향 화살표 (B 노드 앞에). 크기를 노드 크기(월드)에 비례 → 줌 축소 시 함께 작아짐
+      const rNb = nodeR(nb.level);
       const ang = Math.atan2(nb.y-na.y, nb.x-na.x);
-      const rB = nodeR(nb.level) + 3/scale;
+      const rB = rNb + 2;
       const tipX = nb.x - Math.cos(ang)*rB, tipY = nb.y - Math.sin(ang)*rB;
-      const ah = 9/scale;
+      const ah = Math.max(rNb * 1.15, 3/scale); // 노드 비례(최소 화면 3px)
       ctx.beginPath();
       ctx.moveTo(tipX, tipY);
       ctx.lineTo(tipX - Math.cos(ang-0.42)*ah, tipY - Math.sin(ang-0.42)*ah);
       ctx.lineTo(tipX - Math.cos(ang+0.42)*ah, tipY - Math.sin(ang+0.42)*ah);
       ctx.closePath();
-      ctx.fillStyle = `rgba(255,255,255,${isHov?0.85:0.55})`; ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${isHov?0.95:0.72})`; ctx.fill();
     }
-    ctx.shadowBlur = 0;
   });
 
   if(_isolateActive && _pathConnectors.length) {
