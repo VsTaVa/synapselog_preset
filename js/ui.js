@@ -1478,16 +1478,15 @@ function beginNodeEdit(paneIdx, node) {
           const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph') : [];
           let qi = 0;
           finalBlocks = finalRows.map(r => ({ id: r.blk ? r.blk.id : newIds[qi++], text: r.text }));
-          // desc는 본문 외 내용(표 등) 보존 위해 부분 치환
-          let d = node.desc || '';
+          // desc는 본문 외 내용(표 등) 보존 위해 부분 치환. 단 치환 실패(orig 불일치) 시 보기 미반영 버그 → 본문 전체 재구성으로 폴백
+          let d = node.desc || '', allMatched = true;
           finalRows.forEach(r => {
-            if (r.blk && r.text !== r.orig && r.orig) d = d.replace(r.orig, r.text);
+            if (r.blk && r.text !== r.orig && r.orig) { const nd = d.replace(r.orig, r.text); if (nd === d) allMatched = false; d = nd; }
             else if (!r.blk) d = d ? d + '\n' + r.text : r.text;
           });
-          // 삭제된 블록 텍스트는 desc에서 제거 (best-effort; 정확한 본문은 재동기화 시 반영)
           const keptIds2 = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
           origBody.filter(b => !keptIds2.has(b.id) && b.text).forEach(b => { d = d.replace(b.text, ''); });
-          node.desc = d.replace(/\n{3,}/g, '\n\n').trim();
+          node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(b => b.text).join('\n');
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
         invalidateNodeCache(node);

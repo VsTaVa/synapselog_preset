@@ -263,7 +263,7 @@ function draw() {
       if(!_showConnections) return; // 노드 연결 표시 끔
       if(hasSearch && !eitherMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
-      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.9 : 0.62})`;
+      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.5})`;
       ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
@@ -303,7 +303,7 @@ function draw() {
       ctx.lineTo(tipX - Math.cos(ang-0.42)*ah, tipY - Math.sin(ang-0.42)*ah);
       ctx.lineTo(tipX - Math.cos(ang+0.42)*ah, tipY - Math.sin(ang+0.42)*ah);
       ctx.closePath();
-      ctx.fillStyle = `rgba(255,255,255,${isHov?0.95:0.72})`; ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${isHov?0.85:0.5})`; ctx.fill();
     }
   });
 
