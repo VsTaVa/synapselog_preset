@@ -539,6 +539,88 @@ async function multiSelectSummarize() {
   }
 }
 
+// ── AI 대화 (그래프 검색 기반) ────────────────────────────────────────
+// 질문 → 그래프 노드 키워드 검색 → 상위 노드 텍스트만 제미나이에 넘겨 답변.
+let _aiChat = [];
+
+// 질문어와 겹치는 노드 상위 topN개 (제목 매치 가중치↑)
+function _aiSearchNodes(query, topN) {
+  let words;
+  try { words = (query.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); }
+  catch (e) { words = (query.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
+  words = words.filter(w => w.length >= 2);
+  if (!words.length) return [];
+  const scored = [];
+  (nodes || []).forEach(n => {
+    if (n._aiSummary) return;
+    const label = (n.label || '').toLowerCase(), desc = (n.desc || '').toLowerCase();
+    let score = 0;
+    words.forEach(w => { if (label.includes(w)) score += 3; else if (desc.includes(w)) score += 1; });
+    if (score > 0) scored.push({ n, score });
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topN).map(s => s.n);
+}
+
+function _aiMdToHtml(t) {
+  let s = escapeHtml(t || '');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>');
+  s = s.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
+  return s.replace(/\n/g, '<br>');
+}
+
+function _renderAiChat() {
+  const box = document.getElementById('aichat-messages');
+  if (!box) return;
+  box.innerHTML = _aiChat.map(m => {
+    let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${_aiMdToHtml(m.text)}</div>`;
+    if (m.refs && m.refs.length) {
+      html += `<div class="aichat-refs">근거: ` + m.refs.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
+    }
+    return html + `</div>`;
+  }).join('');
+  box.querySelectorAll('.aichat-ref[data-nid]').forEach(el => {
+    el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); };
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function _aiChatPush(role, text, refs) {
+  const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
+  _aiChat.push({ id, role, text, refs: refs || [] });
+  _renderAiChat();
+  return id;
+}
+function _aiChatReplace(id, text, refs) {
+  const m = _aiChat.find(x => x.id === id);
+  if (m) { m.text = text; m.refs = refs || []; }
+  _renderAiChat();
+}
+
+async function sendAiChat() {
+  const input = document.getElementById('aichat-input');
+  const q = (input && input.value || '').trim();
+  if (!q) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  if (input) input.value = '';
+  _aiChatPush('user', q);
+  const matched = _aiSearchNodes(q, 6);
+  const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
+  try {
+    const context = matched.map((n, i) => {
+      const body = (n.desc || '').trim().slice(0, 500);
+      return `[${i + 1}] ${(n.label || '(제목 없음)').trim()}${body ? '\n' + body : ''}`;
+    }).join('\n\n');
+    const prompt = context
+      ? `너는 사용자의 지식 그래프를 돕는 조수야. 아래는 질문과 관련해 그래프에서 검색된 노드들이야. 이 내용에 근거해서 한국어로 답해줘. 근거가 부족하면 솔직히 모른다고 하고, 원문에 없는 내용은 지어내지 마.\n\n[검색된 노드]\n${context}\n\n[질문]\n${q}`
+      : `사용자의 지식 그래프에서 "${q}" 와 관련된 노드를 못 찾았어. 그래프에 근거가 없다는 점을 밝히고, 일반적인 답이 가능하면 한국어로 짧게만 답해줘.\n\n[질문]\n${q}`;
+    const ans = await geminiGenerate(prompt);
+    _aiChatReplace(waitId, ans, matched);
+  } catch (e) {
+    _aiChatReplace(waitId, '실패: ' + (e.message || e), []);
+  }
+}
+
 // 선택 노드 고정/해제 (노드 선택 툴바)
 function multiSelectPin() {
   if (_multiSelected.length < 1) return;
@@ -788,7 +870,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'graphcfg'];
+const _railSections = ['pages', 'search', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -796,6 +878,7 @@ function openRailSection(name) {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
+  if (name === 'aichat') setTimeout(() => document.getElementById('aichat-input')?.focus(), 60);
 }
 function closeRailFlyout() {
   if (!_activeRailSection) return;
@@ -2305,7 +2388,8 @@ const LANG = {
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
-    'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정',
+    'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
+    'ai-chat':'AI 대화','ai-chat-hint':'질문하면 그래프에서 관련 노드를 찾아 근거로 답해줘.','ai-chat-ph':'질문 입력...',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
@@ -2333,7 +2417,8 @@ const LANG = {
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
-    'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings',
+    'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
+    'ai-chat':'AI Chat','ai-chat-hint':'Ask a question — I search your graph nodes and answer from them.','ai-chat-ph':'Type a question...',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',

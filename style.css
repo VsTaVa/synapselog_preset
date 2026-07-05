@@ -384,3 +384,18 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .s-collapsible:hover { color: rgba(255,255,255,0.6); }
 .s-arrow { font-size: 13px; color: #ed7000; transition: transform 0.2s; }
 .s-section-body { overflow: hidden; }
+
+/* ── AI 대화 페인 ─────────────────────────────────────────────── */
+.aichat-hint { font-size: 11px; color: rgba(255,255,255,0.35); margin: 4px 0 10px; line-height: 1.5; }
+.aichat-messages { display: flex; flex-direction: column; gap: 10px; max-height: 46vh; overflow-y: auto; margin-bottom: 10px; padding-right: 2px; }
+.aichat-messages:empty { display: none; }
+.aichat-msg { display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.aichat-msg.user { align-items: flex-end; }
+.aichat-msg.ai { align-items: flex-start; }
+.aichat-bubble { font-size: 12.5px; line-height: 1.55; padding: 8px 11px; border-radius: 11px; word-break: break-word; white-space: normal; max-width: 92%; }
+.aichat-msg.user .aichat-bubble { background: rgba(237,112,0,0.16); border: 1px solid rgba(237,112,0,0.32); color: #ffd9b0; border-bottom-right-radius: 3px; }
+.aichat-msg.ai .aichat-bubble { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); border-bottom-left-radius: 3px; }
+.aichat-refs { font-size: 10.5px; color: rgba(255,255,255,0.35); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.aichat-ref { display: inline-block; padding: 2px 7px; border-radius: 5px; background: rgba(237,112,0,0.1); border: 1px solid rgba(237,112,0,0.28); color: #ed7000; cursor: pointer; transition: background 0.15s; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aichat-ref:hover { background: rgba(237,112,0,0.22); }
+.aichat-bar { margin-top: 2px; }
