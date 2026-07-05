@@ -470,7 +470,9 @@ function _exploreToolsHtml() {
   const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
+  const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`;
   let html = '';
+  html += `<button onclick="multiSelectSummarize()" title="선택한 노드들의 내용만 모아 AI로 요약합니다 (설정의 AI API 키 필요)">${aiIcon} AI 요약</button>`;
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
     html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
@@ -487,6 +489,54 @@ function _exploreToolsHtml() {
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정하거나 해제합니다">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
   return html;
+}
+
+// ── AI (제미나이) 호출 ────────────────────────────────────────────────
+// 키는 설정에서 사용자가 직접 입력(_savedAiKey). 브라우저에서 직접 호출.
+const _GEMINI_MODEL = 'gemini-2.5-flash';
+async function geminiGenerate(prompt) {
+  if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${_GEMINI_MODEL}:generateContent?key=${encodeURIComponent(_savedAiKey)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  });
+  if (!res.ok) {
+    let msg = 'HTTP ' + res.status;
+    try { const j = await res.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  const cand = data && data.candidates && data.candidates[0];
+  const out = cand && cand.content && cand.content.parts ? cand.content.parts.map(p => p.text || '').join('') : '';
+  if (!out.trim()) throw new Error('빈 응답 (안전 필터 차단일 수 있어)');
+  return out.trim();
+}
+
+async function geminiSummarize(text) {
+  const prompt = `다음은 지식 그래프에서 선택한 노드들의 제목과 내용이야. 핵심만 한국어로 간결하게 요약해줘.\n- 불릿 몇 개로 정리\n- 노드 간 관계나 공통 주제가 보이면 짚어줘\n- 원문에 없는 내용은 지어내지 마\n\n---\n${text}`;
+  return geminiGenerate(prompt);
+}
+
+// 다중선택한 노드들의 내용만 모아 AI 요약 → 우측 패널에 표시 (노션엔 저장 안 함)
+async function multiSelectSummarize() {
+  if (_multiSelected.length < 1) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  const nodes = _multiSelected.slice();
+  const combined = nodes.map(nd => {
+    const title = (nd.label || '(제목 없음)').trim();
+    const body = (nd.desc || '').trim();
+    return body ? `## ${title}\n${body}` : `## ${title}`;
+  }).join('\n\n');
+  clearMultiSelect();
+  openAiSummaryPane('요약하는 중… ⏳');
+  try {
+    const summary = await geminiSummarize(combined);
+    openAiSummaryPane(summary);
+  } catch (e) {
+    openAiSummaryPane('요약 실패: ' + (e.message || e));
+  }
 }
 
 // 선택 노드 고정/해제 (노드 선택 툴바)
@@ -903,6 +953,8 @@ function renderPaneContent(i, n) {
   const notionHref = isLocalLike ? '' : _wikiUrlFor(n);
 
   const titleActions = titleRow.querySelector('.detail-title-actions') || titleRow;
+  // AI 요약 가짜 노드는 톱니(수정·동기화·삭제 등) 없이 본문만 표시
+  if (!n._aiSummary) {
   // 모든 동작(수정·동기화·하위추가·노션보기·북마크·삭제)을 ⚙ 메뉴 하나로 통합
   let setBtn = titleRow.querySelector('.detail-settings-btn');
   if (!setBtn) {
@@ -915,6 +967,7 @@ function renderPaneContent(i, n) {
   setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
   if (titleEl && titleActions && titleActions !== titleRow) {
     requestAnimationFrame(() => { titleEl.style.paddingRight = (titleActions.offsetWidth + 10) + 'px'; });
+  }
   }
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)')
@@ -1706,6 +1759,21 @@ function openPanel(n) {
   }
   // 선택한 노드를 보이는 영역 중심으로 맞춤(패널 폭 반영해서). 패널 슬라이드 후 실행
   setTimeout(() => { try { focusViewOnNode(n); } catch (e) {} }, _wasOpen ? 40 : 320);
+}
+
+// AI 요약 결과를 우측 패널에 띄움 (그래프 노드가 아닌 가짜 노드). 기존 요약 패널 있으면 교체
+function openAiSummaryPane(text) {
+  const ex = _stack.findIndex(x => x._aiSummary);
+  if (ex >= 0) _stack.splice(ex, 1);
+  const n = { id: 'ai_summary', _aiSummary: true, local: true, label: 'AI 요약', desc: text };
+  _stack.push(n);
+  if (_stack.length > MAX_STACK) _stack.shift();
+  _detailPanelCollapsed = false;
+  detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
+  statusEl.classList.add('panel-open');
+  renderPanes(n.id);
+  updateDetailReopenTab();
+  _autoFitPanel();
 }
 
 // 노드 클릭 토글: 이미 패널에 열린 노드를 다시 클릭하면 그 패널을 닫음(선택 해제)
