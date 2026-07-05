@@ -452,10 +452,10 @@ function renderMultiSelectMenu() {
 function _editToolsHtml(node) {
   if (!node) return '';
   const branchIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/></svg>`;
-  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   const bmOn = isBookmarked(node);
-  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
@@ -483,7 +483,7 @@ function _exploreToolsHtml() {
   const satIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>`;
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리해 바깥 궤도로 띄웁니다. 같은 노드를 다시 선택해 누르면 복원됩니다">${satIcon} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
-  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? '#ed7000' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M6 17h12l-1.7-3.2V7a2 2 0 0 0-2-2h-4.6a2 2 0 0 0-2 2v6.8L6 17z"/></svg>`;
+  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정하거나 해제합니다">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
   return html;
 }
@@ -1018,7 +1018,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
     ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
     : '';
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
-  const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/></svg>`;
+  const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const canEdit = n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length);
   const canSync = !n.local && n.notionBlockId;
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
@@ -1401,18 +1401,19 @@ function beginNodeEdit(paneIdx, node) {
   }
   else if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
 
-  // 본문 블록 추가 (노션 헤딩 노드 + 로컬 페이지)
+  // 편집 액션바(하단 고정): [+ 본문 추가] ... [취소] [저장]
+  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
   if (canAdd) {
     const addBody = document.createElement('button');
     addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
     addBody.onclick = () => { addRow('', isLocal ? { local: true } : null).focus(); };
-    contentEl.appendChild(addBody);
+    actions.appendChild(addBody);
   }
-
-  const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
-  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '저장';
+  const spacer = document.createElement('div'); spacer.className = 'detail-edit-spacer';
+  actions.appendChild(spacer);
   const cancelBtn = document.createElement('button'); cancelBtn.className = 'detail-edit-cancel'; cancelBtn.textContent = '취소';
-  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  const saveBtn = document.createElement('button'); saveBtn.className = 'detail-edit-save'; saveBtn.textContent = '저장';
+  actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
   contentEl.appendChild(actions);
 
   if (titleInput) { titleInput.focus(); titleInput.select(); }
