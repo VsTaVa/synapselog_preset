@@ -152,6 +152,15 @@
       <div id="settings-token-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
     </div>
     <div class="settings-section">
+      <div class="settings-section-title" data-i18n="s-aikey">AI API 키</div>
+      <div class="settings-row-sub" style="margin-bottom:8px;" data-i18n="s-aikey-sub">Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.</div>
+      <div class="token-edit-row">
+        <input type="password" id="settings-aikey-input" placeholder="AIza..." data-i18n-ph="s-aikey-ph" />
+        <button onclick="updateAiKey()" data-i18n="sc-save">저장</button>
+      </div>
+      <div id="settings-aikey-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
+    </div>
+    <div class="settings-section">
       <div class="settings-section-title" data-i18n="s-imgsize">이미지 저장 크기</div>
       <div class="s-size-group">
         <button class="s-size-btn" id="s-size-1024" onclick="setExportSize(1024)">1024px</button>

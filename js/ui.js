@@ -4,6 +4,7 @@ let _useLocalStorage = localStorage.getItem('snlog_use_local') === 'true';
 let _storageScopes = (() => { try { return JSON.parse(localStorage.getItem('snlog_scopes') || '{}'); } catch(e) { return {}; } })();
 ['pages','slider','connect'].forEach(k => { if (_storageScopes[k] === undefined) _storageScopes[k] = true; });
 let _exportSize = parseInt(localStorage.getItem('snlog_export_size') || '2048');
+let _savedAiKey = sessionStorage.getItem('snlog_ai_key') || localStorage.getItem('snlog_ai_key') || '';
 
 function getStorage(scope) {
   if (_useLocalStorage && _storageScopes[scope] !== false) return localStorage;
@@ -2224,6 +2225,7 @@ const LANG = {
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
     's-api':'API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
+    's-aikey':'AI API 키','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
     's-imgsize':'이미지 저장 크기',
     's-shortcuts':'키보드 단축키','s-shortcuts-hint':'버튼 클릭 후 원하는 키 입력',
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
@@ -2251,6 +2253,7 @@ const LANG = {
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
     's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
     's-api':'API Token','sc-save':'Save','sc-placeholder-token':'Enter new token...',
+    's-aikey':'AI API Key','s-aikey-sub':'Google AI Studio Gemini key. Used for summarizing selected nodes & writing markdown.','s-aikey-ph':'AIza...',
     's-imgsize':'Export Image Size',
     's-shortcuts':'Keyboard Shortcuts','s-shortcuts-hint':'Click a button, then press a key',
     'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
@@ -2402,7 +2405,7 @@ function onStorageToggle(el) {
   localStorage.setItem('snlog_use_local', _useLocalStorage);
   const warn = document.getElementById('s-local-warn');
   if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _savedToken); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _savedToken); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _savedAiKey); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -2419,6 +2422,17 @@ function updateToken() {
   loadProfile();
 }
 
+function updateAiKey() {
+  const input = document.getElementById('settings-aikey-input'), msg = document.getElementById('settings-aikey-msg');
+  const val = input?.value.trim();
+  if (!val) { if (msg) { msg.textContent = 'API 키를 입력해주세요'; msg.style.display = 'block'; } return; }
+  _savedAiKey = val;
+  sessionStorage.setItem('snlog_ai_key', val);
+  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', val);
+  if (input) input.value = '';
+  if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
+}
+
 function setExportSize(size) {
   _exportSize = size;
   localStorage.setItem('snlog_export_size', size);
@@ -2428,7 +2442,7 @@ function setExportSize(size) {
 function clearCache(type) {
   const allKeys = [...Object.keys(sessionStorage), ...Object.keys(localStorage)];
   if (type === 'pages' || type === 'all') {
-    allKeys.filter(k => k.startsWith('snlog_') && !['snlog_token','snlog_pages','snlog_manual_links','snlog_use_local','snlog_scopes','snlog_export_size','snlog_slider','snlog_search_history'].includes(k))
+    allKeys.filter(k => k.startsWith('snlog_') && !['snlog_token','snlog_ai_key','snlog_pages','snlog_manual_links','snlog_use_local','snlog_scopes','snlog_export_size','snlog_slider','snlog_search_history'].includes(k))
       .forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); });
     sessionStorage.removeItem('snlog_pages'); localStorage.removeItem('snlog_pages');
   }
