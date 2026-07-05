@@ -523,7 +523,7 @@ async function geminiSummarize(text) {
 async function aiSummarizeNodes(nodeList) {
   const list = (nodeList || []).filter(Boolean);
   if (!list.length) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   const combined = list.map(nd => {
     const title = (nd.label || '(제목 없음)').trim();
     const body = (nd.desc || '').trim();
@@ -544,7 +544,7 @@ async function aiSummarizeNodes(nodeList) {
 // 다중선택 → AI 요약 (좌측 대화창)
 function multiSelectSummarize() {
   if (_multiSelected.length < 1) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   const nodes = _multiSelected.slice();
   clearMultiSelect();
   aiSummarizeNodes(nodes);
@@ -631,7 +631,7 @@ async function sendAiChat() {
   const input = document.getElementById('aichat-input');
   const q = (input && input.value || '').trim();
   if (!q) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해줘', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (input) input.value = '';
   _aiChatPush('user', q);
   const matched = _aiSearchNodes(q, 6);
@@ -2393,7 +2393,7 @@ const LANG = {
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
-    's-api':'API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
+    's-api':'Notion API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
     's-aikey':'AI API 키','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
     's-imgsize':'이미지 저장 크기',
     's-shortcuts':'키보드 단축키','s-shortcuts-hint':'버튼 클릭 후 원하는 키 입력',
@@ -2407,7 +2407,7 @@ const LANG = {
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
-    'ai-chat':'AI 대화','ai-chat-hint':'질문하면 그래프에서 관련 노드를 찾아 근거로 답해줘.','ai-chat-ph':'질문 입력...',
+    'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'질문 입력...',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
@@ -2422,7 +2422,7 @@ const LANG = {
     'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
     'btn-sync-all':'Sync All','btn-close-all':'Close All',
     's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
-    's-api':'API Token','sc-save':'Save','sc-placeholder-token':'Enter new token...',
+    's-api':'Notion API Token','sc-save':'Save','sc-placeholder-token':'Enter new token...',
     's-aikey':'AI API Key','s-aikey-sub':'Google AI Studio Gemini key. Used for summarizing selected nodes & writing markdown.','s-aikey-ph':'AIza...',
     's-imgsize':'Export Image Size',
     's-shortcuts':'Keyboard Shortcuts','s-shortcuts-hint':'Click a button, then press a key',
@@ -2436,7 +2436,7 @@ const LANG = {
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
-    'ai-chat':'AI Chat','ai-chat-hint':'Ask a question — I search your graph nodes and answer from them.','ai-chat-ph':'Type a question...',
+    'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a question...',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
@@ -2545,9 +2545,9 @@ function openSettings() {
 
   // 저장된 키 표시(마스킹) — 넣었는지 눈으로 확인 가능하게
   const tIn = document.getElementById('settings-token-input');
-  if (tIn) { tIn.value = ''; tIn.placeholder = _savedToken ? '저장됨: ' + _maskKey(_savedToken) : (t('sc-placeholder-token') || '새 토큰 입력...'); }
+  if (tIn) { tIn.value = ''; tIn.placeholder = _savedToken ? 'Notion API 저장됨' : (t('sc-placeholder-token') || '새 토큰 입력...'); }
   const aIn = document.getElementById('settings-aikey-input');
-  if (aIn) { aIn.value = ''; aIn.placeholder = _savedAiKey ? '저장됨: ' + _maskKey(_savedAiKey) : 'AIza...'; }
+  if (aIn) { aIn.value = ''; aIn.placeholder = _savedAiKey ? 'AI API 저장됨' : 'AIza...'; }
 
   const localToggle = document.getElementById('s-local-toggle');
   if (localToggle) localToggle.checked = _useLocalStorage;
@@ -2582,7 +2582,7 @@ function onStorageToggle(el) {
   localStorage.setItem('snlog_use_local', _useLocalStorage);
   const warn = document.getElementById('s-local-warn');
   if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _savedToken); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _savedAiKey); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -2592,9 +2592,9 @@ function updateToken() {
   if (!val) { if (msg) { msg.textContent = '토큰을 입력해주세요'; msg.style.display = 'block'; } return; }
   if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식이 아닙니다 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
   _savedToken = val;
-  sessionStorage.setItem('snlog_token', _encKey(val));
-  if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
-  if (input) { input.value = ''; input.placeholder = '저장됨: ' + _maskKey(val); }
+  sessionStorage.setItem('snlog_token', val);
+  if (_useLocalStorage) localStorage.setItem('snlog_token', val);
+  if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile();
 }
@@ -2604,9 +2604,9 @@ function updateAiKey() {
   const val = input?.value.trim();
   if (!val) { if (msg) { msg.textContent = 'API 키를 입력해주세요'; msg.style.display = 'block'; } return; }
   _savedAiKey = val;
-  sessionStorage.setItem('snlog_ai_key', _encKey(val));
-  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', _encKey(val));
-  if (input) { input.value = ''; input.placeholder = '저장됨: ' + _maskKey(val); }
+  sessionStorage.setItem('snlog_ai_key', val);
+  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', val);
+  if (input) { input.value = ''; input.placeholder = 'AI API 저장됨'; }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
 }
 

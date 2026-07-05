@@ -104,7 +104,7 @@
     </div>
     <div id="aichat-panel" class="panel-box rail-pane" data-section="aichat">
       <div class="panel-title" data-i18n="ai-chat">AI 대화</div>
-      <div class="aichat-hint" data-i18n="ai-chat-hint">질문하면 그래프에서 관련 노드를 찾아 근거로 답해줘.</div>
+      <div class="aichat-hint" data-i18n="ai-chat-hint">노드 기반 AI 대화</div>
       <div id="aichat-messages" class="aichat-messages"></div>
       <div class="ui-search-bar aichat-bar">
         <input type="text" id="aichat-input" autocomplete="off" placeholder="질문 입력..." data-i18n-ph="ai-chat-ph" onkeydown="if(event.key==='Enter'){event.preventDefault();sendAiChat();}" />
@@ -154,7 +154,7 @@
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title" data-i18n="s-api">API 토큰</div>
+      <div class="settings-section-title" data-i18n="s-api">Notion API 토큰</div>
       <div class="token-edit-row">
         <input type="password" id="settings-token-input" placeholder="새 토큰 입력..." data-i18n-ph="sc-placeholder-token" />
         <button onclick="updateToken()" data-i18n="sc-save">저장</button>
