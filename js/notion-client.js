@@ -1,6 +1,6 @@
 // ── Notion 클라이언트 & 페이지 관리 ────────────────────────────────
 
-let _savedToken = sessionStorage.getItem('snlog_token') || localStorage.getItem('snlog_token') || '';
+let _savedToken = _decKey(sessionStorage.getItem('snlog_token')) || _decKey(localStorage.getItem('snlog_token')) || '';
 let _addedPageIds = new Set();
 
 // ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
@@ -440,7 +440,8 @@ async function startGraph() {
     errEl.style.display = 'block'; return;
   }
   _savedToken = token;
-  try { sessionStorage.setItem('snlog_token', token); } catch(e) {}
+  try { sessionStorage.setItem('snlog_token', _encKey(token)); } catch(e) {}
+  if (_useLocalStorage) { try { localStorage.setItem('snlog_token', _encKey(token)); } catch(e) {} }
   errEl.style.display = 'none';
   showPagePicker();
 }

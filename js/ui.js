@@ -4,7 +4,7 @@ let _useLocalStorage = localStorage.getItem('snlog_use_local') === 'true';
 let _storageScopes = (() => { try { return JSON.parse(localStorage.getItem('snlog_scopes') || '{}'); } catch(e) { return {}; } })();
 ['pages','slider','connect'].forEach(k => { if (_storageScopes[k] === undefined) _storageScopes[k] = true; });
 let _exportSize = parseInt(localStorage.getItem('snlog_export_size') || '2048');
-let _savedAiKey = sessionStorage.getItem('snlog_ai_key') || localStorage.getItem('snlog_ai_key') || '';
+let _savedAiKey = _decKey(sessionStorage.getItem('snlog_ai_key')) || _decKey(localStorage.getItem('snlog_ai_key')) || '';
 
 function getStorage(scope) {
   if (_useLocalStorage && _storageScopes[scope] !== false) return localStorage;
@@ -2440,6 +2440,12 @@ function openSettings() {
   if (sEmail) sEmail.textContent = _profile.email || '—';
   if (sWs) sWs.textContent = _profile.workspace || '—';
 
+  // 저장된 키 표시(마스킹) — 넣었는지 눈으로 확인 가능하게
+  const tIn = document.getElementById('settings-token-input');
+  if (tIn) { tIn.value = ''; tIn.placeholder = _savedToken ? '저장됨: ' + _maskKey(_savedToken) : (t('sc-placeholder-token') || '새 토큰 입력...'); }
+  const aIn = document.getElementById('settings-aikey-input');
+  if (aIn) { aIn.value = ''; aIn.placeholder = _savedAiKey ? '저장됨: ' + _maskKey(_savedAiKey) : 'AIza...'; }
+
   const localToggle = document.getElementById('s-local-toggle');
   if (localToggle) localToggle.checked = _useLocalStorage;
   const warn = document.getElementById('s-local-warn');
@@ -2473,7 +2479,7 @@ function onStorageToggle(el) {
   localStorage.setItem('snlog_use_local', _useLocalStorage);
   const warn = document.getElementById('s-local-warn');
   if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _savedToken); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _savedAiKey); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -2483,9 +2489,9 @@ function updateToken() {
   if (!val) { if (msg) { msg.textContent = '토큰을 입력해주세요'; msg.style.display = 'block'; } return; }
   if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식이 아닙니다 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
   _savedToken = val;
-  sessionStorage.setItem('snlog_token', val);
-  if (_useLocalStorage) localStorage.setItem('snlog_token', val);
-  if (input) input.value = '';
+  sessionStorage.setItem('snlog_token', _encKey(val));
+  if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
+  if (input) { input.value = ''; input.placeholder = '저장됨: ' + _maskKey(val); }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile();
 }
@@ -2495,9 +2501,9 @@ function updateAiKey() {
   const val = input?.value.trim();
   if (!val) { if (msg) { msg.textContent = 'API 키를 입력해주세요'; msg.style.display = 'block'; } return; }
   _savedAiKey = val;
-  sessionStorage.setItem('snlog_ai_key', val);
-  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', val);
-  if (input) input.value = '';
+  sessionStorage.setItem('snlog_ai_key', _encKey(val));
+  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', _encKey(val));
+  if (input) { input.value = ''; input.placeholder = '저장됨: ' + _maskKey(val); }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
 }
 

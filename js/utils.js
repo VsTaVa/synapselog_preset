@@ -1,3 +1,30 @@
+// ── 키 난독화 : 로컬/세션 저장 시 평문 노출 방지 ──────────────────────
+// 주의: 클라이언트 전용 난독화라 완벽한 암호화가 아님(복호 키가 코드에 존재).
+// F12 등으로 평문이 그대로 보이는 것만 막는 용도.
+const _KENC_SALT = 'sYnApSeLoG_kx_2026';
+function _encKey(s) {
+  if (!s) return s || '';
+  try {
+    let o = '';
+    for (let i = 0; i < s.length; i++) o += String.fromCharCode(s.charCodeAt(i) ^ _KENC_SALT.charCodeAt(i % _KENC_SALT.length));
+    return 'enc:' + btoa(o);
+  } catch (e) { return s; }
+}
+function _decKey(s) {
+  if (!s || s.indexOf('enc:') !== 0) return s || ''; // 접두어 없으면 구버전 평문 → 그대로
+  try {
+    const raw = atob(s.slice(4));
+    let o = '';
+    for (let i = 0; i < raw.length; i++) o += String.fromCharCode(raw.charCodeAt(i) ^ _KENC_SALT.charCodeAt(i % _KENC_SALT.length));
+    return o;
+  } catch (e) { return ''; }
+}
+function _maskKey(s) {
+  if (!s) return '';
+  if (s.length <= 8) return '••••';
+  return s.slice(0, 4) + '••••' + s.slice(-4);
+}
+
 // ── 색상/수치 헬퍼 ──────────────────────────────────────────────────
 
 let _hueIndex = 0;
