@@ -543,19 +543,38 @@ async function multiSelectSummarize() {
 // 질문 → 그래프 노드 키워드 검색 → 상위 노드 텍스트만 제미나이에 넘겨 답변.
 let _aiChat = [];
 
+// 불용어(질문에서 흔히 나오지만 검색 노이즈인 단어)
+const _AI_STOPWORDS = new Set(['그리고','그러나','하지만','그래서','또는','대해','대한','관련','알려','알려줘','설명','설명해','정리','정리해','무엇','뭐','뭐야','뭔','뭔데','어떤','어떻게','어때','왜','언제','어디','누구','정도','그것','이것','저것','때문','통해','위해','있는','있어','없어','해줘','해','줘','좀','것','수','및','내','나','너','알고','싶어','싶은데','관해','관하여','the','a','an','of','to','is','are','and','or','what','how','why','me','my','about','please','tell','give']);
+// 한국어 조사/어미 대충 제거 (3자 이상 단어에만 적용해 짧은 단어 훼손 방지)
+function _aiStem(w) {
+  return w.replace(/(으로부터|에서는|에게서|으로서|으로써|이라는|라는|이라고|라고|에서|에게|한테|부터|까지|처럼|보다|이나|이란|은|는|이|가|을|를|에|의|도|와|과|랑|만|나|요|로)$/, '');
+}
+// 질문 → 검색어 목록 (조사 제거형 + 원형), 불용어 컷
+function _aiTerms(query) {
+  let raw;
+  try { raw = (query.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); }
+  catch (e) { raw = (query.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
+  const out = [];
+  raw.forEach(w => {
+    if (w.length < 2 || _AI_STOPWORDS.has(w)) return;
+    let s = w;
+    if (/[가-힣]/.test(w) && w.length >= 3) s = _aiStem(w);
+    if (s.length >= 2 && !_AI_STOPWORDS.has(s)) out.push(s);
+    if (w !== s && w.length >= 2 && !_AI_STOPWORDS.has(w)) out.push(w);
+  });
+  return [...new Set(out)];
+}
+
 // 질문어와 겹치는 노드 상위 topN개 (제목 매치 가중치↑)
 function _aiSearchNodes(query, topN) {
-  let words;
-  try { words = (query.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); }
-  catch (e) { words = (query.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
-  words = words.filter(w => w.length >= 2);
-  if (!words.length) return [];
+  const terms = _aiTerms(query);
+  if (!terms.length) return [];
   const scored = [];
   (nodes || []).forEach(n => {
     if (n._aiSummary) return;
     const label = (n.label || '').toLowerCase(), desc = (n.desc || '').toLowerCase();
     let score = 0;
-    words.forEach(w => { if (label.includes(w)) score += 3; else if (desc.includes(w)) score += 1; });
+    terms.forEach(t => { if (label.includes(t)) score += 3; else if (desc.includes(t)) score += 1; });
     if (score > 0) scored.push({ n, score });
   });
   scored.sort((a, b) => b.score - a.score);

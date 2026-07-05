@@ -399,3 +399,4 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-ref { display: inline-block; padding: 2px 7px; border-radius: 5px; background: rgba(237,112,0,0.1); border: 1px solid rgba(237,112,0,0.28); color: #ed7000; cursor: pointer; transition: background 0.15s; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aichat-ref:hover { background: rgba(237,112,0,0.22); }
 .aichat-bar { margin-top: 2px; }
+.rail-txt-btn { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; font-family: inherit; }
