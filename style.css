@@ -429,3 +429,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-node-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(56,209,197,0.14); border: 1px solid rgba(56,209,197,0.35); color: #38d1c5; font-size: 11px; line-height: 1.45; cursor: pointer; word-break: break-word; transition: background 0.15s; }
 .aichat-node-chip::before { content: '🔗'; font-size: 0.85em; opacity: 0.8; flex-shrink: 0; }
 .aichat-node-chip:hover { background: rgba(56,209,197,0.22); }
+.aichat-node-chip { background: rgba(237,112,0,0.14); border-color: rgba(237,112,0,0.4); color: #ed7000; }
+.aichat-node-chip:hover { background: rgba(237,112,0,0.24); }
+.aichat-sel-actions { flex-direction: column; flex-wrap: nowrap; gap: 5px; }
+.aichat-sel-actions button { width: 100%; text-align: left; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); }
+.aichat-sel-actions button:hover { background: rgba(255,255,255,0.13); }
+.aichat-suggest-top { align-items: flex-start; }
+.aichat-suggest-top .aichat-node-chip { flex: 1; min-width: 0; }

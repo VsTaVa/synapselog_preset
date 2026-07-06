@@ -744,7 +744,7 @@ function _renderAiChat() {
     if (m.suggestions && m.suggestions.length) {
       html += `<div class="aichat-suggests">` + m.suggestions.map(s =>
         `<div class="aichat-suggest">` +
-          `<div class="aichat-suggest-top"><span class="aichat-ref" data-nid="${s.bId}">${escapeHtml(s.targetLabel)}</span>` +
+          `<div class="aichat-suggest-top"><span class="aichat-node-chip" data-nid="${s.bId}">${escapeHtml(s.targetLabel)}</span>` +
           `<button class="aichat-connect-btn${s.done ? ' done' : ''}" data-a="${s.aId}" data-b="${s.bId}"${s.done ? ' disabled' : ''}>${s.done ? '연결됨' : '연결'}</button></div>` +
           (s.reason ? `<div class="aichat-suggest-reason">${escapeHtml(s.reason)}</div>` : '') +
         `</div>`).join('') + `</div>`;
@@ -754,7 +754,7 @@ function _renderAiChat() {
     }
     return html + `</div>`;
   }).join('');
-  box.querySelectorAll('.aichat-ref[data-nid]').forEach(el => {
+  box.querySelectorAll('.aichat-ref[data-nid], .aichat-node-chip[data-nid]').forEach(el => {
     el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); };
   });
   box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
