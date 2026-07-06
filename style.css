@@ -419,3 +419,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-apply-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; transition: background 0.15s; }
 .aichat-apply-btn:hover { background: rgba(237,112,0,0.28); }
 .aichat-apply-btn.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
+.aichat-selection { background: transparent; border: 1px solid rgba(255,255,255,0.08); margin: 8px 0; }
+.aichat-selection.has-sel { background: rgba(237,112,0,0.06); border-color: rgba(237,112,0,0.25); }
+.aichat-sel-guide { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+.aichat-selection.has-sel .aichat-sel-guide { margin-bottom: 8px; }

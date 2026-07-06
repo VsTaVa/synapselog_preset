@@ -435,6 +435,7 @@ function clearMultiSelect() {
 function renderMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu) return;
+  if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard();
   if (_multiSelected.length < 1) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
   let html;
   if (_multiSelected.length === 1) {
@@ -596,36 +597,34 @@ async function aiSuggestLinks(node) {
   }
 }
 
-// ── AI 액션 카드 (선택 노드 → 무엇을 할까요?) ─────────────────────────
-let _aiActionNodes = [];
+// ── AI 액션 카드 (대화창 하단, 항상 표시) ─────────────────────────────
+// 선택된 노드가 있으면 노드칩 + 액션 버튼, 없으면 안내문만. 선택 변화에 라이브 연동.
 function _renderAiSelectionCard() {
   const card = document.getElementById('aichat-selection');
   if (!card) return;
-  const list = _aiActionNodes || [];
-  if (!list.length) { card.style.display = 'none'; card.innerHTML = ''; return; }
-  const chips = list.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+  const list = _multiSelected || [];
   const single = list.length === 1;
-  card.innerHTML =
-    `<div class="aichat-sel-nodes">${chips}</div>` +
-    `<div class="aichat-sel-q">이 노드로 무엇을 할까요?</div>` +
-    `<div class="aichat-sel-actions">` +
-      `<button data-act="sum">요약</button>` +
-      (single ? `<button data-act="link">노드 연결 추천</button><button data-act="refine">글 다듬기</button>` : '') +
-    `</div>`;
-  card.style.display = 'block';
+  let html = `<div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작 또는 키워드 입력</div>`;
+  if (list.length) {
+    html += `<div class="aichat-sel-nodes">` + list.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
+    html += `<div class="aichat-sel-actions"><button data-act="sum">요약</button>` +
+      (single ? `<button data-act="link">노드 연결 추천</button><button data-act="refine">글 다듬기</button>` : '') + `</div>`;
+  }
+  card.className = 'aichat-selection' + (list.length ? ' has-sel' : '');
+  card.innerHTML = html;
   card.querySelectorAll('.aichat-ref[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
-  card.querySelector('[data-act="sum"]').onclick = () => { const ns = _aiActionNodes.slice(); _clearAiActions(); aiSummarizeNodes(ns); };
-  const lb = card.querySelector('[data-act="link"]'); if (lb) lb.onclick = () => { const n = _aiActionNodes[0]; _clearAiActions(); aiSuggestLinks(n); };
-  const rb = card.querySelector('[data-act="refine"]'); if (rb) rb.onclick = () => { const n = _aiActionNodes[0]; _clearAiActions(); aiRefineNode(n); };
+  const sb = card.querySelector('[data-act="sum"]'); if (sb) sb.onclick = () => { const ns = _multiSelected.slice(); if (!ns.length) return; clearMultiSelect(); aiSummarizeNodes(ns); };
+  const lb = card.querySelector('[data-act="link"]'); if (lb) lb.onclick = () => { const n = _multiSelected[0]; if (!n) return; clearMultiSelect(); aiSuggestLinks(n); };
+  const rb = card.querySelector('[data-act="refine"]'); if (rb) rb.onclick = () => { const n = _multiSelected[0]; if (!n) return; clearMultiSelect(); aiRefineNode(n); };
 }
-function _clearAiActions() { _aiActionNodes = []; _renderAiSelectionCard(); }
 
-// 선택 노드로 AI 작업 시작 → AI 대화창 열고 액션 카드 표시
+// 선택 노드로 AI 작업 시작 → 선택 반영 후 AI 대화창 열기 (카드는 라이브로 채워짐)
 function openAiActions(nodes) {
-  const snap = (nodes && nodes.length) ? nodes.slice() : (_multiSelected || []).slice();
-  if (!snap.length) return;
-  _aiActionNodes = snap;
-  clearMultiSelect();
+  if (nodes && nodes.length) {
+    clearMultiSelect();
+    nodes.forEach(n => { if (n) { n.multiSelected = true; _multiSelected.push(n); } });
+    renderMultiSelectMenu();
+  }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
   _renderAiSelectionCard();
 }
@@ -1077,7 +1076,7 @@ function openRailSection(name) {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
-  if (name === 'aichat') setTimeout(() => document.getElementById('aichat-input')?.focus(), 60);
+  if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard(); }
 }
 function closeRailFlyout() {
   if (!_activeRailSection) return;
