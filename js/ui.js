@@ -726,12 +726,12 @@ function _aiSearchNodes(query, topN) {
   return scored.slice(0, topN).map(s => s.n);
 }
 
-// 노드칩 색을 그래프 뷰의 해당 노드 색(nodeRgb)에 맞춤
+// 노드칩 배경·테두리는 그래프 뷰의 해당 노드 색(nodeRgb)에 맞추고, 글자는 흰색(가독성)
 function _chipColorStyle(n) {
   let rgb = [237, 112, 0];
   try { if (n && typeof nodeRgb === 'function') { const c = nodeRgb(n); if (Array.isArray(c) && c.length >= 3) rgb = c; } } catch (e) {}
   const r = rgb[0], g = rgb[1], b = rgb[2];
-  return `background:rgba(${r},${g},${b},0.14);border-color:rgba(${r},${g},${b},0.45);color:rgb(${r},${g},${b});`;
+  return `background:rgba(${r},${g},${b},0.2);border-color:rgba(${r},${g},${b},0.6);color:#fff !important;`;
 }
 
 function _aiMdToHtml(t) {
@@ -1277,7 +1277,7 @@ function renderPaneContent(i, n) {
     const decUrl = url.replace(/&amp;/g, '&');
     const target = (typeof _nodeFromLinkUrl === 'function') ? _nodeFromLinkUrl(decUrl) : null;
     // 수정 모드와 동일하게 칩(🔗 + 제목만, URL 숨김)으로 표시
-    if (target) return `<span class="wl-ref wl-chip" data-nid="${target.id}">${txt}</span>`;
+    if (target) return `<span class="wl-ref wl-chip" data-nid="${target.id}" style="${_chipColorStyle(target)}">${txt}</span>`;
     return `<a class="wl-ref wl-chip wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
   if (searchKeyword && searchMatches.has(n.id)) {
