@@ -581,35 +581,48 @@ const _AI_STOPWORDS = new Set(['그리고','그러나','하지만','그래서','
 function _aiStem(w) {
   return w.replace(/(으로부터|에서는|에게서|으로서|으로써|이라는|라는|이라고|라고|에서|에게|한테|부터|까지|처럼|보다|이나|이란|은|는|이|가|을|를|에|의|도|와|과|랑|만|나|요|로)$/, '');
 }
-// 질문 → 검색어 목록 (조사 제거형 + 원형), 불용어 컷
+// 질문 → 개념(단어) 목록. 각 개념은 [어간, 원형] 변형을 가짐. 불용어 컷.
+// 예: "머신러닝은 알고리즘" → [['머신러닝','머신러닝은'], ['알고리즘']]
 function _aiTerms(query) {
   let raw;
   try { raw = (query.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); }
   catch (e) { raw = (query.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
-  const out = [];
+  const concepts = [];
   raw.forEach(w => {
     if (w.length < 2 || _AI_STOPWORDS.has(w)) return;
     let s = w;
     if (/[가-힣]/.test(w) && w.length >= 3) s = _aiStem(w);
-    if (s.length >= 2 && !_AI_STOPWORDS.has(s)) out.push(s);
-    if (w !== s && w.length >= 2 && !_AI_STOPWORDS.has(w)) out.push(w);
+    const variants = [];
+    if (s.length >= 2 && !_AI_STOPWORDS.has(s)) variants.push(s);
+    if (w !== s && w.length >= 2 && !_AI_STOPWORDS.has(w)) variants.push(w);
+    if (variants.length) concepts.push([...new Set(variants)]);
   });
-  return [...new Set(out)];
+  return concepts;
 }
 
-// 질문어와 겹치는 노드 상위 topN개 (제목 매치 가중치↑)
+// 질문어와 겹치는 노드 상위 topN개.
+// 정렬: 맞춘 개념 수(커버리지)↑ → 점수(제목3/본문1)↑. 약한 매칭은 컷해서 엉뚱한 근거 방지.
 function _aiSearchNodes(query, topN) {
-  const terms = _aiTerms(query);
-  if (!terms.length) return [];
+  const concepts = _aiTerms(query);
+  if (!concepts.length) return [];
+  const total = concepts.length;
   const scored = [];
   (nodes || []).forEach(n => {
     if (n._aiSummary) return;
     const label = (n.label || '').toLowerCase(), desc = (n.desc || '').toLowerCase();
-    let score = 0;
-    terms.forEach(t => { if (label.includes(t)) score += 3; else if (desc.includes(t)) score += 1; });
-    if (score > 0) scored.push({ n, score });
+    let score = 0, coverage = 0, labelHit = false;
+    concepts.forEach(vars => {
+      const inLabel = vars.some(v => label.includes(v));
+      const inDesc = !inLabel && vars.some(v => desc.includes(v));
+      if (inLabel) { score += 3; coverage++; labelHit = true; }
+      else if (inDesc) { score += 1; coverage++; }
+    });
+    if (coverage === 0) return;
+    // 약한 매칭 컷: 질문이 2단어 이상인데 제목매치 없고 본문에 1개만 걸리면 노이즈로 버림
+    if (total >= 2 && !labelHit && coverage < 2) return;
+    scored.push({ n, score, coverage });
   });
-  scored.sort((a, b) => b.score - a.score);
+  scored.sort((a, b) => (b.coverage - a.coverage) || (b.score - a.score));
   return scored.slice(0, topN).map(s => s.n);
 }
 
