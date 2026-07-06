@@ -604,15 +604,15 @@ function _renderAiSelectionCard() {
   if (!card) return;
   const list = _multiSelected || [];
   const nodesHtml = list.length
-    ? list.map(n => `<span class="aichat-node-chip" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('')
+    ? list.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('')
     : `<div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div>`;
   card.className = 'aichat-selection' + (list.length ? ' has-sel' : '');
   card.innerHTML =
     `<div class="aichat-sel-nodes">${nodesHtml}</div>` +
     `<div class="aichat-sel-actions">` +
-      `<button data-act="sum">요약</button>` +
-      `<button data-act="link">노드 연결 추천</button>` +
-      `<button data-act="refine">글 다듬기</button>` +
+      `<button data-act="sum">1. 요약</button>` +
+      `<button data-act="link">2. 노드 연결 추천</button>` +
+      `<button data-act="refine">3. 글 다듬기</button>` +
     `</div>`;
   card.querySelectorAll('.aichat-node-chip[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
   const sb = card.querySelector('[data-act="sum"]');
@@ -726,6 +726,14 @@ function _aiSearchNodes(query, topN) {
   return scored.slice(0, topN).map(s => s.n);
 }
 
+// 노드칩 색을 그래프 뷰의 해당 노드 색(nodeRgb)에 맞춤
+function _chipColorStyle(n) {
+  let rgb = [237, 112, 0];
+  try { if (n && typeof nodeRgb === 'function') { const c = nodeRgb(n); if (Array.isArray(c) && c.length >= 3) rgb = c; } } catch (e) {}
+  const r = rgb[0], g = rgb[1], b = rgb[2];
+  return `background:rgba(${r},${g},${b},0.14);border-color:rgba(${r},${g},${b},0.45);color:rgb(${r},${g},${b});`;
+}
+
 function _aiMdToHtml(t) {
   let s = escapeHtml(t || '');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>');
@@ -739,12 +747,12 @@ function _renderAiChat() {
   box.innerHTML = _aiChat.map(m => {
     let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${_aiMdToHtml(m.text)}</div>`;
     if (m.refs && m.refs.length) {
-      html += `<div class="aichat-refs">근거: ` + m.refs.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
+      html += `<div class="aichat-refs"><div class="aichat-refs-label">근거</div>` + m.refs.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
     }
     if (m.suggestions && m.suggestions.length) {
       html += `<div class="aichat-suggests">` + m.suggestions.map(s =>
         `<div class="aichat-suggest">` +
-          `<div class="aichat-suggest-top"><span class="aichat-node-chip" data-nid="${s.bId}">${escapeHtml(s.targetLabel)}</span>` +
+          `<div class="aichat-suggest-top"><span class="aichat-node-chip" data-nid="${s.bId}" style="${_chipColorStyle(nodeMap[s.bId])}">${escapeHtml(s.targetLabel)}</span>` +
           `<button class="aichat-connect-btn${s.done ? ' done' : ''}" data-a="${s.aId}" data-b="${s.bId}"${s.done ? ' disabled' : ''}>${s.done ? '연결됨' : '연결'}</button></div>` +
           (s.reason ? `<div class="aichat-suggest-reason">${escapeHtml(s.reason)}</div>` : '') +
         `</div>`).join('') + `</div>`;

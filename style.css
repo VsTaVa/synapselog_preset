@@ -436,3 +436,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-sel-actions button:hover { background: rgba(255,255,255,0.13); }
 .aichat-suggest-top { align-items: flex-start; }
 .aichat-suggest-top .aichat-node-chip { flex: 1; min-width: 0; }
+.aichat-sel-actions button { color: rgba(255,255,255,0.55); background: none; border: none; padding: 6px 9px; }
+.aichat-sel-actions button:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.aichat-refs { flex-direction: column; align-items: stretch; }
+.aichat-refs-label { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-bottom: 1px; }
