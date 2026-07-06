@@ -462,8 +462,6 @@ function _editToolsHtml(node) {
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
-  html += `<button onclick="multiSelectSummarize()" title="이 노드(상위면 하위·연결 포함)를 AI로 요약합니다">${aiBulb} AI 요약</button>`;
-  html += `<button onclick="multiSelectSuggestLinks()" title="이 노드와 연결하면 좋은 관련 노드를 AI가 제안합니다">${linkIcon} AI 연결 제안</button>`;
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
@@ -476,7 +474,7 @@ function _exploreToolsHtml() {
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
   const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
   let html = '';
-  if (n > 1) html += `<button onclick="multiSelectSummarize()" title="선택한 노드들의 내용만 모아 AI로 요약합니다 (설정의 AI API 키 필요)">${aiIcon} AI 요약</button>`;
+  html += `<button onclick="openAiActions()" title="선택한 노드로 AI 작업 (요약 / 연결 추천 / 글 다듬기)">${aiIcon} AI</button>`;
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
     html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
@@ -598,6 +596,60 @@ async function aiSuggestLinks(node) {
   }
 }
 
+// ── AI 액션 카드 (선택 노드 → 무엇을 할까요?) ─────────────────────────
+let _aiActionNodes = [];
+function _renderAiSelectionCard() {
+  const card = document.getElementById('aichat-selection');
+  if (!card) return;
+  const list = _aiActionNodes || [];
+  if (!list.length) { card.style.display = 'none'; card.innerHTML = ''; return; }
+  const chips = list.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+  const single = list.length === 1;
+  card.innerHTML =
+    `<div class="aichat-sel-nodes">${chips}</div>` +
+    `<div class="aichat-sel-q">이 노드로 무엇을 할까요?</div>` +
+    `<div class="aichat-sel-actions">` +
+      `<button data-act="sum">요약</button>` +
+      (single ? `<button data-act="link">노드 연결 추천</button><button data-act="refine">글 다듬기</button>` : '') +
+    `</div>`;
+  card.style.display = 'block';
+  card.querySelectorAll('.aichat-ref[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
+  card.querySelector('[data-act="sum"]').onclick = () => { const ns = _aiActionNodes.slice(); _clearAiActions(); aiSummarizeNodes(ns); };
+  const lb = card.querySelector('[data-act="link"]'); if (lb) lb.onclick = () => { const n = _aiActionNodes[0]; _clearAiActions(); aiSuggestLinks(n); };
+  const rb = card.querySelector('[data-act="refine"]'); if (rb) rb.onclick = () => { const n = _aiActionNodes[0]; _clearAiActions(); aiRefineNode(n); };
+}
+function _clearAiActions() { _aiActionNodes = []; _renderAiSelectionCard(); }
+
+// 선택 노드로 AI 작업 시작 → AI 대화창 열고 액션 카드 표시
+function openAiActions(nodes) {
+  const snap = (nodes && nodes.length) ? nodes.slice() : (_multiSelected || []).slice();
+  if (!snap.length) return;
+  _aiActionNodes = snap;
+  clearMultiSelect();
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  _renderAiSelectionCard();
+}
+
+// 글 다듬기: 노드 본문을 AI가 정리 → 대화창에 미리보기 + [적용](편집 열기)
+async function aiRefineNode(node) {
+  if (!node) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  const editable = node.local || (node.notionBlockId && node.notionParentId);
+  if (!editable) { toast('이 노드는 본문을 편집할 수 없어요 (노션 하위 노드만)', { type: 'error' }); return; }
+  const body = (node.desc || '').trim();
+  if (!body) { toast('다듬을 본문이 없어요', { type: 'error' }); return; }
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  _aiChatPush('user', `글 다듬기: ${(node.label || '(제목 없음)').trim()}`);
+  const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
+  const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
+  try {
+    const refined = (await geminiGenerate(prompt)).trim();
+    _aiChatReplace(waitId, refined, [], null, { nodeId: node.id, text: refined, done: false });
+  } catch (e) {
+    _aiChatReplace(waitId, '다듬기 실패: ' + (e.message || e), [], null, null);
+  }
+}
+
 // 다중선택 → AI 요약 (좌측 대화창)
 function multiSelectSummarize() {
   if (_multiSelected.length < 1) return;
@@ -693,6 +745,9 @@ function _renderAiChat() {
           (s.reason ? `<div class="aichat-suggest-reason">${escapeHtml(s.reason)}</div>` : '') +
         `</div>`).join('') + `</div>`;
     }
+    if (m.refine) {
+      html += `<div class="aichat-refine-actions"><button class="aichat-apply-btn${m.refine.done ? ' done' : ''}" data-mid="${m.id}"${m.refine.done ? ' disabled' : ''}>${m.refine.done ? '적용됨 (편집에서 저장)' : '적용 (편집 열기)'}</button></div>`;
+    }
     return html + `</div>`;
   }).join('');
   box.querySelectorAll('.aichat-ref[data-nid]').forEach(el => {
@@ -700,6 +755,9 @@ function _renderAiChat() {
   });
   box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
     el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);
+  });
+  box.querySelectorAll('.aichat-apply-btn:not(.done)').forEach(el => {
+    el.onclick = () => applyAiRefineFromMsg(el.dataset.mid);
   });
   box.scrollTop = box.scrollHeight;
 }
@@ -710,10 +768,23 @@ function _aiChatPush(role, text, refs, suggestions) {
   _renderAiChat();
   return id;
 }
-function _aiChatReplace(id, text, refs, suggestions) {
+function _aiChatReplace(id, text, refs, suggestions, refine) {
   const m = _aiChat.find(x => x.id === id);
-  if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; }
+  if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; if (refine !== undefined) m.refine = refine; }
   _renderAiChat();
+}
+
+// AI 다듬기 '적용' → 노드를 편집 모드로 열고 다듬은 텍스트 로드(최종 저장은 사용자가 [저장])
+function applyAiRefineFromMsg(mid) {
+  const m = _aiChat.find(x => x.id === mid);
+  if (!m || !m.refine) return;
+  const node = nodeMap[m.refine.nodeId];
+  if (!node) { toast('노드를 찾을 수 없어요', { type: 'error' }); return; }
+  openPanel(node);
+  const idx = _stack.findIndex(x => x.id === node.id);
+  if (idx < 0) return;
+  m.refine.done = true; _renderAiChat();
+  setTimeout(() => { try { beginNodeEdit(idx, node, m.refine.text); } catch (e) {} }, 90);
 }
 
 // AI 연결 제안의 '연결' 버튼 → a→b 위키 링크 생성(노션 저장은 백그라운드)
@@ -1292,11 +1363,10 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
   const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
-  const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 요약</button>`;
-  const aiLinkItem = `<button data-act="ailinks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> AI 연결 제안</button>`;
+  const aiActItem = `<button data-act="aiact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 작업</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem + syncItem;
-  const midGroup = notionItem + aiItem + aiLinkItem + bmItem;
+  const midGroup = notionItem + aiActItem + bmItem;
   menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
@@ -1324,10 +1394,8 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (bb) bb.onclick = () => { toggleBookmark(n); close(); renderPaneContent(i, n); };
   const dAll = menu.querySelector('[data-act="delete"]');
   if (dAll) dAll.onclick = () => { close(); deleteNodeSmart(n); };
-  const aib = menu.querySelector('[data-act="aisummary"]');
-  if (aib) aib.onclick = () => { close(); aiSummarizeNodes([n]); };
-  const alb = menu.querySelector('[data-act="ailinks"]');
-  if (alb) alb.onclick = () => { close(); aiSuggestLinks(n); };
+  const aab = menu.querySelector('[data-act="aiact"]');
+  if (aab) aab.onclick = () => { close(); openAiActions([n]); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
@@ -1572,7 +1640,7 @@ function _focusEditRow(row, atEnd) {
   const s = window.getSelection(); s.removeAllRanges(); s.addRange(range);
 }
 
-function beginNodeEdit(paneIdx, node) {
+function beginNodeEdit(paneIdx, node, overrideText) {
   const paneEl = getPaneEl(paneIdx);
   if (!paneEl) return;
   const titleEl = paneEl.querySelector('.detail-title');
@@ -1665,7 +1733,14 @@ function beginNodeEdit(paneIdx, node) {
     }
     return ce;
   };
-  if (isLocal) {
+  if (typeof overrideText === 'string') {
+    // AI 다듬기 등: 주어진 텍스트를 새 본문으로 로드(기존 블록은 저장 시 교체됨)
+    let ol = overrideText.replace(/\s+$/, '').split('\n');
+    while (ol.length && ol[0].trim() === '') ol.shift();
+    if (!ol.length) ol = [''];
+    ol.forEach(line => addRow(line, isLocal ? { local: true } : null));
+  }
+  else if (isLocal) {
     const lines = (node.desc || '').split('\n');
     if (!lines.length || (lines.length === 1 && lines[0] === '')) addRow('', { local: true });
     else lines.forEach(line => addRow(line, { local: true }));
