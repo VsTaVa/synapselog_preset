@@ -457,9 +457,11 @@ function _editToolsHtml(node) {
   const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   const bmOn = isBookmarked(node);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
+  const aiBulb = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
+  html += `<button onclick="multiSelectSummarize()" title="이 노드(상위면 하위·연결 포함)를 AI로 요약합니다">${aiBulb} AI 요약</button>`;
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
@@ -472,7 +474,7 @@ function _exploreToolsHtml() {
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
   const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
   let html = '';
-  html += `<button onclick="multiSelectSummarize()" title="선택한 노드들의 내용만 모아 AI로 요약합니다 (설정의 AI API 키 필요)">${aiIcon} AI 요약</button>`;
+  if (n > 1) html += `<button onclick="multiSelectSummarize()" title="선택한 노드들의 내용만 모아 AI로 요약합니다 (설정의 AI API 키 필요)">${aiIcon} AI 요약</button>`;
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
     html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
@@ -1216,7 +1218,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 요약</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem + syncItem;
-  const midGroup = notionItem + bmItem + aiItem;
+  const midGroup = notionItem + aiItem + bmItem;
   menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
