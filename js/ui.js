@@ -470,7 +470,7 @@ function _exploreToolsHtml() {
   const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
-  const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`;
+  const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
   let html = '';
   html += `<button onclick="multiSelectSummarize()" title="선택한 노드들의 내용만 모아 AI로 요약합니다 (설정의 AI API 키 필요)">${aiIcon} AI 요약</button>`;
   if (n === 1) {
@@ -519,19 +519,38 @@ async function geminiSummarize(text) {
   return geminiGenerate(prompt);
 }
 
+// 요약 대상 확장: 자기 자신 + 구조적 하위 노드 전체 + 연결(위키/수동 링크)된 노드
+function _aiExpandNodes(baseNodes) {
+  const out = [], seen = new Set();
+  const add = (n) => { if (n && !seen.has(n.id)) { seen.add(n.id); out.push(n); } };
+  (baseNodes || []).forEach(n => {
+    add(n);
+    if (typeof collectSyncDescendants === 'function') collectSyncDescendants(n).forEach(add);
+  });
+  const inSet = new Set(out.map(n => n.id));
+  (edges || []).forEach(e => {
+    if ((e.wikiLink || e.manualLink) && inSet.has(e.from)) add(nodeMap[e.to]);
+  });
+  return out;
+}
+
 // 노드들의 내용만 모아 AI 요약 → 좌측 AI 대화창에 표시 (노션엔 저장 안 함)
+// 상위 노드면 하위 전체 + 연결된 노드까지 포함해서 요약
 async function aiSummarizeNodes(nodeList) {
-  const list = (nodeList || []).filter(Boolean);
-  if (!list.length) return;
+  const base = (nodeList || []).filter(Boolean);
+  if (!base.length) return;
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  let list = _aiExpandNodes(base);
+  if (list.length > 30) list = list.slice(0, 30); // 토큰 보호(상위 노드 대량 하위 대비)
   const combined = list.map(nd => {
     const title = (nd.label || '(제목 없음)').trim();
-    const body = (nd.desc || '').trim();
+    const body = (nd.desc || '').trim().slice(0, 350);
     return body ? `## ${title}\n${body}` : `## ${title}`;
   }).join('\n\n');
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  const titles = list.map(nd => (nd.label || '(제목 없음)').trim()).join(', ');
-  _aiChatPush('user', `요약: ${titles}`);
+  const titles = base.map(nd => (nd.label || '(제목 없음)').trim()).join(', ');
+  const extra = list.length - base.length;
+  _aiChatPush('user', `요약: ${titles}${extra > 0 ? ` (+하위·연결 ${extra}개)` : ''}`);
   const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
   try {
     const summary = await geminiSummarize(combined);
@@ -1194,7 +1213,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
   const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
-  const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg> AI 요약</button>`;
+  const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 요약</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem + syncItem;
   const midGroup = notionItem + bmItem + aiItem;
