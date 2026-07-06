@@ -458,10 +458,12 @@ function _editToolsHtml(node) {
   const bmOn = isBookmarked(node);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
   const aiBulb = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
+  const linkIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
   html += `<button onclick="multiSelectSummarize()" title="이 노드(상위면 하위·연결 포함)를 AI로 요약합니다">${aiBulb} AI 요약</button>`;
+  html += `<button onclick="multiSelectSuggestLinks()" title="이 노드와 연결하면 좋은 관련 노드를 AI가 제안합니다">${linkIcon} AI 연결 제안</button>`;
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
@@ -562,6 +564,40 @@ async function aiSummarizeNodes(nodeList) {
   }
 }
 
+// 노드 하나에 대해 AI가 연결하면 좋은 관련 노드를 제안 → 대화창에 '연결' 버튼으로 표시
+async function aiSuggestLinks(node) {
+  if (!node) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  // 이미 연결(구조·위키)된 노드 + 자기 자신 제외
+  const connected = new Set([node.id]);
+  (edges || []).forEach(e => { if (e.from === node.id) connected.add(e.to); if (e.to === node.id) connected.add(e.from); });
+  const query = (node.label || '') + ' ' + (node.desc || '').slice(0, 300);
+  const cands = _aiSearchNodes(query, 16).filter(c => !connected.has(c.id)).slice(0, 8);
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  _aiChatPush('user', `연결 제안: ${(node.label || '(제목 없음)').trim()}`);
+  if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드를 찾지 못했어요.'); return; }
+  const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
+  const baseText = `${(node.label || '(제목 없음)').trim()}\n${(node.desc || '').trim().slice(0, 400)}`;
+  const candText = cands.map((c, i) => `[${i + 1}] ${(c.label || '(제목 없음)').trim()}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
+  const prompt = `기준 노드와 의미상 연결하면 좋은 후보를 골라줘. 억지로 다 고르지 말고 관련 있는 것만. 출력은 각 줄 "[번호] 이유(한 줄)" 형식으로만, 관련된 게 없으면 "없음"이라고만 해.\n\n[기준 노드]\n${baseText}\n\n[후보]\n${candText}`;
+  try {
+    const ans = await geminiGenerate(prompt);
+    const suggestions = [];
+    const seen = new Set();
+    ans.split('\n').forEach(line => {
+      const m = line.match(/\[?\s*(\d+)\s*\]?[.)\s-]+(.*)$/);
+      if (!m) return;
+      const idx = parseInt(m[1], 10) - 1;
+      const c = cands[idx];
+      if (c && !seen.has(c.id)) { seen.add(c.id); suggestions.push({ aId: node.id, bId: c.id, targetLabel: (c.label || '(제목 없음)').trim(), reason: (m[2] || '').trim() }); }
+    });
+    if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드가 없었어요.', [], null); return; }
+    _aiChatReplace(waitId, '아래 노드와 연결을 추천해요:', [], suggestions);
+  } catch (e) {
+    _aiChatReplace(waitId, '연결 제안 실패: ' + (e.message || e), [], null);
+  }
+}
+
 // 다중선택 → AI 요약 (좌측 대화창)
 function multiSelectSummarize() {
   if (_multiSelected.length < 1) return;
@@ -569,6 +605,14 @@ function multiSelectSummarize() {
   const nodes = _multiSelected.slice();
   clearMultiSelect();
   aiSummarizeNodes(nodes);
+}
+
+// 단일 선택 → AI 연결 제안
+function multiSelectSuggestLinks() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  aiSuggestLinks(node);
 }
 
 // ── AI 대화 (그래프 검색 기반) ────────────────────────────────────────
@@ -641,23 +685,43 @@ function _renderAiChat() {
     if (m.refs && m.refs.length) {
       html += `<div class="aichat-refs">근거: ` + m.refs.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
     }
+    if (m.suggestions && m.suggestions.length) {
+      html += `<div class="aichat-suggests">` + m.suggestions.map(s =>
+        `<div class="aichat-suggest">` +
+          `<div class="aichat-suggest-top"><span class="aichat-ref" data-nid="${s.bId}">${escapeHtml(s.targetLabel)}</span>` +
+          `<button class="aichat-connect-btn${s.done ? ' done' : ''}" data-a="${s.aId}" data-b="${s.bId}"${s.done ? ' disabled' : ''}>${s.done ? '연결됨' : '연결'}</button></div>` +
+          (s.reason ? `<div class="aichat-suggest-reason">${escapeHtml(s.reason)}</div>` : '') +
+        `</div>`).join('') + `</div>`;
+    }
     return html + `</div>`;
   }).join('');
   box.querySelectorAll('.aichat-ref[data-nid]').forEach(el => {
     el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); };
   });
+  box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
+    el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);
+  });
   box.scrollTop = box.scrollHeight;
 }
 
-function _aiChatPush(role, text, refs) {
+function _aiChatPush(role, text, refs, suggestions) {
   const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
-  _aiChat.push({ id, role, text, refs: refs || [] });
+  _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null });
   _renderAiChat();
   return id;
 }
-function _aiChatReplace(id, text, refs) {
+function _aiChatReplace(id, text, refs, suggestions) {
   const m = _aiChat.find(x => x.id === id);
-  if (m) { m.text = text; m.refs = refs || []; }
+  if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; }
+  _renderAiChat();
+}
+
+// AI 연결 제안의 '연결' 버튼 → a→b 위키 링크 생성(노션 저장은 백그라운드)
+function applyAiLink(aId, bId) {
+  const a = nodeMap[aId], b = nodeMap[bId];
+  if (!a || !b) return;
+  if (!_hasWikiLinkTo(a, b)) _wikiConnect(a, b);
+  _aiChat.forEach(m => (m.suggestions || []).forEach(s => { if (s.aId === aId && s.bId === bId) s.done = true; }));
   _renderAiChat();
 }
 
@@ -1229,9 +1293,10 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
   const aiItem = `<button data-act="aisummary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 요약</button>`;
+  const aiLinkItem = `<button data-act="ailinks"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> AI 연결 제안</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem + syncItem;
-  const midGroup = notionItem + aiItem + bmItem;
+  const midGroup = notionItem + aiItem + aiLinkItem + bmItem;
   menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
@@ -1261,6 +1326,8 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (dAll) dAll.onclick = () => { close(); deleteNodeSmart(n); };
   const aib = menu.querySelector('[data-act="aisummary"]');
   if (aib) aib.onclick = () => { close(); aiSummarizeNodes([n]); };
+  const alb = menu.querySelector('[data-act="ailinks"]');
+  if (alb) alb.onclick = () => { close(); aiSuggestLinks(n); };
 }
 
 // ── 토스트 알림 ───────────────────────────────────────────────────────
