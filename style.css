@@ -423,3 +423,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-selection.has-sel { background: rgba(237,112,0,0.06); border-color: rgba(237,112,0,0.25); }
 .aichat-sel-guide { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
 .aichat-selection.has-sel .aichat-sel-guide { margin-bottom: 8px; }
+.aichat-selection.has-sel { background: transparent; border-color: rgba(255,255,255,0.08); }
+.aichat-sel-nodes { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; margin-bottom: 8px; }
+.aichat-sel-guide { margin-bottom: 8px; }
+.aichat-node-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(56,209,197,0.14); border: 1px solid rgba(56,209,197,0.35); color: #38d1c5; font-size: 11px; line-height: 1.45; cursor: pointer; word-break: break-word; transition: background 0.15s; }
+.aichat-node-chip::before { content: '🔗'; font-size: 0.85em; opacity: 0.8; flex-shrink: 0; }
+.aichat-node-chip:hover { background: rgba(56,209,197,0.22); }

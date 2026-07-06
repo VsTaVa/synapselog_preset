@@ -603,19 +603,24 @@ function _renderAiSelectionCard() {
   const card = document.getElementById('aichat-selection');
   if (!card) return;
   const list = _multiSelected || [];
-  const single = list.length === 1;
-  let html = `<div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작 또는 키워드 입력</div>`;
-  if (list.length) {
-    html += `<div class="aichat-sel-nodes">` + list.map(n => `<span class="aichat-ref" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
-    html += `<div class="aichat-sel-actions"><button data-act="sum">요약</button>` +
-      (single ? `<button data-act="link">노드 연결 추천</button><button data-act="refine">글 다듬기</button>` : '') + `</div>`;
-  }
+  const nodesHtml = list.length
+    ? list.map(n => `<span class="aichat-node-chip" data-nid="${n.id}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('')
+    : `<div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div>`;
   card.className = 'aichat-selection' + (list.length ? ' has-sel' : '');
-  card.innerHTML = html;
-  card.querySelectorAll('.aichat-ref[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
-  const sb = card.querySelector('[data-act="sum"]'); if (sb) sb.onclick = () => { const ns = _multiSelected.slice(); if (!ns.length) return; clearMultiSelect(); aiSummarizeNodes(ns); };
-  const lb = card.querySelector('[data-act="link"]'); if (lb) lb.onclick = () => { const n = _multiSelected[0]; if (!n) return; clearMultiSelect(); aiSuggestLinks(n); };
-  const rb = card.querySelector('[data-act="refine"]'); if (rb) rb.onclick = () => { const n = _multiSelected[0]; if (!n) return; clearMultiSelect(); aiRefineNode(n); };
+  card.innerHTML =
+    `<div class="aichat-sel-nodes">${nodesHtml}</div>` +
+    `<div class="aichat-sel-actions">` +
+      `<button data-act="sum">요약</button>` +
+      `<button data-act="link">노드 연결 추천</button>` +
+      `<button data-act="refine">글 다듬기</button>` +
+    `</div>`;
+  card.querySelectorAll('.aichat-node-chip[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
+  const sb = card.querySelector('[data-act="sum"]');
+  if (sb) sb.onclick = () => { const ns = _multiSelected.slice(); if (!ns.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } clearMultiSelect(); aiSummarizeNodes(ns); };
+  const lb = card.querySelector('[data-act="link"]');
+  if (lb) lb.onclick = () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); };
+  const rb = card.querySelector('[data-act="refine"]');
+  if (rb) rb.onclick = () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); };
 }
 
 // 선택 노드로 AI 작업 시작 → 선택 반영 후 AI 대화창 열기 (카드는 라이브로 채워짐)
@@ -2582,7 +2587,7 @@ const LANG = {
     'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
-    'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'질문 입력...',
+    'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
@@ -2611,7 +2616,7 @@ const LANG = {
     'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
-    'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a question...',
+    'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a keyword to chat with AI',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
