@@ -822,15 +822,52 @@ function applyAiLink(aId, bId) {
   _renderAiChat();
 }
 
-// 글 넣기: 입력한 글을 요약하고, 넣기 좋은 상위 노드를 추천 → [여기 넣기]로 하위노드 생성
-async function aiFileText() {
+// ── AI 슬래시 명령어 (확장 가능) ─────────────────────────────────────
+const _AI_COMMANDS = [
+  { name: '/Text import', hint: '글을 요약하고 넣을 상위 노드를 추천', run: (text) => aiFileText(text) },
+];
+function _matchAiCommand(raw) {
+  const lower = (raw || '').toLowerCase();
+  return _AI_COMMANDS.find(c => lower === c.name.toLowerCase() || lower.startsWith(c.name.toLowerCase() + ' '));
+}
+function _renderAiCmdMenuList(list) {
+  const menu = document.getElementById('aichat-cmd-menu');
+  if (!menu) return;
+  menu.innerHTML = list.map(c => `<button class="ai-cmd-item" data-cmd="${escapeHtml(c.name)}"><span class="ai-cmd-name">${escapeHtml(c.name)}</span><span class="ai-cmd-hint">${escapeHtml(c.hint)}</span></button>`).join('');
+  menu.querySelectorAll('.ai-cmd-item').forEach(el => { el.onclick = () => _pickAiCommand(el.dataset.cmd); });
+}
+function toggleAiCmdMenu() {
+  const menu = document.getElementById('aichat-cmd-menu');
+  if (!menu) return;
+  if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
+  _renderAiCmdMenuList(_AI_COMMANDS);
+  menu.classList.add('open');
+}
+function _pickAiCommand(name) {
   const input = document.getElementById('aichat-input');
-  const text = (input && input.value || '').trim();
-  if (!text) return;
+  if (input) { input.value = name + ' '; input.focus(); }
+  _hideAiCmdMenu();
+}
+function _hideAiCmdMenu() { const m = document.getElementById('aichat-cmd-menu'); if (m) m.classList.remove('open'); }
+function onAiInput(el) {
+  const menu = document.getElementById('aichat-cmd-menu');
+  if (!menu) return;
+  const v = el.value || '';
+  if (v.startsWith('/')) {
+    const q = v.toLowerCase().trim();
+    const list = _AI_COMMANDS.filter(c => c.name.toLowerCase().startsWith(q));
+    if (list.length) { _renderAiCmdMenuList(list); menu.classList.add('open'); }
+    else menu.classList.remove('open');
+  } else menu.classList.remove('open');
+}
+
+// 글 넣기(/Text import): 글을 요약하고, 넣기 좋은 상위 노드를 추천 → [여기 넣기]로 하위노드 생성
+async function aiFileText(text) {
+  text = (text || '').trim();
+  if (!text) { toast('넣을 글을 입력해주세요 ("/Text import" 뒤에)', { type: 'error' }); return; }
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
-  if (input) input.value = '';
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', `글 넣기: ${text.length > 50 ? text.slice(0, 50) + '…' : text}`);
+  _aiChatPush('user', `Text import: ${text.length > 50 ? text.slice(0, 50) + '…' : text}`);
   const waitId = _aiChatPush('ai', '요약하고 넣을 곳 찾는 중… ⏳');
   const cands = _aiSearchNodes(text, 14).filter(c => canAddChild(c)).slice(0, 8);
   const candText = cands.length ? cands.map((c, i) => `[${i + 1}] ${(c.label || '(제목 없음)').trim()}${c.desc ? ' — ' + c.desc.trim().slice(0, 100) : ''}`).join('\n') : '(후보 없음)';
@@ -876,6 +913,15 @@ async function sendAiChat() {
   const input = document.getElementById('aichat-input');
   const q = (input && input.value || '').trim();
   if (!q) return;
+  // 슬래시 명령어면 해당 모드로 라우팅 (AI가 명령어 인식)
+  const cmd = _matchAiCommand(q);
+  if (cmd) {
+    const rest = q.slice(cmd.name.length).trim();
+    if (input) input.value = '';
+    _hideAiCmdMenu();
+    cmd.run(rest);
+    return;
+  }
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (input) input.value = '';
   _aiChatPush('user', q);

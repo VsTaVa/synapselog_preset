@@ -443,3 +443,11 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-file { margin-top: 4px; }
 .aichat-file-label { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
 .aichat-file .aichat-node-chip { margin-bottom: 4px; }
+.aichat-bar { position: relative; }
+#aichat-cmd { font-size: 15px; font-weight: 800; color: #ed7000; line-height: 1; flex-shrink: 0; }
+.aichat-cmd-menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 220px; background: #14161f; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 60; display: none; }
+.aichat-cmd-menu.open { display: block; }
+.ai-cmd-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; background: none; border: none; padding: 6px 9px; border-radius: 6px; cursor: pointer; }
+.ai-cmd-item:hover { background: rgba(255,255,255,0.07); }
+.ai-cmd-name { font-size: 12px; font-weight: 700; color: #ed7000; font-family: inherit; }
+.ai-cmd-hint { font-size: 10.5px; color: rgba(255,255,255,0.45); }
