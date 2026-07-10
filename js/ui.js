@@ -436,6 +436,7 @@ function renderMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu) return;
   if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard();
+  if (typeof _renderAiBarChips === 'function') _renderAiBarChips();
   if (_multiSelected.length < 1) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
   let html;
   if (_multiSelected.length === 1) {
@@ -822,37 +823,76 @@ const _AI_COMMANDS = [
 ];
 function _matchAiCommand(raw) {
   const lower = (raw || '').toLowerCase();
-  return _AI_COMMANDS.find(c => lower === c.name.toLowerCase() || lower.startsWith(c.name.toLowerCase() + ' '));
+  return _AI_COMMANDS.find(c => {
+    const n = c.name.toLowerCase();
+    return lower === n || (lower.startsWith(n) && /\s/.test(lower.charAt(n.length)));
+  });
 }
-function _renderAiCmdMenuList(list) {
-  const menu = document.getElementById('aichat-cmd-menu');
-  if (!menu) return;
+// 명령어 메뉴는 body에 붙여 fixed로 띄운다 (사이드바 overflow/transform에 안 잘리게)
+let _aiCmdMenuEl = null;
+function _aiCmdMenuOutside(e) {
+  const btn = document.getElementById('aichat-cmd');
+  if (_aiCmdMenuEl && !_aiCmdMenuEl.contains(e.target) && !(btn && btn.contains(e.target))) _closeAiCmdMenu();
+}
+function _closeAiCmdMenu() {
+  if (_aiCmdMenuEl) { document.removeEventListener('mousedown', _aiCmdMenuOutside); _aiCmdMenuEl.remove(); _aiCmdMenuEl = null; }
+}
+function _hideAiCmdMenu() { _closeAiCmdMenu(); }
+function _showAiCmdMenu(list) {
+  _closeAiCmdMenu();
+  if (!list || !list.length) return;
+  const bar = document.querySelector('.aichat-bar');
+  if (!bar) return;
+  const menu = document.createElement('div');
+  menu.className = 'aichat-cmd-menu';
   menu.innerHTML = list.map(c => `<button class="ai-cmd-item" data-cmd="${escapeHtml(c.name)}"><span class="ai-cmd-name">${escapeHtml(c.name)}</span><span class="ai-cmd-hint">${escapeHtml(c.hint)}</span></button>`).join('');
-  menu.querySelectorAll('.ai-cmd-item').forEach(el => { el.onclick = () => _pickAiCommand(el.dataset.cmd); });
+  document.body.appendChild(menu);
+  const r = bar.getBoundingClientRect();
+  menu.style.left = r.left + 'px';
+  menu.style.width = r.width + 'px';
+  menu.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+  menu.querySelectorAll('.ai-cmd-item').forEach(el => { el.onmousedown = (e) => { e.preventDefault(); _pickAiCommand(el.dataset.cmd); }; });
+  _aiCmdMenuEl = menu;
+  setTimeout(() => document.addEventListener('mousedown', _aiCmdMenuOutside), 0);
 }
 function toggleAiCmdMenu() {
-  const menu = document.getElementById('aichat-cmd-menu');
-  if (!menu) return;
-  if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
-  _renderAiCmdMenuList(_AI_COMMANDS);
-  menu.classList.add('open');
+  if (_aiCmdMenuEl) { _closeAiCmdMenu(); return; }
+  _showAiCmdMenu(_AI_COMMANDS);
 }
 function _pickAiCommand(name) {
   const input = document.getElementById('aichat-input');
-  if (input) { input.value = name + ' '; input.focus(); }
-  _hideAiCmdMenu();
+  if (input) { input.value = name + ' '; input.focus(); _autoGrowAiInput(input); }
+  _closeAiCmdMenu();
+  _renderAiBarChips();
 }
-function _hideAiCmdMenu() { const m = document.getElementById('aichat-cmd-menu'); if (m) m.classList.remove('open'); }
+function _autoGrowAiInput(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 72) + 'px';
+}
+// 노드 명령어(/Node …)를 치는 중이고 노드가 선택돼 있으면, 명령어 옆에 노드칩 표시
+function _renderAiBarChips() {
+  const strip = document.getElementById('aichat-bar-chips');
+  if (!strip) return;
+  const input = document.getElementById('aichat-input');
+  const v = (input && input.value || '').trim();
+  let cmd = _matchAiCommand(v);
+  if (!cmd && v.startsWith('/')) cmd = _AI_COMMANDS.find(c => c.name.toLowerCase().startsWith(v.toLowerCase()));
+  const isNodeCmd = cmd && cmd.name.indexOf('/Node') === 0;
+  if (isNodeCmd && _multiSelected.length) {
+    strip.innerHTML = _multiSelected.map(n => `<span class="aichat-bar-chip" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+    strip.style.display = 'flex';
+  } else { strip.innerHTML = ''; strip.style.display = 'none'; }
+}
 function onAiInput(el) {
-  const menu = document.getElementById('aichat-cmd-menu');
-  if (!menu) return;
+  _autoGrowAiInput(el);
+  _renderAiBarChips();
   const v = el.value || '';
   if (v.startsWith('/')) {
     const q = v.toLowerCase().trim();
     const list = _AI_COMMANDS.filter(c => c.name.toLowerCase().startsWith(q));
-    if (list.length) { _renderAiCmdMenuList(list); menu.classList.add('open'); }
-    else menu.classList.remove('open');
-  } else menu.classList.remove('open');
+    if (list.length) _showAiCmdMenu(list); else _closeAiCmdMenu();
+  } else _closeAiCmdMenu();
 }
 
 // 글 넣기(/Text import): 글을 요약하고, 넣기 좋은 상위 노드를 추천 → [여기 넣기]로 하위노드 생성
@@ -911,13 +951,13 @@ async function sendAiChat() {
   const cmd = _matchAiCommand(q);
   if (cmd) {
     const rest = q.slice(cmd.name.length).trim();
-    if (input) input.value = '';
-    _hideAiCmdMenu();
+    if (input) { input.value = ''; _autoGrowAiInput(input); }
+    _hideAiCmdMenu(); _renderAiBarChips();
     cmd.run(rest);
     return;
   }
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
-  if (input) input.value = '';
+  if (input) { input.value = ''; _autoGrowAiInput(input); }
   _aiChatPush('user', q);
   const matched = _aiSearchNodes(q, 6);
   const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
