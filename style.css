@@ -473,3 +473,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-cmd-pill { font-size: 11px; font-weight: 700; color: #ed7000; background: rgba(237,112,0,0.14); border: 1px solid rgba(237,112,0,0.4); border-radius: 5px; padding: 1px 6px; white-space: nowrap; flex-shrink: 0; }
 .aichat-inline-chip { font-size: 10px; padding: 1px 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; cursor: pointer; flex-shrink: 0; }
 #aichat-panel.active { flex: none; max-height: 50vh; }
+.aichat-bar { flex-wrap: wrap; }
+.aichat-tokens { flex-basis: 100%; order: -1; max-width: 100%; flex-wrap: wrap; overflow-x: visible; overflow-y: auto; max-height: 76px; margin-bottom: 2px; }
+.aichat-cmd-pill { background: none; border: none; padding: 0; color: rgba(255,255,255,0.85); font-weight: 400; font-size: 13px; white-space: nowrap; }
+.aichat-inline-chip { max-width: 130px; }
