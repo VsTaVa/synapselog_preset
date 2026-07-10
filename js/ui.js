@@ -444,7 +444,9 @@ function renderMultiSelectMenu() {
     const explore = _exploreToolsHtml();
     html = edit + (edit && explore ? '<div class="ms-divider"></div>' : '') + explore;
   } else {
-    html = _exploreToolsHtml();
+    const medit = _multiEditToolsHtml();
+    const explore = _exploreToolsHtml();
+    html = medit + (medit && explore ? '<div class="ms-divider"></div>' : '') + explore;
   }
   menu.innerHTML = html || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
   menu.classList.add('open');
@@ -469,6 +471,18 @@ function _editToolsHtml(node) {
   return html;
 }
 
+// 편집 툴 (다중 선택): 북마크 / 노드 삭제
+function _multiEditToolsHtml() {
+  const nodes = _multiSelected || [];
+  if (!nodes.length) return '';
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+  const allBm = nodes.every(isBookmarked);
+  const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${allBm ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
+  let html = `<button onclick="multiSelectBookmark()" title="선택한 노드들을 북마크합니다">${bmIcon} 북마크${allBm ? ' 해제' : ''}</button>`;
+  if (nodes.some(canDeleteNode)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="선택한 노드들을 삭제합니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
+  return html;
+}
+
 // 탐색 툴: 연결 / 포커스 / 경로 / 위성 (선택 개수에 따라 달라짐)
 function _exploreToolsHtml() {
   const n = _multiSelected.length;
@@ -476,7 +490,6 @@ function _exploreToolsHtml() {
   const focusIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/></svg>`;
   const aiIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
   let html = '';
-  html += `<button onclick="openAiActions()" title="선택한 노드로 AI 작업 (요약 / 연결 추천 / 글 다듬기)">${aiIcon} AI</button>`;
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="이 노드를 시작점으로, 클릭하는 다른 노드들과 차례로 연결합니다">${chainIcon} 노드 다중 연결</button>`;
     html += `<button onclick="multiSelectFocus()" title="이 노드와 연결된 가지만 남기고 나머지를 흐리게 표시합니다">${focusIcon} 포커스 모드</button>`;
