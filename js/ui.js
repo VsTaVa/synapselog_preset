@@ -891,12 +891,18 @@ function _exitCmdMode() {
 function _renderAiTokens() {
   const box = document.getElementById('aichat-tokens');
   if (!box) return;
+  const input = document.getElementById('aichat-input');
   const nodes = _multiSelected || [];
-  if (!_aiActiveCmd && !nodes.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  if (!_aiActiveCmd && !nodes.length) {
+    box.innerHTML = ''; box.style.display = 'none';
+    if (input && !_aiActiveCmd) input.placeholder = (typeof t === 'function' ? t('ai-chat-ph') : '') || '키워드 입력하여 AI와 대화 시작';
+    return;
+  }
   let html = _aiActiveCmd ? `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>` : '';
   html += nodes.map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
   box.innerHTML = html;
   box.style.display = 'flex';
+  if (input) input.placeholder = ''; // 칩·명령어 있으면 안내문 숨김
   box.querySelectorAll('.aichat-inline-chip[data-nid]').forEach(el => { el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); }; });
 }
 function onAiKeydown(e) {
