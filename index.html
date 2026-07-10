@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260706c">
+<link rel="stylesheet" href="style.css?v=20260706d">
 </head>
 <body>
 <div id="login-screen">
@@ -105,10 +105,11 @@
     <div id="aichat-panel" class="panel-box rail-pane" data-section="aichat">
       <div class="panel-title" data-i18n="ai-chat">AI 대화</div>
       <div id="aichat-messages" class="aichat-messages"></div>
-      <div id="aichat-selection" class="aichat-selection"><div class="aichat-sel-nodes"><div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div></div><div class="aichat-sel-actions"><button data-act="sum">1. 노드 요약</button><button data-act="link">2. 노드 연결 추천</button><button data-act="refine">3. 노드 본문 다듬기</button></div></div>
+      <div id="aichat-selection" class="aichat-selection"><div class="aichat-sel-nodes"><div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div></div></div>
       <div class="ui-search-bar aichat-bar">
         <div id="aichat-cmd-menu" class="aichat-cmd-menu"></div>
         <button id="aichat-cmd" aria-label="명령어" title="명령어 (/)" onclick="toggleAiCmdMenu()">/</button>
+        <span class="aichat-bar-divider"></span>
         <input type="text" id="aichat-input" autocomplete="off" placeholder="키워드 입력하여 AI와 대화 시작" data-i18n-ph="ai-chat-ph" oninput="onAiInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();sendAiChat();}" />
         <button id="aichat-send" aria-label="보내기" onclick="sendAiChat()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ed7000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="rgba(237,112,0,0.15)"/></svg></button>
       </div>
@@ -215,9 +216,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260706c" defer></script>
-<script src="js/graph.js?v=20260706c" defer></script>
-<script src="js/notion-client.js?v=20260706c" defer></script>
-<script src="js/ui.js?v=20260706c" defer></script>
+<script src="js/utils.js?v=20260706d" defer></script>
+<script src="js/graph.js?v=20260706d" defer></script>
+<script src="js/notion-client.js?v=20260706d" defer></script>
+<script src="js/ui.js?v=20260706d" defer></script>
 </body>
 </html>

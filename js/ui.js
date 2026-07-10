@@ -603,24 +603,15 @@ function _renderAiSelectionCard() {
   const card = document.getElementById('aichat-selection');
   if (!card) return;
   const list = _multiSelected || [];
-  const nodesHtml = list.length
-    ? list.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('')
-    : `<div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div>`;
   card.className = 'aichat-selection' + (list.length ? ' has-sel' : '');
-  card.innerHTML =
-    `<div class="aichat-sel-nodes">${nodesHtml}</div>` +
-    `<div class="aichat-sel-actions">` +
-      `<button data-act="sum">1. 노드 요약</button>` +
-      `<button data-act="link">2. 노드 연결 추천</button>` +
-      `<button data-act="refine">3. 노드 본문 다듬기</button>` +
-    `</div>`;
+  if (list.length) {
+    card.innerHTML =
+      `<div class="aichat-sel-nodes">` + list.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>` +
+      `<div class="aichat-sel-guide">명령어(/)로 작업 — /Node Summary · /Node Link · /Node Edit</div>`;
+  } else {
+    card.innerHTML = `<div class="aichat-sel-nodes"><div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div></div>`;
+  }
   card.querySelectorAll('.aichat-node-chip[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
-  const sb = card.querySelector('[data-act="sum"]');
-  if (sb) sb.onclick = () => { const ns = _multiSelected.slice(); if (!ns.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } clearMultiSelect(); aiSummarizeNodes(ns); };
-  const lb = card.querySelector('[data-act="link"]');
-  if (lb) lb.onclick = () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); };
-  const rb = card.querySelector('[data-act="refine"]');
-  if (rb) rb.onclick = () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); };
 }
 
 // 선택 노드로 AI 작업 시작 → 선택 반영 후 AI 대화창 열기 (카드는 라이브로 채워짐)
@@ -824,6 +815,9 @@ function applyAiLink(aId, bId) {
 
 // ── AI 슬래시 명령어 (확장 가능) ─────────────────────────────────────
 const _AI_COMMANDS = [
+  { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
+  { name: '/Node Link', hint: '선택한 노드의 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
+  { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
   { name: '/Text import', hint: '글을 요약하고 넣을 상위 노드를 추천', run: (text) => aiFileText(text) },
 ];
 function _matchAiCommand(raw) {

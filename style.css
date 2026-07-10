@@ -451,3 +451,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .ai-cmd-item:hover { background: rgba(255,255,255,0.07); }
 .ai-cmd-name { font-size: 12px; font-weight: 700; color: #ed7000; font-family: inherit; }
 .ai-cmd-hint { font-size: 10.5px; color: rgba(255,255,255,0.45); }
+#aichat-cmd { color: rgba(255,255,255,0.4); }
+#aichat-cmd:hover { color: #fff; }
+.aichat-bar-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
