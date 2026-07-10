@@ -580,9 +580,7 @@ async function aiSummarizeNodes(nodeList) {
     return body ? `## ${title}\n${body}` : `## ${title}`;
   }).join('\n\n');
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  const titles = base.map(nd => (nd.label || '(제목 없음)').trim()).join(', ');
-  const extra = list.length - base.length;
-  _aiChatPush('user', `요약: ${titles}${extra > 0 ? ` (+하위·연결 ${extra}개)` : ''}`);
+  _aiChatPush('user', '/Node Summary', null, null, base);
   const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
   try {
     const summary = await geminiSummarize(combined);
@@ -602,7 +600,7 @@ async function aiSuggestLinks(node) {
   const query = (node.label || '') + ' ' + (node.desc || '').slice(0, 300);
   const cands = _aiSearchNodes(query, 16).filter(c => !connected.has(c.id)).slice(0, 8);
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', `연결 제안: ${(node.label || '(제목 없음)').trim()}`);
+  _aiChatPush('user', '/Node Link', null, null, [node]);
   if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드를 찾지 못했어요.'); return; }
   const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
   const baseText = `${(node.label || '(제목 없음)').trim()}\n${(node.desc || '').trim().slice(0, 400)}`;
@@ -663,7 +661,7 @@ async function aiRefineNode(node) {
   const body = (node.desc || '').trim();
   if (!body) { toast('다듬을 본문이 없어요', { type: 'error' }); return; }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', `글 다듬기: ${(node.label || '(제목 없음)').trim()}`);
+  _aiChatPush('user', '/Node Edit', null, null, [node]);
   const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
   const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
   try {
@@ -682,7 +680,7 @@ async function aiImportUrl(url) {
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
   const isYt = /(?:youtube\.com|youtu\.be)/i.test(url);
-  _aiChatPush('user', `${isYt ? '유튜브' : '웹'} 가져오기: ${url}`);
+  _aiChatPush('user', `/Import ${url}`);
   const waitId = _aiChatPush('ai', '링크 내용 가져오는 중… ⏳');
   try {
     const res = await fetch('/api/extract?url=' + encodeURIComponent(url));
@@ -818,7 +816,10 @@ function _renderAiChat() {
     return;
   }
   box.innerHTML = _aiChat.map(m => {
-    let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${_aiMdToHtml(m.text)}</div>`;
+    const bubbleInner = (m.chips && m.chips.length)
+      ? escapeHtml(m.text) + ' ' + m.chips.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join(' ')
+      : _aiMdToHtml(m.text);
+    let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${bubbleInner}</div>`;
     if (m.refs && m.refs.length) {
       html += `<div class="aichat-refs"><div class="aichat-refs-label">근거</div>` + m.refs.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
     }
@@ -861,9 +862,9 @@ function _renderAiChat() {
   box.scrollTop = box.scrollHeight;
 }
 
-function _aiChatPush(role, text, refs, suggestions) {
+function _aiChatPush(role, text, refs, suggestions, chips) {
   const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
-  _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null });
+  _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null, chips: chips || null });
   _renderAiChat();
   return id;
 }
