@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260706a">
+<link rel="stylesheet" href="style.css?v=20260706b">
 </head>
 <body>
 <div id="login-screen">
@@ -105,9 +105,10 @@
     <div id="aichat-panel" class="panel-box rail-pane" data-section="aichat">
       <div class="panel-title" data-i18n="ai-chat">AI 대화</div>
       <div id="aichat-messages" class="aichat-messages"></div>
-      <div id="aichat-selection" class="aichat-selection"><div class="aichat-sel-nodes"><div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div></div><div class="aichat-sel-actions"><button data-act="sum">1. 요약</button><button data-act="link">2. 노드 연결 추천</button><button data-act="refine">3. 글 다듬기</button></div></div>
+      <div id="aichat-selection" class="aichat-selection"><div class="aichat-sel-nodes"><div class="aichat-sel-guide">노드를 선택하여 AI와 대화 시작</div></div><div class="aichat-sel-actions"><button data-act="sum">1. 노드 요약</button><button data-act="link">2. 노드 연결 추천</button><button data-act="refine">3. 노드 본문 다듬기</button></div></div>
       <div class="ui-search-bar aichat-bar">
         <input type="text" id="aichat-input" autocomplete="off" placeholder="키워드 입력하여 AI와 대화 시작" data-i18n-ph="ai-chat-ph" onkeydown="if(event.key==='Enter'){event.preventDefault();sendAiChat();}" />
+        <button id="aichat-file" aria-label="글 넣기" title="이 글을 요약하고 넣을 상위 노드를 추천" onclick="aiFileText()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ed7000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></button>
         <button id="aichat-send" aria-label="보내기" onclick="sendAiChat()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ed7000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="rgba(237,112,0,0.15)"/></svg></button>
       </div>
     </div>
@@ -213,9 +214,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260706a" defer></script>
-<script src="js/graph.js?v=20260706a" defer></script>
-<script src="js/notion-client.js?v=20260706a" defer></script>
-<script src="js/ui.js?v=20260706a" defer></script>
+<script src="js/utils.js?v=20260706b" defer></script>
+<script src="js/graph.js?v=20260706b" defer></script>
+<script src="js/notion-client.js?v=20260706b" defer></script>
+<script src="js/ui.js?v=20260706b" defer></script>
 </body>
 </html>

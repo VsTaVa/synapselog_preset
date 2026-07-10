@@ -610,9 +610,9 @@ function _renderAiSelectionCard() {
   card.innerHTML =
     `<div class="aichat-sel-nodes">${nodesHtml}</div>` +
     `<div class="aichat-sel-actions">` +
-      `<button data-act="sum">1. 요약</button>` +
+      `<button data-act="sum">1. 노드 요약</button>` +
       `<button data-act="link">2. 노드 연결 추천</button>` +
-      `<button data-act="refine">3. 글 다듬기</button>` +
+      `<button data-act="refine">3. 노드 본문 다듬기</button>` +
     `</div>`;
   card.querySelectorAll('.aichat-node-chip[data-nid]').forEach(el => { el.onclick = () => { const t = nodeMap[el.dataset.nid]; if (t) openPanel(t); }; });
   const sb = card.querySelector('[data-act="sum"]');
@@ -760,6 +760,19 @@ function _renderAiChat() {
     if (m.refine) {
       html += `<div class="aichat-refine-actions"><button class="aichat-apply-btn${m.refine.done ? ' done' : ''}" data-mid="${m.id}"${m.refine.done ? ' disabled' : ''}>${m.refine.done ? '적용됨 (편집에서 저장)' : '적용 (편집 열기)'}</button></div>`;
     }
+    if (m.file) {
+      const f = m.file;
+      html += `<div class="aichat-file">`;
+      if (f.parentId) {
+        html += `<div class="aichat-file-label">추천 위치</div>` +
+          `<span class="aichat-node-chip" data-nid="${f.parentId}" style="${_chipColorStyle(nodeMap[f.parentId])}">${escapeHtml(f.parentLabel || '(제목 없음)')}</span>` +
+          (f.reason ? `<div class="aichat-suggest-reason">${escapeHtml(f.reason)}</div>` : '') +
+          `<div class="aichat-refine-actions"><button class="aichat-apply-btn${f.done ? ' done' : ''}" data-file="${m.id}"${f.done ? ' disabled' : ''}>${f.done ? '넣음' : '여기 넣기'}</button></div>`;
+      } else {
+        html += `<div class="aichat-file-label">넣을 만한 상위 노드를 못 찾았어요</div>`;
+      }
+      html += `</div>`;
+    }
     return html + `</div>`;
   }).join('');
   box.querySelectorAll('.aichat-ref[data-nid], .aichat-node-chip[data-nid]').forEach(el => {
@@ -769,7 +782,8 @@ function _renderAiChat() {
     el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);
   });
   box.querySelectorAll('.aichat-apply-btn:not(.done)').forEach(el => {
-    el.onclick = () => applyAiRefineFromMsg(el.dataset.mid);
+    if (el.dataset.file) el.onclick = () => applyAiFileFromMsg(el.dataset.file);
+    else el.onclick = () => applyAiRefineFromMsg(el.dataset.mid);
   });
   box.scrollTop = box.scrollHeight;
 }
@@ -780,9 +794,9 @@ function _aiChatPush(role, text, refs, suggestions) {
   _renderAiChat();
   return id;
 }
-function _aiChatReplace(id, text, refs, suggestions, refine) {
+function _aiChatReplace(id, text, refs, suggestions, refine, file) {
   const m = _aiChat.find(x => x.id === id);
-  if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; if (refine !== undefined) m.refine = refine; }
+  if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; if (refine !== undefined) m.refine = refine; if (file !== undefined) m.file = file; }
   _renderAiChat();
 }
 
@@ -806,6 +820,56 @@ function applyAiLink(aId, bId) {
   if (!_hasWikiLinkTo(a, b)) _wikiConnect(a, b);
   _aiChat.forEach(m => (m.suggestions || []).forEach(s => { if (s.aId === aId && s.bId === bId) s.done = true; }));
   _renderAiChat();
+}
+
+// 글 넣기: 입력한 글을 요약하고, 넣기 좋은 상위 노드를 추천 → [여기 넣기]로 하위노드 생성
+async function aiFileText() {
+  const input = document.getElementById('aichat-input');
+  const text = (input && input.value || '').trim();
+  if (!text) return;
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (input) input.value = '';
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  _aiChatPush('user', `글 넣기: ${text.length > 50 ? text.slice(0, 50) + '…' : text}`);
+  const waitId = _aiChatPush('ai', '요약하고 넣을 곳 찾는 중… ⏳');
+  const cands = _aiSearchNodes(text, 14).filter(c => canAddChild(c)).slice(0, 8);
+  const candText = cands.length ? cands.map((c, i) => `[${i + 1}] ${(c.label || '(제목 없음)').trim()}${c.desc ? ' — ' + c.desc.trim().slice(0, 100) : ''}`).join('\n') : '(후보 없음)';
+  const prompt = `아래 [새 글]에 대해 정확히 이 형식으로만 출력해줘:\n제목: <새 글에 어울리는 짧은 제목>\n요약: <한국어 3~4문장 요약>\n추천: [번호] <이 글을 넣기 좋은 상위 노드를 후보에서 하나 골라 번호와 이유 한 줄. 적절한 게 없으면 없음>\n\n[새 글]\n${text.slice(0, 2000)}\n\n[후보]\n${candText}`;
+  try {
+    const ans = await geminiGenerate(prompt);
+    let title = '', summary = '', recIdx = -1, reason = '';
+    const tm = ans.match(/제목\s*[:：]\s*(.+)/); if (tm) title = tm[1].trim();
+    const sm = ans.match(/요약\s*[:：]\s*([\s\S]*?)(?:\n추천|$)/); if (sm) summary = sm[1].trim();
+    const rm = ans.match(/추천\s*[:：]\s*\[?\s*(\d+)\s*\]?[.)\s-]*(.*)/); if (rm) { recIdx = parseInt(rm[1], 10) - 1; reason = (rm[2] || '').trim(); }
+    if (!summary) summary = ans.trim();
+    const parent = (recIdx >= 0 && cands[recIdx]) ? cands[recIdx] : null;
+    const file = { text, title: (title || (summary.split(/[.\n]/)[0] || '새 노드')).slice(0, 60), summary, parentId: parent ? parent.id : null, parentLabel: parent ? (parent.label || '(제목 없음)').trim() : '', reason, done: false };
+    _aiChatReplace(waitId, summary, [], null, undefined, file);
+  } catch (e) {
+    _aiChatReplace(waitId, '실패: ' + (e.message || e), [], null, undefined, null);
+  }
+}
+
+// [여기 넣기] → 추천 상위 노드 밑에 하위노드 생성 후 편집모드에 원문 로드(저장은 사용자 확인)
+async function applyAiFileFromMsg(mid) {
+  const m = _aiChat.find(x => x.id === mid);
+  if (!m || !m.file || !m.file.parentId) return;
+  const parent = nodeMap[m.file.parentId];
+  if (!parent) { toast('상위 노드를 찾을 수 없어요', { type: 'error' }); return; }
+  if (!canAddChild(parent)) { toast('이 노드 아래에는 하위 노드를 만들 수 없어요', { type: 'error' }); return; }
+  m.file.done = true; _renderAiChat();
+  try {
+    const ids = await createChildNode(parent, m.file.title || '새 노드');
+    if (ids && ids.length && nodeMap[ids[0]]) {
+      const child = nodeMap[ids[0]];
+      openPanel(child);
+      const idx = _stack.findIndex(x => x.id === child.id);
+      if (idx >= 0) setTimeout(() => { try { beginNodeEdit(idx, child, m.file.text); } catch (e) {} }, 100);
+    }
+  } catch (e) {
+    m.file.done = false; _renderAiChat();
+    toast('넣기 실패: ' + (e.message || e), { type: 'error' });
+  }
 }
 
 async function sendAiChat() {
