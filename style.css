@@ -484,3 +484,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-tokens { order: 0; flex-basis: auto; flex-wrap: wrap; max-width: 100%; overflow: visible; max-height: none; }
 .aichat-inline-chip { max-width: 160px; }
 #aichat-panel.active { flex: none; min-height: 48vh; max-height: 72vh; }
+#aichat-cmd { display: inline-block; transform: rotate(22deg); }
+.aichat-bar { align-items: center; }
+.aichat-inline-chip { display: inline-flex; align-items: center; gap: 3px; }
+.aichat-chip-label { overflow: hidden; text-overflow: ellipsis; }
+.aichat-chip-x { cursor: pointer; opacity: 0.55; font-weight: 700; padding: 0 1px; flex-shrink: 0; }
+.aichat-chip-x:hover { opacity: 1; }
+.wl-chip::before, .aichat-inline-chip::before { content: ''; display: inline-block; width: 0.85em; height: 0.85em; flex-shrink: 0; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; }

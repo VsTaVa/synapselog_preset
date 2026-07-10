@@ -899,11 +899,19 @@ function _renderAiTokens() {
     return;
   }
   let html = _aiActiveCmd ? `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>` : '';
-  html += nodes.map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+  html += nodes.map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}"><span class="aichat-chip-label">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span><span class="aichat-chip-x" data-x="${n.id}">×</span></span>`).join('');
   box.innerHTML = html;
   box.style.display = 'flex';
   if (input) input.placeholder = ''; // 칩·명령어 있으면 안내문 숨김
-  box.querySelectorAll('.aichat-inline-chip[data-nid]').forEach(el => { el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); }; });
+  box.querySelectorAll('.aichat-inline-chip .aichat-chip-label').forEach(el => { el.onclick = () => { const c = el.closest('.aichat-inline-chip'); const tn = c && nodeMap[c.dataset.nid]; if (tn) openPanel(tn); }; });
+  box.querySelectorAll('.aichat-chip-x[data-x]').forEach(el => { el.onclick = (e) => { e.stopPropagation(); _deselectAiNode(el.dataset.x); }; });
+}
+// 입력란 노드칩의 X → 그 노드 선택 해제
+function _deselectAiNode(id) {
+  const idx = _multiSelected.findIndex(n => n.id === id);
+  if (idx >= 0) { if (_multiSelected[idx]) _multiSelected[idx].multiSelected = false; _multiSelected.splice(idx, 1); }
+  if (typeof renderMultiSelectMenu === 'function') renderMultiSelectMenu();
+  isStable = false;
 }
 function onAiKeydown(e) {
   const input = e.target;
