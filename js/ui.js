@@ -751,6 +751,16 @@ function _aiMdToHtml(t) {
 function _renderAiChat() {
   const box = document.getElementById('aichat-messages');
   if (!box) return;
+  if (!_aiChat.length) {
+    box.innerHTML =
+      `<div class="aichat-help">` +
+        `<div class="aichat-help-title">AI 기능을 쓰려면 제미나이 API 키(무료)가 필요해요</div>` +
+        `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속(구글 로그인) → <b>Create API key</b> → 키 복사 (AIza… 로 시작, 카드 등록 없이 무료)</div>` +
+        `<div class="aichat-help-step"><b>2.</b> 왼쪽 아래 <b>설정(⚙)</b> → <b>AI API 키</b> 칸에 붙여넣고 <b>저장</b></div>` +
+        `<div class="aichat-help-step"><b>3.</b> 이 창에서 키워드로 질문하거나, 노드 선택 후 <b>/</b> 명령어(요약·연결 추천·다듬기)로 사용</div>` +
+      `</div>`;
+    return;
+  }
   box.innerHTML = _aiChat.map(m => {
     let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${_aiMdToHtml(m.text)}</div>`;
     if (m.refs && m.refs.length) {
@@ -1293,7 +1303,7 @@ function openRailSection(name) {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
-  if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard(); }
+  if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard(); if (typeof _renderAiChat === 'function') _renderAiChat(); }
 }
 function closeRailFlyout() {
   if (!_activeRailSection) return;
