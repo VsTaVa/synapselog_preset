@@ -674,6 +674,49 @@ async function aiRefineNode(node) {
   }
 }
 
+// 웹/유튜브 링크 → 서버리스로 본문·자막 추출 → 제미나이 마크다운 → 그래프 로컬 노드
+async function aiImportUrl(url) {
+  url = (url || '').trim();
+  if (!url) { toast('/Import 뒤에 웹 주소나 유튜브 링크를 넣어주세요', { type: 'error' }); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('http로 시작하는 링크를 넣어주세요', { type: 'error' }); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  const isYt = /(?:youtube\.com|youtu\.be)/i.test(url);
+  _aiChatPush('user', `${isYt ? '유튜브' : '웹'} 가져오기: ${url}`);
+  const waitId = _aiChatPush('ai', '링크 내용 가져오는 중… ⏳');
+  try {
+    const res = await fetch('/api/extract?url=' + encodeURIComponent(url));
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error(data.error || ('추출 실패 (HTTP ' + res.status + ')'));
+    const srcTitle = (data.title || '').trim() || (isYt ? '유튜브 영상' : '가져온 문서');
+    const bodyText = (data.text || '').trim();
+    if (!bodyText) throw new Error('내용을 추출하지 못했어요 (자막 없음 / 접근 차단)');
+    _aiChatReplace(waitId, '요약·마크다운 작성 중… ⏳', []);
+    const prompt = `아래 ${isYt ? '유튜브 자막' : '웹 문서'} 내용을 한국어 마크다운으로 구조화해줘.\n[규칙]\n- 첫 줄은 "# 제목" 하나 (문서 전체 제목)\n- 주요 주제는 "## 소제목", 세부 내용은 "- 불릿"으로\n- 핵심만 간결히, 원문에 없는 내용은 지어내지 마\n- 코드블록·설명·머리말 없이 마크다운 본문만 출력\n\n[출처 제목] ${srcTitle}\n[내용]\n${bodyText.slice(0, 8000)}`;
+    let md = (await geminiGenerate(prompt)).trim();
+    md = md.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    if (!md) throw new Error('마크다운 생성 결과가 비어있어요');
+    const title = (md.match(/^#\s+(.+)$/m)?.[1] || srcTitle).trim();
+    const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    mergeGraph(title, md, pageId);
+    _addedPageIds.add(pageId);
+    try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: md, isMd: true, sourceUrl: url, _cachedAt: Date.now() })); } catch (e) {}
+    const wrap = document.getElementById('sidebar-page-list-wrap');
+    if (wrap) wrap.style.display = 'block';
+    if (!window._sidebarPageList) window._sidebarPageList = [];
+    window._sidebarPageList.push({ id: pageId, title, isMd: true });
+    if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
+    if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
+    if (typeof savePageList === 'function') savePageList();
+    isStable = false;
+    _aiChatReplace(waitId, `"${title}" 를 그래프에 추가했어요. (${isYt ? '자막' : '본문'} 기반 마크다운)`, []);
+    if (typeof fitGraph === 'function') setTimeout(() => fitGraph(true), 400);
+  } catch (e) {
+    _aiChatReplace(waitId, '가져오기 실패: ' + (e.message || e), []);
+  }
+}
+
 // 다중선택 → AI 요약 (좌측 대화창)
 function multiSelectSummarize() {
   if (_multiSelected.length < 1) return;
@@ -857,6 +900,7 @@ const _AI_COMMANDS = [
   { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
   { name: '/Node Link', hint: '선택한 노드의 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
   { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
+  { name: '/Import', hint: '웹·유튜브(자막) 링크를 마크다운 노드로 가져오기', run: (text) => aiImportUrl(text) },
 ];
 function _matchAiCommand(raw) {
   const lower = (raw || '').toLowerCase();
