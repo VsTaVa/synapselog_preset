@@ -483,4 +483,4 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-bar { flex-wrap: wrap; align-items: center; }
 .aichat-tokens { order: 0; flex-basis: auto; flex-wrap: wrap; max-width: 100%; overflow: visible; max-height: none; }
 .aichat-inline-chip { max-width: 160px; }
-#aichat-panel.active { flex: 1; max-height: none; }
+#aichat-panel.active { flex: none; min-height: 48vh; max-height: 72vh; }
