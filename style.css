@@ -464,3 +464,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 #aichat-input::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 .aichat-bar-chips { display: none; align-items: center; gap: 3px; flex-shrink: 0; max-width: 42%; overflow: hidden; }
 .aichat-bar-chip { font-size: 10px; padding: 1px 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 84px; }
+.aichat-bar { align-items: center; }
+#aichat-panel.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#aichat-messages { flex: 1; min-height: 0; max-height: none; }
+#aichat-messages:empty { display: block; }

@@ -851,6 +851,8 @@ function _showAiCmdMenu(list) {
   menu.style.left = r.left + 'px';
   menu.style.width = r.width + 'px';
   menu.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+  // 바 위쪽 여유공간에 높이를 맞춰서, 넘치면 화면 밖으로 잘리지 않고 스크롤되게
+  menu.style.maxHeight = Math.max(120, Math.min(r.top - 14, window.innerHeight * 0.5)) + 'px';
   menu.querySelectorAll('.ai-cmd-item').forEach(el => { el.onmousedown = (e) => { e.preventDefault(); _pickAiCommand(el.dataset.cmd); }; });
   _aiCmdMenuEl = menu;
   setTimeout(() => document.addEventListener('mousedown', _aiCmdMenuOutside), 0);
