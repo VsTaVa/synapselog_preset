@@ -497,10 +497,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 #aichat-input { flex: 1; min-width: 0; }
 .aichat-tokens { max-width: 100%; }
 #aichat-send { flex-shrink: 0; align-self: center; }
-.aichat-help { padding: 8px 2px; color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.6; }
-.aichat-help-title { color: #ed7000; font-weight: 700; margin-bottom: 12px; font-size: 12.5px; }
+.aichat-help { padding: 8px 2px; color: rgba(255,255,255,0.85); font-size: 12px; line-height: 1.6; }
+.aichat-help-title { color: rgba(255,255,255,0.85); font-weight: 400; margin-bottom: 12px; font-size: 12px; }
 .aichat-help-step { margin-bottom: 9px; }
-.aichat-help-step b { color: rgba(255,255,255,0.85); }
-.aichat-help a { color: #38d1c5; text-decoration: none; border-bottom: 1px solid rgba(56,209,197,0.4); }
-.aichat-help a:hover { color: #6ef0e6; }
+.aichat-help-step b { color: rgba(255,255,255,0.85); font-weight: 400; }
+.aichat-help a { color: rgba(255,255,255,0.85); text-decoration: underline; }
+.aichat-help a:hover { color: #fff; }
 .wl-chip::before, .aichat-inline-chip::before { content: ''; display: inline-block; width: 0.85em; height: 0.85em; flex-shrink: 0; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; }
