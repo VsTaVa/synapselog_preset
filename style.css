@@ -491,7 +491,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-chip-x { cursor: pointer; opacity: 0.55; font-weight: 700; padding: 0 1px; flex-shrink: 0; }
 .aichat-chip-x:hover { opacity: 1; }
 .aichat-input-row { display: flex; align-items: center; gap: 7px; }
-#aichat-cmd { all: unset; cursor: pointer; color: rgba(255,255,255,0.5); font-size: 15px; padding: 0 4px; flex-shrink: 0; }
+#aichat-cmd { all: unset; cursor: pointer; color: rgba(255,255,255,0.5); font-size: 15px; padding: 0 4px; flex-shrink: 0; display: inline-block; transform: rotate(18deg); }
 .aichat-bar { flex: 1; min-width: 0; flex-wrap: nowrap; align-items: center; }
 .aichat-bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1; min-width: 0; }
 #aichat-input { flex: 1; min-width: 0; }
