@@ -498,6 +498,21 @@ function _exploreToolsHtml() {
 // ── AI (제미나이) 호출 ────────────────────────────────────────────────
 // 키는 설정에서 사용자가 직접 입력(_savedAiKey). 브라우저에서 직접 호출.
 const _GEMINI_MODEL = 'gemini-2.5-flash';
+// AI 대화가 도구 사용법 질문에도 답할 수 있게 하는 안내
+const _SYNAPSE_GUIDE = `SynapseLog는 노션 페이지·마크다운(.md)을 신경망 그래프로 시각화하는 도구다.
+- 노드: 페이지/헤딩이 노드가 된다. 노드를 클릭하면 우측 패널에서 제목·본문을 보고 수정할 수 있다.
+- 선택: 노드를 우클릭(모바일은 더블탭)하면 다중 선택된다.
+- 연결: 노드 간 연결(a→b 링크)은 선택 메뉴의 '노드 간 연결' 또는 AI 연결 추천으로 만든다.
+- 검색: 좌측 레일의 검색 아이콘에서 키워드로 노드를 찾는다.
+- 배치: 그래프 설정에서 힘기반/방사형/페이지별 레이아웃과 노드 색상을 바꾼다.
+- 화면: 화면 맞춤, 이미지 저장 버튼이 레일 하단에 있다.
+- 좌측 레일 'AI 대화'에서 '/' 명령어로 AI 기능을 쓴다:
+  · /Node Summary — 선택한 노드(상위면 하위·연결 포함) 요약
+  · /Node Link — 선택 노드에 연결하면 좋은 노드 추천(연결 버튼 제공)
+  · /Node Edit — 선택 노드 본문을 AI가 다듬어 편집 모드로 로드
+  · /Text import — 붙여넣은 글을 요약하고 넣을 상위 노드를 추천
+  · 그냥 키워드를 입력하면 그래프 노드를 검색해 그 내용을 근거로 답한다.
+- 설정(⚙)에서 노션 API 토큰과 AI(구글 제미나이) API 키를 입력한다.`;
 async function geminiGenerate(prompt) {
   if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${_GEMINI_MODEL}:generateContent?key=${encodeURIComponent(_savedAiKey)}`;
@@ -841,7 +856,7 @@ function _hideAiCmdMenu() { _closeAiCmdMenu(); }
 function _showAiCmdMenu(list) {
   _closeAiCmdMenu();
   if (!list || !list.length) return;
-  const bar = document.querySelector('.aichat-bar');
+  const bar = document.querySelector('.aichat-input-row') || document.querySelector('.aichat-bar');
   if (!bar) return;
   const menu = document.createElement('div');
   menu.className = 'aichat-cmd-menu';
@@ -1012,8 +1027,8 @@ async function sendAiChat() {
       return `[${i + 1}] ${(n.label || '(제목 없음)').trim()}${body ? '\n' + body : ''}`;
     }).join('\n\n');
     const prompt = context
-      ? `너는 사용자의 지식 그래프를 돕는 조수야. 아래는 질문과 관련해 그래프에서 검색된 노드들이야. 이 내용에 근거해서 한국어로 답해줘. 근거가 부족하면 솔직히 모른다고 하고, 원문에 없는 내용은 지어내지 마.\n\n[검색된 노드]\n${context}\n\n[질문]\n${q}`
-      : `사용자의 지식 그래프에서 "${q}" 와 관련된 노드를 못 찾았어. 그래프에 근거가 없다는 점을 밝히고, 일반적인 답이 가능하면 한국어로 짧게만 답해줘.\n\n[질문]\n${q}`;
+      ? `너는 SynapseLog(지식 그래프 도구)의 AI 조수야. 한국어로 답해줘.\n- 도구 사용법/기능을 물으면 [도구 안내]를 근거로 답해.\n- 지식 내용을 물으면 [검색된 노드]를 근거로 답하고, 없는 내용은 지어내지 마.\n\n[도구 안내]\n${_SYNAPSE_GUIDE}\n\n[검색된 노드]\n${context}\n\n[질문]\n${q}`
+      : `너는 SynapseLog(지식 그래프 도구)의 AI 조수야. 한국어로 답해줘. 관련된 노드는 못 찾았어.\n- 도구 사용법/기능을 묻는 질문이면 [도구 안내]를 근거로 답해.\n- 그 외에는 그래프에 근거가 없다는 점을 밝히고 일반적으로 짧게만 답해.\n\n[도구 안내]\n${_SYNAPSE_GUIDE}\n\n[질문]\n${q}`;
     const ans = await geminiGenerate(prompt);
     _aiChatReplace(waitId, ans, matched);
   } catch (e) {
