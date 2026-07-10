@@ -436,7 +436,7 @@ function renderMultiSelectMenu() {
   const menu = document.getElementById('multi-select-menu');
   if (!menu) return;
   if (typeof _renderAiSelectionCard === 'function') _renderAiSelectionCard();
-  if (typeof _renderAiBarChips === 'function') _renderAiBarChips();
+  if (typeof _renderAiTokens === 'function') _renderAiTokens();
   if (_multiSelected.length < 1) { menu.classList.remove('open'); menu.innerHTML = ''; return; }
   let html;
   if (_multiSelected.length === 1) {
@@ -862,34 +862,53 @@ function toggleAiCmdMenu() {
   _showAiCmdMenu(_AI_COMMANDS);
 }
 function _pickAiCommand(name) {
+  const cmd = _AI_COMMANDS.find(c => c.name === name);
+  _closeAiCmdMenu();
+  if (cmd && cmd.name.indexOf('/Node') === 0) { _enterCmdMode(cmd); return; }
   const input = document.getElementById('aichat-input');
   if (input) { input.value = name + ' '; input.focus(); _autoGrowAiInput(input); }
-  _closeAiCmdMenu();
-  _renderAiBarChips();
 }
 function _autoGrowAiInput(el) {
   if (!el) return;
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 72) + 'px';
 }
-// 노드 명령어(/Node …)를 치는 중이고 노드가 선택돼 있으면, 명령어 옆에 노드칩 표시
-function _renderAiBarChips() {
-  const strip = document.getElementById('aichat-bar-chips');
-  if (!strip) return;
+// 노드 명령어를 입력란 안의 pill로 표시하고 그 옆에 선택 노드칩 (/Node Edit [노드칩])
+let _aiActiveCmd = null;
+function _enterCmdMode(cmd) {
+  _aiActiveCmd = cmd;
   const input = document.getElementById('aichat-input');
-  const v = (input && input.value || '').trim();
-  let cmd = _matchAiCommand(v);
-  if (!cmd && v.startsWith('/')) cmd = _AI_COMMANDS.find(c => c.name.toLowerCase().startsWith(v.toLowerCase()));
-  const isNodeCmd = cmd && cmd.name.indexOf('/Node') === 0;
-  if (isNodeCmd && _multiSelected.length) {
-    strip.innerHTML = _multiSelected.map(n => `<span class="aichat-bar-chip" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
-    strip.style.display = 'flex';
-  } else { strip.innerHTML = ''; strip.style.display = 'none'; }
+  if (input) { input.value = ''; input.placeholder = ''; _autoGrowAiInput(input); input.focus(); }
+  _closeAiCmdMenu();
+  _renderAiTokens();
+}
+function _exitCmdMode() {
+  _aiActiveCmd = null;
+  const input = document.getElementById('aichat-input');
+  if (input) input.placeholder = (typeof t === 'function' ? t('ai-chat-ph') : '') || '키워드 입력하여 AI와 대화 시작';
+  _renderAiTokens();
+}
+function _renderAiTokens() {
+  const box = document.getElementById('aichat-tokens');
+  if (!box) return;
+  if (!_aiActiveCmd) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  let html = `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>`;
+  html += (_multiSelected || []).map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+  box.innerHTML = html;
+  box.style.display = 'flex';
+  box.querySelectorAll('.aichat-inline-chip[data-nid]').forEach(el => { el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); }; });
+}
+function onAiKeydown(e) {
+  const input = e.target;
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiChat(); return; }
+  if (e.key === 'Backspace' && _aiActiveCmd && !input.value) { e.preventDefault(); _exitCmdMode(); }
 }
 function onAiInput(el) {
   _autoGrowAiInput(el);
-  _renderAiBarChips();
   const v = el.value || '';
+  const trimmed = v.trim();
+  const exact = _AI_COMMANDS.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+  if (exact && exact.name.indexOf('/Node') === 0) { _enterCmdMode(exact); return; }
   if (v.startsWith('/')) {
     const q = v.toLowerCase().trim();
     const list = _AI_COMMANDS.filter(c => c.name.toLowerCase().startsWith(q));
@@ -947,6 +966,15 @@ async function applyAiFileFromMsg(mid) {
 
 async function sendAiChat() {
   const input = document.getElementById('aichat-input');
+  // pill 모드(노드 명령어)면 선택 노드로 실행
+  if (_aiActiveCmd) {
+    const cmd = _aiActiveCmd;
+    _exitCmdMode();
+    if (input) { input.value = ''; _autoGrowAiInput(input); }
+    _hideAiCmdMenu();
+    cmd.run('');
+    return;
+  }
   const q = (input && input.value || '').trim();
   if (!q) return;
   // 슬래시 명령어면 해당 모드로 라우팅 (AI가 명령어 인식)
@@ -954,7 +982,7 @@ async function sendAiChat() {
   if (cmd) {
     const rest = q.slice(cmd.name.length).trim();
     if (input) { input.value = ''; _autoGrowAiInput(input); }
-    _hideAiCmdMenu(); _renderAiBarChips();
+    _hideAiCmdMenu();
     cmd.run(rest);
     return;
   }
