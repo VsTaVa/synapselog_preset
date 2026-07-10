@@ -409,40 +409,19 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-connect-btn { flex-shrink: 0; font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; transition: background 0.15s; }
 .aichat-connect-btn:hover { background: rgba(237,112,0,0.28); }
 .aichat-connect-btn.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
-.aichat-selection { background: rgba(237,112,0,0.06); border: 1px solid rgba(237,112,0,0.25); border-radius: 10px; padding: 9px 10px; margin-bottom: 10px; }
-.aichat-sel-nodes { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
-.aichat-sel-q { font-size: 12px; color: rgba(255,255,255,0.72); margin-bottom: 8px; }
-.aichat-sel-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.aichat-sel-actions button { font-size: 11.5px; font-weight: 700; font-family: inherit; padding: 5px 11px; border-radius: 7px; cursor: pointer; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; transition: background 0.15s; }
-.aichat-sel-actions button:hover { background: rgba(237,112,0,0.28); }
 .aichat-refine-actions { margin-top: 4px; }
 .aichat-apply-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; transition: background 0.15s; }
 .aichat-apply-btn:hover { background: rgba(237,112,0,0.28); }
 .aichat-apply-btn.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
-.aichat-selection { background: transparent; border: 1px solid rgba(255,255,255,0.08); margin: 8px 0; }
-.aichat-selection.has-sel { background: rgba(237,112,0,0.06); border-color: rgba(237,112,0,0.25); }
-.aichat-sel-guide { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
-.aichat-selection.has-sel .aichat-sel-guide { margin-bottom: 8px; }
-.aichat-selection.has-sel { background: transparent; border-color: rgba(255,255,255,0.08); }
-.aichat-sel-nodes { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; margin-bottom: 8px; }
-.aichat-sel-guide { margin-bottom: 8px; }
 .aichat-node-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(56,209,197,0.14); border: 1px solid rgba(56,209,197,0.35); color: #38d1c5; font-size: 11px; line-height: 1.45; cursor: pointer; word-break: break-word; transition: background 0.15s; }
 .aichat-node-chip::before { content: '🔗'; font-size: 0.85em; opacity: 0.8; flex-shrink: 0; }
 .aichat-node-chip:hover { background: rgba(56,209,197,0.22); }
 .aichat-node-chip { background: rgba(237,112,0,0.14); border-color: rgba(237,112,0,0.4); color: #ed7000; }
 .aichat-node-chip:hover { background: rgba(237,112,0,0.24); }
-.aichat-sel-actions { flex-direction: column; flex-wrap: nowrap; gap: 5px; }
-.aichat-sel-actions button { width: 100%; text-align: left; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); }
-.aichat-sel-actions button:hover { background: rgba(255,255,255,0.13); }
 .aichat-suggest-top { align-items: flex-start; }
 .aichat-suggest-top .aichat-node-chip { flex: 1; min-width: 0; }
-.aichat-sel-actions button { color: rgba(255,255,255,0.55); background: none; border: none; padding: 6px 9px; }
-.aichat-sel-actions button:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .aichat-refs { flex-direction: column; align-items: stretch; }
 .aichat-refs-label { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-bottom: 1px; }
-.aichat-file { margin-top: 4px; }
-.aichat-file-label { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
-.aichat-file .aichat-node-chip { margin-bottom: 4px; }
 .aichat-bar { position: relative; }
 #aichat-cmd { font-size: 15px; font-weight: 800; color: #ed7000; line-height: 1; flex-shrink: 0; }
 .aichat-cmd-menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 220px; background: #14161f; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 60; display: none; }
