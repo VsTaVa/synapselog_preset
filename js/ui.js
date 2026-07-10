@@ -891,9 +891,10 @@ function _exitCmdMode() {
 function _renderAiTokens() {
   const box = document.getElementById('aichat-tokens');
   if (!box) return;
-  if (!_aiActiveCmd) { box.innerHTML = ''; box.style.display = 'none'; return; }
-  let html = `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>`;
-  html += (_multiSelected || []).map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
+  const nodes = _multiSelected || [];
+  if (!_aiActiveCmd && !nodes.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  let html = _aiActiveCmd ? `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>` : '';
+  html += nodes.map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('');
   box.innerHTML = html;
   box.style.display = 'flex';
   box.querySelectorAll('.aichat-inline-chip[data-nid]').forEach(el => { el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); }; });
