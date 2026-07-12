@@ -478,7 +478,7 @@ function removeManualLink(fromId, toId) {
   saveManualLinks(); isStable = false;
 }
 
-// ── 다중 선택 (Shift+클릭) — 연결/경로찾기/격리 ───────────────────────
+// ── 다중 선택 (우클릭/더블클릭) — 연결/경로찾기/격리 ───────────────────────
 
 function toggleMultiSelect(n) {
   const idx = _multiSelected.indexOf(n);
@@ -2717,7 +2717,7 @@ canvas.addEventListener('mouseup', e => {
     n.fixed = !n.fixed;
     if (!n.fixed) { n.vx = 0; n.vy = 0; }
     unfreezeSubtree(n); saveFixedPositions(); isStable = false;
-  } else if (elapsed < 150 && n && n === mouseDownNode && (e.shiftKey || _multiSelectMode)) {
+  } else if (elapsed < 150 && n && n === mouseDownNode && _multiSelectMode) {
     toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
@@ -2945,7 +2945,7 @@ const LANG = {
     'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
     'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
     'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
-    'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'Shift · 더블클릭',
+    'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'더블클릭',
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
     'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
@@ -2974,7 +2974,7 @@ const LANG = {
     'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
     'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
     'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
-    'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Shift · Double-click',
+    'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Double-click',
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
     'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a keyword to chat with AI',
