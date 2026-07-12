@@ -413,13 +413,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-apply-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); color: #ed7000; transition: background 0.15s; }
 .aichat-apply-btn:hover { background: rgba(237,112,0,0.28); }
 .aichat-apply-btn.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
-.aichat-node-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(56,209,197,0.14); border: 1px solid rgba(56,209,197,0.35); color: #38d1c5; font-size: 11px; line-height: 1.45; cursor: pointer; word-break: break-word; transition: background 0.15s; }
-.aichat-node-chip::before { content: '🔗'; font-size: 0.85em; opacity: 0.8; flex-shrink: 0; }
-.aichat-node-chip:hover { background: rgba(56,209,197,0.22); }
-.aichat-node-chip { background: rgba(237,112,0,0.14); border-color: rgba(237,112,0,0.4); color: #ed7000; }
-.aichat-node-chip:hover { background: rgba(237,112,0,0.24); }
 .aichat-suggest-top { align-items: flex-start; }
-.aichat-suggest-top .aichat-node-chip { flex: 1; min-width: 0; }
 .aichat-refs { flex-direction: column; align-items: stretch; }
 .aichat-refs-label { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-bottom: 1px; }
 .aichat-bar { position: relative; }
@@ -450,25 +444,18 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-tokens { display: none; align-items: center; gap: 4px; flex-shrink: 1; min-width: 0; max-width: 62%; overflow-x: auto; }
 .aichat-tokens::-webkit-scrollbar { height: 0; }
 .aichat-cmd-pill { font-size: 11px; font-weight: 700; color: #ed7000; background: rgba(237,112,0,0.14); border: 1px solid rgba(237,112,0,0.4); border-radius: 5px; padding: 1px 6px; white-space: nowrap; flex-shrink: 0; }
-.aichat-inline-chip { font-size: 10px; padding: 1px 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; cursor: pointer; flex-shrink: 0; }
 #aichat-panel.active { flex: none; max-height: 50vh; }
 .aichat-bar { flex-wrap: wrap; }
 .aichat-tokens { flex-basis: 100%; order: -1; max-width: 100%; flex-wrap: wrap; overflow-x: visible; overflow-y: auto; max-height: 76px; margin-bottom: 2px; }
 .aichat-cmd-pill { background: none; border: none; padding: 0; color: rgba(255,255,255,0.85); font-weight: 400; font-size: 13px; white-space: nowrap; }
-.aichat-inline-chip { max-width: 130px; }
 .aichat-bar { flex-wrap: nowrap; align-items: center; }
 .aichat-tokens { order: 0; flex-basis: auto; flex-shrink: 0; max-width: 50%; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; max-height: none; margin-bottom: 0; }
 .aichat-cmd-pill { color: rgba(255,255,255,0.85); background: none; border: none; padding: 0; font-weight: 400; font-size: 13px; }
 .aichat-bar { flex-wrap: wrap; align-items: center; }
 .aichat-tokens { order: 0; flex-basis: auto; flex-wrap: wrap; max-width: 100%; overflow: visible; max-height: none; }
-.aichat-inline-chip { max-width: 160px; }
 #aichat-panel.active { flex: none; min-height: 48vh; max-height: 72vh; }
 #aichat-cmd { display: inline-block; transform: rotate(22deg); }
 .aichat-bar { align-items: center; }
-.aichat-inline-chip { display: inline-flex; align-items: center; gap: 3px; }
-.aichat-chip-label { overflow: hidden; text-overflow: ellipsis; }
-.aichat-chip-x { cursor: pointer; opacity: 0.55; font-weight: 700; padding: 0 1px; flex-shrink: 0; }
-.aichat-chip-x:hover { opacity: 1; }
 .aichat-input-row { display: flex; align-items: center; gap: 7px; }
 #aichat-cmd { all: unset; cursor: pointer; color: rgba(255,255,255,0.5); font-size: 15px; padding: 0 4px; flex-shrink: 0; display: inline-block; transform: rotate(18deg); }
 .aichat-bar { flex: 1; min-width: 0; flex-wrap: nowrap; align-items: center; }
@@ -484,4 +471,17 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-help a:hover { color: #6ef0e6; }
 #aichat-panel.active { flex: none; min-height: 0; max-height: none; }
 #aichat-messages { flex: none; min-height: 300px; max-height: 62vh; overflow-y: auto; }
-.wl-chip::before, .aichat-inline-chip::before, .aichat-node-chip::before { content: ''; display: inline-block; width: 0.85em; height: 0.85em; flex-shrink: 0; opacity: 1; font-size: 1em; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; }
+/* ── 통합 노드칩 (createNodeChip) ── */
+.node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 150px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
+.node-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-chip:hover { filter: brightness(1.18); }
+.node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
+.node-chip-x:hover { opacity: 1; }
+.node-chip--badge { padding: 1px 6px; font-size: 9px; font-weight: 700; max-width: none; vertical-align: 1px; }
+.node-chip--badge::before { display: none; }
+/* 근거·검색결과: 라벨은 한 줄 차지, 칩은 유동 너비로 줄바꿈 */
+.aichat-refs { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.aichat-refs-label { flex-basis: 100%; }
+.aichat-suggest-top .node-chip { flex: 0 1 auto; min-width: 0; }
+.search-results { display: none; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-height: 42vh; overflow-y: auto; }
+.wl-chip::before, .node-chip::before { content: ''; display: inline-block; width: 0.85em; height: 0.85em; flex-shrink: 0; opacity: 1; font-size: 1em; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; }

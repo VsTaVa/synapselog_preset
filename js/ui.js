@@ -756,6 +756,32 @@ function _chipColorStyle(n) {
   return `background:rgba(${r},${g},${b},0.2);border-color:rgba(${r},${g},${b},0.6);color:#fff !important;`;
 }
 
+// ── 통합 노드칩 컴포넌트 ──────────────────────────────────────────────
+// 어디서든 createNodeChip(노드 또는 노드id) 로 생성.
+// depth 색 자동 · 텍스트 유동 너비 · 10글자 초과 시 말줄임(…) + 전체 텍스트 툴팁 · 클릭 시 상세 패널.
+// opts.removable → 우측에 × (선택 해제용), opts.className → 추가 클래스
+function createNodeChip(node, opts) {
+  opts = opts || {};
+  const n = (node && typeof node === 'object') ? node : (typeof nodeMap !== 'undefined' ? nodeMap[node] : null);
+  if (!n) return '';
+  const full = (n.label || '').trim() || '(제목 없음)';
+  const short = full.length > 10 ? full.slice(0, 10) + '…' : full;
+  const x = opts.removable ? `<span class="node-chip-x" data-x="${n.id}">×</span>` : '';
+  const cls = 'node-chip' + (opts.className ? ' ' + opts.className : '');
+  return `<span class="${cls}" data-nid="${n.id}" title="${escapeHtml(full)}" style="${_chipColorStyle(n)}"><span class="node-chip-label">${escapeHtml(short)}</span>${x}</span>`;
+}
+
+// 노드칩 클릭(위임): 칩 → 상세 패널 열기, × → 선택 해제. 어디에 렌더돼도 동작.
+document.addEventListener('click', (e) => {
+  const x = e.target.closest('.node-chip-x');
+  if (x) { e.stopPropagation(); if (typeof _deselectAiNode === 'function') _deselectAiNode(x.dataset.x); return; }
+  const chip = e.target.closest('.node-chip');
+  if (chip && chip.dataset.nid && typeof nodeMap !== 'undefined') {
+    const n = nodeMap[chip.dataset.nid];
+    if (n && typeof openPanel === 'function') openPanel(n);
+  }
+});
+
 function _aiMdToHtml(t) {
   let s = escapeHtml(t || '');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>');
@@ -778,16 +804,16 @@ function _renderAiChat() {
   }
   box.innerHTML = _aiChat.map(m => {
     const bubbleInner = (m.chips && m.chips.length)
-      ? escapeHtml(m.text) + ' ' + m.chips.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join(' ')
+      ? escapeHtml(m.text) + ' ' + m.chips.map(n => createNodeChip(n)).join(' ')
       : _aiMdToHtml(m.text);
     let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${bubbleInner}</div>`;
     if (m.refs && m.refs.length) {
-      html += `<div class="aichat-refs"><div class="aichat-refs-label">근거</div>` + m.refs.map(n => `<span class="aichat-node-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span>`).join('') + `</div>`;
+      html += `<div class="aichat-refs"><div class="aichat-refs-label">근거</div>` + m.refs.map(n => createNodeChip(n)).join('') + `</div>`;
     }
     if (m.suggestions && m.suggestions.length) {
       html += `<div class="aichat-suggests">` + m.suggestions.map(s =>
         `<div class="aichat-suggest">` +
-          `<div class="aichat-suggest-top"><span class="aichat-node-chip" data-nid="${s.bId}" style="${_chipColorStyle(nodeMap[s.bId])}">${escapeHtml(s.targetLabel)}</span>` +
+          `<div class="aichat-suggest-top">${createNodeChip(s.bId)}` +
           `<button class="aichat-connect-btn${s.done ? ' done' : ''}" data-a="${s.aId}" data-b="${s.bId}"${s.done ? ' disabled' : ''}>${s.done ? '연결됨' : '연결'}</button></div>` +
           (s.reason ? `<div class="aichat-suggest-reason">${escapeHtml(s.reason)}</div>` : '') +
         `</div>`).join('') + `</div>`;
@@ -797,9 +823,6 @@ function _renderAiChat() {
     }
     return html + `</div>`;
   }).join('');
-  box.querySelectorAll('.aichat-ref[data-nid], .aichat-node-chip[data-nid]').forEach(el => {
-    el.onclick = () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); };
-  });
   box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
     el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);
   });
@@ -928,12 +951,10 @@ function _renderAiTokens() {
     return;
   }
   let html = _aiActiveCmd ? `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>` : '';
-  html += nodes.map(n => `<span class="aichat-inline-chip" data-nid="${n.id}" style="${_chipColorStyle(n)}"><span class="aichat-chip-label">${escapeHtml((n.label || '').trim() || '(제목 없음)')}</span><span class="aichat-chip-x" data-x="${n.id}">×</span></span>`).join('');
+  html += nodes.map(n => createNodeChip(n, { removable: true })).join('');
   box.innerHTML = html;
   box.style.display = 'flex';
   if (input) input.placeholder = ''; // 칩·명령어 있으면 안내문 숨김
-  box.querySelectorAll('.aichat-inline-chip .aichat-chip-label').forEach(el => { el.onclick = () => { const c = el.closest('.aichat-inline-chip'); const tn = c && nodeMap[c.dataset.nid]; if (tn) openPanel(tn); }; });
-  box.querySelectorAll('.aichat-chip-x[data-x]').forEach(el => { el.onclick = (e) => { e.stopPropagation(); _deselectAiNode(el.dataset.x); }; });
 }
 // 입력란 노드칩의 X → 그 노드 선택 해제
 function _deselectAiNode(id) {
@@ -2294,6 +2315,7 @@ function doSearch(kw) {
   searchMatches.clear();
   searchDirect.clear();
   const resultEl = document.getElementById('search-result-count');
+  const resultsEl = document.getElementById('search-results');
   if (searchKeyword) {
     const directMatches = new Set();
     nodes.forEach(n => {
@@ -2302,6 +2324,11 @@ function doSearch(kw) {
       if (lt.includes(searchKeyword) || dt.includes(searchKeyword)) directMatches.add(n.id);
     });
     directMatches.forEach(id => searchDirect.add(id));
+    if (resultsEl) {
+      const chips = [...directMatches].map(id => nodeMap[id]).filter(Boolean).slice(0, 60);
+      resultsEl.innerHTML = chips.map(n => createNodeChip(n)).join('');
+      resultsEl.style.display = chips.length ? 'flex' : 'none';
+    }
     function getAncestors(nodeId) {
       const ancestors = []; let cur = nodeId;
       for (let i = 0; i < 10; i++) { const parentEdge = edges.find(e => e.to === cur && !e.weakLink); if (!parentEdge) break; ancestors.push(parentEdge.from); cur = parentEdge.from; }
@@ -2313,6 +2340,7 @@ function doSearch(kw) {
     if (directMatches.size > 0) { clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(fitGraph, 450); }
   } else {
     if (resultEl) resultEl.style.display = 'none';
+    if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
     clearBtn.style.display = 'none';
   }
   isStable = false;

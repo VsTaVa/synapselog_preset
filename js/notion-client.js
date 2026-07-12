@@ -567,8 +567,16 @@ function renderSidebarPageList(pages) {
   listEl.innerHTML = sorted.map(p => {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
-    const mdBadge = p.isMd ? ' <span style="color:rgba(237,112,0,0.55);font-size:9px;font-weight:700;">MD</span>'
-      : (p.isLocal ? ' <span style="color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;">임시</span>' : '');
+    let mdBadge = '';
+    if (p.isMd || p.isLocal) {
+      const rootN = (typeof nodes !== 'undefined' && Array.isArray(nodes)) ? nodes.find(nd => nd.level === 0 && nd.sourcePageId === p.id) : null;
+      const txt = p.isMd ? 'MD' : '임시';
+      const style = (rootN && typeof _chipColorStyle === 'function')
+        ? _chipColorStyle(rootN)
+        : (p.isMd ? 'background:rgba(237,112,0,0.14);border-color:rgba(237,112,0,0.4);color:#ed7000;'
+                  : 'background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);');
+      mdBadge = ` <span class="node-chip node-chip--badge" style="${style}">${txt}</span>`;
+    }
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
     const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
