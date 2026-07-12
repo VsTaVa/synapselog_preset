@@ -26,12 +26,14 @@ canvas { display: block; }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 #legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
-#legend-body { display: none; width: 224px; max-height: 62vh; overflow-y: auto; padding: 13px 15px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
-#legend.open #legend-body { display: block; }
-#legend-body::-webkit-scrollbar { width: 0; }
+#legend-body { display: none; width: 296px; padding: 12px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
+#legend.open #legend-body { display: flex; gap: 12px; }
+.lg-tab-body { flex: 1; min-width: 0; height: 330px; overflow-y: auto; }
+.lg-tab-body::-webkit-scrollbar { width: 0; }
+.lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
-.lg-sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: rgba(255,255,255,0.38); margin-bottom: 6px; }
+.lg-sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: #ed7000; margin-bottom: 6px; }
 .lg-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: rgba(255,255,255,0.82); line-height: 1.5; margin-bottom: 4px; }
 .lg-row:last-child { margin-bottom: 0; }
 .lg-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.3); }
@@ -40,8 +42,8 @@ canvas { display: block; }
 .lg-glow { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
 .lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
-.lg-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
-.lg-tab { flex: 1; padding: 6px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
+.lg-tabs { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; width: 82px; margin: 0; }
+.lg-tab { text-align: left; padding: 8px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; line-height: 1.3; transition: background 0.13s, color 0.13s, border-color 0.13s; }
 .lg-tab:hover { color: rgba(255,255,255,0.85); }
 .lg-tab.active { background: rgba(237,112,0,0.16); border-color: rgba(237,112,0,0.5); color: #ed7000; }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }

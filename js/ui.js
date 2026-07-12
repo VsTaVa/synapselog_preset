@@ -261,15 +261,22 @@ function renderLegendBody() {
     + `</div>`;
   body.innerHTML = tabs + `<div class="lg-tab-body">${isTools ? _legendToolsHtml() : _legendSymbolsHtml()}</div>`;
 }
+// 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
+function _legendShapeImg(kind) {
+  const S = 36, cx = 18, cy = 18;
+  const c = document.createElement('canvas'); c.width = S; c.height = S;
+  const g = c.getContext('2d');
+  if (kind === 'circle') { g.fillStyle = '#c9d3e2'; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill(); }
+  else if (kind === 'star8' && typeof drawStar8 === 'function') { g.fillStyle = '#ffffff'; drawStar8(g, cx, cy, 8); g.fill(); }
+  else if (kind === 'star4' && typeof drawStar4 === 'function') { g.fillStyle = '#eef2f8'; drawStar4(g, cx, cy, 12); g.fill(); }
+  else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 13.5); g.fill(); }
+  return `<img class="lg-shape-img" src="${c.toDataURL()}" width="16" height="16" alt="">`;
+}
 function _legendSymbolsHtml() {
   const DC = (typeof DEPTH_RGB !== 'undefined') ? DEPTH_RGB : { 1:[0,207,255],2:[168,85,247],3:[255,77,184],4:[255,140,66],5:[255,210,74] };
   const dot = (rgb) => `<i class="lg-dot" style="background:rgb(${rgb[0]},${rgb[1]},${rgb[2]})"></i>`;
   const depthMode = (typeof _colorScheme !== 'undefined' && _colorScheme === 'depth');
   const S = {
-    circle: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5" fill="#c9d3e2"/></svg>`,
-    star8: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 0.5 L9.3 6.7 L15.5 8 L9.3 9.3 L8 15.5 L6.7 9.3 L0.5 8 L6.7 6.7Z" fill="#fff"/><path d="M3 3 L8 6.6 L13 3 L9.4 8 L13 13 L8 9.4 L3 13 L6.6 8Z" fill="#fff" opacity="0.85"/></svg>`,
-    star4: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1 L9.6 6.4 L15 8 L9.6 9.6 L8 15 L6.4 9.6 L1 8 L6.4 6.4Z" fill="#eef2f8"/></svg>`,
-    starX: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 4 L12 12 M12 4 L4 12" stroke="#eef2f8" stroke-width="2.4" stroke-linecap="round"/></svg>`,
     ringDash: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2.2 2.2"/></svg>`,
   };
   const L = {
@@ -286,10 +293,10 @@ function _legendSymbolsHtml() {
     : `<div class="lg-note">노드별 고유 색상. <b>깊이별 모드</b>에서는 헤딩 레벨(#~####)에 따라 색상이 달라집니다.</div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.star8}</span><span>페이지 (최상위)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.star4}</span><span>데이터베이스</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.starX}</span><span>하위 페이지</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.circle}</span><span>헤딩 (글 조각)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('star8')}</span><span>페이지 (최상위)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('star4')}</span><span>데이터베이스</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('starX')}</span><span>하위 페이지</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('circle')}</span><span>헤딩 (글 조각)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">연결선</div>`
       + `<div class="lg-row"><span class="lg-line">${L.solid}</span><span>계층 구조</span></div>`
