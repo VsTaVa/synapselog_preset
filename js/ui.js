@@ -1306,7 +1306,7 @@ function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
 function backToLoginScreen() {
-  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요? 현재 그래프는 그대로 유지됩니다.', () => {
+  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요?\n현재 그래프는 그대로 유지됩니다.', () => {
     closeRailFlyout();
     const ls = document.getElementById('login-screen');
     if (ls) ls.style.display = '';
