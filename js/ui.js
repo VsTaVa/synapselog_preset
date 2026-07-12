@@ -249,9 +249,19 @@ function applyLegendState() {
   if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
 }
+let _legendTab = 'symbols';
+function _setLegendTab(t) { _legendTab = t; renderLegendBody(); }
 function renderLegendBody() {
   const body = document.getElementById('legend-body');
   if (!body) return;
+  const isTools = _legendTab === 'tools';
+  const tabs = `<div class="lg-tabs">`
+    + `<button class="lg-tab${isTools ? '' : ' active'}" onclick="_setLegendTab('symbols')">그래프 기호</button>`
+    + `<button class="lg-tab${isTools ? ' active' : ''}" onclick="_setLegendTab('tools')">노드 도구</button>`
+    + `</div>`;
+  body.innerHTML = tabs + `<div class="lg-tab-body">${isTools ? _legendToolsHtml() : _legendSymbolsHtml()}</div>`;
+}
+function _legendSymbolsHtml() {
   const DC = (typeof DEPTH_RGB !== 'undefined') ? DEPTH_RGB : { 1:[0,207,255],2:[168,85,247],3:[255,77,184],4:[255,140,66],5:[255,210,74] };
   const dot = (rgb) => `<i class="lg-dot" style="background:rgb(${rgb[0]},${rgb[1]},${rgb[2]})"></i>`;
   const depthMode = (typeof _colorScheme !== 'undefined' && _colorScheme === 'depth');
@@ -275,8 +285,7 @@ function renderLegendBody() {
       + `<div class="lg-row">${dot(DC[4])}<span>#### · 4단계</span></div>`
       + `<div class="lg-row">${dot([245,247,250])}<span>페이지 · DB · 최상위</span></div>`
     : `<div class="lg-note">노드마다 고유 색이에요. <b>그래프 설정 → 노드 색상 → 깊이별</b>로 바꾸면 헤딩 깊이(#·##·###)별 색이 적용돼요.</div>`;
-  body.innerHTML =
-    `<div class="lg-sec"><div class="lg-sec-title">노드 색</div>${colorSec}</div>`
+  return `<div class="lg-sec"><div class="lg-sec-title">노드 색</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
       + `<div class="lg-row"><span class="lg-shape">${S.star8}</span><span>페이지 (최상위)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.star4}</span><span>데이터베이스</span></div>`
@@ -289,10 +298,39 @@ function renderLegendBody() {
       + `<div class="lg-row"><span class="lg-line">${L.weak}</span><span>경로 · 약한 링크</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row">${glow('rgba(237,112,0,0.9)')}<span>북마크</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:#ed7000;font-weight:800;font-size:12px;">가</span><span>북마크 (제목이 주황색)</span></div>`
       + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>허브 (하위 많음)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>위치 고정</span></div>`
     + `</div>`;
+}
+function _legendToolsHtml() {
+  const ic = (inner, c) => `<span class="lg-shape"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${c || '#cbd5e6'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg></span>`;
+  const branch = ic(`<circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/>`);
+  const sync = ic(`<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>`);
+  const notion = ic(`<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>`);
+  const bm = ic(`<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>`, '#ed7000');
+  const trash = ic(`<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>`, '#e59a9a');
+  const chain = ic(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`);
+  const focus = ic(`<circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/>`);
+  const path = `<span class="lg-shape" style="color:#cbd5e6;font-size:14px;font-weight:700;">↔</span>`;
+  const sat = ic(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>`);
+  const pin = ic(`<circle cx="12" cy="12" r="7.5" stroke-dasharray="2.5 2.5"/>`);
+  const row = (icon, name, desc) => `<div class="lg-row lg-tool">${icon}<span><b>${name}</b> · ${desc}</span></div>`;
+  return `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
+    + row(branch, '하위 노드 추가', '이 노드 아래 새 노드')
+    + row(sync, '노드 동기화', '노션에서 최신 내용 다시 불러오기')
+    + row(notion, '노션에서 보기', '노션 페이지로 이동')
+    + row(bm, '북마크', '즐겨찾기 (제목 주황색 · 북마크 섹션에 모임)')
+    + row(trash, '노드 삭제', '삭제 (하위는 상위로 이동)')
+    + `</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
+    + row(chain, '노드 연결', '다른 노드와 연결선 잇기')
+    + row(focus, '포커스 모드', '연결된 가지만 강조, 나머지 흐리게')
+    + row(path, '경로 찾기', '노드 사이 최단 경로 표시')
+    + row(sat, '위성 모드', '상위에서 분리해 바깥 궤도로')
+    + row(pin, '위치 고정', 'Ctrl+클릭 — 제자리에 고정')
+    + `</div>`
+    + `<div class="lg-note">노드를 <b>우클릭</b>(또는 더블클릭)하면 이 도구 툴바가 떠요. 선택한 노드 수에 따라 항목이 조금씩 달라져요.</div>`;
 }
 
 function setColorScheme(mode) {
