@@ -26,10 +26,13 @@ canvas { display: block; }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 #legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
-#legend-body { display: none; width: 296px; padding: 12px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
-#legend.open #legend-body { display: flex; gap: 12px; }
-.lg-tab-body { flex: 1; min-width: 0; height: 330px; overflow-y: auto; }
+#legend-body { display: none; width: 276px; padding: 12px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
+#legend.open #legend-body { display: flex; gap: 11px; }
+.lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 140px; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
+.lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: #ed7000; letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
+.lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(237,112,0,0.32); }
+.lg-divider-gap { margin-top: 18px; }
 .lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
@@ -42,8 +45,9 @@ canvas { display: block; }
 .lg-glow { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
 .lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
-.lg-tabs { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; width: 82px; margin: 0; }
-.lg-tab { text-align: left; padding: 8px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; line-height: 1.3; transition: background 0.13s, color 0.13s, border-color 0.13s; }
+.lg-tabs { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; width: 56px; margin: 0; }
+.lg-tab { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
+.lg-tab-ic { font-size: 13px; line-height: 1; }
 .lg-tab:hover { color: rgba(255,255,255,0.85); }
 .lg-tab.active { background: rgba(237,112,0,0.16); border-color: rgba(237,112,0,0.5); color: #ed7000; }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
@@ -199,8 +203,11 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .ctrl-group:last-child { margin-bottom: 0; }
 .ctrl-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #fff; margin-bottom: 6px; }
 .ctrl-label-row .val { color: #ed7000; font-weight: 700; font-family: monospace; font-size: 13px; }
-input[type=range] { -webkit-appearance: none; width: 100%; background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; outline: none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #ed7000; cursor: pointer; box-shadow: 0 0 5px rgba(237,112,0,0.5); }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #ed7000; cursor: pointer; box-shadow: 0 0 5px rgba(237,112,0,0.5); transition: transform 0.12s; }
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-moz-range-track { background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; border-radius: 50%; background: #ed7000; cursor: pointer; box-shadow: 0 0 5px rgba(237,112,0,0.5); }
 #add-page-panel input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: #fff; outline: none; margin-bottom: 6px; transition: border-color 0.2s; }
 #add-page-panel input:focus { border-color: rgba(237,112,0,0.5); }
 #add-page-panel input::placeholder { color: rgba(255,255,255,0.2); }

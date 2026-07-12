@@ -249,17 +249,30 @@ function applyLegendState() {
   if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
 }
-let _legendTab = 'symbols';
-function _setLegendTab(t) { _legendTab = t; renderLegendBody(); }
 function renderLegendBody() {
   const body = document.getElementById('legend-body');
   if (!body) return;
-  const isTools = _legendTab === 'tools';
-  const tabs = `<div class="lg-tabs">`
-    + `<button class="lg-tab${isTools ? '' : ' active'}" onclick="_setLegendTab('symbols')">그래프 기호</button>`
-    + `<button class="lg-tab${isTools ? ' active' : ''}" onclick="_setLegendTab('tools')">노드 선택 도구</button>`
+  const tab = (id, ic, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')"><span class="lg-tab-ic">${ic}</span>${label}</button>`;
+  const tabs = `<div class="lg-tabs">${tab('symbols', '⬡', '기호')}${tab('tools', '✦', '도구')}</div>`;
+  const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
+    + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
+    + _legendSymbolsHtml()
+    + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 도구</div>`
+    + _legendToolsHtml()
     + `</div>`;
-  body.innerHTML = tabs + `<div class="lg-tab-body">${isTools ? _legendToolsHtml() : _legendSymbolsHtml()}</div>`;
+  body.innerHTML = tabs + content;
+  _updateLegendActiveTab();
+}
+function _setLegendTab(t) {
+  const scroll = document.getElementById('lg-scroll');
+  const target = document.getElementById(t === 'tools' ? 'lg-sec-tools' : 'lg-sec-symbols');
+  if (scroll && target) scroll.scrollTo({ top: Math.max(0, target.offsetTop - scroll.offsetTop - 6), behavior: 'smooth' });
+}
+function _updateLegendActiveTab() {
+  const scroll = document.getElementById('lg-scroll'); if (!scroll) return;
+  const toolsEl = document.getElementById('lg-sec-tools'); if (!toolsEl) return;
+  const atTools = scroll.scrollTop >= (toolsEl.offsetTop - scroll.offsetTop - 40);
+  document.querySelectorAll('#legend .lg-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === (atTools ? 'tools' : 'symbols')));
 }
 // 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
 function _legendShapeImg(kind) {
@@ -320,22 +333,22 @@ function _legendToolsHtml() {
   const path = `<span class="lg-shape" style="color:#cbd5e6;font-size:14px;font-weight:700;">↔</span>`;
   const sat = ic(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>`);
   const pin = ic(`<circle cx="12" cy="12" r="7.5" stroke-dasharray="2.5 2.5"/>`);
-  const row = (icon, name, desc) => `<div class="lg-row lg-tool">${icon}<span><b>${name}</b> · ${desc}</span></div>`;
+  const row = (icon, name, desc) => `<div class="lg-row lg-tool">${icon}<span><b>${name}</b>: ${desc}</span></div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
-    + row(branch, '하위 노드 추가', '이 노드 아래 새 노드')
-    + row(sync, '노드 동기화', '노션에서 최신 내용 다시 불러오기')
+    + row(branch, '하위 노드 추가', '자식 노드 생성')
+    + row(sync, '노드 동기화', 'Notion 최신화')
     + row(notion, '노션에서 보기', '노션 페이지로 이동')
-    + row(bm, '북마크', '즐겨찾기 (제목 주황색 · 북마크 섹션에 모임)')
-    + row(trash, '노드 삭제', '삭제 (하위는 상위로 이동)')
+    + row(bm, '북마크', '즐겨찾기')
+    + row(trash, '노드 삭제', '삭제')
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
-    + row(chain, '노드 연결', '다른 노드와 연결선 잇기')
-    + row(focus, '포커스 모드', '연결된 가지만 강조, 나머지 흐리게')
-    + row(path, '경로 찾기', '노드 사이 최단 경로 표시')
-    + row(sat, '위성 모드', '상위에서 분리해 바깥 궤도로')
-    + row(pin, '노드 고정', 'Ctrl+클릭 — 제자리에 고정')
+    + row(chain, '노드 연결', '노드 간 연결')
+    + row(focus, '포커스 모드', '연결된 노드 포커스')
+    + row(path, '경로 찾기', '최단 경로 표시')
+    + row(sat, '위성 모드', '그래프 분리')
+    + row(pin, '노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
-    + `<div class="lg-note">노드 <b>우클릭</b>(또는 더블클릭) 시 도구 툴바 표시. 선택한 노드 수에 따라 항목이 달라짐.</div>`;
+    + `<div class="lg-note">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`;
 }
 
 function setColorScheme(mode) {
