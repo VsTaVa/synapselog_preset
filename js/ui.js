@@ -1047,6 +1047,21 @@ function onAiInput(el) {
   } else _closeAiCmdMenu();
 }
 
+// 질문 → Gemini 1차 호출로 검색용 핵심 키워드(+유사어) 추출. 실패하면 원 질문 그대로.
+async function _aiExtractKeywords(query) {
+  const q = (query || '').trim();
+  if (q.length < 3) return q; // 아주 짧으면 추출 생략(비용/의미 없음)
+  try {
+    const prompt = `다음 질문에서 지식 그래프 노드 검색에 쓸 핵심 키워드만 뽑아줘.\n[규칙]\n- 조사·동사·불필요어(대해, 생각, 알려줘, 설명, 정리 등) 제거\n- 핵심 명사 위주로\n- 동의어/유사어가 있으면 함께 (예: 인간 → 인간, 사람 / AI → AI, 인공지능)\n- 쉼표로 구분한 키워드만 출력 (문장·설명·따옴표 금지)\n\n질문: ${q}`;
+    const out = (await geminiGenerate(prompt)).trim();
+    const kws = out.split(/[\n,·、]/).map(s => s.replace(/^[-*\d.\s]+/, '').trim()).filter(Boolean);
+    if (!kws.length) return q;
+    return kws.join(' ');
+  } catch (e) {
+    return q; // 1차 실패 시 원 질문으로 폴백
+  }
+}
+
 async function sendAiChat() {
   const input = document.getElementById('aichat-input');
   // pill 모드(노드 명령어)면 선택 노드로 실행
@@ -1072,9 +1087,11 @@ async function sendAiChat() {
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (input) { input.value = ''; _autoGrowAiInput(input); }
   _aiChatPush('user', q);
-  const matched = _aiSearchNodes(q, 6);
   const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
   try {
+    // 1차: 질문에서 핵심 키워드(+유사어) 추출 → 그걸로 노드 검색 (엉뚱한 노드 근거 줄이기)
+    const searchQuery = await _aiExtractKeywords(q);
+    const matched = _aiSearchNodes(searchQuery, 6);
     const context = matched.map((n, i) => {
       const body = (n.desc || '').trim().slice(0, 500);
       return `[${i + 1}] ${(n.label || '(제목 없음)').trim()}${body ? '\n' + body : ''}`;
