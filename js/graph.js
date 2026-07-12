@@ -410,31 +410,17 @@ function draw() {
       g.addColorStop(0,rgbStr(ndRgb,0.3)); g.addColorStop(1,rgbStr(ndRgb,0));
       ctx.fillStyle=g; ctx.fill();
     }
-    const _isBm = (typeof isBookmarked === 'function') && isBookmarked(n) && !isDim;
-    if(_isBm) {
-      // 북마크 노드: 뒤에 흰 글로우 + 노드 자리에 주황 북마크 아이콘 (흰 라인 없음)
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+14, 0, Math.PI*2);
-      const gBm = ctx.createRadialGradient(n.x, n.y, r*0.4, n.x, n.y, r+14);
-      gBm.addColorStop(0, 'rgba(255,255,255,0.6)'); gBm.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = gBm; ctx.fill();
-      const bw = r*1.7, bh = r*2.3, notch = bh*0.28, cx = n.x, top = n.y - bh/2;
-      ctx.beginPath();
-      ctx.moveTo(cx-bw/2, top); ctx.lineTo(cx+bw/2, top); ctx.lineTo(cx+bw/2, top+bh);
-      ctx.lineTo(cx, top+bh-notch); ctx.lineTo(cx-bw/2, top+bh); ctx.closePath();
-      ctx.fillStyle = 'rgba(237,112,0,0.98)'; ctx.fill();
-    } else {
-      if(n.level===0) drawStar8(ctx, n.x, n.y, r);
-      else if(n.isDbNode) drawStar4(ctx, n.x, n.y, r);
-      else if(n.isChildPage || n.entryNotionId) drawStarX(ctx, n.x, n.y, r);
-      else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); }
-      if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
-      else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
-      else {
-        // 깊이별 명도는 HSL 단계에서 처리 — 여기선 배경 혼합 없이 원색 그대로(쨍하게)
-        ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
-        ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
-        ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
-      }
+    if(n.level===0) drawStar8(ctx, n.x, n.y, r);
+    else if(n.isDbNode) drawStar4(ctx, n.x, n.y, r);
+    else if(n.isChildPage || n.entryNotionId) drawStarX(ctx, n.x, n.y, r);
+    else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); }
+    if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
+    else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
+    else {
+      // 깊이별 명도는 HSL 단계에서 처리 — 여기선 배경 혼합 없이 원색 그대로(쨍하게)
+      ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
+      ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
+      ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
     }
     if(n.fixed) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);
@@ -526,7 +512,8 @@ function draw() {
       const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
       ctx.font = lblFont; ctx.textBaseline = 'top';
       ctx.textAlign = 'center';
-      ctx.fillStyle = isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
+      const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
+      ctx.fillStyle = isMatch ? '#ffffff' : (_bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})` : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`);
       ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
     });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';

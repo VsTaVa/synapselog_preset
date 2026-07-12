@@ -295,60 +295,6 @@ function renderLegendBody() {
     + `</div>`;
 }
 
-// ── 미니맵 (전체 그래프 축소뷰 + 현재 뷰포트 위치) ─────────────────────
-let _minimapOpen = (() => { try { return localStorage.getItem('snlog_minimap_open') === '1'; } catch (e) { return false; } })();
-let _miniTf = null; // 마지막 드로우의 변환(미니맵 클릭 → 월드 역변환용)
-function toggleMinimap() {
-  _minimapOpen = !_minimapOpen;
-  try { localStorage.setItem('snlog_minimap_open', _minimapOpen ? '1' : '0'); } catch (e) {}
-  applyMinimapState();
-}
-function applyMinimapState() {
-  const cv = document.getElementById('minimap');
-  if (cv) { cv.style.display = _minimapOpen ? 'block' : 'none'; cv.onclick = _minimapClick; }
-  const btn = document.getElementById('rail-minimap');
-  if (btn) btn.classList.toggle('active', _minimapOpen);
-}
-function drawMinimap() {
-  const cv = document.getElementById('minimap');
-  if (!cv) return;
-  const mctx = cv.getContext('2d');
-  const MW = cv.width, MH = cv.height;
-  mctx.clearRect(0, 0, MW, MH);
-  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible);
-  if (!vis.length) { _miniTf = null; return; }
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const n of vis) { if (n.x < x0) x0 = n.x; if (n.x > x1) x1 = n.x; if (n.y < y0) y0 = n.y; if (n.y > y1) y1 = n.y; }
-  const pad = 12, gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
-  const s = Math.min((MW - pad * 2) / gw, (MH - pad * 2) / gh);
-  const ox = (MW - gw * s) / 2 - x0 * s, oy = (MH - gh * s) / 2 - y0 * s;
-  _miniTf = { s, ox, oy };
-  const toM = (wx, wy) => ({ x: wx * s + ox, y: wy * s + oy });
-  for (const n of vis) {
-    const p = toM(n.x, n.y);
-    const rgb = (typeof nodeRgb === 'function') ? nodeRgb(n) : [150, 160, 175];
-    mctx.beginPath(); mctx.arc(p.x, p.y, n.level === 0 ? 2.3 : 1.4, 0, Math.PI * 2);
-    mctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`; mctx.fill();
-  }
-  if (typeof screenToWorld === 'function') {
-    const cs = [screenToWorld(0, 0), screenToWorld(W, 0), screenToWorld(0, H), screenToWorld(W, H)];
-    let vx0 = Infinity, vx1 = -Infinity, vy0 = Infinity, vy1 = -Infinity;
-    for (const c of cs) { if (c.x < vx0) vx0 = c.x; if (c.x > vx1) vx1 = c.x; if (c.y < vy0) vy0 = c.y; if (c.y > vy1) vy1 = c.y; }
-    const a = toM(vx0, vy0), b = toM(vx1, vy1);
-    mctx.fillStyle = 'rgba(237,112,0,0.12)'; mctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
-    mctx.strokeStyle = 'rgba(237,112,0,0.9)'; mctx.lineWidth = 1.3; mctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-  }
-}
-function _minimapClick(e) {
-  if (!_miniTf) return;
-  const cv = document.getElementById('minimap');
-  const rect = cv.getBoundingClientRect();
-  const mx = (e.clientX - rect.left) * (cv.width / rect.width);
-  const my = (e.clientY - rect.top) * (cv.height / rect.height);
-  const wx = (mx - _miniTf.ox) / _miniTf.s, wy = (my - _miniTf.oy) / _miniTf.s;
-  if (typeof focusViewOnNode === 'function') focusViewOnNode({ x: wx, y: wy });
-}
-
 function setColorScheme(mode) {
   _colorScheme = (mode === 'depth') ? 'depth' : 'node';
   try { localStorage.setItem('snlog_color_scheme', _colorScheme); } catch (e) {}
@@ -3260,9 +3206,8 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 })();
 renderPanes();
 applyLegendState();
-applyMinimapState();
 
-function loop() { simulate(); draw(); repositionMultiSelectMenu(); if (_minimapOpen) drawMinimap(); requestAnimationFrame(loop); }
+function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
 if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages')) {
   document.addEventListener('DOMContentLoaded', () => {
