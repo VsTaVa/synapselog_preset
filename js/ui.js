@@ -257,7 +257,7 @@ function renderLegendBody() {
   const isTools = _legendTab === 'tools';
   const tabs = `<div class="lg-tabs">`
     + `<button class="lg-tab${isTools ? '' : ' active'}" onclick="_setLegendTab('symbols')">그래프 기호</button>`
-    + `<button class="lg-tab${isTools ? ' active' : ''}" onclick="_setLegendTab('tools')">노드 도구</button>`
+    + `<button class="lg-tab${isTools ? ' active' : ''}" onclick="_setLegendTab('tools')">노드 선택 도구</button>`
     + `</div>`;
   body.innerHTML = tabs + `<div class="lg-tab-body">${isTools ? _legendToolsHtml() : _legendSymbolsHtml()}</div>`;
 }
@@ -275,7 +275,6 @@ function _legendSymbolsHtml() {
   const L = {
     solid: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#9fb0c6" stroke-width="2"/></svg>`,
     wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
-    weak: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#ed7000" stroke-width="1.6" stroke-dasharray="4 4"/></svg>`,
   };
   const glow = (c) => `<span class="lg-glow" style="background:radial-gradient(circle, ${c} 0%, transparent 70%)"></span>`;
   const colorSec = depthMode
@@ -284,8 +283,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row">${dot(DC[3])}<span>### · 3단계</span></div>`
       + `<div class="lg-row">${dot(DC[4])}<span>#### · 4단계</span></div>`
       + `<div class="lg-row">${dot([245,247,250])}<span>페이지 · DB · 최상위</span></div>`
-    : `<div class="lg-note">노드마다 고유 색이에요. <b>그래프 설정 → 노드 색상 → 깊이별</b>로 바꾸면 헤딩 깊이(#·##·###)별 색이 적용돼요.</div>`;
-  return `<div class="lg-sec"><div class="lg-sec-title">노드 색</div>${colorSec}</div>`
+    : `<div class="lg-note">노드별 고유 색상. <b>깊이별 모드</b>에서는 헤딩 레벨(#~####)에 따라 색상이 달라집니다.</div>`;
+  return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
       + `<div class="lg-row"><span class="lg-shape">${S.star8}</span><span>페이지 (최상위)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.star4}</span><span>데이터베이스</span></div>`
@@ -293,14 +292,13 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${S.circle}</span><span>헤딩 (글 조각)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">연결선</div>`
-      + `<div class="lg-row"><span class="lg-line">${L.solid}</span><span>상위–하위 구조</span></div>`
+      + `<div class="lg-row"><span class="lg-line">${L.solid}</span><span>계층 구조</span></div>`
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
-      + `<div class="lg-row"><span class="lg-line">${L.weak}</span><span>경로 · 약한 링크</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:#ed7000;font-weight:800;font-size:12px;">가</span><span>북마크 (제목이 주황색)</span></div>`
-      + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>허브 (하위 많음)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>위치 고정</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:#ed7000;font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
+      + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }
 function _legendToolsHtml() {
@@ -328,9 +326,9 @@ function _legendToolsHtml() {
     + row(focus, '포커스 모드', '연결된 가지만 강조, 나머지 흐리게')
     + row(path, '경로 찾기', '노드 사이 최단 경로 표시')
     + row(sat, '위성 모드', '상위에서 분리해 바깥 궤도로')
-    + row(pin, '위치 고정', 'Ctrl+클릭 — 제자리에 고정')
+    + row(pin, '노드 고정', 'Ctrl+클릭 — 제자리에 고정')
     + `</div>`
-    + `<div class="lg-note">노드를 <b>우클릭</b>(또는 더블클릭)하면 이 도구 툴바가 떠요. 선택한 노드 수에 따라 항목이 조금씩 달라져요.</div>`;
+    + `<div class="lg-note">노드 <b>우클릭</b>(또는 더블클릭) 시 도구 툴바 표시. 선택한 노드 수에 따라 항목이 달라짐.</div>`;
 }
 
 function setColorScheme(mode) {

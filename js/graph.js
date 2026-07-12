@@ -279,9 +279,9 @@ function draw() {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
-      if(bothMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([5,3]); }
-      else if(eitherMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([4,5]); }
-      else { ctx.strokeStyle=rgbStr(eRgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([3,7]); }
+      if(bothMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([]); }
+      else if(eitherMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([]); }
+      else { ctx.strokeStyle=rgbStr(eRgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([]); }
     } else {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
