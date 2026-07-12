@@ -284,6 +284,8 @@ function _wikiPageIdFor(b) {
     const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink && !e.wikiLink);
     if (!pe) break; cur = pe.from;
   }
+  // 폴백: 구조 부모 체인이 페이지 정보 노드까지 못 닿아도, 노드에 박혀있는 소속 페이지ID로 (리프 노드가 블록ID만 나오던 문제)
+  if (b.sourcePageId && !String(b.sourcePageId).startsWith('local_') && !String(b.sourcePageId).startsWith('md_')) return String(b.sourcePageId).replace(/-/g, '');
   return '';
 }
 function _wikiUrlFor(b) {
@@ -460,9 +462,12 @@ function _editToolsHtml(node) {
   const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   const bmOn = isBookmarked(node);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
+  const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+  const isLocalLike = node.local || String(node.sourcePageId || '').startsWith('md_') || String(node.sourcePageId || '').startsWith('local_');
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
+  if (!isLocalLike && (node.notionBlockId || node.sourcePageId)) html += `<button onclick="multiSelectOpenNotion()" title="이 노드를 노션에서 엽니다 (페이지로 이동 후 블록 위치로 스크롤)">${notionIcon} 노션에서 보기</button>`;
   html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
@@ -674,19 +679,19 @@ async function aiImportUrl(url) {
     md = md.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/i, '').trim();
     if (!md) throw new Error('마크다운 생성 결과가 비어있어요');
     const title = (md.match(/^#\s+(.+)$/m)?.[1] || srcTitle).trim();
-    const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    // 임시(local) 페이지로 추가 — 생성된 마크다운이라 저장 전이므로 "임시" 취급(편집·저장·내보내기 대상)
+    const pageId = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     mergeGraph(title, md, pageId);
+    nodes.forEach(n => { if (n.sourcePageId === pageId) { n.local = true; n.visible = true; } });
+    const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+    if (root) root.headingDepth = 0;
     _addedPageIds.add(pageId);
-    try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: md, isMd: true, sourceUrl: url, _cachedAt: Date.now() })); } catch (e) {}
-    const wrap = document.getElementById('sidebar-page-list-wrap');
-    if (wrap) wrap.style.display = 'block';
-    if (!window._sidebarPageList) window._sidebarPageList = [];
-    window._sidebarPageList.push({ id: pageId, title, isMd: true });
+    if (typeof saveLocalPages === 'function') saveLocalPages();
+    if (typeof _registerLocalInList === 'function') _registerLocalInList(pageId, title);
     if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
     if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
-    if (typeof savePageList === 'function') savePageList();
     isStable = false;
-    _aiChatReplace(waitId, `"${title}" 를 그래프에 추가했어요. (${isYt ? '자막' : '본문'} 기반 마크다운)`, []);
+    _aiChatReplace(waitId, `"${title}" 를 임시 노드로 추가했어요. (${isYt ? '자막' : '본문'} 기반 — 저장하려면 사이드바에서 내보내기)`, []);
     if (typeof fitGraph === 'function') setTimeout(() => fitGraph(true), 400);
   } catch (e) {
     _aiChatReplace(waitId, '가져오기 실패: ' + (e.message || e), []);
@@ -1235,6 +1240,15 @@ function multiSelectSyncNode() {
   syncNode(node);
 }
 
+function multiSelectOpenNotion() {
+  if (_multiSelected.length !== 1) return;
+  const node = _multiSelected[0];
+  clearMultiSelect();
+  const url = _wikiUrlFor(node);
+  if (url && /^https?:/i.test(url)) window.open(url, '_blank');
+  else toast('이 노드는 노션 링크가 없어요 (로컬·MD 노드)', { type: 'error' });
+}
+
 function multiSelectAddChild() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
@@ -1289,6 +1303,19 @@ function closeRailFlyout() {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
 }
 function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
+
+// 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
+function backToLoginScreen() {
+  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요? 현재 그래프는 그대로 유지됩니다.', () => {
+    closeRailFlyout();
+    const ls = document.getElementById('login-screen');
+    if (ls) ls.style.display = '';
+    const tokenIn = document.getElementById('input-token');
+    if (tokenIn && _savedToken) tokenIn.value = _savedToken;
+    const err = document.getElementById('login-error');
+    if (err) err.style.display = 'none';
+  }, true);
+}
 
 // ── 디테일 패널 (탭) ──────────────────────────────────────────────────
 
