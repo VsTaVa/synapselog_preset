@@ -24,11 +24,8 @@ canvas { display: block; }
 .seg-toggle button:not(.active):hover { background: rgba(237,112,0,0.18); color: #fff; }
 #depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
 
-/* ── 범례 오버레이 ── */
-#legend { position: fixed; left: 68px; bottom: 16px; z-index: 200; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-#legend-toggle { width: 34px; height: 34px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.12); background: rgba(12,14,20,0.92); color: rgba(255,255,255,0.65); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: background 0.15s, color 0.15s, border-color 0.15s; }
-#legend-toggle:hover { background: rgba(30,33,44,0.96); color: #fff; }
-#legend.open #legend-toggle { color: #ed7000; border-color: rgba(237,112,0,0.5); }
+/* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
+#legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
 #legend-body { display: none; width: 224px; max-height: 62vh; overflow-y: auto; padding: 13px 15px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
 #legend.open #legend-body { display: block; }
 #legend-body::-webkit-scrollbar { width: 0; }

@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260707d">
+<link rel="stylesheet" href="style.css?v=20260707e">
 </head>
 <body>
 <div id="login-screen">
@@ -48,10 +48,7 @@
 <div id="loading-overlay"><div class="spinner"></div><div id="loading-text">불러오는 중...</div></div>
 <canvas id="c"></canvas>
 <div id="tooltip"></div>
-<div id="legend">
-  <div id="legend-body"></div>
-  <button id="legend-toggle" onclick="toggleLegend()" aria-label="범례" title="범례 — 그래프 기호 설명"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="6" x2="20" y2="6"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="12" x2="20" y2="12"/><circle cx="5" cy="18" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="18" x2="20" y2="18"/></svg></button>
-</div>
+<div id="legend"><div id="legend-body"></div></div>
 <div id="confirm-modal"><div id="confirm-box"><div class="confirm-title" id="confirm-title"></div><div class="confirm-msg" id="confirm-msg"></div><div class="confirm-btns"><button id="confirm-cancel" onclick="closeConfirm()">취소</button><button id="confirm-ok">확인</button></div></div></div>
 <div id="activity-rail">
   <div class="rail-grp">
@@ -62,6 +59,7 @@
     <button class="rail-icon rail-txt-btn" id="rail-aichat" onclick="openRailSection('aichat')" title="AI 대화" data-i18n-title="rail-aichat">AI</button>
   </div>
   <div class="rail-grp">
+    <button class="rail-icon" id="rail-legend" onclick="toggleLegend()" title="범례 (그래프 기호 설명)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="6" x2="20" y2="6"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="12" x2="20" y2="12"/><circle cx="5" cy="18" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="18" x2="20" y2="18"/></svg></button>
     <button class="rail-icon" onclick="fitGraph(true)" title="화면 맞춤" data-i18n-title="lbl-fit-short"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
     <button class="rail-icon" onclick="exportGraph()" title="이미지 저장" data-i18n-title="lbl-export-short"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     <button class="rail-icon" onclick="openSettings()" title="설정" data-i18n-title="lbl-settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -222,9 +220,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260707d" defer></script>
-<script src="js/graph.js?v=20260707d" defer></script>
-<script src="js/notion-client.js?v=20260707d" defer></script>
-<script src="js/ui.js?v=20260707d" defer></script>
+<script src="js/utils.js?v=20260707e" defer></script>
+<script src="js/graph.js?v=20260707e" defer></script>
+<script src="js/notion-client.js?v=20260707e" defer></script>
+<script src="js/ui.js?v=20260707e" defer></script>
 </body>
 </html>

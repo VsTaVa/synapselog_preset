@@ -244,8 +244,9 @@ function toggleLegend() {
 }
 function applyLegendState() {
   const wrap = document.getElementById('legend');
-  if (!wrap) return;
-  wrap.classList.toggle('open', _legendOpen);
+  if (wrap) wrap.classList.toggle('open', _legendOpen);
+  const btn = document.getElementById('rail-legend');
+  if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
 }
 function renderLegendBody() {
