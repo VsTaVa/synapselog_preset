@@ -1870,7 +1870,14 @@ function _focusEditRow(row, atEnd) {
   const s = window.getSelection(); s.removeAllRanges(); s.addRange(range);
 }
 
-function beginNodeEdit(paneIdx, node, overrideText) {
+async function beginNodeEdit(paneIdx, node, overrideText) {
+  // 편집 시작 전, 노션 노드는 본문을 최신으로 새로고침 → 노션에서 바뀐 뒤 낡은 데이터로 저장해 꼬이는 문제 방지.
+  // (AI 다듬기 등 overrideText가 주어지면 그 텍스트를 써야 하므로 새로고침하지 않음)
+  if (!overrideText && node && !node.local && node.notionBlockId && typeof _applyNodeSync === 'function') {
+    const dismiss = toast('최신 내용 확인 중…', { type: 'info', duration: 15000 });
+    try { await _applyNodeSync(node); } catch (e) { /* 실패 시 기존 데이터로 진행 */ }
+    if (dismiss) dismiss();
+  }
   const paneEl = getPaneEl(paneIdx);
   if (!paneEl) return;
   const titleEl = paneEl.querySelector('.detail-title');
