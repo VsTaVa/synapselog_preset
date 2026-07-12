@@ -263,7 +263,7 @@ function draw() {
       if(!_showConnections) return; // 노드 연결 표시 끔
       if(hasSearch && !eitherMatch) return;
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
-      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.2})`;
+      ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return;
