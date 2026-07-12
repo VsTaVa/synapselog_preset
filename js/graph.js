@@ -439,16 +439,19 @@ function draw() {
       ctx.fill(SATELLITE_ICON);
       ctx.restore();
     }
-    if(typeof isBookmarked === 'function' && isBookmarked(n)) {
-      // 북마크: 주황색 허브 글로우 (노드 연결 선택과 같은 방식, 실선 없이)
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
-      const gBm = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+16);
-      gBm.addColorStop(0, 'rgba(237,112,0,0.5)'); gBm.addColorStop(1, 'rgba(237,112,0,0)');
-      ctx.fillStyle = gBm; ctx.fill();
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+7, 0, Math.PI*2);
-      const gBm2 = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+7);
-      gBm2.addColorStop(0, 'rgba(237,112,0,0.7)'); gBm2.addColorStop(1, 'rgba(237,112,0,0)');
-      ctx.fillStyle = gBm2; ctx.fill();
+    if(typeof isBookmarked === 'function' && isBookmarked(n) && !isDim) {
+      // 북마크: 노드 위에 주황 리본 아이콘 (글로우 대신)
+      const bw = Math.max(r * 1.15, 5.5), bh = bw * 1.4, notch = bh * 0.3;
+      const cx = n.x, top = n.y - r - bh - Math.max(r * 0.35, 2);
+      ctx.beginPath();
+      ctx.moveTo(cx - bw / 2, top);
+      ctx.lineTo(cx + bw / 2, top);
+      ctx.lineTo(cx + bw / 2, top + bh);
+      ctx.lineTo(cx, top + bh - notch);
+      ctx.lineTo(cx - bw / 2, top + bh);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(237,112,0,0.97)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1 / scale; ctx.stroke();
     }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);

@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260707h">
+<link rel="stylesheet" href="style.css?v=20260707i">
 </head>
 <body>
 <div id="login-screen">
@@ -49,6 +49,7 @@
 <canvas id="c"></canvas>
 <div id="tooltip"></div>
 <div id="legend"><div id="legend-body"></div></div>
+<canvas id="minimap" width="184" height="132"></canvas>
 <div id="confirm-modal"><div id="confirm-box"><div class="confirm-title" id="confirm-title"></div><div class="confirm-msg" id="confirm-msg"></div><div class="confirm-btns"><button id="confirm-cancel" onclick="closeConfirm()">취소</button><button id="confirm-ok">확인</button></div></div></div>
 <div id="activity-rail">
   <div class="rail-grp">
@@ -56,9 +57,11 @@
     <button class="rail-icon" id="rail-pages" onclick="openRailSection('pages')" title="페이지 목록" data-i18n-title="rail-pages"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 3 7l9 4.5L21 7l-9-4.5z"/><path d="m3 12 9 4.5L21 12"/><path d="m3 17 9 4.5L21 17"/></svg></button>
     <button class="rail-icon" id="rail-search" onclick="openRailSection('search')" title="검색" data-i18n-title="rail-search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></button>
     <button class="rail-icon" id="rail-graphcfg" onclick="openRailSection('graphcfg')" title="그래프 설정" data-i18n-title="rail-graphcfg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.3" fill="currentColor"/><circle cx="15" cy="16" r="2.3" fill="currentColor"/></svg></button>
+    <button class="rail-icon" id="rail-bookmarks" onclick="openRailSection('bookmarks')" title="북마크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
     <button class="rail-icon rail-txt-btn" id="rail-aichat" onclick="openRailSection('aichat')" title="AI 대화" data-i18n-title="rail-aichat">AI</button>
   </div>
   <div class="rail-grp">
+    <button class="rail-icon" id="rail-minimap" onclick="toggleMinimap()" title="미니맵 (전체 보기 · 내 위치)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/></svg></button>
     <button class="rail-icon" id="rail-legend" onclick="toggleLegend()" title="범례 (그래프 기호 설명)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.6-2.8 2.6"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
     <button class="rail-icon" onclick="fitGraph(true)" title="화면 맞춤" data-i18n-title="lbl-fit-short"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
     <button class="rail-icon" onclick="exportGraph()" title="이미지 저장" data-i18n-title="lbl-export-short"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
@@ -104,6 +107,10 @@
       </div>
       <div id="search-result-count"></div>
       <div id="search-results" class="search-results"></div>
+    </div>
+    <div id="bookmarks-panel" class="panel-box rail-pane" data-section="bookmarks">
+      <div class="panel-title">북마크</div>
+      <div id="bookmark-list"></div>
     </div>
     <div id="aichat-panel" class="panel-box rail-pane" data-section="aichat">
       <div class="panel-title" data-i18n="ai-chat">AI 대화</div>
@@ -220,9 +227,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260707h" defer></script>
-<script src="js/graph.js?v=20260707h" defer></script>
-<script src="js/notion-client.js?v=20260707h" defer></script>
-<script src="js/ui.js?v=20260707h" defer></script>
+<script src="js/utils.js?v=20260707i" defer></script>
+<script src="js/graph.js?v=20260707i" defer></script>
+<script src="js/notion-client.js?v=20260707i" defer></script>
+<script src="js/ui.js?v=20260707i" defer></script>
 </body>
 </html>

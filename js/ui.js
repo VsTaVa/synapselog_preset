@@ -38,7 +38,7 @@ function toggleFavorite(pageId) {
 let _bookmarkedKeys = new Set((() => { try { return JSON.parse(localStorage.getItem('snlog_bookmarks') || '[]'); } catch(e) { return []; } })());
 function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
 function isBookmarked(n) { return !!n && _bookmarkedKeys.has(bookmarkKey(n)); }
-function saveBookmarks() { try { localStorage.setItem('snlog_bookmarks', JSON.stringify([..._bookmarkedKeys])); } catch(e) {} }
+function saveBookmarks() { try { localStorage.setItem('snlog_bookmarks', JSON.stringify([..._bookmarkedKeys])); } catch(e) {} if (typeof _activeRailSection !== 'undefined' && _activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList(); }
 
 // 위성 모드 지속: 위성 루트 label 저장 (fixed_pos와 동일 규칙·스코프) → 새로고침해도 복원
 let _satelliteKeys = new Set((() => { try { return JSON.parse(snGet('snlog_satellites', 'pages') || '[]'); } catch(e) { return []; } })());
@@ -293,6 +293,60 @@ function renderLegendBody() {
       + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>허브 (하위 많음)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>위치 고정</span></div>`
     + `</div>`;
+}
+
+// ── 미니맵 (전체 그래프 축소뷰 + 현재 뷰포트 위치) ─────────────────────
+let _minimapOpen = (() => { try { return localStorage.getItem('snlog_minimap_open') === '1'; } catch (e) { return false; } })();
+let _miniTf = null; // 마지막 드로우의 변환(미니맵 클릭 → 월드 역변환용)
+function toggleMinimap() {
+  _minimapOpen = !_minimapOpen;
+  try { localStorage.setItem('snlog_minimap_open', _minimapOpen ? '1' : '0'); } catch (e) {}
+  applyMinimapState();
+}
+function applyMinimapState() {
+  const cv = document.getElementById('minimap');
+  if (cv) { cv.style.display = _minimapOpen ? 'block' : 'none'; cv.onclick = _minimapClick; }
+  const btn = document.getElementById('rail-minimap');
+  if (btn) btn.classList.toggle('active', _minimapOpen);
+}
+function drawMinimap() {
+  const cv = document.getElementById('minimap');
+  if (!cv) return;
+  const mctx = cv.getContext('2d');
+  const MW = cv.width, MH = cv.height;
+  mctx.clearRect(0, 0, MW, MH);
+  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible);
+  if (!vis.length) { _miniTf = null; return; }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const n of vis) { if (n.x < x0) x0 = n.x; if (n.x > x1) x1 = n.x; if (n.y < y0) y0 = n.y; if (n.y > y1) y1 = n.y; }
+  const pad = 12, gw = (x1 - x0) || 1, gh = (y1 - y0) || 1;
+  const s = Math.min((MW - pad * 2) / gw, (MH - pad * 2) / gh);
+  const ox = (MW - gw * s) / 2 - x0 * s, oy = (MH - gh * s) / 2 - y0 * s;
+  _miniTf = { s, ox, oy };
+  const toM = (wx, wy) => ({ x: wx * s + ox, y: wy * s + oy });
+  for (const n of vis) {
+    const p = toM(n.x, n.y);
+    const rgb = (typeof nodeRgb === 'function') ? nodeRgb(n) : [150, 160, 175];
+    mctx.beginPath(); mctx.arc(p.x, p.y, n.level === 0 ? 2.3 : 1.4, 0, Math.PI * 2);
+    mctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`; mctx.fill();
+  }
+  if (typeof screenToWorld === 'function') {
+    const cs = [screenToWorld(0, 0), screenToWorld(W, 0), screenToWorld(0, H), screenToWorld(W, H)];
+    let vx0 = Infinity, vx1 = -Infinity, vy0 = Infinity, vy1 = -Infinity;
+    for (const c of cs) { if (c.x < vx0) vx0 = c.x; if (c.x > vx1) vx1 = c.x; if (c.y < vy0) vy0 = c.y; if (c.y > vy1) vy1 = c.y; }
+    const a = toM(vx0, vy0), b = toM(vx1, vy1);
+    mctx.fillStyle = 'rgba(237,112,0,0.12)'; mctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+    mctx.strokeStyle = 'rgba(237,112,0,0.9)'; mctx.lineWidth = 1.3; mctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+  }
+}
+function _minimapClick(e) {
+  if (!_miniTf) return;
+  const cv = document.getElementById('minimap');
+  const rect = cv.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (cv.width / rect.width);
+  const my = (e.clientY - rect.top) * (cv.height / rect.height);
+  const wx = (mx - _miniTf.ox) / _miniTf.s, wy = (my - _miniTf.oy) / _miniTf.s;
+  if (typeof focusViewOnNode === 'function') focusViewOnNode({ x: wx, y: wy });
 }
 
 function setColorScheme(mode) {
@@ -1385,7 +1439,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'graphcfg', 'aichat'];
+const _railSections = ['pages', 'search', 'bookmarks', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -1394,6 +1448,28 @@ function openRailSection(name) {
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
+  if (name === 'bookmarks') renderBookmarkList();
+}
+
+// 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
+function renderBookmarkList() {
+  const el = document.getElementById('bookmark-list');
+  if (!el) return;
+  const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const list = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
+  if (!list.length) {
+    el.innerHTML = `<div class="bm-empty">아직 북마크한 노드가 없어요.<br>노드를 선택하고 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(n => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${bmIcon}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`).join('');
+  el.querySelectorAll('.bm-item').forEach(row => {
+    row.onclick = () => {
+      const n = nodeMap[row.dataset.nid];
+      if (!n) return;
+      openPanel(n);
+      if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
+    };
+  });
 }
 function closeRailFlyout() {
   if (!_activeRailSection) return;
@@ -3184,8 +3260,9 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 })();
 renderPanes();
 applyLegendState();
+applyMinimapState();
 
-function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
+function loop() { simulate(); draw(); repositionMultiSelectMenu(); if (_minimapOpen) drawMinimap(); requestAnimationFrame(loop); }
 
 if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages')) {
   document.addEventListener('DOMContentLoaded', () => {
