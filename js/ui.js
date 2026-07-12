@@ -946,6 +946,14 @@ function _matchAiCommand(raw) {
     return lower === n || (lower.startsWith(n) && /\s/.test(lower.charAt(n.length)));
   });
 }
+// 자연어에서 노드 작업 의도 파악 (선택 노드가 있을 때만 사용) → 'summary' | 'link' | 'edit' | null
+function _matchNodeIntent(raw) {
+  const s = (raw || '');
+  if (/요약|간추|핵심만|줄여/.test(s)) return 'summary';
+  if (/다듬|고쳐|교정|매끄/.test(s)) return 'edit';
+  if (/연결|링크|이어|연관|관련\s*노드/.test(s)) return 'link';
+  return null;
+}
 // 명령어 메뉴는 body에 붙여 fixed로 띄운다 (사이드바 overflow/transform에 안 잘리게)
 let _aiCmdMenuEl = null;
 function _aiCmdMenuOutside(e) {
@@ -1083,6 +1091,19 @@ async function sendAiChat() {
     _hideAiCmdMenu();
     cmd.run(rest);
     return;
+  }
+  // 노드가 선택돼 있고 자연어에 의도(요약/연결/다듬기)가 담겨 있으면 → 선택 노드로 해당 작업 실행
+  if (_multiSelected.length >= 1) {
+    const intent = _matchNodeIntent(q);
+    if (intent) {
+      if (input) { input.value = ''; _autoGrowAiInput(input); }
+      _hideAiCmdMenu();
+      if (intent === 'summary') { const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); return; }
+      if (_multiSelected.length !== 1) { toast('이 작업은 노드 1개만 선택해주세요', { type: 'error' }); return; }
+      const n = _multiSelected[0]; clearMultiSelect();
+      if (intent === 'link') aiSuggestLinks(n); else aiRefineNode(n);
+      return;
+    }
   }
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (input) { input.value = ''; _autoGrowAiInput(input); }
