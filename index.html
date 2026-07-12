@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260707c">
+<link rel="stylesheet" href="style.css?v=20260707d">
 </head>
 <body>
 <div id="login-screen">
@@ -48,6 +48,10 @@
 <div id="loading-overlay"><div class="spinner"></div><div id="loading-text">불러오는 중...</div></div>
 <canvas id="c"></canvas>
 <div id="tooltip"></div>
+<div id="legend">
+  <div id="legend-body"></div>
+  <button id="legend-toggle" onclick="toggleLegend()" aria-label="범례" title="범례 — 그래프 기호 설명"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="6" x2="20" y2="6"/><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="12" x2="20" y2="12"/><circle cx="5" cy="18" r="1.4" fill="currentColor" stroke="none"/><line x1="10" y1="18" x2="20" y2="18"/></svg></button>
+</div>
 <div id="confirm-modal"><div id="confirm-box"><div class="confirm-title" id="confirm-title"></div><div class="confirm-msg" id="confirm-msg"></div><div class="confirm-btns"><button id="confirm-cancel" onclick="closeConfirm()">취소</button><button id="confirm-ok">확인</button></div></div></div>
 <div id="activity-rail">
   <div class="rail-grp">
@@ -218,9 +222,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260707c" defer></script>
-<script src="js/graph.js?v=20260707c" defer></script>
-<script src="js/notion-client.js?v=20260707c" defer></script>
-<script src="js/ui.js?v=20260707c" defer></script>
+<script src="js/utils.js?v=20260707d" defer></script>
+<script src="js/graph.js?v=20260707d" defer></script>
+<script src="js/notion-client.js?v=20260707d" defer></script>
+<script src="js/ui.js?v=20260707d" defer></script>
 </body>
 </html>

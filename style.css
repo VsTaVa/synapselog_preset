@@ -23,6 +23,26 @@ canvas { display: block; }
 .seg-toggle button.active { background: rgba(237,112,0,0.9); color: #15110a; font-weight: 700; }
 .seg-toggle button:not(.active):hover { background: rgba(237,112,0,0.18); color: #fff; }
 #depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
+
+/* ── 범례 오버레이 ── */
+#legend { position: fixed; left: 68px; bottom: 16px; z-index: 200; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+#legend-toggle { width: 34px; height: 34px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.12); background: rgba(12,14,20,0.92); color: rgba(255,255,255,0.65); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: background 0.15s, color 0.15s, border-color 0.15s; }
+#legend-toggle:hover { background: rgba(30,33,44,0.96); color: #fff; }
+#legend.open #legend-toggle { color: #ed7000; border-color: rgba(237,112,0,0.5); }
+#legend-body { display: none; width: 224px; max-height: 62vh; overflow-y: auto; padding: 13px 15px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
+#legend.open #legend-body { display: block; }
+#legend-body::-webkit-scrollbar { width: 0; }
+.lg-sec { margin-bottom: 13px; }
+.lg-sec:last-child { margin-bottom: 0; }
+.lg-sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: rgba(255,255,255,0.38); margin-bottom: 6px; }
+.lg-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: rgba(255,255,255,0.82); line-height: 1.5; margin-bottom: 4px; }
+.lg-row:last-child { margin-bottom: 0; }
+.lg-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.3); }
+.lg-shape { width: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lg-line { width: 32px; display: inline-flex; align-items: center; flex-shrink: 0; }
+.lg-glow { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+.lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
+.lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 4px; }

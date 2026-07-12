@@ -235,6 +235,65 @@ function _modeCursor() {
   return '';
 }
 // 노드 색상 표현 전환: 'node'=노드별 색, 'depth'=헤딩 깊이별 색
+// ── 범례(그래프 기호 설명) 오버레이 ───────────────────────────────────
+let _legendOpen = (() => { try { return localStorage.getItem('snlog_legend_open') === '1'; } catch (e) { return false; } })();
+function toggleLegend() {
+  _legendOpen = !_legendOpen;
+  try { localStorage.setItem('snlog_legend_open', _legendOpen ? '1' : '0'); } catch (e) {}
+  applyLegendState();
+}
+function applyLegendState() {
+  const wrap = document.getElementById('legend');
+  if (!wrap) return;
+  wrap.classList.toggle('open', _legendOpen);
+  if (_legendOpen) renderLegendBody();
+}
+function renderLegendBody() {
+  const body = document.getElementById('legend-body');
+  if (!body) return;
+  const DC = (typeof DEPTH_RGB !== 'undefined') ? DEPTH_RGB : { 1:[0,207,255],2:[168,85,247],3:[255,77,184],4:[255,140,66],5:[255,210,74] };
+  const dot = (rgb) => `<i class="lg-dot" style="background:rgb(${rgb[0]},${rgb[1]},${rgb[2]})"></i>`;
+  const depthMode = (typeof _colorScheme !== 'undefined' && _colorScheme === 'depth');
+  const S = {
+    circle: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5" fill="#c9d3e2"/></svg>`,
+    star8: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 0.5 L9.3 6.7 L15.5 8 L9.3 9.3 L8 15.5 L6.7 9.3 L0.5 8 L6.7 6.7Z" fill="#fff"/><path d="M3 3 L8 6.6 L13 3 L9.4 8 L13 13 L8 9.4 L3 13 L6.6 8Z" fill="#fff" opacity="0.85"/></svg>`,
+    star4: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 1 L9.6 6.4 L15 8 L9.6 9.6 L8 15 L6.4 9.6 L1 8 L6.4 6.4Z" fill="#eef2f8"/></svg>`,
+    starX: `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 4 L12 12 M12 4 L4 12" stroke="#eef2f8" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+    ringDash: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2.2 2.2"/></svg>`,
+  };
+  const L = {
+    solid: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#9fb0c6" stroke-width="2"/></svg>`,
+    wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
+    weak: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#ed7000" stroke-width="1.6" stroke-dasharray="4 4"/></svg>`,
+  };
+  const glow = (c) => `<span class="lg-glow" style="background:radial-gradient(circle, ${c} 0%, transparent 70%)"></span>`;
+  const colorSec = depthMode
+    ? `<div class="lg-row">${dot(DC[1])}<span># · 1단계 헤딩</span></div>`
+      + `<div class="lg-row">${dot(DC[2])}<span>## · 2단계</span></div>`
+      + `<div class="lg-row">${dot(DC[3])}<span>### · 3단계</span></div>`
+      + `<div class="lg-row">${dot(DC[4])}<span>#### · 4단계</span></div>`
+      + `<div class="lg-row">${dot([245,247,250])}<span>페이지 · DB · 최상위</span></div>`
+    : `<div class="lg-note">노드마다 고유 색이에요. <b>그래프 설정 → 노드 색상 → 깊이별</b>로 바꾸면 헤딩 깊이(#·##·###)별 색이 적용돼요.</div>`;
+  body.innerHTML =
+    `<div class="lg-sec"><div class="lg-sec-title">노드 색</div>${colorSec}</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.star8}</span><span>페이지 (최상위)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.star4}</span><span>데이터베이스</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.starX}</span><span>하위 페이지</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.circle}</span><span>헤딩 (글 조각)</span></div>`
+    + `</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">연결선</div>`
+      + `<div class="lg-row"><span class="lg-line">${L.solid}</span><span>상위–하위 구조</span></div>`
+      + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
+      + `<div class="lg-row"><span class="lg-line">${L.weak}</span><span>경로 · 약한 링크</span></div>`
+    + `</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
+      + `<div class="lg-row">${glow('rgba(237,112,0,0.9)')}<span>북마크</span></div>`
+      + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>허브 (하위 많음)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>위치 고정</span></div>`
+    + `</div>`;
+}
+
 function setColorScheme(mode) {
   _colorScheme = (mode === 'depth') ? 'depth' : 'node';
   try { localStorage.setItem('snlog_color_scheme', _colorScheme); } catch (e) {}
@@ -243,6 +302,7 @@ function setColorScheme(mode) {
   if (b) b.classList.toggle('active', _colorScheme === 'depth');
   const legend = document.getElementById('depth-legend');
   if (legend) legend.style.display = _colorScheme === 'depth' ? 'flex' : 'none';
+  if (_legendOpen) renderLegendBody();
   isStable = false;
 }
 
@@ -3084,6 +3144,7 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
   const out = document.getElementById('rotation-val'); if (out) out.textContent = deg + '°';
 })();
 renderPanes();
+applyLegendState();
 
 function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
 
