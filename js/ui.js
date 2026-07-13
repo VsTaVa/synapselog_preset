@@ -282,7 +282,7 @@ function _legendSymbolsHtml() {
   };
   const glow = (c) => `<span class="lg-glow" style="background:radial-gradient(circle, ${c} 0%, transparent 70%)"></span>`;
   const colorSec = `<div class="lg-row lg-tool"><span><b>노드별</b>: 노드마다 색상 변화</span></div>`
-    + `<div class="lg-row lg-tool"><span><b>깊이별</b>: 헤딩 레벨(#~####)에 따라 색상 변화</span></div>`;
+    + `<div class="lg-row lg-tool"><span><b>깊이별</b>: 헤딩 레벨에 따라 색상 변화</span></div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('star8')}</span><span>페이지 (최상위)</span></div>`
