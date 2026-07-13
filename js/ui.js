@@ -252,15 +252,17 @@ function applyLegendState() {
 function renderLegendBody() {
   const body = document.getElementById('legend-body');
   if (!body) return;
-  const tab = (id, ic, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')"><span class="lg-tab-ic">${ic}</span>${label}</button>`;
-  const tabs = `<div class="lg-tabs">${tab('symbols', '⬡', '기호')}${tab('tools', '✦', '도구')}</div>`;
+  const icSym = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
+  const icTool = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+  const tab = (id, ic, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')"><span class="lg-tab-ic">${ic}</span><span class="lg-tab-lbl">${label}</span></button>`;
+  const tabs = `<div class="lg-tabs">${tab('symbols', icSym, '기호')}${tab('tools', icTool, '도구')}</div>`;
   const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
     + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
     + _legendSymbolsHtml()
     + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 도구</div>`
     + _legendToolsHtml()
     + `</div>`;
-  body.innerHTML = tabs + content;
+  body.innerHTML = content + tabs;
   _updateLegendActiveTab();
 }
 function _setLegendTab(t) {
@@ -322,31 +324,20 @@ function _legendSymbolsHtml() {
     + `</div>`;
 }
 function _legendToolsHtml() {
-  const ic = (inner, c) => `<span class="lg-shape"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${c || '#cbd5e6'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg></span>`;
-  const branch = ic(`<circle cx="11" cy="5" r="2.2"/><circle cx="5" cy="18" r="2.2"/><path d="M11 7.2V13a3 3 0 0 1-3 3H7.2"/><path d="M16 18h6M19 15v6"/>`);
-  const sync = ic(`<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>`);
-  const notion = ic(`<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>`);
-  const bm = ic(`<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>`, '#ed7000');
-  const trash = ic(`<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>`, '#e59a9a');
-  const chain = ic(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`);
-  const focus = ic(`<circle cx="12" cy="12" r="3"/><path d="M12 5V3M12 21v-2M5 12H3M21 12h-2"/>`);
-  const path = `<span class="lg-shape" style="color:#cbd5e6;font-size:14px;font-weight:700;">↔</span>`;
-  const sat = ic(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>`);
-  const pin = ic(`<circle cx="12" cy="12" r="7.5" stroke-dasharray="2.5 2.5"/>`);
-  const row = (icon, name, desc) => `<div class="lg-row lg-tool">${icon}<span><b>${name}</b>: ${desc}</span></div>`;
+  const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
-    + row(branch, '하위 노드 추가', '자식 노드 생성')
-    + row(sync, '노드 동기화', 'Notion 최신화')
-    + row(notion, '노션에서 보기', '노션 페이지로 이동')
-    + row(bm, '북마크', '즐겨찾기')
-    + row(trash, '노드 삭제', '삭제')
+    + row('하위 노드 추가', '자식 노드 생성')
+    + row('노드 동기화', 'Notion 최신화')
+    + row('노션에서 보기', '노션 페이지로 이동')
+    + row('북마크', '즐겨찾기')
+    + row('노드 삭제', '삭제')
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
-    + row(chain, '노드 연결', '노드 간 연결')
-    + row(focus, '포커스 모드', '연결된 노드 포커스')
-    + row(path, '경로 찾기', '최단 경로 표시')
-    + row(sat, '위성 모드', '그래프 분리')
-    + row(pin, '노드 고정', '노드 고정 및 위치 이동')
+    + row('노드 연결', '노드 간 연결')
+    + row('포커스 모드', '연결된 노드 포커스')
+    + row('경로 찾기', '최단 경로 표시')
+    + row('위성 모드', '그래프 분리')
+    + row('노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
     + `<div class="lg-note">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`;
 }
@@ -1649,7 +1640,7 @@ function renderPaneContent(i, n) {
   if (!setBtn) {
     setBtn = document.createElement('button');
     setBtn.className = 'detail-edit-btn detail-settings-btn';
-    setBtn.title = '메뉴 (수정·동기화·추가·북마크·삭제)';
+    setBtn.title = '메뉴 (수정·추가·북마크·삭제)';
     setBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
     titleActions.appendChild(setBtn);
   }
@@ -1718,7 +1709,7 @@ async function _applyNodeSync(node) {
   }
   if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) node.notionToggle = !!data.toggleable;
   const lines = Array.isArray(data.body) ? data.body : [];
-  node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line) }));
+  node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line), mark: _listMark(b.line) }));
   node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
 }
 
@@ -1763,16 +1754,14 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
   const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const canEdit = n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length);
-  const canSync = !n.local && n.notionBlockId;
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
   const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목·본문 수정</button>` : '';
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
-  const syncItem = canSync ? `<button data-act="sync"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 노드 동기화</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
   const aiActItem = `<button data-act="aiact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 작업</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
-  const topGroup = editItem + addItem + syncItem;
+  const topGroup = editItem + addItem;
   const midGroup = notionItem + aiActItem + bmItem;
   menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   document.body.appendChild(menu);
@@ -1793,8 +1782,6 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
     try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_stack.length - 1, nodeMap[ids[0]]); } }
     catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
   };
-  const sb = menu.querySelector('[data-act="sync"]');
-  if (sb) sb.onclick = () => { close(); syncNode(n, i); };
   const nb = menu.querySelector('[data-act="notion"]');
   if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
   const bb = menu.querySelector('[data-act="bookmark"]');
@@ -2103,6 +2090,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
       item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
     }
+    if (blk && blk.mark) { const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.textContent = blk.mark; item.appendChild(mk); }
     item.appendChild(ce);
     list.appendChild(item);
     attachFormatting(ce);

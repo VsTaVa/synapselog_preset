@@ -46,8 +46,9 @@ canvas { display: block; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
 .lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
 .lg-tabs { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; width: 56px; margin: 0; }
-.lg-tab { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
-.lg-tab-ic { font-size: 13px; line-height: 1; }
+.lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
+.lg-tab-ic { display: flex; align-items: center; justify-content: center; }
+.lg-tab-lbl { font-size: 11px; line-height: 1; }
 .lg-tab:hover { color: rgba(255,255,255,0.85); }
 .lg-tab.active { background: rgba(237,112,0,0.16); border-color: rgba(237,112,0,0.5); color: #ed7000; }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
@@ -313,6 +314,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-handle:active { cursor: grabbing; }
 .body-edit-item.dragging { opacity: 0.45; }
 .body-edit-item.drag-over { box-shadow: 0 -2px 0 #ed7000; }
+.body-edit-mark { flex-shrink: 0; min-width: 15px; text-align: right; padding-top: 9px; color: rgba(255,255,255,0.45); font-size: 13px; line-height: 1.6; user-select: none; }
 /* 읽기 화면 본문 드래그 순서 변경 */
 .detail-body-droplist { display: flex; flex-direction: column; gap: 2px; }
 .detail-body-block { display: flex; align-items: flex-start; gap: 4px; border-radius: 6px; padding: 1px 2px; transition: background 0.12s; }

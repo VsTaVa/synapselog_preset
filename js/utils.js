@@ -171,6 +171,18 @@ function bodyBlockText(line) {
   return (line || '').replace(/^\s+/, '').replace(/^(?:[-*]\s+|\d+\.\s+|>\s+)/, '').trim();
 }
 
+// 본문 줄머리 목록 마커를 편집기 표시용 기호로 반환 (저장 텍스트엔 안 들어감, 시각 표시 전용)
+function _listMark(line) {
+  const t = (line || '').replace(/^\s+/, '');
+  let m;
+  if ((m = t.match(/^(\d+)\.\s+/))) return m[1] + '.';
+  if (/^[-*]\s+/.test(t)) return '•';
+  if (/^(?:☑|\[[xX]\])\s+/.test(t)) return '☑';
+  if (/^(?:☐|\[ ?\])\s+/.test(t)) return '☐';
+  if (/^>\s+/.test(t)) return '❝';
+  return '';
+}
+
 function dist(a, b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
 
 function getChildCount(nodeId) {

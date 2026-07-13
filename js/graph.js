@@ -120,7 +120,7 @@ function parseMarkdown(text, rootTitle) {
       for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
       if (!parentId) parentId = rootId;
       let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
-      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n') }); curBlk = null; } };
+      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '' }); curBlk = null; } };
       while (nextIdx < lines.length) {
         const rawLine = lines[nextIdx].replace(/\s+$/, '');
         let nextLine = rawLine.trim();
@@ -138,7 +138,7 @@ function parseMarkdown(text, rootTitle) {
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
         if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
         descLines.push(rawLine);
-        if (curBlk) curBlk.lines.push(bodyBlockText(rawLine)); // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집
+        if (curBlk) { if (!curBlk.lines.length) curBlk.mark = _listMark(rawLine); curBlk.lines.push(bodyBlockText(rawLine)); } // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄 목록 마커 캡처
         nextIdx++;
       }
       flushBlk();
