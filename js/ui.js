@@ -326,10 +326,6 @@ function _legendAiHtml() {
     + row('연결 추천', '관련 노드를 찾아 연결 제안')
     + row('본문 다듬기', '선택 노드 문법·문장 교정')
     + row('링크 가져오기', '웹·유튜브를 시각화')
-    + `</div>`
-    + `<div class="lg-sec"><div class="lg-sec-title">쓰는 법</div>`
-    + row('자연어', '노드 선택 후 "요약해줘 · 연결해줘 · 다듬어줘"')
-    + row('명령어', '/Node Summary · /Node Link · /Node Edit · /Import')
     + `</div>`;
 }
 
