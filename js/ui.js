@@ -328,7 +328,8 @@ function _legendSymbolsHtml() {
 }
 function _legendToolsHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
+  return `<div class="lg-note lg-note-top">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
     + row('하위 노드 추가', '자식 노드 생성')
     + row('노드 동기화', 'Notion 최신화')
     + row('노션에서 보기', '노션 페이지로 이동')
@@ -341,8 +342,7 @@ function _legendToolsHtml() {
     + row('경로 찾기', '최단 경로 표시')
     + row('위성 모드', '그래프 분리')
     + row('노드 고정', '노드 고정 및 위치 이동')
-    + `</div>`
-    + `<div class="lg-note">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`;
+    + `</div>`;
 }
 function _legendAiHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;

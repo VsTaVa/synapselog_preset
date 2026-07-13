@@ -46,9 +46,9 @@ canvas { display: block; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
 .lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
 .lg-note-top { margin-bottom: 12px; }
-.lg-tabs { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; width: 56px; margin: 0; }
-.lg-toc-ic { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.38); padding: 2px 0 7px; margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.lg-tab { display: block; text-align: center; padding: 9px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
+.lg-tabs { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; width: 52px; margin: 0; }
+.lg-toc-ic { display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.38); padding: 0 0 5px; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.lg-tab { display: block; text-align: center; padding: 6px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
 .lg-tab:hover { color: rgba(255,255,255,0.85); }
 .lg-tab.active { background: rgba(237,112,0,0.16); border-color: rgba(237,112,0,0.5); color: #ed7000; }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
