@@ -28,7 +28,7 @@ canvas { display: block; }
 #legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
 #legend-body { display: none; width: 276px; padding: 12px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
 #legend.open #legend-body { display: flex; gap: 11px; }
-.lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 140px; }
+.lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
 .lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: #ed7000; letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
 .lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(237,112,0,0.32); }

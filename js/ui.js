@@ -254,26 +254,30 @@ function renderLegendBody() {
   if (!body) return;
   const tocIc = `<div class="lg-toc-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg></div>`;
   const tab = (id, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')">${label}</button>`;
-  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}</div>`;
+  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}${tab('ai', 'AI')}</div>`;
   const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
     + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
     + _legendSymbolsHtml()
     + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 도구</div>`
     + _legendToolsHtml()
+    + `<div class="lg-divider lg-divider-gap" id="lg-sec-ai">AI</div>`
+    + _legendAiHtml()
     + `</div>`;
   body.innerHTML = content + tabs;
   _updateLegendActiveTab();
 }
+const _LEGEND_SECS = ['symbols', 'tools', 'ai'];
 function _setLegendTab(t) {
   const scroll = document.getElementById('lg-scroll');
-  const target = document.getElementById(t === 'tools' ? 'lg-sec-tools' : 'lg-sec-symbols');
+  const target = document.getElementById('lg-sec-' + t);
   if (scroll && target) scroll.scrollTo({ top: Math.max(0, target.offsetTop - scroll.offsetTop - 6), behavior: 'smooth' });
 }
 function _updateLegendActiveTab() {
   const scroll = document.getElementById('lg-scroll'); if (!scroll) return;
-  const toolsEl = document.getElementById('lg-sec-tools'); if (!toolsEl) return;
-  const atTools = scroll.scrollTop >= (toolsEl.offsetTop - scroll.offsetTop - 40);
-  document.querySelectorAll('#legend .lg-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === (atTools ? 'tools' : 'symbols')));
+  const st = scroll.scrollTop + 40;
+  let active = 'symbols';
+  _LEGEND_SECS.forEach(id => { const el = document.getElementById('lg-sec-' + id); if (el && (el.offsetTop - scroll.offsetTop) <= st) active = id; });
+  document.querySelectorAll('#legend .lg-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === active));
 }
 // 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
 function _legendShapeImg(kind) {
@@ -339,6 +343,21 @@ function _legendToolsHtml() {
     + row('노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
     + `<div class="lg-note">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`;
+}
+function _legendAiHtml() {
+  const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
+  return `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
+    + row('노드 요약', '선택 노드(하위·연결 포함) 핵심 정리')
+    + row('연결 추천', '관련 노드를 찾아 연결 제안')
+    + row('본문 다듬기', '선택 노드 글을 문법·문장 교정')
+    + row('링크 가져오기', '웹·유튜브(자막)를 마크다운 임시 노드로')
+    + row('그래프 질문', '키워드로 물으면 노드 내용 근거로 답변')
+    + `</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">쓰는 법</div>`
+    + row('자연어', '노드 선택 후 "요약해줘 · 연결해줘 · 다듬어줘"')
+    + row('명령어', '/Node Summary · /Node Link · /Node Edit · /Import')
+    + `</div>`
+    + `<div class="lg-note">무료 <b>제미나이 API 키</b>가 필요해요 (설정에서 입력).</div>`;
 }
 
 function setColorScheme(mode) {
