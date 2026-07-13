@@ -612,7 +612,7 @@ const _SYNAPSE_GUIDE = `SynapseLog는 노션 페이지·마크다운(.md)을 신
   · /Node Edit — 선택 노드 본문을 AI가 다듬어 편집 모드로 로드
   · /Import — 웹·유튜브(자막) 링크를 마크다운으로 정리해 임시 노드로 추가
   · 노드를 선택하고 "요약해줘/연결해줘/다듬어줘"처럼 자연어로 말해도 동작한다.
-  · 그냥 키워드를 입력하면 그래프 노드를 검색해 그 내용을 근거로 답한다.
+  · 기본은 AI와 자유 대화(글 함께 다듬기)다. "검색해줘"라고 하면 그래프 노드를 검색해 근거로 답하고, "하위 노드에 넣어줘"라고 하면 방금 대화한 글을 선택/열린 노드의 하위 노드로 넣는다.
 - 설정(⚙)에서 노션 API 토큰과 AI(구글 제미나이) API 키를 입력한다.`;
 async function geminiGenerate(prompt) {
   if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
@@ -928,7 +928,7 @@ function _renderAiChat() {
         `<div class="aichat-help-title">AI 기능을 쓰려면 제미나이 API 키(무료)가 필요합니다</div>` +
         `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속(구글 로그인) → <b>Create API key</b> → 키 복사 (AIza… 로 시작, 카드 등록 없이 무료)</div>` +
         `<div class="aichat-help-step"><b>2.</b> 왼쪽 아래 <b>설정(⚙)</b> → <b>AI API 키</b> 칸에 붙여넣고 <b>저장</b></div>` +
-        `<div class="aichat-help-step"><b>3.</b> 이 창에서 키워드로 질문하거나, 노드 선택 후 <b>/</b> 명령어(요약·연결 추천·다듬기)로 사용</div>` +
+        `<div class="aichat-help-step"><b>3.</b> AI와 자유롭게 대화하며 글을 다듬고, <b>"검색해줘"</b>로 노드 검색, <b>"하위 노드에 넣어줘"</b>로 저장하세요</div>` +
       `</div>`;
     return;
   }
@@ -1179,12 +1179,42 @@ async function sendAiChat() {
   }
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   if (input) { input.value = ''; _autoGrowAiInput(input); }
+  // 저장: 대화하며 만든 글을 하위 노드로 넣기 ("하위노드에 넣어줘")
+  if (/하위\s*노드|자식\s*노드|노드에?\s*넣|노드로\s*(넣|만들|저장)|하위로\s*넣/.test(q)) { aiSaveToChild(q); return; }
+  // 검색: 명시적으로 요청할 때만 그래프 RAG ("검색해줘")
+  if (/검색|관련\s*노드|그래프에서|노드\s*(찾|검색)/.test(q)) { _aiAnswerRAG(q); return; }
+  // 기본: 일반 대화 (이전 맥락 이어서 글을 함께 발전)
+  _aiConverse(q);
+}
+
+// 일반 대화 — 그래프 검색 없이 이전 맥락을 이어서 답(글 함께 다듬기)
+function _aiConverse(q) {
+  const hist = _aiChat
+    .filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|넣는 중|넣었어요/.test(m.text))
+    .slice(-8)
+    .map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
   _aiChatPush('user', q);
   const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
   const run = async () => {
     _aiChatReplace(waitId, '생각하는 중… ⏳', []);
     try {
-      // 1차: 질문에서 핵심 키워드(+유사어) 추출 → 그걸로 노드 검색 (엉뚱한 노드 근거 줄이기)
+      const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
+      const ans = await geminiGenerate(prompt);
+      _aiChatReplace(waitId, ans, []);
+    } catch (e) {
+      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
+    }
+  };
+  run();
+}
+
+// 검색(RAG) — 키워드 추출 → 노드 검색 → 근거로 답변
+function _aiAnswerRAG(q) {
+  _aiChatPush('user', q);
+  const waitId = _aiChatPush('ai', '검색 중… ⏳');
+  const run = async () => {
+    _aiChatReplace(waitId, '검색 중… ⏳', []);
+    try {
       const searchQuery = await _aiExtractKeywords(q);
       const matched = _aiSearchNodes(searchQuery, 6);
       const context = matched.map((n, i) => {
@@ -1201,6 +1231,33 @@ async function sendAiChat() {
     }
   };
   run();
+}
+
+// 대화한 글(가장 최근 AI 답변)을 선택/열린 노드의 하위 노드로 넣기 → 편집창에서 확인 후 저장
+function aiSaveToChild(q) {
+  const parent = (_multiSelected.length === 1 ? _multiSelected[0] : null) || (typeof _activeNode !== 'undefined' ? _activeNode : null);
+  _aiChatPush('user', q);
+  if (!parent) { _aiChatPush('ai', '어느 노드 아래에 넣을지 몰라요. 먼저 노드를 선택하거나 열어주세요.'); return; }
+  if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '이 노드 아래에는 하위 노드를 만들 수 없어요.'); return; }
+  const lastAi = [..._aiChat].reverse().find(m => m.role === 'ai' && m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|어느 노드|넣을 내용|하위 노드로|하위 노드 생성/.test(m.text));
+  if (!lastAi) { _aiChatPush('ai', '넣을 내용이 없어요. 먼저 AI와 대화해서 글을 만들어보세요.'); return; }
+  const text = lastAi.text.trim();
+  const lines = text.split('\n');
+  const title = (lines[0] || '').replace(/^#+\s*/, '').replace(/[*_`]/g, '').slice(0, 60).trim() || '새 노드';
+  const body = lines.slice(1).join('\n').trim();
+  if (typeof clearMultiSelect === 'function') clearMultiSelect();
+  const waitId = _aiChatPush('ai', `"${title}" 하위 노드로 넣는 중… ⏳`);
+  createChildNode(parent, title).then(ids => {
+    if (ids && ids.length && nodeMap[ids[0]]) {
+      const child = nodeMap[ids[0]];
+      openPanel(child);
+      const idx = _stack.findIndex(x => x.id === child.id);
+      if (idx >= 0 && body) setTimeout(() => { try { beginNodeEdit(idx, child, body); } catch (e) {} }, 150);
+      _aiChatReplace(waitId, `"${(parent.label || '').trim() || '노드'}" 아래에 "${title}" 하위 노드로 넣었어요.${body ? ' 편집창에서 확인 후 저장하세요.' : ''}`, []);
+    } else {
+      _aiChatReplace(waitId, '하위 노드 생성에 실패했어요.', []);
+    }
+  }).catch(err => _aiChatReplace(waitId, '하위 노드 생성 실패: ' + (err.message || err), []));
 }
 
 // 선택 노드 고정/해제 (노드 선택 툴바)
