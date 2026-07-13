@@ -240,7 +240,7 @@ function renderLegendBody() {
   const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
     + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
     + _legendSymbolsHtml()
-    + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 도구</div>`
+    + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 툴바</div>`
     + _legendToolsHtml()
     + `<div class="lg-divider lg-divider-gap" id="lg-sec-ai">AI</div>`
     + _legendAiHtml()
@@ -310,7 +310,7 @@ function _legendSymbolsHtml() {
 }
 function _legendToolsHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-note lg-note-top">노드 <b>우클릭</b> 시 도구 툴바 표시</div>`
+  return `<div class="lg-note lg-note-top">노드 우클릭 시 도구 툴바 표시</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
     + row('하위 노드 추가', '자식 노드 생성')
     + row('노드 동기화', 'Notion 최신화')
@@ -330,10 +330,10 @@ function _legendAiHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
   return `<div class="lg-note lg-note-top">무료 <b>제미나이 API 키</b> 필요</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
-    + row('노드 요약', '선택 노드(하위·연결 포함) 핵심 정리')
+    + row('노드 요약', '선택 노드(하위·연결 포함)')
     + row('연결 추천', '관련 노드를 찾아 연결 제안')
-    + row('본문 다듬기', '선택 노드 글을 문법·문장 교정')
-    + row('링크 가져오기', '웹·유튜브(자막)를 시각화')
+    + row('본문 다듬기', '선택 노드 문법·문장 교정')
+    + row('링크 가져오기', '웹·유튜브를 시각화')
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">쓰는 법</div>`
     + row('자연어', '노드 선택 후 "요약해줘 · 연결해줘 · 다듬어줘"')
