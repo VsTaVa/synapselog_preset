@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260713b">
+<link rel="stylesheet" href="style.css?v=20260713c">
 </head>
 <body>
 <div id="login-screen">
@@ -49,6 +49,18 @@
 <canvas id="c"></canvas>
 <div id="tooltip"></div>
 <div id="legend"><div id="legend-body"></div></div>
+<div id="onboarding" onclick="if(event.target===this)dismissOnboarding()">
+  <div class="ob-card">
+    <div class="ob-title">SynapseLog에 오신 걸 환영해요</div>
+    <div class="ob-sub">이 3가지만 알면 바로 쓸 수 있어요.</div>
+    <div class="ob-tips">
+      <div class="ob-tip"><b>1</b><div><b>노드 클릭</b>은 내용 보기, <b>우클릭</b>은 도구(연결·삭제·북마크 등)예요.</div></div>
+      <div class="ob-tip"><b>2</b><div><b>AI 대화</b>는 노드를 고르고 "요약해줘"처럼 말하거나, 키워드로 질문하면 돼요.</div></div>
+      <div class="ob-tip"><b>3</b><div>왼쪽 아래 <b>? 아이콘</b>에 그래프 기호·도구 설명이 다 있어요.</div></div>
+    </div>
+    <button class="ob-btn" onclick="dismissOnboarding()">시작하기</button>
+  </div>
+</div>
 <div id="confirm-modal"><div id="confirm-box"><div class="confirm-title" id="confirm-title"></div><div class="confirm-msg" id="confirm-msg"></div><div class="confirm-btns"><button id="confirm-cancel" onclick="closeConfirm()">취소</button><button id="confirm-ok">확인</button></div></div></div>
 <div id="activity-rail">
   <div class="rail-grp">
@@ -225,9 +237,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260713b" defer></script>
-<script src="js/graph.js?v=20260713b" defer></script>
-<script src="js/notion-client.js?v=20260713b" defer></script>
-<script src="js/ui.js?v=20260713b" defer></script>
+<script src="js/utils.js?v=20260713c" defer></script>
+<script src="js/graph.js?v=20260713c" defer></script>
+<script src="js/notion-client.js?v=20260713c" defer></script>
+<script src="js/ui.js?v=20260713c" defer></script>
 </body>
 </html>
