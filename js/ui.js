@@ -290,7 +290,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row">${dot(DC[3])}<span>### · 3단계</span></div>`
       + `<div class="lg-row">${dot(DC[4])}<span>#### · 4단계</span></div>`
       + `<div class="lg-row">${dot([245,247,250])}<span>페이지 · DB · 최상위</span></div>`
-    : `<div class="lg-note">노드별 고유 색상. <b>깊이별 모드</b>에서는 헤딩 레벨(#~####)에 따라 색상이 달라집니다.</div>`;
+    : `<div class="lg-note"><b>노드별: </b> 노드마다 색상 변화. <b>깊이별: </b>헤딩 레벨(#~####)에 따라 색상 변화</div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('star8')}</span><span>페이지 (최상위)</span></div>`
@@ -328,7 +328,7 @@ function _legendToolsHtml() {
 }
 function _legendAiHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-note lg-note-top">무료 <b>제미나이 API 키</b> 필요</div>`
+  return `<div class="lg-note lg-note-top">제미나이 API 필요</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
     + row('노드 요약', '선택 노드(하위·연결 포함)')
     + row('연결 추천', '관련 노드를 찾아 연결 제안')
