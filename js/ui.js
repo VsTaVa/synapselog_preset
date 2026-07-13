@@ -273,9 +273,6 @@ function _legendShapeImg(kind) {
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="16" height="16" alt="">`;
 }
 function _legendSymbolsHtml() {
-  const DC = (typeof DEPTH_RGB !== 'undefined') ? DEPTH_RGB : { 1:[0,207,255],2:[168,85,247],3:[255,77,184],4:[255,140,66],5:[255,210,74] };
-  const dot = (rgb) => `<i class="lg-dot" style="background:rgb(${rgb[0]},${rgb[1]},${rgb[2]})"></i>`;
-  const depthMode = (typeof _colorScheme !== 'undefined' && _colorScheme === 'depth');
   const S = {
     ringDash: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2.2 2.2"/></svg>`,
   };
@@ -284,13 +281,8 @@ function _legendSymbolsHtml() {
     wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
   };
   const glow = (c) => `<span class="lg-glow" style="background:radial-gradient(circle, ${c} 0%, transparent 70%)"></span>`;
-  const colorSec = depthMode
-    ? `<div class="lg-row">${dot(DC[1])}<span># · 1단계 헤딩</span></div>`
-      + `<div class="lg-row">${dot(DC[2])}<span>## · 2단계</span></div>`
-      + `<div class="lg-row">${dot(DC[3])}<span>### · 3단계</span></div>`
-      + `<div class="lg-row">${dot(DC[4])}<span>#### · 4단계</span></div>`
-      + `<div class="lg-row">${dot([245,247,250])}<span>페이지 · DB · 최상위</span></div>`
-    : `<div class="lg-note"><b>노드별:</b> 노드마다 색상 변화. <b>깊이별:</b> 헤딩 레벨(#~####)에 따라 색상 변화</div>`;
+  const colorSec = `<div class="lg-row lg-tool"><span><b>노드별</b>: 노드마다 색상 변화</span></div>`
+    + `<div class="lg-row lg-tool"><span><b>깊이별</b>: 헤딩 레벨(#~####)에 따라 색상 변화</span></div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">노드 모양</div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendShapeImg('star8')}</span><span>페이지 (최상위)</span></div>`
