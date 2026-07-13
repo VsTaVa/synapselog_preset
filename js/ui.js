@@ -33,7 +33,7 @@ function toggleFavorite(pageId) {
   refreshSidebarRender();
 }
 
-// ── 노드 북마크 (켜면 주황색 허브로 강조) ─────────────────────────────
+// ── 노드 북마크 (켜면 제목이 주황색) ─────────────────────────────
 // 안정 키로 저장: 노션 노드는 notionBlockId, 그 외는 노드 id
 let _bookmarkedKeys = new Set((() => { try { return JSON.parse(localStorage.getItem('snlog_bookmarks') || '[]'); } catch(e) { return []; } })());
 function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
@@ -216,24 +216,6 @@ function toggleConnectMode() {
   isStable = false;
 }
 
-// 노드 모드 (편집+탐색 통합) 토글
-function toggleMultiSelectMode() {
-  const cb = document.getElementById('multiselect-toggle-input');
-  _multiSelectMode = cb ? cb.checked : !_multiSelectMode;
-  if (!_multiSelectMode && typeof clearAllModes === 'function') clearAllModes();
-  applyModeCursor();
-  isStable = false;
-}
-
-// 노드 모드 커서: 주황 손가락
-function _selectModeCursor() {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32'><path fill='%23ed7000' d='M12 2a2 2 0 0 0-2 2v12L8.5 14a2.2 2.2 0 0 0-3.1 3.1l4.5 6A6 6 0 0 0 14.7 25H19a6 6 0 0 0 6-6v-7a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0V4a2 2 0 0 0-1-2z'/></svg>`;
-  return `url("data:image/svg+xml,${svg}") 10 2, pointer`;
-}
-function _modeCursor() {
-  if (_multiSelectMode) return _selectModeCursor();
-  return '';
-}
 // 노드 색상 표현 전환: 'node'=노드별 색, 'depth'=헤딩 깊이별 색
 // ── 범례(그래프 기호 설명) 오버레이 ───────────────────────────────────
 let _legendOpen = (() => { try { return localStorage.getItem('snlog_legend_open') === '1'; } catch (e) { return false; } })();
@@ -384,15 +366,6 @@ function syncLayoutButtons() {
     const el = document.getElementById(ids[k]);
     if (el) el.classList.toggle('active', _layoutMode === k);
   });
-}
-
-// 모드 커서를 전역 스타일(!important)로 주입 → 스위치/사이드바 위에서도 즉시 반영
-function applyModeCursor() {
-  let st = document.getElementById('mode-cursor-style');
-  if (!st) { st = document.createElement('style'); st.id = 'mode-cursor-style'; document.head.appendChild(st); }
-  const c = _modeCursor();
-  st.textContent = c ? `*, body { cursor: ${c} !important; }` : '';
-  if (canvas && !c) canvas.style.cursor = 'default';
 }
 
 // 수동연결 = A 본문에 [B](B의 노션URL) 자동 작성 → ID 기반 링크 엣지
@@ -593,7 +566,7 @@ function _editToolsHtml(node) {
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래에 (제목 없음) 하위 노드를 추가합니다">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 제목·본문을 노션에서 다시 가져옵니다">${syncIcon} 노드 동기화</button>`;
   if (!isLocalLike && (node.notionBlockId || node.sourcePageId)) html += `<button onclick="multiSelectOpenNotion()" title="이 노드를 노션에서 엽니다 (페이지로 이동 후 블록 위치로 스크롤)">${notionIcon} 노션에서 보기</button>`;
-  html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 그래프에서 주황색 허브로 빛납니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
+  html += `<button onclick="multiSelectBookmark()" title="이 노드를 북마크합니다. 켜면 제목이 주황색으로 표시됩니다">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="이 노드를 삭제합니다. 하위 노드가 있으면 상위로 옮겨집니다 (노션 노드는 영구 삭제)">${trashIcon} 노드 삭제</button>`;
   return html;
 }
@@ -2778,7 +2751,7 @@ canvas.addEventListener('mousemove', e => {
   if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
   const n = getNodeAt(e.clientX, e.clientY);
   hoveredNode = n;
-  if (!_multiSelectMode) canvas.style.cursor = n ? 'pointer' : 'default';
+  canvas.style.cursor = n ? 'pointer' : 'default';
   if (n && n.level > 0) {
     tooltip.textContent = n.label; tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX + 14) + 'px'; tooltip.style.top = (e.clientY - 32) + 'px';
@@ -2813,15 +2786,13 @@ canvas.addEventListener('mouseup', e => {
     n.fixed = !n.fixed;
     if (!n.fixed) { n.vx = 0; n.vy = 0; }
     unfreezeSubtree(n); saveFixedPositions(); isStable = false;
-  } else if (elapsed < 150 && n && n === mouseDownNode && _multiSelectMode) {
-    toggleMultiSelect(n);
   } else if (elapsed < 150 && n && n === mouseDownNode) {
     clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
   } else if (elapsed < 150 && !n) {
     clearAllModes();
   }
   if (drag && drag.fixed) saveFixedPositions();
-  drag = null; isPanning = false; applyModeCursor();
+  drag = null; isPanning = false;
 });
 
 function clearAllModes() {
@@ -2952,8 +2923,6 @@ canvas.addEventListener('touchend', e => {
     const n = mouseDownNode;
     if (elapsed < 300 && n && _connectMode && n.level > 0) {
       handleConnectClick(n);
-    } else if (elapsed < 300 && n && _multiSelectMode) {
-      toggleMultiSelect(n);
     } else if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {

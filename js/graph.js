@@ -24,7 +24,7 @@ let _pageAnchors = null, _clusterSig = -1; // 클러스터 모드: 페이지별 
 let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
-let _multiSelected = [], _isolateActive = false, _multiSelectMode = false;
+let _multiSelected = [], _isolateActive = false;
 let _pathConnectors = [];
 let _satelliteRemovedEdges = [];
 
