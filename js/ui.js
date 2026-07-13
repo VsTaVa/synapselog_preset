@@ -346,18 +346,17 @@ function _legendToolsHtml() {
 }
 function _legendAiHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
+  return `<div class="lg-note lg-note-top">무료 <b>제미나이 API 키</b> 필요</div>`
+    + `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
     + row('노드 요약', '선택 노드(하위·연결 포함) 핵심 정리')
     + row('연결 추천', '관련 노드를 찾아 연결 제안')
     + row('본문 다듬기', '선택 노드 글을 문법·문장 교정')
-    + row('링크 가져오기', '웹·유튜브(자막)를 마크다운 임시 노드로')
-    + row('그래프 질문', '키워드로 물으면 노드 내용 근거로 답변')
+    + row('링크 가져오기', '웹·유튜브(자막)를 시각화')
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">쓰는 법</div>`
     + row('자연어', '노드 선택 후 "요약해줘 · 연결해줘 · 다듬어줘"')
     + row('명령어', '/Node Summary · /Node Link · /Node Edit · /Import')
-    + `</div>`
-    + `<div class="lg-note">무료 <b>제미나이 API 키</b>가 필요해요 (설정에서 입력).</div>`;
+    + `</div>`;
 }
 
 function setColorScheme(mode) {
