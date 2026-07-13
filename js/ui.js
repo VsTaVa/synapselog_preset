@@ -812,6 +812,20 @@ async function aiImportUrl(url) {
 // ── AI 대화 (그래프 검색 기반) ────────────────────────────────────────
 // 질문 → 그래프 노드 키워드 검색 → 상위 노드 텍스트만 제미나이에 넘겨 답변.
 let _aiChat = [];
+// 로컬 저장 모드(_useLocalStorage)일 때만 대화 기록을 localStorage에 유지 (텍스트만)
+function _saveAiChat() {
+  if (!_useLocalStorage) return;
+  try { localStorage.setItem('snlog_aichat', JSON.stringify(_aiChat.slice(-60).map(m => ({ id: m.id, role: m.role, text: m.text })))); } catch (e) {}
+}
+(function _restoreAiChat() {
+  try {
+    if (!_useLocalStorage) return;
+    const s = localStorage.getItem('snlog_aichat');
+    if (!s) return;
+    const arr = JSON.parse(s);
+    if (Array.isArray(arr)) _aiChat = arr.filter(m => m && m.text && !/[⏳…]/.test(m.text)).map(m => ({ id: m.id, role: m.role, text: m.text, refs: [], suggestions: null, chips: null }));
+  } catch (e) {}
+})();
 
 // 불용어(질문에서 흔히 나오지만 검색 노이즈인 단어)
 const _AI_STOPWORDS = new Set(['그리고','그러나','하지만','그래서','또는','대해','대한','관련','알려','알려줘','설명','설명해','정리','정리해','무엇','뭐','뭐야','뭔','뭔데','어떤','어떻게','어때','왜','언제','어디','누구','정도','그것','이것','저것','때문','통해','위해','있는','있어','없어','해줘','해','줘','좀','것','수','및','내','나','너','알고','싶어','싶은데','관해','관하여','the','a','an','of','to','is','are','and','or','what','how','why','me','my','about','please','tell','give']);
@@ -958,12 +972,14 @@ function _aiChatPush(role, text, refs, suggestions, chips) {
   const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
   _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null, chips: chips || null });
   _renderAiChat();
+  _saveAiChat();
   return id;
 }
 function _aiChatReplace(id, text, refs, suggestions, refine, retry) {
   const m = _aiChat.find(x => x.id === id);
   if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; if (refine !== undefined) m.refine = refine; m.retry = (typeof retry === 'function') ? retry : null; }
   _renderAiChat();
+  _saveAiChat();
 }
 
 // AI 다듬기 '적용' → 노드를 편집 모드로 열고 다듬은 텍스트 로드(최종 저장은 사용자가 [저장])
@@ -1458,16 +1474,23 @@ function openRailSection(name) {
 }
 
 // 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
+// 노드 섹션: 북마크 + 최근 본 노드
+let _recentNodes = [];
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
   const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
-  const list = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
-  if (!list.length) {
-    el.innerHTML = `<div class="bm-empty">아직 북마크한 노드가 없어요.<br>노드를 선택하고 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
-    return;
-  }
-  el.innerHTML = list.map(n => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${bmIcon}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`).join('');
+  const clockIc = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
+  const rowHtml = (n, ic) => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${ic}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`;
+  const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
+  const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
+  let html = `<div class="bm-subtitle">북마크</div>`;
+  html += bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
+    : `<div class="bm-empty">노드 선택 후 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
+  html += `<div class="bm-subtitle bm-subtitle-gap">최근 본 노드</div>`;
+  html += recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
+    : `<div class="bm-empty">아직 없어요.</div>`;
+  el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
       const n = nodeMap[row.dataset.nid];
@@ -2443,6 +2466,13 @@ function showPanel() {
 
 function openPanel(n) {
   _activeNode = n;
+  // 최근 본 노드 추적 (노드 섹션용)
+  if (n && n.id && typeof _recentNodes !== 'undefined') {
+    _recentNodes = _recentNodes.filter(id => id !== n.id);
+    _recentNodes.unshift(n.id);
+    if (_recentNodes.length > 12) _recentNodes.length = 12;
+    if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
+  }
   const _wasOpen = detailPanel.classList.contains('open');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
   let added = false;
@@ -2540,6 +2570,10 @@ function doSearch(kw) {
       const chips = [...directMatches].map(id => nodeMap[id]).filter(Boolean).slice(0, 60);
       resultsEl.innerHTML = chips.map(n => createNodeChip(n)).join('');
       resultsEl.style.display = chips.length ? 'flex' : 'none';
+      // 검색칩 클릭 → 그 노드로 카메라 이동 (패널 열기는 전역 칩 핸들러가 처리)
+      resultsEl.querySelectorAll('.node-chip[data-nid]').forEach(el => {
+        el.addEventListener('click', () => { const nn = nodeMap[el.dataset.nid]; if (nn && typeof focusViewOnNode === 'function') focusViewOnNode(nn); });
+      });
     }
     function getAncestors(nodeId) {
       const ancestors = []; let cur = nodeId;
