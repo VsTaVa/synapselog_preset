@@ -519,9 +519,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-input-row { display: flex; align-items: center; gap: 7px; }
 #aichat-cmd { all: unset; cursor: pointer; color: rgba(255,255,255,0.5); font-size: 15px; padding: 0 4px; flex-shrink: 0; display: inline-block; transform: rotate(18deg); }
 .aichat-bar { flex: 1; min-width: 0; flex-wrap: nowrap; align-items: center; }
-.aichat-bar-main { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 6px; flex: 1; min-width: 0; }
-#aichat-input { flex: 1 1 40%; min-width: 0; padding-top: 1.5px; }
-.aichat-tokens { max-width: 100%; align-self: flex-start; }
+.aichat-bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+#aichat-input { flex: 1; min-width: 0; }
+/* 노드칩은 입력란 위 별도 줄에 (텍스트와 겹치지 않게) */
+.aichat-tokens { order: -1; flex-basis: 100%; max-width: 100%; flex-wrap: wrap; margin-bottom: 4px; overflow: visible; max-height: 84px; overflow-y: auto; }
 #aichat-send { flex-shrink: 0; align-self: center; }
 .aichat-help { padding: 8px 2px; color: rgba(255,255,255,0.85); font-size: 12px; line-height: 1.6; }
 .aichat-help-title { color: #ed7000; font-weight: 700; margin-bottom: 12px; font-size: 12.5px; }
