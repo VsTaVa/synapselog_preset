@@ -252,10 +252,9 @@ function applyLegendState() {
 function renderLegendBody() {
   const body = document.getElementById('legend-body');
   if (!body) return;
-  const icSym = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
-  const icTool = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
-  const tab = (id, ic, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')"><span class="lg-tab-ic">${ic}</span><span class="lg-tab-lbl">${label}</span></button>`;
-  const tabs = `<div class="lg-tabs">${tab('symbols', icSym, '기호')}${tab('tools', icTool, '도구')}</div>`;
+  const tocIc = `<div class="lg-toc-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg></div>`;
+  const tab = (id, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')">${label}</button>`;
+  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}</div>`;
   const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
     + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
     + _legendSymbolsHtml()
