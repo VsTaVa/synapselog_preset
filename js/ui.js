@@ -1189,16 +1189,19 @@ async function sendAiChat() {
 
 // 일반 대화 — 그래프 검색 없이 이전 맥락을 이어서 답(글 함께 다듬기)
 function _aiConverse(q) {
+  const sel = (_multiSelected || []).slice();
   const hist = _aiChat
     .filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|넣는 중|넣었어요/.test(m.text))
     .slice(-8)
     .map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
-  _aiChatPush('user', q);
+  const nodeCtx = sel.map(n => `## ${(n.label || '(제목 없음)').trim()}\n${(n.desc || '').trim().slice(0, 600)}`).join('\n\n');
+  _aiChatPush('user', q, null, null, sel.length ? sel : null);
+  if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
   const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
   const run = async () => {
     _aiChatReplace(waitId, '생각하는 중… ⏳', []);
     try {
-      const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
+      const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${nodeCtx ? '\n\n[사용자가 첨부한 노드]\n' + nodeCtx : ''}${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
       const ans = await geminiGenerate(prompt);
       _aiChatReplace(waitId, ans, []);
     } catch (e) {
@@ -1210,13 +1213,16 @@ function _aiConverse(q) {
 
 // 검색(RAG) — 키워드 추출 → 노드 검색 → 근거로 답변
 function _aiAnswerRAG(q) {
-  _aiChatPush('user', q);
+  const sel = (_multiSelected || []).slice();
+  _aiChatPush('user', q, null, null, sel.length ? sel : null);
+  if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
   const waitId = _aiChatPush('ai', '검색 중… ⏳');
   const run = async () => {
     _aiChatReplace(waitId, '검색 중… ⏳', []);
     try {
       const searchQuery = await _aiExtractKeywords(q);
-      const matched = _aiSearchNodes(searchQuery, 6);
+      let matched = _aiSearchNodes(searchQuery, 6);
+      if (sel.length) { const ids = new Set(matched.map(n => n.id)); matched = [...sel.filter(n => !ids.has(n.id)), ...matched].slice(0, 8); }
       const context = matched.map((n, i) => {
         const body = (n.desc || '').trim().slice(0, 500);
         return `[${i + 1}] ${(n.label || '(제목 없음)').trim()}${body ? '\n' + body : ''}`;
