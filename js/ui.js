@@ -3250,10 +3250,10 @@ function openSettings() {
   ['toggleLabels'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
   ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
-  ['shortcuts'].forEach(id => {
+  ['shortcuts', 'storage'].forEach(id => {
     const saved = localStorage.getItem('snlog_sec_' + id), body = document.getElementById('section-' + id), arrow = document.getElementById('arrow-' + id);
     if (!body) return;
-    const isOpen = saved === '1';
+    const isOpen = (id === 'storage') ? (saved !== '0') : (saved === '1'); // 저장&캐시는 기본 펼침, 단축키는 기본 접힘
     body.style.display = isOpen ? '' : 'none';
     if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
   });
