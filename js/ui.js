@@ -2697,6 +2697,7 @@ function _popularKeywords(topN) {
     const seen = new Set();
     raw.forEach(w => {
       if (w.length < 2 || _AI_STOPWORDS.has(w)) return;
+      if (/^\d+$/.test(w)) return; // 순수 숫자(날짜 조각 등)는 키워드에서 제외
       let s = w;
       if (/[가-힣]/.test(w) && w.length >= 3) s = _aiStem(w);
       if (s.length < 2 || _AI_STOPWORDS.has(s)) return;
@@ -2712,7 +2713,7 @@ function renderPopularKeywords() {
   if (searchKeyword) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const kws = _popularKeywords(12);
   if (!kws.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="sp-title">연관 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
+  el.innerHTML = `<div class="sp-title">주요 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
   el.style.display = 'block';
   el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
 }
