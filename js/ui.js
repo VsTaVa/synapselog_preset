@@ -1027,7 +1027,13 @@ function _matchNodeIntent(raw) {
   return null;
 }
 // 명령어 메뉴는 body에 붙여 fixed로 띄운다 (사이드바 overflow/transform에 안 잘리게)
-let _aiCmdMenuEl = null;
+let _aiCmdMenuEl = null, _aiCmdItems = [], _aiCmdSel = 0;
+function _renderAiCmdSel() {
+  if (!_aiCmdMenuEl) return;
+  _aiCmdMenuEl.querySelectorAll('.ai-cmd-item').forEach((el, i) => el.classList.toggle('sel', i === _aiCmdSel));
+  const cur = _aiCmdMenuEl.querySelector('.ai-cmd-item.sel');
+  if (cur) cur.scrollIntoView({ block: 'nearest' });
+}
 function _aiCmdMenuOutside(e) {
   const btn = document.getElementById('aichat-cmd');
   if (_aiCmdMenuEl && !_aiCmdMenuEl.contains(e.target) && !(btn && btn.contains(e.target))) _closeAiCmdMenu();
@@ -1043,7 +1049,8 @@ function _showAiCmdMenu(list) {
   if (!bar) return;
   const menu = document.createElement('div');
   menu.className = 'aichat-cmd-menu';
-  menu.innerHTML = list.map(c => `<button class="ai-cmd-item" data-cmd="${escapeHtml(c.name)}"><span class="ai-cmd-name">${escapeHtml(c.name)}</span><span class="ai-cmd-hint">${escapeHtml(c.hint)}</span></button>`).join('');
+  _aiCmdItems = list; _aiCmdSel = 0;
+  menu.innerHTML = list.map((c, i) => `<button class="ai-cmd-item${i === 0 ? ' sel' : ''}" data-i="${i}" data-cmd="${escapeHtml(c.name)}"><span class="ai-cmd-name">${escapeHtml(c.name)}</span><span class="ai-cmd-hint">${escapeHtml(c.hint)}</span></button>`).join('');
   document.body.appendChild(menu);
   const r = bar.getBoundingClientRect();
   menu.style.left = r.left + 'px';
@@ -1051,7 +1058,10 @@ function _showAiCmdMenu(list) {
   menu.style.bottom = (window.innerHeight - r.top + 6) + 'px';
   // 바 위쪽 여유공간에 높이를 맞춰서, 넘치면 화면 밖으로 잘리지 않고 스크롤되게
   menu.style.maxHeight = Math.max(120, Math.min(r.top - 14, window.innerHeight * 0.5)) + 'px';
-  menu.querySelectorAll('.ai-cmd-item').forEach(el => { el.onmousedown = (e) => { e.preventDefault(); _pickAiCommand(el.dataset.cmd); }; });
+  menu.querySelectorAll('.ai-cmd-item').forEach(el => {
+    el.onmousedown = (e) => { e.preventDefault(); _pickAiCommand(el.dataset.cmd); };
+    el.onmouseenter = () => { _aiCmdSel = +el.dataset.i; _renderAiCmdSel(); };
+  });
   _aiCmdMenuEl = menu;
   setTimeout(() => document.addEventListener('mousedown', _aiCmdMenuOutside), 0);
 }
@@ -1164,6 +1174,12 @@ function onAiKeydown(e) {
     if (e.key === 'ArrowUp') { e.preventDefault(); _wikiSel = Math.max(_wikiSel - 1, 0); _renderWikiSel(); return; }
     if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); _applyAiWikiSelection(input); return; }
     if (e.key === 'Escape') { e.preventDefault(); _hideWikiMenu(); return; }
+  }
+  if (_aiCmdMenuEl && _aiCmdItems.length) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _aiCmdSel = Math.min(_aiCmdSel + 1, _aiCmdItems.length - 1); _renderAiCmdSel(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); _aiCmdSel = Math.max(_aiCmdSel - 1, 0); _renderAiCmdSel(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); const c = _aiCmdItems[_aiCmdSel]; if (c) _pickAiCommand(c.name); return; }
+    if (e.key === 'Escape') { e.preventDefault(); _closeAiCmdMenu(); return; }
   }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiChat(); return; }
   if (e.key === 'Backspace' && _aiActiveCmd && !input.value) { e.preventDefault(); _exitCmdMode(); }
