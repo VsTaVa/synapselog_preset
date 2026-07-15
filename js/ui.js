@@ -684,7 +684,7 @@ async function aiSummarizeNodes(nodeList, userText) {
   const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
   const run = async () => {
     _aiChatReplace(waitId, '요약하는 중… ⏳', []);
-    try { const summary = await geminiSummarize(combined); _aiChatReplace(waitId, summary, list); }
+    try { const summary = await geminiSummarize(combined); _aiChatReplace(waitId, summary, list); if (typeof highlightAiNodes === 'function') highlightAiNodes(list); }
     catch (e) { _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run); }
   };
   run();
@@ -721,6 +721,7 @@ async function aiSuggestLinks(node, userText) {
       });
       if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드가 없었어요.', [], null); return; }
       _aiChatReplace(waitId, '아래 노드와 연결을 추천해요:', [], suggestions);
+      if (typeof highlightAiNodes === 'function') highlightAiNodes([node].concat(suggestions.map(s => nodeMap[s.bId]).filter(Boolean)));
     } catch (e) {
       _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
     }
@@ -1377,6 +1378,7 @@ function _aiAnswerRAG(q) {
         : `너는 SynapseLog(지식 그래프 도구)의 AI 조수야. 한국어로 답해줘. 관련된 노드는 못 찾았어.\n- 도구 사용법/기능을 묻는 질문이면 [도구 안내]를 근거로 답해.\n- 그 외에는 그래프에 근거가 없다는 점을 밝히고 일반적으로 짧게만 답해.\n\n[도구 안내]\n${_SYNAPSE_GUIDE}\n\n[질문]\n${q}`;
       const ans = await geminiGenerate(prompt);
       _aiChatReplace(waitId, ans, matched);
+      if (matched.length && typeof highlightAiNodes === 'function') highlightAiNodes(matched);
     } catch (e) {
       _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
     }
@@ -2833,6 +2835,20 @@ function doSearch(kw) {
   isStable = false;
 }
 let _searchFitTimer = null;
+
+// AI 근거/추천 노드들을 그래프에서 하이라이트 (검색 하이라이트 메커니즘 재활용)
+function highlightAiNodes(nodeList) {
+  const arr = (nodeList || []).filter(Boolean);
+  if (!arr.length || typeof searchMatches === 'undefined') return;
+  searchKeyword = ' '; // 하이라이트 활성 마커(화면 표시엔 안 씀)
+  searchMatches.clear(); searchDirect.clear();
+  const anc = (id) => { const a = []; let cur = id; for (let i = 0; i < 12; i++) { const pe = edges.find(e => e.to === cur && !e.weakLink); if (!pe) break; a.push(pe.from); cur = pe.from; } return a; };
+  arr.forEach(n => { if (!n || !n.id) return; searchDirect.add(n.id); searchMatches.add(n.id); anc(n.id).forEach(id => searchMatches.add(id)); });
+  const cb = (typeof clearBtn !== 'undefined' && clearBtn) ? clearBtn : document.getElementById('clear-btn');
+  if (cb) cb.style.display = 'block';
+  isStable = false;
+  clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(() => { try { fitGraph(); } catch (e) {} }, 320);
+}
 
 searchInput.addEventListener('input', e => doSearch(e.target.value));
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { doSearch(searchInput.value.trim()); } });
