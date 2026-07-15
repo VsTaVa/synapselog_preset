@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260713w">
+<link rel="stylesheet" href="style.css?v=20260713x">
 </head>
 <body>
 <div id="login-screen">
@@ -130,7 +130,7 @@
         <span class="aichat-bar-divider"></span>
         <div class="aichat-bar-main">
           <div id="aichat-tokens" class="aichat-tokens"></div>
-          <textarea id="aichat-input" rows="1" autocomplete="off" placeholder="키워드 입력하여 AI와 대화 시작" data-i18n-ph="ai-chat-ph" oninput="onAiInput(this)" onkeydown="onAiKeydown(event)"></textarea>
+          <textarea id="aichat-input" rows="1" autocomplete="off" placeholder="키워드 입력하여 AI와 대화 시작" data-i18n-ph="ai-chat-ph" oninput="onAiInput(this)" onkeydown="onAiKeydown(event)" onblur="setTimeout(_hideWikiMenu, 150)"></textarea>
         </div>
         <button id="aichat-send" aria-label="보내기" onclick="sendAiChat()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ed7000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="rgba(237,112,0,0.15)"/></svg></button>
       </div>
@@ -232,9 +232,9 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260713w" defer></script>
-<script src="js/graph.js?v=20260713w" defer></script>
-<script src="js/notion-client.js?v=20260713w" defer></script>
-<script src="js/ui.js?v=20260713w" defer></script>
+<script src="js/utils.js?v=20260713x" defer></script>
+<script src="js/graph.js?v=20260713x" defer></script>
+<script src="js/notion-client.js?v=20260713x" defer></script>
+<script src="js/ui.js?v=20260713x" defer></script>
 </body>
 </html>

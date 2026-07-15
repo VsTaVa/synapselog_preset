@@ -1109,13 +1109,68 @@ function _deselectAiNode(id) {
   if (typeof renderMultiSelectMenu === 'function') renderMultiSelectMenu();
   isStable = false;
 }
+// AI 입력(textarea)에서 '[' → 노드 자동완성. 선택하면 그 노드를 대화에 첨부(칩)
+function _aiWikiQueryAt(ta) {
+  if (!ta || ta.selectionStart == null || ta.selectionStart !== ta.selectionEnd) return null;
+  const pos = ta.selectionStart;
+  const m = ta.value.slice(0, pos).match(/\[([^\[\]\n]*)$/);
+  if (!m) return null;
+  return { start: pos - m[0].length, end: pos, query: m[1] };
+}
+function _updateAiWikiMenu(ta) {
+  if (typeof nodes === 'undefined') { _hideWikiMenu(); return; }
+  const q = _aiWikiQueryAt(ta);
+  if (!q) { _hideWikiMenu(); return; }
+  const query = q.query.trim().toLowerCase();
+  let cands = nodes.filter(n => n.visible && n.label && n.label.trim());
+  if (query) cands = cands.filter(n => n.label.toLowerCase().includes(query));
+  cands.sort((a, b) => {
+    const as = a.label.toLowerCase().startsWith(query) ? 0 : 1, bs = b.label.toLowerCase().startsWith(query) ? 0 : 1;
+    return as - bs || a.label.length - b.label.length;
+  });
+  cands = cands.slice(0, 8);
+  if (!cands.length) { _hideWikiMenu(); return; }
+  _wikiItems = cands; _wikiSel = 0; _wikiRow = ta;
+  const menu = _ensureWikiMenu();
+  menu.innerHTML = cands.map((n, i) => {
+    const ctx = _wikiCtxLabel(n);
+    return `<div class="wl-item${i === 0 ? ' sel' : ''}" data-i="${i}"><span class="wl-label">${_wikiEsc(n.label)}</span>${ctx ? `<span class="wl-ctx">${_wikiEsc(ctx)}</span>` : ''}</div>`;
+  }).join('');
+  menu.querySelectorAll('.wl-item').forEach(el => {
+    el.addEventListener('mousedown', e => { e.preventDefault(); _wikiSel = +el.dataset.i; _applyAiWikiSelection(ta); });
+  });
+  menu.style.display = 'block';
+  const r = ta.getBoundingClientRect();
+  const mw = menu.offsetWidth || 200, mh = menu.offsetHeight || 200;
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8)) + 'px';
+  menu.style.top = Math.max(8, r.top - mh - 6) + 'px'; // 입력란이 하단이라 위로 띄움
+}
+function _applyAiWikiSelection(ta) {
+  const q = _aiWikiQueryAt(ta), n = _wikiItems[_wikiSel];
+  if (!q || !n) { _hideWikiMenu(); return; }
+  ta.value = ta.value.slice(0, q.start) + ta.value.slice(q.end); // '[query' 트리거 제거
+  ta.setSelectionRange(q.start, q.start);
+  if (typeof _autoGrowAiInput === 'function') _autoGrowAiInput(ta);
+  if (!_multiSelected.some(x => x.id === n.id)) { _multiSelected.push(n); n.multiSelected = true; }
+  if (typeof _renderAiTokens === 'function') _renderAiTokens();
+  isStable = false;
+  _hideWikiMenu();
+  ta.focus();
+}
 function onAiKeydown(e) {
   const input = e.target;
+  if (_wikiMenu && _wikiMenu.style.display !== 'none' && _wikiRow === input) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _wikiSel = Math.min(_wikiSel + 1, _wikiItems.length - 1); _renderWikiSel(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); _wikiSel = Math.max(_wikiSel - 1, 0); _renderWikiSel(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); _applyAiWikiSelection(input); return; }
+    if (e.key === 'Escape') { e.preventDefault(); _hideWikiMenu(); return; }
+  }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiChat(); return; }
   if (e.key === 'Backspace' && _aiActiveCmd && !input.value) { e.preventDefault(); _exitCmdMode(); }
 }
 function onAiInput(el) {
   _autoGrowAiInput(el);
+  _updateAiWikiMenu(el);
   const v = el.value || '';
   const trimmed = v.trim();
   const exact = _AI_COMMANDS.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
