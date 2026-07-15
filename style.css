@@ -518,7 +518,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-bar { align-items: center; }
 /* 검색: 자주 나오는 키워드 칩 */
 #search-popular { display: none; margin-top: 10px; }
-#search-popular .sp-title { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: rgba(255,255,255,0.38); margin-bottom: 7px; }
+#search-popular .sp-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ed7000; margin-bottom: 9px; }
 #search-popular .sp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 #search-popular .sp-chip { font-size: 11.5px; font-family: inherit; padding: 3px 9px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); transition: background 0.13s, color 0.13s, border-color 0.13s; }
 #search-popular .sp-chip:hover { background: rgba(237,112,0,0.16); border-color: rgba(237,112,0,0.45); color: #ed7000; }

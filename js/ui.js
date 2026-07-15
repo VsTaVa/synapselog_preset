@@ -2712,7 +2712,7 @@ function renderPopularKeywords() {
   if (searchKeyword) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const kws = _popularKeywords(12);
   if (!kws.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="sp-title">자주 나오는 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
+  el.innerHTML = `<div class="sp-title">연관 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
   el.style.display = 'block';
   el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
 }
