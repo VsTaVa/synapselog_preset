@@ -1602,7 +1602,7 @@ function openRailSection(name) {
   document.querySelectorAll('#sidebar .rail-pane').forEach(el => el.classList.toggle('active', el.dataset.section === name));
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
-  if (name === 'search') setTimeout(() => document.getElementById('search-input')?.focus(), 60);
+  if (name === 'search') { setTimeout(() => document.getElementById('search-input')?.focus(), 60); if (typeof renderPopularKeywords === 'function') renderPopularKeywords(); }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
   if (name === 'bookmarks') renderBookmarkList();
 }
@@ -2686,6 +2686,37 @@ function addHistory(kw) {
 
 function deleteHistory(idx, e) { e.stopPropagation(); _searchHistory.splice(idx, 1); renderSearchHistory(); }
 
+// 그래프 노드 제목에서 자주 나오는 키워드 top N (문서빈도 기준, AI 없이 코드로)
+function _popularKeywords(topN) {
+  const freq = new Map();
+  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => {
+    if (!n.visible || n._aiSummary || !n.label) return;
+    let raw;
+    try { raw = (n.label.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); }
+    catch (e) { raw = (n.label.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
+    const seen = new Set();
+    raw.forEach(w => {
+      if (w.length < 2 || _AI_STOPWORDS.has(w)) return;
+      let s = w;
+      if (/[가-힣]/.test(w) && w.length >= 3) s = _aiStem(w);
+      if (s.length < 2 || _AI_STOPWORDS.has(s)) return;
+      if (seen.has(s)) return; seen.add(s); // 한 노드에서 같은 단어는 1회만
+      freq.set(s, (freq.get(s) || 0) + 1);
+    });
+  });
+  return [...freq.entries()].filter(e => e[1] >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, topN).map(e => e[0]);
+}
+function renderPopularKeywords() {
+  const el = document.getElementById('search-popular');
+  if (!el) return;
+  if (searchKeyword) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const kws = _popularKeywords(12);
+  if (!kws.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="sp-title">자주 나오는 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
+  el.style.display = 'block';
+  el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
+}
+
 function doSearch(kw) {
   searchKeyword = kw.trim().toLowerCase();
   searchMatches.clear();
@@ -2723,6 +2754,7 @@ function doSearch(kw) {
     if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
     clearBtn.style.display = 'none';
   }
+  if (typeof renderPopularKeywords === 'function') renderPopularKeywords();
   isStable = false;
 }
 let _searchFitTimer = null;
