@@ -39,7 +39,7 @@ function getBaseHue(label) {
 }
 
 function nodeR(level) {
-  const base = [10, 8, 6.5, 5.5, 4.5, 3.5][Math.min(level, 5)];
+  const base = [14, 10, 7.2, 5.2, 3.8, 2.8][Math.min(level, 5)];
   return base * (typeof CONFIG !== 'undefined' ? CONFIG.nodeSize : 1);
 }
 
