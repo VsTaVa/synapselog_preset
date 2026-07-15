@@ -668,7 +668,7 @@ function _aiExpandNodes(baseNodes) {
 
 // 노드들의 내용만 모아 AI 요약 → 좌측 AI 대화창에 표시 (노션엔 저장 안 함)
 // 상위 노드면 하위 전체 + 연결된 노드까지 포함해서 요약
-async function aiSummarizeNodes(nodeList) {
+async function aiSummarizeNodes(nodeList, userText) {
   const base = (nodeList || []).filter(Boolean);
   if (!base.length) return;
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
@@ -680,7 +680,7 @@ async function aiSummarizeNodes(nodeList) {
     return body ? `## ${title}\n${body}` : `## ${title}`;
   }).join('\n\n');
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', '/Node Summary', null, null, base);
+  _aiChatPush('user', (userText && userText.trim()) || '/Node Summary', null, null, base);
   const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
   const run = async () => {
     _aiChatReplace(waitId, '요약하는 중… ⏳', []);
@@ -691,7 +691,7 @@ async function aiSummarizeNodes(nodeList) {
 }
 
 // 노드 하나에 대해 AI가 연결하면 좋은 관련 노드를 제안 → 대화창에 '연결' 버튼으로 표시
-async function aiSuggestLinks(node) {
+async function aiSuggestLinks(node, userText) {
   if (!node) return;
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   // 이미 연결(구조·위키)된 노드 + 자기 자신 제외
@@ -700,7 +700,7 @@ async function aiSuggestLinks(node) {
   const query = (node.label || '') + ' ' + (node.desc || '').slice(0, 300);
   const cands = _aiSearchNodes(query, 16).filter(c => !connected.has(c.id)).slice(0, 8);
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', '/Node Link', null, null, [node]);
+  _aiChatPush('user', (userText && userText.trim()) || '/Node Link', null, null, [node]);
   if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드를 찾지 못했어요.'); return; }
   const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
   const baseText = `${(node.label || '(제목 없음)').trim()}\n${(node.desc || '').trim().slice(0, 400)}`;
@@ -739,7 +739,7 @@ function openAiActions(nodes) {
 }
 
 // 글 다듬기: 노드 본문을 AI가 정리 → 대화창에 미리보기 + [적용](편집 열기)
-async function aiRefineNode(node) {
+async function aiRefineNode(node, userText) {
   if (!node) return;
   if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
   const editable = node.local || (node.notionBlockId && node.notionParentId);
@@ -747,7 +747,7 @@ async function aiRefineNode(node) {
   const body = (node.desc || '').trim();
   if (!body) { toast('다듬을 본문이 없어요', { type: 'error' }); return; }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
-  _aiChatPush('user', '/Node Edit', null, null, [node]);
+  _aiChatPush('user', (userText && userText.trim()) || '/Node Edit', null, null, [node]);
   const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
   const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
   const run = async () => {
@@ -1170,10 +1170,10 @@ async function sendAiChat() {
     if (intent) {
       if (input) { input.value = ''; _autoGrowAiInput(input); }
       _hideAiCmdMenu();
-      if (intent === 'summary') { const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); return; }
+      if (intent === 'summary') { const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns, q); return; }
       if (_multiSelected.length !== 1) { toast('이 작업은 노드 1개만 선택해주세요', { type: 'error' }); return; }
       const n = _multiSelected[0]; clearMultiSelect();
-      if (intent === 'link') aiSuggestLinks(n); else aiRefineNode(n);
+      if (intent === 'link') aiSuggestLinks(n, q); else aiRefineNode(n, q);
       return;
     }
   }
@@ -3085,7 +3085,7 @@ const LANG = {
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
     's-api':'Notion API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
-    's-aikey':'AI API 키','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
+    's-aikey':'AI API','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
     's-imgsize':'이미지 저장 크기',
     's-shortcuts':'키보드 단축키','s-shortcuts-hint':'버튼 클릭 후 원하는 키 입력',
     'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
