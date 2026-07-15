@@ -1283,6 +1283,79 @@ function _aiConverse(q) {
 }
 
 // 검색(RAG) — 키워드 추출 → 노드 검색 → 근거로 답변
+// ── 임베딩 의미검색 (노드 제목 벡터를 캐시 → 질문과 코사인 유사도) ─────
+const _EMBED_MODEL = 'text-embedding-004';
+const _EMBED_DIM = 256;
+let _titleEmbeds = {}; // titleKey -> number[]
+function _titleKey(s) { return (s || '').trim().toLowerCase(); }
+function _saveEmbeds() {
+  if (!_useLocalStorage) return;
+  try {
+    const obj = {};
+    Object.keys(_titleEmbeds).forEach(k => { obj[k] = _titleEmbeds[k].map(x => Math.round(x * 10000) / 10000); });
+    localStorage.setItem('snlog_embeds', JSON.stringify(obj));
+  } catch (e) {}
+}
+(function _restoreEmbeds() {
+  try {
+    if (!_useLocalStorage) return;
+    const s = localStorage.getItem('snlog_embeds'); if (!s) return;
+    const obj = JSON.parse(s);
+    if (obj && typeof obj === 'object') Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) _titleEmbeds[k] = obj[k]; });
+  } catch (e) {}
+})();
+async function _embedTexts(texts) {
+  const out = [];
+  for (let i = 0; i < texts.length; i += 100) {
+    const chunk = texts.slice(i, i + 100);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${_EMBED_MODEL}:batchEmbedContents?key=${encodeURIComponent(_savedAiKey)}`;
+    const body = { requests: chunk.map(t => ({ model: `models/${_EMBED_MODEL}`, content: { parts: [{ text: t }] }, outputDimensionality: _EMBED_DIM })) };
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = new Error('embed HTTP ' + res.status); e.status = res.status; throw e; }
+    const data = await res.json();
+    (data.embeddings || []).forEach(emb => out.push((emb && emb.values) || null));
+  }
+  return out;
+}
+async function _embedOne(text) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${_EMBED_MODEL}:embedContent?key=${encodeURIComponent(_savedAiKey)}`;
+  const body = { model: `models/${_EMBED_MODEL}`, content: { parts: [{ text }] }, outputDimensionality: _EMBED_DIM };
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) { const e = new Error('embed HTTP ' + res.status); e.status = res.status; throw e; }
+  const data = await res.json();
+  return (data.embedding && data.embedding.values) || null;
+}
+function _cosine(a, b) {
+  let dot = 0, na = 0, nb = 0; const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+  return (na && nb) ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+}
+// 캐시에 없는 제목만 임베딩(증분) → 대상 노드 배열 반환
+async function _ensureNodeEmbeds() {
+  const targets = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.label && n.label.trim());
+  const missing = [...new Set(targets.map(n => n.label.trim()))].filter(t => !_titleEmbeds[_titleKey(t)]);
+  if (missing.length) {
+    const vecs = await _embedTexts(missing);
+    missing.forEach((t, i) => { if (vecs[i] && vecs[i].length) _titleEmbeds[_titleKey(t)] = vecs[i]; });
+    _saveEmbeds();
+  }
+  return targets;
+}
+// 질문 → 임베딩 → 노드 제목과 코사인 유사도 → 상위 노드. 실패/저유사도면 null(폴백)
+async function _semanticSearchNodes(query, topN) {
+  if (!_savedAiKey) return null;
+  try {
+    const targets = await _ensureNodeEmbeds();
+    if (!targets.length) return null;
+    const qv = await _embedOne(query);
+    if (!qv) return null;
+    const scored = targets.map(n => { const e = _titleEmbeds[_titleKey(n.label)]; return { n, s: e ? _cosine(qv, e) : -1 }; });
+    scored.sort((a, b) => b.s - a.s);
+    const top = scored.slice(0, topN).filter(x => x.s > 0.25).map(x => x.n);
+    return top.length ? top : null;
+  } catch (e) { return null; }
+}
+
 function _aiAnswerRAG(q) {
   const sel = (_multiSelected || []).slice();
   _aiChatPush('user', q, null, null, sel.length ? sel : null);
@@ -1291,8 +1364,9 @@ function _aiAnswerRAG(q) {
   const run = async () => {
     _aiChatReplace(waitId, '검색 중… ⏳', []);
     try {
-      const searchQuery = await _aiExtractKeywords(q);
-      let matched = _aiSearchNodes(searchQuery, 6);
+      // 1순위: 임베딩 의미검색(제목 벡터 캐시). 실패/저유사도면 키워드+부분일치로 폴백
+      let matched = await _semanticSearchNodes(q, 6);
+      if (!matched) { const searchQuery = await _aiExtractKeywords(q); matched = _aiSearchNodes(searchQuery, 6); }
       if (sel.length) { const ids = new Set(matched.map(n => n.id)); matched = [...sel.filter(n => !ids.has(n.id)), ...matched].slice(0, 8); }
       const context = matched.map((n, i) => {
         const body = (n.desc || '').trim().slice(0, 500);
