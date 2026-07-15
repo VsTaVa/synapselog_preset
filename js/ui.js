@@ -1912,7 +1912,7 @@ function renderPaneContent(i, n) {
     if (target) return `<span class="wl-ref wl-chip" data-nid="${target.id}" style="${_chipColorStyle(target)}">${txt}</span>`;
     return `<a class="wl-ref wl-chip wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
-  if (searchKeyword && searchMatches.has(n.id)) {
+  if (searchKeyword && searchKeyword.trim() && searchMatches.has(n.id)) {
     const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
@@ -2840,7 +2840,7 @@ let _searchFitTimer = null;
 function highlightAiNodes(nodeList) {
   const arr = (nodeList || []).filter(Boolean);
   if (!arr.length || typeof searchMatches === 'undefined') return;
-  searchKeyword = ' '; // 하이라이트 활성 마커(화면 표시엔 안 씀)
+  searchKeyword = '\uE000'; // 하이라이트 활성 마커(텍스트엔 없는 문자 → 본문 오매칭 방지)
   searchMatches.clear(); searchDirect.clear();
   const anc = (id) => { const a = []; let cur = id; for (let i = 0; i < 12; i++) { const pe = edges.find(e => e.to === cur && !e.weakLink); if (!pe) break; a.push(pe.from); cur = pe.from; } return a; };
   arr.forEach(n => { if (!n || !n.id) return; searchDirect.add(n.id); searchMatches.add(n.id); anc(n.id).forEach(id => searchMatches.add(id)); });
@@ -3075,6 +3075,10 @@ canvas.addEventListener('mouseup', e => {
 });
 
 function clearAllModes() {
+  if (typeof searchKeyword !== 'undefined' && searchKeyword) {
+    if (typeof searchInput !== 'undefined' && searchInput) searchInput.value = '';
+    doSearch(''); // 검색/AI 하이라이트 해제 (배경 클릭 시)
+  }
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
