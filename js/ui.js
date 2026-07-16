@@ -1735,24 +1735,36 @@ function _computeHubs(topN) {
   return scored.filter(x => x.deg >= 2).slice(0, topN);
 }
 
-// 연결 제안: 캐시된 제목 임베딩끼리 코사인 유사도 → 아직 안 이어진 유사 노드쌍
-async function _computeLinkSuggestions(topN) {
-  const targets = await _ensureNodeEmbeds(); // 캐시에 없는 제목만 임베딩(증분)
-  const withVec = targets.filter(n => _titleEmbeds[_titleKey(n.label)]);
+// 제목 → 의미 토큰 집합(불용어·순수숫자 제외, 한글 어간 처리). _aiTerms 재활용.
+function _titleTokens(label) {
+  const set = new Set();
+  _aiTerms(label || '').forEach(variants => { const t = variants[0]; if (t && t.length >= 2 && !/^\d+$/.test(t)) set.add(t); });
+  return set;
+}
+
+// 연결 제안: 제목 키워드 겹침(공통 토큰 수 + Jaccard) → 아직 안 이어진 유사 노드쌍. API 없이 순수 계산(토큰 0).
+function _computeLinkSuggestions(topN) {
+  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.label && n.label.trim());
+  const toks = vis.map(n => ({ n, t: _titleTokens(n.label) })).filter(x => x.t.size);
   const connected = new Set();
   edges.forEach(e => { connected.add(e.from + '|' + e.to); connected.add(e.to + '|' + e.from); });
   const pairs = [];
-  for (let i = 0; i < withVec.length; i++) {
-    const a = withVec[i], va = _titleEmbeds[_titleKey(a.label)];
-    for (let j = i + 1; j < withVec.length; j++) {
-      const b = withVec[j];
-      if (connected.has(a.id + '|' + b.id)) continue;
-      if (_titleKey(a.label) === _titleKey(b.label)) continue;
-      const s = _cosine(va, _titleEmbeds[_titleKey(b.label)]);
-      if (s >= 0.55 && s < 0.985) pairs.push({ a, b, s });
+  for (let i = 0; i < toks.length; i++) {
+    const A = toks[i];
+    for (let j = i + 1; j < toks.length; j++) {
+      const B = toks[j];
+      if (connected.has(A.n.id + '|' + B.n.id)) continue;
+      if (_titleKey(A.n.label) === _titleKey(B.n.label)) continue;
+      let shared = 0; const terms = [];
+      A.t.forEach(t => { if (B.t.has(t)) { shared++; terms.push(t); } });
+      if (!shared) continue;
+      const union = A.t.size + B.t.size - shared;
+      const jac = union ? shared / union : 0;
+      if (shared < 2 && jac < 0.34) continue; // 공통 1개는 겹침 비율이 높을 때만
+      pairs.push({ a: A.n, b: B.n, shared, terms, s: jac });
     }
   }
-  pairs.sort((x, y) => y.s - x.s);
+  pairs.sort((x, y) => (y.shared - x.shared) || (y.s - x.s));
   const out = [], used = {};
   for (const p of pairs) {
     if ((used[p.a.id] || 0) >= 2 || (used[p.b.id] || 0) >= 2) continue; // 한 노드가 목록을 독점하지 않게
@@ -1775,41 +1787,25 @@ function renderInsights() {
     : `<div class="rail-empty">연결이 아직 부족</div>`;
   html += `</div>`;
 
-  // 연결 제안 (임베딩)
-  html += `<div class="insight-sec"><div class="rail-subhead">연결 제안 <span class="rail-hint">비슷한데 안 이어진 노드</span></div>`;
-  html += `<div id="insight-suggest-body">`;
-  if (_linkSuggestCache) html += _renderSuggestHtml(_linkSuggestCache);
-  else if (!_savedAiKey) html += `<div class="rail-empty">AI 키 필요 (설정 › 저장&캐시)</div>`;
-  else html += `<button class="insight-btn" onclick="runLinkSuggestions()">연결 제안 계산</button><div class="rail-note">임베딩 재사용 · 토큰 거의 없음</div>`;
-  html += `</div></div>`;
+  // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 즉시 계산)
+  _linkSuggestCache = _computeLinkSuggestions(10);
+  html += `<div class="insight-sec"><div class="rail-subhead">연결 제안 <span class="rail-hint">공통 키워드가 있는데 안 이어진 노드</span></div>`;
+  html += `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div></div>`;
 
   el.innerHTML = html;
 }
 
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
-  if (!list.length) return `<div class="rail-empty">비슷한 노드 없음</div><button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
+  if (!list.length) return `<div class="rail-empty">공통 키워드로 이을 노드 없음</div>`;
   return list.map((p, i) => {
-    const pct = Math.round(p.s * 100);
+    const terms = (p.terms || []).slice(0, 3).join(', ');
     return `<div class="insight-pair">
-      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge">${pct}%</span></div>
+      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge">${p.shared}</span></div>
+      ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
       <div class="insight-pair-acts"><button class="insight-mini-btn" onclick="insightConnect(${i})">연결</button><button class="insight-mini-btn ghost" onclick="insightShowPair(${i})">그래프</button></div>
     </div>`;
-  }).join('') + `<button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
-}
-
-async function runLinkSuggestions() {
-  if (_linkSuggestBusy) return;
-  if (!_savedAiKey) { toast('AI 키 필요 (설정 › 저장&캐시)', { type: 'error' }); return; }
-  _linkSuggestBusy = true;
-  const body = document.getElementById('insight-suggest-body');
-  if (body) body.innerHTML = `<div class="rail-empty">계산 중…</div>`;
-  try {
-    _linkSuggestCache = await _computeLinkSuggestions(8);
-    if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
-  } catch (e) {
-    if (body) body.innerHTML = `<div class="rail-empty">계산 실패 · ${escapeHtml(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : (e && e.message || String(e)))}</div><button class="insight-btn" onclick="runLinkSuggestions()">다시 시도</button>`;
-  } finally { _linkSuggestBusy = false; }
+  }).join('');
 }
 
 function insightShowPair(i) {
