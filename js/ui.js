@@ -1789,7 +1789,7 @@ function renderInsights() {
 
   let html = '';
   // 중심 노드 (연결 3개 초과, 최대 10)
-  html += `<div class="insight-sec"><div class="rail-subhead mt">중심 노드 <span class="rail-hint">연결 많은 핵심</span></div>`;
+  html += `<div class="insight-sec"><div class="rail-subhead mt">중심 노드</div>`;
   html += hubs.length
     ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
     : `<div class="rail-empty">연결 4개 이상 노드 없음</div>`;
@@ -1797,7 +1797,7 @@ function renderInsights() {
 
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
   _linkSuggestCache = _computeLinkSuggestions(5);
-  html += `<div class="insight-sec"><div class="rail-subhead mt">연결 제안 <span class="rail-hint">공통 키워드, 안 이어짐</span></div>`;
+  html += `<div class="insight-sec"><div class="rail-subhead mt">연결 제안</div>`;
   html += `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div></div>`;
 
   el.innerHTML = html;
@@ -1806,13 +1806,13 @@ function renderInsights() {
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
+  const syncIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
-      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">·</span>${createNodeChip(p.b)}<span class="insight-badge">${p.shared}</span></div>
+      <div class="insight-pair-row">${createNodeChip(p.a)}<button class="insight-connect-btn" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} 연결">←연결→</button>${createNodeChip(p.b)}<button class="insight-sync-btn" onclick="insightDismiss(${i})" title="다른 제안 보기">${syncIc}</button></div>
       ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
-      <div class="insight-pair-acts"><button class="rail-btn sm" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb}">→ 연결</button><button class="rail-btn sm" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la}">← 연결</button><button class="rail-btn sm ghost" onclick="insightDismiss(${i})">거절</button></div>
     </div>`;
   }).join('');
 }

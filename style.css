@@ -85,10 +85,12 @@ canvas { display: block; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
 .insight-pair { padding: 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
-.insight-pair-nodes { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-.insight-pair-arrow { color: var(--text-mute); font-weight: 700; font-size: 12px; }
+.insight-pair-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.insight-connect-btn { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); font-size: 10.5px; font-weight: 700; font-family: inherit; padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.insight-connect-btn:hover { background: rgba(var(--accent-rgb),0.25); }
+.insight-sync-btn { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-mute); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); transition: color 0.15s, background 0.15s; }
+.insight-sync-btn:hover { color: var(--accent); background: var(--hover); }
 .insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
-.insight-pair-acts { display: flex; gap: 6px; margin-top: 7px; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(var(--surface-rgb),0.95); border: 1px solid rgba(var(--fg-rgb),0.09); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: var(--fg); text-align: center; margin-bottom: 4px; }
