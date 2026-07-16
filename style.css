@@ -64,6 +64,31 @@ canvas { display: block; }
 .bm-empty b { color: #ed7000; font-weight: 700; }
 .bm-subtitle { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: #ed7000; margin-bottom: 5px; padding: 0 2px; }
 .bm-subtitle-gap { margin-top: 14px; }
+/* 통찰(Insight) 패널 */
+.insight-lead { font-size: 11.5px; color: rgba(255,255,255,0.45); line-height: 1.6; margin-bottom: 14px; }
+.insight-sec { margin-bottom: 16px; }
+.insight-sec:last-child { margin-bottom: 0; }
+.insight-sec-title { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9); margin-bottom: 8px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.insight-hint { font-size: 10.5px; font-weight: 500; color: rgba(255,255,255,0.35); }
+.insight-empty { font-size: 11.5px; color: rgba(255,255,255,0.4); line-height: 1.6; padding: 6px 2px; }
+.insight-more { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; padding: 0 2px; }
+.insight-note { font-size: 10.5px; color: rgba(255,255,255,0.35); line-height: 1.55; margin-top: 7px; }
+.insight-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.insight-chipwrap { position: relative; display: inline-flex; align-items: center; }
+.insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: #ed7000; background: rgba(237,112,0,0.16); border-radius: 8px; }
+.insight-badge.sim { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.1); }
+.insight-btn { width: 100%; margin-top: 4px; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.4); border-radius: 8px; padding: 9px; color: #ed7000; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.15s; }
+.insight-btn:hover { background: rgba(237,112,0,0.25); }
+.insight-btn.ghost { margin-top: 10px; background: none; border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.55); font-weight: 600; }
+.insight-btn.ghost:hover { background: rgba(255,255,255,0.06); }
+.insight-pair { padding: 8px; margin-bottom: 7px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); border-radius: 9px; }
+.insight-pair-nodes { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.insight-pair-arrow { color: rgba(237,112,0,0.75); font-weight: 700; font-size: 12px; }
+.insight-pair-acts { display: flex; gap: 6px; margin-top: 7px; }
+.insight-mini-btn { flex: 1; background: rgba(237,112,0,0.15); border: 1px solid rgba(237,112,0,0.35); border-radius: 7px; padding: 5px; color: #ed7000; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.15s; }
+.insight-mini-btn:hover { background: rgba(237,112,0,0.25); }
+.insight-mini-btn.ghost { background: none; border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.6); font-weight: 600; }
+.insight-mini-btn.ghost:hover { background: rgba(255,255,255,0.06); }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(237,112,0,0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 4px; }

@@ -1671,7 +1671,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'bookmarks', 'graphcfg', 'aichat'];
+const _railSections = ['pages', 'search', 'bookmarks', 'insight', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -1681,6 +1681,7 @@ function openRailSection(name) {
   if (name === 'search') { setTimeout(() => document.getElementById('search-input')?.focus(), 60); if (typeof renderPopularKeywords === 'function') renderPopularKeywords(); }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
   if (name === 'bookmarks') renderBookmarkList();
+  if (name === 'insight') renderInsights();
 }
 
 // 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
@@ -1717,6 +1718,143 @@ function closeRailFlyout() {
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
 }
 function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
+
+// ── 통찰(Insight) : "적히지 않은 관계"를 계산해서 제안 ─────────────────────
+// 중심(허브)·외딴 페이지 = 순수 그래프 수학(토큰 0). 연결 제안 = 캐시된 임베딩 코사인(토큰 ≈0, 버튼 실행).
+let _linkSuggestCache = null;
+let _linkSuggestBusy = false;
+
+function _nodeDegree(id) { let d = 0; edges.forEach(e => { if (e.from === id || e.to === id) d++; }); return d; }
+function _crossLinkCount(id) { let c = 0; edges.forEach(e => { if ((e.manualLink || e.wikiLink) && (e.from === id || e.to === id)) c++; }); return c; }
+function _subtreeIds(rootId) {
+  const ids = new Set([rootId]); const q = [rootId];
+  while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !e.wikiLink && !ids.has(e.to)) { ids.add(e.to); q.push(e.to); } }); }
+  return ids;
+}
+
+// 중심(허브): 연결(위계 자식 + 교차링크*2) 많은 노드 top N
+function _computeHubs(topN) {
+  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
+  const scored = vis.map(n => { const deg = _nodeDegree(n.id); const cross = _crossLinkCount(n.id); return { n, deg, cross, score: deg + cross * 2 }; });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.filter(x => x.deg >= 2).slice(0, topN);
+}
+
+// 외딴 페이지: 교차링크(수동/위키)가 서브트리 어디에도 없는 최상위(level 0) 페이지
+function _computeOrphanPages() {
+  const linked = new Set();
+  edges.forEach(e => { if (e.manualLink || e.wikiLink) { linked.add(e.from); linked.add(e.to); } });
+  const roots = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.level === 0);
+  return roots.filter(r => { const sub = _subtreeIds(r.id); for (const id of sub) if (linked.has(id)) return false; return true; });
+}
+
+// 연결 제안: 캐시된 제목 임베딩끼리 코사인 유사도 → 아직 안 이어진 유사 노드쌍
+async function _computeLinkSuggestions(topN) {
+  const targets = await _ensureNodeEmbeds(); // 캐시에 없는 제목만 임베딩(증분)
+  const withVec = targets.filter(n => _titleEmbeds[_titleKey(n.label)]);
+  const connected = new Set();
+  edges.forEach(e => { connected.add(e.from + '|' + e.to); connected.add(e.to + '|' + e.from); });
+  const pairs = [];
+  for (let i = 0; i < withVec.length; i++) {
+    const a = withVec[i], va = _titleEmbeds[_titleKey(a.label)];
+    for (let j = i + 1; j < withVec.length; j++) {
+      const b = withVec[j];
+      if (connected.has(a.id + '|' + b.id)) continue;
+      if (_titleKey(a.label) === _titleKey(b.label)) continue;
+      const s = _cosine(va, _titleEmbeds[_titleKey(b.label)]);
+      if (s >= 0.55 && s < 0.985) pairs.push({ a, b, s });
+    }
+  }
+  pairs.sort((x, y) => y.s - x.s);
+  const out = [], used = {};
+  for (const p of pairs) {
+    if ((used[p.a.id] || 0) >= 2 || (used[p.b.id] || 0) >= 2) continue; // 한 노드가 목록을 독점하지 않게
+    out.push(p); used[p.a.id] = (used[p.a.id] || 0) + 1; used[p.b.id] = (used[p.b.id] || 0) + 1;
+    if (out.length >= topN) break;
+  }
+  return out;
+}
+
+function renderInsights() {
+  const el = document.getElementById('insight-body');
+  if (!el) return;
+  const hubs = _computeHubs(8);
+  const roots = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.level === 0);
+  const orphans = _computeOrphanPages();
+
+  let html = '';
+  // ⭐ 중심 노드
+  html += `<div class="insight-sec"><div class="insight-sec-title">⭐ 중심 노드 <span class="insight-hint">연결이 많은 핵심</span></div>`;
+  html += hubs.length
+    ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
+    : `<div class="insight-empty">아직 연결이 충분하지 않아요.</div>`;
+  html += `</div>`;
+
+  // 👻 외딴 페이지
+  html += `<div class="insight-sec"><div class="insight-sec-title">👻 외딴 페이지 <span class="insight-hint">다른 글과 안 엮임</span></div>`;
+  if (roots.length < 2) html += `<div class="insight-empty">페이지가 하나뿐이라 비교할 게 없어요.</div>`;
+  else if (orphans.length) {
+    html += `<div class="insight-chips">` + orphans.slice(0, 12).map(n => createNodeChip(n)).join('') + `</div>`;
+    if (orphans.length > 12) html += `<div class="insight-more">외 ${orphans.length - 12}개</div>`;
+  } else html += `<div class="insight-empty">모든 페이지가 서로 엮여 있어요 👍</div>`;
+  html += `</div>`;
+
+  // 🔗 연결 제안 (임베딩)
+  html += `<div class="insight-sec"><div class="insight-sec-title">🔗 연결 제안 <span class="insight-hint">비슷한데 안 이어진 노드</span></div>`;
+  html += `<div id="insight-suggest-body">`;
+  if (_linkSuggestCache) html += _renderSuggestHtml(_linkSuggestCache);
+  else if (!_savedAiKey) html += `<div class="insight-empty">AI 키를 넣으면 의미 기반 연결을 제안해요.<br>(설정 › 저장&캐시)</div>`;
+  else html += `<button class="insight-btn" onclick="runLinkSuggestions()">🔗 연결 제안 계산</button><div class="insight-note">이미 만든 제목 임베딩을 재사용해서 토큰 소모는 거의 없어요.</div>`;
+  html += `</div></div>`;
+
+  el.innerHTML = html;
+}
+
+function _renderSuggestHtml(list) {
+  list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
+  if (!list.length) return `<div class="insight-empty">새로 이을 만한 비슷한 노드를 못 찾았어요.</div><button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
+  return list.map((p, i) => {
+    const pct = Math.round(p.s * 100);
+    return `<div class="insight-pair">
+      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge sim">${pct}%</span></div>
+      <div class="insight-pair-acts"><button class="insight-mini-btn" onclick="insightConnect(${i})">연결</button><button class="insight-mini-btn ghost" onclick="insightShowPair(${i})">그래프</button></div>
+    </div>`;
+  }).join('') + `<button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
+}
+
+async function runLinkSuggestions() {
+  if (_linkSuggestBusy) return;
+  if (!_savedAiKey) { toast('AI 키가 필요해요. (설정 › 저장&캐시)', { type: 'error' }); return; }
+  _linkSuggestBusy = true;
+  const body = document.getElementById('insight-suggest-body');
+  if (body) body.innerHTML = `<div class="insight-empty">계산 중…</div>`;
+  try {
+    _linkSuggestCache = await _computeLinkSuggestions(8);
+    if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
+  } catch (e) {
+    if (body) body.innerHTML = `<div class="insight-empty">계산 실패: ${escapeHtml(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : (e && e.message || String(e)))}</div><button class="insight-btn" onclick="runLinkSuggestions()">다시 시도</button>`;
+  } finally { _linkSuggestBusy = false; }
+}
+
+function insightShowPair(i) {
+  const p = _linkSuggestCache && _linkSuggestCache[i];
+  if (!p) return;
+  if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
+}
+
+function insightConnect(i) {
+  const p = _linkSuggestCache && _linkSuggestCache[i];
+  if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
+  const la = (p.a.label || '').trim(), lb = (p.b.label || '').trim();
+  showConfirm('노드 연결', `"${la}" ↔ "${lb}"\n두 노드를 연결할까요?\n(노션 본문에 링크가 추가됩니다)`, () => {
+    toggleWikiConnect(p.a, p.b);
+    _linkSuggestCache = _linkSuggestCache.filter((_, idx) => idx !== i);
+    const body = document.getElementById('insight-suggest-body');
+    if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
+    if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
+    toast('연결했어요.', { type: 'success' });
+  }, '#ed7000');
+}
 
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
 function backToLoginScreen() {
