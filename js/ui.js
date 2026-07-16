@@ -1811,24 +1811,26 @@ function _renderSuggestHtml(list) {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
-      <div class="insight-pair-row">${createNodeChip(p.a)}<button class="insight-connect-btn" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} 연결">←연결→</button>${createNodeChip(p.b)}<button class="insight-sync-btn" onclick="insightDismiss(${i})" title="다른 제안 보기">${syncIc}</button></div>
+      <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-dir"><button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노션에 기록)">→</button><button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노션에 기록)">←</button></span>${createNodeChip(p.b)}<button class="insight-sync-btn" onclick="insightDismiss(${i})" title="다른 제안 보기">${syncIc}</button></div>
       ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
     </div>`;
   }).join('');
 }
 
-// 방향 연결(단방향) — 확실히 보이도록 그래프 링크(manualLink)로. dir: 'ab'=왼→오, 'ba'=오→왼
+// 방향 연결(단방향) — 노션 본문에 링크 기록(위키링크). dir: 'ab'=왼→오, 'ba'=오→왼
 function insightConnectDir(i, dir) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
   const from = dir === 'ba' ? p.b : p.a, to = dir === 'ba' ? p.a : p.b;
-  if (from.id !== to.id) {
-    const exists = edges.some(e => (e.from === from.id && e.to === to.id) || (e.from === to.id && e.to === from.id));
-    if (!exists) { edges.push({ from: from.id, to: to.id, manualLink: true }); if (typeof saveManualLinks === 'function') saveManualLinks(); isStable = false; }
+  if (from.id === to.id) return;
+  if (typeof _hasWikiLinkTo === 'function' && _hasWikiLinkTo(from, to)) {
+    toast('이미 연결됨');
+  } else {
+    _wikiConnect(from, to); // from 본문에 [to](url) 추가 → from → to 단방향, 노션에 반영
+    toast(`연결 · ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
   }
   if (typeof highlightAiNodes === 'function') highlightAiNodes([from, to]);
-  toast(`연결됨 · ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
-  _refreshSuggest(); // 이은 쌍은 연결됨 처리로 빠지고 다음 후보로 채움
+  _refreshSuggest(); // 이은 쌍은 다음 후보로 교체
 }
 
 // 거절 → 다시 제안 안 함 + 다음 후보로 즉시 교체

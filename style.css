@@ -86,8 +86,9 @@ canvas { display: block; }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
 .insight-pair { padding: 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
 .insight-pair-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.insight-connect-btn { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); font-size: 10.5px; font-weight: 700; font-family: inherit; padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-.insight-connect-btn:hover { background: rgba(var(--accent-rgb),0.25); }
+.insight-dir { display: inline-flex; gap: 3px; }
+.insight-arrow { width: 22px; height: 20px; display: inline-flex; align-items: center; justify-content: center; background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); font-size: 12px; font-weight: 700; font-family: inherit; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
+.insight-arrow:hover { background: rgba(var(--accent-rgb),0.3); }
 .insight-sync-btn { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-mute); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); transition: color 0.15s, background 0.15s; }
 .insight-sync-btn:hover { color: var(--accent); background: var(--hover); }
 .insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
