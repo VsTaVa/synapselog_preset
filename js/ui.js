@@ -1285,7 +1285,7 @@ function _aiConverse(q) {
 
 // 검색(RAG) — 키워드 추출 → 노드 검색 → 근거로 답변
 // ── 임베딩 의미검색 (노드 제목 벡터를 캐시 → 질문과 코사인 유사도) ─────
-const _EMBED_MODEL = 'text-embedding-004';
+const _EMBED_MODEL = 'gemini-embedding-001'; // text-embedding-004 은퇴 → 현행 GA 모델
 const _EMBED_DIM = 256;
 let _titleEmbeds = {}; // titleKey -> number[]
 function _titleKey(s) { return (s || '').trim().toLowerCase(); }
@@ -1294,13 +1294,13 @@ function _saveEmbeds() {
   try {
     const obj = {};
     Object.keys(_titleEmbeds).forEach(k => { obj[k] = _titleEmbeds[k].map(x => Math.round(x * 10000) / 10000); });
-    localStorage.setItem('snlog_embeds', JSON.stringify(obj));
+    localStorage.setItem('snlog_embeds_v2', JSON.stringify(obj)); // v2: gemini-embedding-001 (구 벡터와 차원/모델 불일치 방지)
   } catch (e) {}
 }
 (function _restoreEmbeds() {
   try {
     if (!_useLocalStorage) return;
-    const s = localStorage.getItem('snlog_embeds'); if (!s) return;
+    const s = localStorage.getItem('snlog_embeds_v2'); if (!s) return;
     const obj = JSON.parse(s);
     if (obj && typeof obj === 'object') Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) _titleEmbeds[k] = obj[k]; });
   } catch (e) {}
@@ -1695,12 +1695,12 @@ function renderBookmarkList() {
   const rowHtml = (n, ic) => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${ic}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
-  let html = `<div class="bm-subtitle">북마크</div>`;
+  let html = `<div class="rail-subhead">북마크</div>`;
   html += bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
-    : `<div class="bm-empty">노드 선택 후 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
-  html += `<div class="bm-subtitle bm-subtitle-gap">최근 본 노드</div>`;
+    : `<div class="rail-empty">노드 선택 후 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
+  html += `<div class="rail-subhead mt">최근 본 노드</div>`;
   html += recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
-    : `<div class="bm-empty">아직 없어요.</div>`;
+    : `<div class="rail-empty">아직 없어요.</div>`;
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
@@ -1726,11 +1726,6 @@ let _linkSuggestBusy = false;
 
 function _nodeDegree(id) { let d = 0; edges.forEach(e => { if (e.from === id || e.to === id) d++; }); return d; }
 function _crossLinkCount(id) { let c = 0; edges.forEach(e => { if ((e.manualLink || e.wikiLink) && (e.from === id || e.to === id)) c++; }); return c; }
-function _subtreeIds(rootId) {
-  const ids = new Set([rootId]); const q = [rootId];
-  while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !e.wikiLink && !ids.has(e.to)) { ids.add(e.to); q.push(e.to); } }); }
-  return ids;
-}
 
 // 중심(허브): 연결(위계 자식 + 교차링크*2) 많은 노드 top N
 function _computeHubs(topN) {
@@ -1738,14 +1733,6 @@ function _computeHubs(topN) {
   const scored = vis.map(n => { const deg = _nodeDegree(n.id); const cross = _crossLinkCount(n.id); return { n, deg, cross, score: deg + cross * 2 }; });
   scored.sort((a, b) => b.score - a.score);
   return scored.filter(x => x.deg >= 2).slice(0, topN);
-}
-
-// 외딴 페이지: 교차링크(수동/위키)가 서브트리 어디에도 없는 최상위(level 0) 페이지
-function _computeOrphanPages() {
-  const linked = new Set();
-  edges.forEach(e => { if (e.manualLink || e.wikiLink) { linked.add(e.from); linked.add(e.to); } });
-  const roots = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.level === 0);
-  return roots.filter(r => { const sub = _subtreeIds(r.id); for (const id of sub) if (linked.has(id)) return false; return true; });
 }
 
 // 연결 제안: 캐시된 제목 임베딩끼리 코사인 유사도 → 아직 안 이어진 유사 노드쌍
@@ -1779,32 +1766,21 @@ function renderInsights() {
   const el = document.getElementById('insight-body');
   if (!el) return;
   const hubs = _computeHubs(8);
-  const roots = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.level === 0);
-  const orphans = _computeOrphanPages();
 
   let html = '';
-  // ⭐ 중심 노드
-  html += `<div class="insight-sec"><div class="insight-sec-title">⭐ 중심 노드 <span class="insight-hint">연결이 많은 핵심</span></div>`;
+  // 중심 노드
+  html += `<div class="insight-sec"><div class="rail-subhead">중심 노드 <span class="rail-hint">연결이 많은 핵심</span></div>`;
   html += hubs.length
     ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
-    : `<div class="insight-empty">아직 연결이 충분하지 않아요.</div>`;
+    : `<div class="rail-empty">연결이 아직 부족</div>`;
   html += `</div>`;
 
-  // 👻 외딴 페이지
-  html += `<div class="insight-sec"><div class="insight-sec-title">👻 외딴 페이지 <span class="insight-hint">다른 글과 안 엮임</span></div>`;
-  if (roots.length < 2) html += `<div class="insight-empty">페이지가 하나뿐이라 비교할 게 없어요.</div>`;
-  else if (orphans.length) {
-    html += `<div class="insight-chips">` + orphans.slice(0, 12).map(n => createNodeChip(n)).join('') + `</div>`;
-    if (orphans.length > 12) html += `<div class="insight-more">외 ${orphans.length - 12}개</div>`;
-  } else html += `<div class="insight-empty">모든 페이지가 서로 엮여 있어요 👍</div>`;
-  html += `</div>`;
-
-  // 🔗 연결 제안 (임베딩)
-  html += `<div class="insight-sec"><div class="insight-sec-title">🔗 연결 제안 <span class="insight-hint">비슷한데 안 이어진 노드</span></div>`;
+  // 연결 제안 (임베딩)
+  html += `<div class="insight-sec"><div class="rail-subhead">연결 제안 <span class="rail-hint">비슷한데 안 이어진 노드</span></div>`;
   html += `<div id="insight-suggest-body">`;
   if (_linkSuggestCache) html += _renderSuggestHtml(_linkSuggestCache);
-  else if (!_savedAiKey) html += `<div class="insight-empty">AI 키를 넣으면 의미 기반 연결을 제안해요.<br>(설정 › 저장&캐시)</div>`;
-  else html += `<button class="insight-btn" onclick="runLinkSuggestions()">🔗 연결 제안 계산</button><div class="insight-note">이미 만든 제목 임베딩을 재사용해서 토큰 소모는 거의 없어요.</div>`;
+  else if (!_savedAiKey) html += `<div class="rail-empty">AI 키 필요 (설정 › 저장&캐시)</div>`;
+  else html += `<button class="insight-btn" onclick="runLinkSuggestions()">연결 제안 계산</button><div class="rail-note">임베딩 재사용 · 토큰 거의 없음</div>`;
   html += `</div></div>`;
 
   el.innerHTML = html;
@@ -1812,11 +1788,11 @@ function renderInsights() {
 
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
-  if (!list.length) return `<div class="insight-empty">새로 이을 만한 비슷한 노드를 못 찾았어요.</div><button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
+  if (!list.length) return `<div class="rail-empty">비슷한 노드 없음</div><button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
   return list.map((p, i) => {
     const pct = Math.round(p.s * 100);
     return `<div class="insight-pair">
-      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge sim">${pct}%</span></div>
+      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge">${pct}%</span></div>
       <div class="insight-pair-acts"><button class="insight-mini-btn" onclick="insightConnect(${i})">연결</button><button class="insight-mini-btn ghost" onclick="insightShowPair(${i})">그래프</button></div>
     </div>`;
   }).join('') + `<button class="insight-btn ghost" onclick="runLinkSuggestions()">다시 계산</button>`;
@@ -1824,15 +1800,15 @@ function _renderSuggestHtml(list) {
 
 async function runLinkSuggestions() {
   if (_linkSuggestBusy) return;
-  if (!_savedAiKey) { toast('AI 키가 필요해요. (설정 › 저장&캐시)', { type: 'error' }); return; }
+  if (!_savedAiKey) { toast('AI 키 필요 (설정 › 저장&캐시)', { type: 'error' }); return; }
   _linkSuggestBusy = true;
   const body = document.getElementById('insight-suggest-body');
-  if (body) body.innerHTML = `<div class="insight-empty">계산 중…</div>`;
+  if (body) body.innerHTML = `<div class="rail-empty">계산 중…</div>`;
   try {
     _linkSuggestCache = await _computeLinkSuggestions(8);
     if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
   } catch (e) {
-    if (body) body.innerHTML = `<div class="insight-empty">계산 실패: ${escapeHtml(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : (e && e.message || String(e)))}</div><button class="insight-btn" onclick="runLinkSuggestions()">다시 시도</button>`;
+    if (body) body.innerHTML = `<div class="rail-empty">계산 실패 · ${escapeHtml(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : (e && e.message || String(e)))}</div><button class="insight-btn" onclick="runLinkSuggestions()">다시 시도</button>`;
   } finally { _linkSuggestBusy = false; }
 }
 
@@ -1846,13 +1822,13 @@ function insightConnect(i) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
   const la = (p.a.label || '').trim(), lb = (p.b.label || '').trim();
-  showConfirm('노드 연결', `"${la}" ↔ "${lb}"\n두 노드를 연결할까요?\n(노션 본문에 링크가 추가됩니다)`, () => {
+  showConfirm('노드 연결', `"${la}" ↔ "${lb}"\n두 노드를 연결할까요? 노션 본문에 링크가 추가됩니다.`, () => {
     toggleWikiConnect(p.a, p.b);
     _linkSuggestCache = _linkSuggestCache.filter((_, idx) => idx !== i);
     const body = document.getElementById('insight-suggest-body');
     if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
     if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
-    toast('연결했어요.', { type: 'success' });
+    toast('연결됨', { type: 'success' });
   }, '#ed7000');
 }
 
@@ -2927,7 +2903,7 @@ function renderPopularKeywords() {
   if (searchKeyword) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const kws = _popularKeywords(12);
   if (!kws.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="sp-title">주요 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
+  el.innerHTML = `<div class="rail-subhead">주요 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
   el.style.display = 'block';
   el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
 }
