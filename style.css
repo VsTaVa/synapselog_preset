@@ -76,8 +76,10 @@ canvas { display: block; }
 .rail-btn.sm { flex: 1; width: auto; padding: 5px; font-size: 11px; border-radius: var(--radius-sm); }
 .rail-btn.ghost { background: none; border-color: var(--border); color: var(--text-dim); font-weight: 600; }
 .rail-btn.ghost:hover { background: var(--hover); }
-/* 통찰(Insight) 패널 */
+/* 통찰(Insight) — 노드 탭에 병합 */
+.insight-in-node { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
 .insight-sec { margin-bottom: 16px; }
+.insight-sec:first-child .rail-subhead.mt { margin-top: 0; }
 .insight-sec:last-child { margin-bottom: 0; }
 .insight-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }

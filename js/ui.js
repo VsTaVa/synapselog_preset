@@ -1671,7 +1671,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'bookmarks', 'insight', 'graphcfg', 'aichat'];
+const _railSections = ['pages', 'search', 'bookmarks', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -1680,8 +1680,7 @@ function openRailSection(name) {
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   if (name === 'search') { setTimeout(() => document.getElementById('search-input')?.focus(), 60); if (typeof renderPopularKeywords === 'function') renderPopularKeywords(); }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
-  if (name === 'bookmarks') renderBookmarkList();
-  if (name === 'insight') renderInsights();
+  if (name === 'bookmarks') { renderBookmarkList(); renderInsights(); }
 }
 
 // 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
@@ -1719,20 +1718,28 @@ function closeRailFlyout() {
 }
 function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 
-// ── 통찰(Insight) : "적히지 않은 관계"를 계산해서 제안 ─────────────────────
-// 중심(허브)·외딴 페이지 = 순수 그래프 수학(토큰 0). 연결 제안 = 캐시된 임베딩 코사인(토큰 ≈0, 버튼 실행).
+// ── 통찰(Insight) : "적히지 않은 관계"를 계산해서 제안 (노드 탭에 병합) ──────
+// 중심(허브)·연결 제안 모두 순수 그래프/키워드 계산 (AI·토큰 0).
 let _linkSuggestCache = null;
-let _linkSuggestBusy = false;
+let _dismissedPairs = new Set(); // 거절한 쌍 "idA|idB"(정렬) — 다시 제안 안 함
+function _pairKey(aId, bId) { return [aId, bId].sort().join('|'); }
+function _saveDismissed() {
+  if (!_useLocalStorage) return;
+  try { localStorage.setItem('snlog_dismissed_pairs', JSON.stringify([..._dismissedPairs])); } catch (e) {}
+}
+(function _restoreDismissed() {
+  try { if (!_useLocalStorage) return; const s = localStorage.getItem('snlog_dismissed_pairs'); if (s) JSON.parse(s).forEach(k => _dismissedPairs.add(k)); } catch (e) {}
+})();
 
 function _nodeDegree(id) { let d = 0; edges.forEach(e => { if (e.from === id || e.to === id) d++; }); return d; }
 function _crossLinkCount(id) { let c = 0; edges.forEach(e => { if ((e.manualLink || e.wikiLink) && (e.from === id || e.to === id)) c++; }); return c; }
 
-// 중심(허브): 연결(위계 자식 + 교차링크*2) 많은 노드 top N
+// 중심(허브): 연결 3개 초과(=4개 이상) 노드만, 연결 많은 순 top N
 function _computeHubs(topN) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
   const scored = vis.map(n => { const deg = _nodeDegree(n.id); const cross = _crossLinkCount(n.id); return { n, deg, cross, score: deg + cross * 2 }; });
   scored.sort((a, b) => b.score - a.score);
-  return scored.filter(x => x.deg >= 2).slice(0, topN);
+  return scored.filter(x => x.deg > 3).slice(0, topN);
 }
 
 // 제목 → 의미 토큰 집합(불용어·순수숫자 제외, 한글 어간 처리). _aiTerms 재활용.
@@ -1754,6 +1761,7 @@ function _computeLinkSuggestions(topN) {
     for (let j = i + 1; j < toks.length; j++) {
       const B = toks[j];
       if (connected.has(A.n.id + '|' + B.n.id)) continue;
+      if (_dismissedPairs.has(_pairKey(A.n.id, B.n.id))) continue; // 거절한 쌍 제외
       if (_titleKey(A.n.label) === _titleKey(B.n.label)) continue;
       let shared = 0; const terms = [];
       A.t.forEach(t => { if (B.t.has(t)) { shared++; terms.push(t); } });
@@ -1777,19 +1785,19 @@ function _computeLinkSuggestions(topN) {
 function renderInsights() {
   const el = document.getElementById('insight-body');
   if (!el) return;
-  const hubs = _computeHubs(8);
+  const hubs = _computeHubs(10);
 
   let html = '';
-  // 중심 노드
-  html += `<div class="insight-sec"><div class="rail-subhead">중심 노드 <span class="rail-hint">연결이 많은 핵심</span></div>`;
+  // 중심 노드 (연결 3개 초과, 최대 10)
+  html += `<div class="insight-sec"><div class="rail-subhead mt">중심 노드 <span class="rail-hint">연결 많은 핵심</span></div>`;
   html += hubs.length
     ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
-    : `<div class="rail-empty">연결이 아직 부족</div>`;
+    : `<div class="rail-empty">연결 4개 이상 노드 없음</div>`;
   html += `</div>`;
 
-  // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 즉시 계산)
-  _linkSuggestCache = _computeLinkSuggestions(10);
-  html += `<div class="insight-sec"><div class="rail-subhead">연결 제안 <span class="rail-hint">공통 키워드가 있는데 안 이어진 노드</span></div>`;
+  // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
+  _linkSuggestCache = _computeLinkSuggestions(5);
+  html += `<div class="insight-sec"><div class="rail-subhead mt">연결 제안 <span class="rail-hint">공통 키워드, 안 이어짐</span></div>`;
   html += `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div></div>`;
 
   el.innerHTML = html;
@@ -1797,35 +1805,44 @@ function renderInsights() {
 
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
-  if (!list.length) return `<div class="rail-empty">공통 키워드로 이을 노드 없음</div>`;
+  if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
+    const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
-      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge">${p.shared}</span></div>
+      <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">·</span>${createNodeChip(p.b)}<span class="insight-badge">${p.shared}</span></div>
       ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
-      <div class="insight-pair-acts"><button class="rail-btn sm" onclick="insightConnect(${i})">연결</button><button class="rail-btn sm ghost" onclick="insightShowPair(${i})">그래프</button></div>
+      <div class="insight-pair-acts"><button class="rail-btn sm" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb}">→ 연결</button><button class="rail-btn sm" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la}">← 연결</button><button class="rail-btn sm ghost" onclick="insightDismiss(${i})">거절</button></div>
     </div>`;
   }).join('');
 }
 
-function insightShowPair(i) {
-  const p = _linkSuggestCache && _linkSuggestCache[i];
-  if (!p) return;
-  if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
-}
-
-function insightConnect(i) {
+// 방향 연결(단방향) — 확실히 보이도록 그래프 링크(manualLink)로. dir: 'ab'=왼→오, 'ba'=오→왼
+function insightConnectDir(i, dir) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
-  const la = (p.a.label || '').trim(), lb = (p.b.label || '').trim();
-  showConfirm('노드 연결', `"${la}" ↔ "${lb}"\n두 노드를 연결할까요? 노션 본문에 링크가 추가됩니다.`, () => {
-    toggleWikiConnect(p.a, p.b);
-    _linkSuggestCache = _linkSuggestCache.filter((_, idx) => idx !== i);
-    const body = document.getElementById('insight-suggest-body');
-    if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
-    if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
-    toast('연결됨', { type: 'success' });
-  }, '#ed7000');
+  const from = dir === 'ba' ? p.b : p.a, to = dir === 'ba' ? p.a : p.b;
+  if (from.id !== to.id) {
+    const exists = edges.some(e => (e.from === from.id && e.to === to.id) || (e.from === to.id && e.to === from.id));
+    if (!exists) { edges.push({ from: from.id, to: to.id, manualLink: true }); if (typeof saveManualLinks === 'function') saveManualLinks(); isStable = false; }
+  }
+  if (typeof highlightAiNodes === 'function') highlightAiNodes([from, to]);
+  toast(`연결됨 · ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
+  _refreshSuggest(); // 이은 쌍은 연결됨 처리로 빠지고 다음 후보로 채움
+}
+
+// 거절 → 다시 제안 안 함 + 다음 후보로 즉시 교체
+function insightDismiss(i) {
+  const p = _linkSuggestCache && _linkSuggestCache[i];
+  if (!p) return;
+  _dismissedPairs.add(_pairKey(p.a.id, p.b.id)); _saveDismissed();
+  _refreshSuggest();
+}
+
+function _refreshSuggest() {
+  _linkSuggestCache = _computeLinkSuggestions(5);
+  const body = document.getElementById('insight-suggest-body');
+  if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
 }
 
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
