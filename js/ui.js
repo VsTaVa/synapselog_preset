@@ -1803,7 +1803,7 @@ function _renderSuggestHtml(list) {
     return `<div class="insight-pair">
       <div class="insight-pair-nodes">${createNodeChip(p.a)}<span class="insight-pair-arrow">↔</span>${createNodeChip(p.b)}<span class="insight-badge">${p.shared}</span></div>
       ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
-      <div class="insight-pair-acts"><button class="insight-mini-btn" onclick="insightConnect(${i})">연결</button><button class="insight-mini-btn ghost" onclick="insightShowPair(${i})">그래프</button></div>
+      <div class="insight-pair-acts"><button class="rail-btn sm" onclick="insightConnect(${i})">연결</button><button class="rail-btn sm ghost" onclick="insightShowPair(${i})">그래프</button></div>
     </div>`;
   }).join('');
 }
