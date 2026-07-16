@@ -1806,13 +1806,21 @@ function renderInsights() {
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
-  const syncIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
+  const biIc = `<svg width="17" height="12" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><polyline points="7.5 4 3.5 8 7.5 12"/><polyline points="16.5 4 20.5 8 16.5 12"/></svg>`;
+  const zoomIc = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`;
+  const closeIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
-      <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-dir"><button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노션에 기록)">→</button><button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노션에 기록)">←</button></span>${createNodeChip(p.b)}<button class="insight-sync-btn" onclick="insightDismiss(${i})" title="다른 제안 보기">${syncIc}</button></div>
-      ${terms ? `<div class="insight-shared">공통 · ${escapeHtml(terms)}</div>` : ''}
+      <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-bi" aria-hidden="true">${biIc}</span>${createNodeChip(p.b)}</div>
+      <div class="insight-acts">
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노션에 기록)">←</button>
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노션에 기록)">→</button>
+        <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프에서 보기">${zoomIc}</button>
+        <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
+      </div>
+      ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1833,7 +1841,14 @@ function insightConnectDir(i, dir) {
   _refreshSuggest(); // 이은 쌍은 다음 후보로 교체
 }
 
-// 거절 → 다시 제안 안 함 + 다음 후보로 즉시 교체
+// 그래프에서 보기 → 두 노드 하이라이트
+function insightShowPair(i) {
+  const p = _linkSuggestCache && _linkSuggestCache[i];
+  if (!p) return;
+  if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
+}
+
+// 닫기 → 다시 제안 안 함 + 다음 후보로 즉시 교체
 function insightDismiss(i) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p) return;
