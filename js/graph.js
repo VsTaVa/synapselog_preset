@@ -1,4 +1,4 @@
-// ── 공유 전역 상태 (ui.js에서 canvas/ctx/W/H 초기화) ────────────────
+// ── 공유 전역 상태 (ui-core.js에서 canvas/ctx/W/H 초기화) ────────────────
 let canvas, ctx, W, H, DPR = 1;
 let WORLD_CX = 0, WORLD_CY = 0;
 let scale = 0.85, panX = 0, panY = 0;
