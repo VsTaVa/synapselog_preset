@@ -148,7 +148,7 @@ function _wikiPageIdFor(b) {
       if (n.isChildPage && n.notionBlockId) return String(n.notionBlockId).replace(/-/g, '');
       if (n.level === 0 && n.sourcePageId && !String(n.sourcePageId).startsWith('local_') && !String(n.sourcePageId).startsWith('md_')) return String(n.sourcePageId).replace(/-/g, '');
     }
-    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink && !e.wikiLink);
+    const pe = getParentEdge(cur); // 위키링크는 weakLink라 이미 제외됨
     if (!pe) break; cur = pe.from;
   }
   // 폴백: 구조 부모 체인이 페이지 정보 노드까지 못 닿아도, 노드에 박혀있는 소속 페이지ID로 (리프 노드가 블록ID만 나오던 문제)

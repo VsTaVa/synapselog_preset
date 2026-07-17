@@ -441,7 +441,7 @@ function _hideWikiMenu() { if (_wikiMenu) _wikiMenu.style.display = 'none'; _wik
 function _wikiCtxLabel(n) {
   let cur = n.id, guard = 0, ctx = '';
   while (guard++ < 20) {
-    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    const pe = getParentEdge(cur);
     if (!pe) break; cur = pe.from; const pn = nodeMap[cur]; if (!pn) break;
     ctx = pn.label; if (pn.level === 0) break;
   }
@@ -923,7 +923,7 @@ function focusPage(pageId) {
 function isAncestorOf(potentialAncId, nodeId) {
   let cur = nodeId;
   for (let i = 0; i < 30; i++) {
-    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    const pe = getParentEdge(cur);
     if (!pe) break;
     if (pe.from === potentialAncId) return true;
     cur = pe.from;

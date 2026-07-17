@@ -188,3 +188,18 @@ function dist(a, b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
 function getChildCount(nodeId) {
   return edges.filter(e => e.from === nodeId && !e.weakLink && !e.manualLink).length;
 }
+
+// ── 그래프 순회 공용 헬퍼 (여러 파일에서 복붙되던 부모/조상 순회를 일원화) ──
+// 위계 부모 엣지(약한/수동 링크 제외). 없으면 null.
+function getParentEdge(id) { return edges.find(e => e.to === id && !e.weakLink && !e.manualLink) || null; }
+// 부모 id. structural=false면 수동링크도 부모로 인정(!weakLink만 — 검색/하이라이트용).
+function getParentIdOf(id, structural) {
+  const pe = (structural === false) ? edges.find(e => e.to === id && !e.weakLink) : getParentEdge(id);
+  return pe ? pe.from : null;
+}
+// 조상 id 목록(부모→루트). structural=false면 수동링크 통과(!weakLink만).
+function getAncestorIds(id, max, structural) {
+  const out = []; let cur = id; const lim = max || 30;
+  for (let i = 0; i < lim; i++) { const p = getParentIdOf(cur, structural); if (p == null) break; out.push(p); cur = p; }
+  return out;
+}

@@ -59,20 +59,42 @@ function renderPopularKeywords() {
   el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
 }
 
+// ── 그래프 하이라이트 공용 (검색·AI·배경클릭이 공유) ──────────────────
+// 활성: 직접 노드 + 조상까지 searchMatches에 담고(마커/키워드 설정) 화면 맞춤
+function applyGraphHighlight(directIds, keyword, opts) {
+  opts = opts || {};
+  searchKeyword = keyword;
+  searchMatches.clear(); searchDirect.clear();
+  (directIds || []).forEach(id => {
+    if (!id) return;
+    searchDirect.add(id); searchMatches.add(id);
+    getAncestorIds(id, opts.max || 12, false).forEach(a => searchMatches.add(a)); // 수동링크 통과(검색과 동일)
+  });
+  const cb = (typeof clearBtn !== 'undefined' && clearBtn) ? clearBtn : document.getElementById('clear-btn');
+  if (cb) cb.style.display = 'block';
+  isStable = false;
+  if (opts.fit) { clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(() => { try { fitGraph(); } catch (e) {} }, opts.fitDelay || 400); }
+}
+// 비활성: 하이라이트 해제
+function clearGraphHighlight() {
+  searchKeyword = ''; searchMatches.clear(); searchDirect.clear();
+  const cb = (typeof clearBtn !== 'undefined' && clearBtn) ? clearBtn : document.getElementById('clear-btn');
+  if (cb) cb.style.display = 'none';
+  isStable = false;
+}
+
 function doSearch(kw) {
-  searchKeyword = kw.trim().toLowerCase();
-  searchMatches.clear();
-  searchDirect.clear();
   const resultEl = document.getElementById('search-result-count');
   const resultsEl = document.getElementById('search-results');
-  if (searchKeyword) {
+  const keyword = kw.trim().toLowerCase();
+  if (keyword) {
     const directMatches = new Set();
     nodes.forEach(n => {
       if (!n.visible) return;
       const lt = n.label.toLowerCase(), dt = n.desc.toLowerCase();
-      if (lt.includes(searchKeyword) || dt.includes(searchKeyword)) directMatches.add(n.id);
+      if (lt.includes(keyword) || dt.includes(keyword)) directMatches.add(n.id);
     });
-    directMatches.forEach(id => searchDirect.add(id));
+    applyGraphHighlight([...directMatches], keyword, { max: 10, fit: directMatches.size > 0, fitDelay: 450 });
     if (resultsEl) {
       const chips = [...directMatches].map(id => nodeMap[id]).filter(Boolean).slice(0, 60);
       resultsEl.innerHTML = chips.map(n => createNodeChip(n)).join('');
@@ -82,19 +104,11 @@ function doSearch(kw) {
         el.addEventListener('click', () => { const nn = nodeMap[el.dataset.nid]; if (nn && typeof focusViewOnNode === 'function') focusViewOnNode(nn); });
       });
     }
-    function getAncestors(nodeId) {
-      const ancestors = []; let cur = nodeId;
-      for (let i = 0; i < 10; i++) { const parentEdge = edges.find(e => e.to === cur && !e.weakLink); if (!parentEdge) break; ancestors.push(parentEdge.from); cur = parentEdge.from; }
-      return ancestors;
-    }
-    directMatches.forEach(id => { searchMatches.add(id); getAncestors(id).forEach(aid => searchMatches.add(aid)); });
     if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = `${directMatches.size}개 결과`; }
-    clearBtn.style.display = 'block';
-    if (directMatches.size > 0) { clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(fitGraph, 450); }
   } else {
+    clearGraphHighlight();
     if (resultEl) resultEl.style.display = 'none';
     if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
-    clearBtn.style.display = 'none';
   }
   if (typeof renderPopularKeywords === 'function') renderPopularKeywords();
   isStable = false;
@@ -105,14 +119,7 @@ let _searchFitTimer = null;
 function highlightAiNodes(nodeList) {
   const arr = (nodeList || []).filter(Boolean);
   if (!arr.length || typeof searchMatches === 'undefined') return;
-  searchKeyword = '\uE000'; // 하이라이트 활성 마커(텍스트엔 없는 문자 → 본문 오매칭 방지)
-  searchMatches.clear(); searchDirect.clear();
-  const anc = (id) => { const a = []; let cur = id; for (let i = 0; i < 12; i++) { const pe = edges.find(e => e.to === cur && !e.weakLink); if (!pe) break; a.push(pe.from); cur = pe.from; } return a; };
-  arr.forEach(n => { if (!n || !n.id) return; searchDirect.add(n.id); searchMatches.add(n.id); anc(n.id).forEach(id => searchMatches.add(id)); });
-  const cb = (typeof clearBtn !== 'undefined' && clearBtn) ? clearBtn : document.getElementById('clear-btn');
-  if (cb) cb.style.display = 'block';
-  isStable = false;
-  clearTimeout(_searchFitTimer); _searchFitTimer = setTimeout(() => { try { fitGraph(); } catch (e) {} }, 320);
+  applyGraphHighlight(arr.map(n => n && n.id).filter(Boolean), '\uE000', { max: 12, fit: true, fitDelay: 320 }); // 마커=본문에 없는 문자(비면 하이라이트 꺼짐)
 }
 
 searchInput.addEventListener('input', e => doSearch(e.target.value));
@@ -178,7 +185,7 @@ async function deleteNodeSubtree(node) {
 // 이 노드만 삭제 — 하위 노드는 상위 노드로 재연결해 보존
 async function deleteNodeOnly(node) {
   const id = node.id;
-  const parentEdge = edges.find(e => e.to === id && !e.weakLink && !e.manualLink);
+  const parentEdge = getParentEdge(id);
   const parentId = parentEdge ? parentEdge.from : null;
   const origTouching = edges.filter(e => e.from === id || e.to === id); // 복원용 원본 엣지 참조
   const childStructEdges = origTouching.filter(e => e.from === id && !e.weakLink && !e.manualLink);
@@ -213,7 +220,7 @@ async function deleteNodeOnly(node) {
 // 단일 진입점 — 상위가 있으면 이 노드만 삭제(하위는 상위로 이동), 루트면 하위까지 삭제
 function deleteNodeSmart(node) {
   if (!node) return;
-  const parentEdge = edges.find(e => e.to === node.id && !e.weakLink && !e.manualLink);
+  const parentEdge = getParentEdge(node.id);
   const keep = !!parentEdge && nodeHasChildren(node);
   deleteNodeConfirm(node, keep);
 }
@@ -222,7 +229,7 @@ function deleteNodeSmart(node) {
 function deleteNodeConfirm(node, keepChildren) {
   if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   if (keepChildren) {
-    const parentEdge = edges.find(e => e.to === node.id && !e.weakLink && !e.manualLink);
+    const parentEdge = getParentEdge(node.id);
     if (!parentEdge) { toast('상위 노드가 없어 이 노드만 삭제할 수 없어요', { type: 'error' }); return; }
     const childCount = edges.filter(e => e.from === node.id && !e.weakLink && !e.manualLink).length;
     const msg = `'${node.label}' 노드만 삭제할까요?\n하위 ${childCount}개는 상위 노드로 옮겨집니다.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');

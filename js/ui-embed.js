@@ -224,7 +224,7 @@ function _findRootId(id) {
     const n = nodeMap[cur];
     if (!n) return null;
     if (n.level === 0) return cur;
-    const pe = edges.find(e => e.to === cur && !e.weakLink && !e.manualLink);
+    const pe = getParentEdge(cur);
     if (!pe) return cur;
     cur = pe.from;
   }
