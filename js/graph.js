@@ -178,7 +178,9 @@ function simulate() {
     const q=[fn.id], v=new Set([fn.id]);
     while(q.length){ const id=q.shift(); edges.forEach(e=>{ if(e.from===id&&!e.weakLink&&!v.has(e.to)){v.add(e.to);fixedDescendants.add(e.to);q.push(e.to);} }); }
   });
-  const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && n !== drag);
+  // _posSaved(저장된 위치로 복원된 노드)는 물리로 안 움직임 → F5 시 저장된 자리에 딱 멈춤(비벼짐 방지).
+  // 드래그/슬라이더 조작 시 _unlockLayout()으로 잠금 해제되어 물리 정상 작동.
+  const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && !n._posSaved && n !== drag);
   let totalVelocity = 0;
   activeNodes.forEach(n => {
     let fx = 0, fy = 0;
@@ -599,6 +601,8 @@ function saveNodePositions() {
   if (typeof snSet === 'function') snSet('snlog_node_pos', JSON.stringify(data), 'pages');
 }
 function _scheduleSavePositions() { clearTimeout(_posSaveTimer); _posSaveTimer = setTimeout(saveNodePositions, 800); }
+// 복원 잠금 해제 — 드래그/슬라이더 등 사용자가 배치를 바꾸려 할 때 물리 재작동
+function _unlockLayout() { if (typeof nodes === 'undefined') return; nodes.forEach(n => { n._posSaved = false; }); isStable = false; }
 // 로드/머지/엔트리로드 후 호출 — 저장된 위치를 씨앗으로 넣고 _posSaved 표시(지연 로드 노드도 커버)
 function restoreNodePositions() {
   _hasRestoredPositions = false;

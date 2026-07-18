@@ -103,9 +103,9 @@ function updateConfig() {
   // 그래프 슬라이더는 레이아웃·색상·라벨스케일처럼 항상 localStorage에 저장(민감정보 아님, 토글/스코프 무관)
   try { localStorage.setItem('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value })); } catch (e) {}
 }
-cfgRep.addEventListener('input', updateConfig);
-cfgGrav.addEventListener('input', updateConfig);
-cfgTension.addEventListener('input', updateConfig);
+cfgRep.addEventListener('input', () => { _unlockLayout(); updateConfig(); }); // 물리 슬라이더 → 배치 잠금 해제
+cfgGrav.addEventListener('input', () => { _unlockLayout(); updateConfig(); });
+cfgTension.addEventListener('input', () => { _unlockLayout(); updateConfig(); });
 cfgNodeSize.addEventListener('input', updateConfig);
 cfgLinkWidth.addEventListener('input', updateConfig);
 
