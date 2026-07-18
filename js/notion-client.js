@@ -964,6 +964,7 @@ async function _loadEntryNode(node, pageId) {
   if (!md) return;
   const newIds = _addEntryChildNodes(node, md);
   if (newIds.size > 0) {
+    if (typeof restoreNodePositions === 'function') restoreNodePositions(); // 지연 로드된 엔트리 노드도 저장된 위치로 → 전체 재정착 방지
     newIds.forEach(id => { if (nodeMap[id]) nodeMap[id].visible = true; });
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     isStable = false;
