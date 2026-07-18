@@ -226,7 +226,7 @@ function simulate() {
     if (speed < 0.05) { n._frozenFrames = (n._frozenFrames || 0) + 1; if (n._frozenFrames > 120) n._frozen = true; }
     else n._frozenFrames = 0;
   });
-  if (totalVelocity < 2.0 && !drag) isStable = true;
+  if (totalVelocity < 2.0 && !drag) { isStable = true; _scheduleSavePositions(); } // 정착 시 전체 위치 저장(디바운스)
 }
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
@@ -580,11 +580,31 @@ function placeChildrenAroundParent(parentNode, children, radius) {
   if (!children.length) return;
   const cx = parentNode.x, cy = parentNode.y;
   children.forEach((n, i) => {
-    if(n.fixed) return;
+    if(n.fixed || n._posSaved) return; // 저장된 위치가 있으면 링 배치로 덮지 않음(재정착 최소화)
     const angle = (2*Math.PI/children.length)*i - Math.PI/2;
     n.x = cx + Math.cos(angle)*radius; n.y = cy + Math.sin(angle)*radius;
     n.vx = 0; n.vy = 0;
   });
+}
+
+// ── 전체 노드 위치 저장/복원 (재로드 시 재정착 없이 즉시 제자리) ──────────
+// 안정 키(sourcePageId::label) — 노드 id는 재로드마다 바뀌므로 쓰면 안 됨
+function _posKey(n) { return `${(n && n.sourcePageId) || ''}::${((n && n.label) || '').trim()}`; }
+let _posSaveTimer = null;
+function saveNodePositions() {
+  if (typeof snSet !== 'function') return;
+  let data = {}; // 기존 저장분과 병합 → 지금 안 열린 페이지의 위치도 보존
+  try { data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}'); } catch (e) {}
+  nodes.forEach(n => { if (n.visible) data[_posKey(n)] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+  snSet('snlog_node_pos', JSON.stringify(data), 'pages');
+}
+function _scheduleSavePositions() { clearTimeout(_posSaveTimer); _posSaveTimer = setTimeout(saveNodePositions, 800); }
+// 로드/머지 후 reveal 전에 호출 — 저장된 위치를 씨앗으로 넣고 _posSaved 표시
+function restoreNodePositions() {
+  try {
+    const data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}');
+    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; } });
+  } catch (e) {}
 }
 
 function revealByLevel(nodeIds, onComplete) {
@@ -855,6 +875,7 @@ function buildGraph() {
   const root = nodes.find(n => n.level === 0);
   if (root) { root.x = W/2; root.y = H/2; root.vx = 0; root.vy = 0; }
   nodes.forEach(n => { n.visible = n.level === 0; });
+  restoreNodePositions(); // 저장된 위치 씨앗(reveal 전) → 재정착 최소화
   revealByLevel(new Set(nodes.map(n => n.id)), restoreFixedPositions);
   resolveWikiLinks();
 }
@@ -901,6 +922,7 @@ function mergeGraph(title, markdown, pageId) {
     edges.push({ from: firstRoot.id, to: newRootNewId, weakLink: true });
   }
   const newNodeIds = new Set(Object.values(idMap));
+  restoreNodePositions(); // 저장된 위치 씨앗(reveal 전) → 재정착 최소화
   const ret = revealByLevel(newNodeIds, restoreFixedPositions);
   resolveWikiLinks();
   return ret;
