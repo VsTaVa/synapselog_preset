@@ -591,24 +591,25 @@ function placeChildrenAroundParent(parentNode, children, radius) {
 // 안정 키(sourcePageId::label) — 노드 id는 재로드마다 바뀌므로 쓰면 안 됨
 function _posKey(n) { return `${(n && n.sourcePageId) || ''}::${((n && n.label) || '').trim()}`; }
 let _posSaveTimer = null;
+let _hasRestoredPositions = false; // 이번 로드에서 저장된 위치를 복원했나 → reveal을 즉시로
 function saveNodePositions() {
-  if (typeof snSet !== 'function') return;
   let data = {}; // 기존 저장분과 병합 → 지금 안 열린 페이지의 위치도 보존
   try { data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}'); } catch (e) {}
   nodes.forEach(n => { if (n.visible) data[_posKey(n)] = { x: Math.round(n.x), y: Math.round(n.y) }; });
-  snSet('snlog_node_pos', JSON.stringify(data), 'pages');
+  if (typeof snSet === 'function') snSet('snlog_node_pos', JSON.stringify(data), 'pages');
 }
 function _scheduleSavePositions() { clearTimeout(_posSaveTimer); _posSaveTimer = setTimeout(saveNodePositions, 800); }
 // 로드/머지 후 reveal 전에 호출 — 저장된 위치를 씨앗으로 넣고 _posSaved 표시
 function restoreNodePositions() {
+  _hasRestoredPositions = false;
   try {
     const data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}');
-    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; } });
+    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; _hasRestoredPositions = true; } });
   } catch (e) {}
 }
 
 function revealByLevel(nodeIds, onComplete) {
-  const LEVEL_DELAY = 500;
+  const LEVEL_DELAY = _hasRestoredPositions ? 0 : 500; // 저장된 위치가 있으면 펼침 애니메이션 없이 즉시
   const RADII = [0, 300, 220, 150, 100];
   const maxLevel = Math.max(...nodes.filter(n => nodeIds.has(n.id)).map(n => n.level), 0);
   for (let lv = 1; lv <= maxLevel; lv++) {
@@ -630,8 +631,9 @@ function revealByLevel(nodeIds, onComplete) {
     }, lv * LEVEL_DELAY);
   }
   isStable = false;
+  const tail = _hasRestoredPositions ? 60 : 600; // 복원 시 화면맞춤도 바로
   return new Promise(resolve => {
-    setTimeout(() => { fitGraph(); if(onComplete) onComplete(); resolve(); }, maxLevel * LEVEL_DELAY + 600);
+    setTimeout(() => { fitGraph(); if(onComplete) onComplete(); resolve(); }, maxLevel * LEVEL_DELAY + tail);
   });
 }
 
