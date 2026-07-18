@@ -806,7 +806,7 @@ document.getElementById('settings-modal')?.addEventListener('click', function(e)
 // ── 슬라이더 복원 ─────────────────────────────────────────────────────
 
 function restoreSlider() {
-  const saved = snGet('snlog_slider', 'slider');
+  const saved = localStorage.getItem('snlog_slider') || sessionStorage.getItem('snlog_slider'); // 항상 localStorage 우선(구 세션값 폴백)
   if (!saved) return;
   try { const { rep, grav, tension, nodeSize, linkWidth } = JSON.parse(saved); if (rep) cfgRep.value = rep; if (grav) cfgGrav.value = grav; if (tension) cfgTension.value = tension; if (nodeSize) cfgNodeSize.value = nodeSize; if (linkWidth) cfgLinkWidth.value = linkWidth; updateConfig(); } catch(e) {}
 }
