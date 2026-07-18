@@ -294,7 +294,6 @@ canvas.addEventListener('mousemove', e => {
     setViewRotation(deg); return;
   }
   if (drag) {
-    if (drag._posSaved) _unlockLayout(); // 실제로 끌기 시작하면 배치 잠금 해제(클릭만으론 안 풀림)
     const w = screenToWorld(e.clientX, e.clientY); drag.x = w.x; drag.y = w.y;
     nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
     { const q = [drag.id], seen = new Set([drag.id]); while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !seen.has(e.to)) { seen.add(e.to); const c = nodeMap[e.to]; if (c) { if (c._frozen) { c._frozen = false; c._frozenFrames = 0; } q.push(e.to); } } }); } }
@@ -465,7 +464,6 @@ canvas.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (Math.abs(t.clientX - _touchStartX) > 4 || Math.abs(t.clientY - _touchStartY) > 4) _touchMoved = true;
     if (drag) {
-      if (drag._posSaved) _unlockLayout();
       const w = screenToWorld(t.clientX, t.clientY); drag.x = w.x; drag.y = w.y;
       nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
     } else if (isPanning) {

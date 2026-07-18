@@ -178,9 +178,7 @@ function simulate() {
     const q=[fn.id], v=new Set([fn.id]);
     while(q.length){ const id=q.shift(); edges.forEach(e=>{ if(e.from===id&&!e.weakLink&&!v.has(e.to)){v.add(e.to);fixedDescendants.add(e.to);q.push(e.to);} }); }
   });
-  // _posSaved(저장된 위치로 복원된 노드)는 물리로 안 움직임 → F5 시 저장된 자리에 딱 멈춤(비벼짐 방지).
-  // 드래그/슬라이더 조작 시 _unlockLayout()으로 잠금 해제되어 물리 정상 작동.
-  const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && !n._posSaved && n !== drag);
+  const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && n !== drag);
   let totalVelocity = 0;
   activeNodes.forEach(n => {
     let fx = 0, fy = 0;
@@ -228,7 +226,7 @@ function simulate() {
     if (speed < 0.05) { n._frozenFrames = (n._frozenFrames || 0) + 1; if (n._frozenFrames > 120) n._frozen = true; }
     else n._frozenFrames = 0;
   });
-  if (totalVelocity < 2.0 && !drag) { isStable = true; _scheduleSavePositions(); } // 정착 시 전체 위치 저장(디바운스)
+  if (totalVelocity < 2.0 && !drag) isStable = true;
 }
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
@@ -582,38 +580,15 @@ function placeChildrenAroundParent(parentNode, children, radius) {
   if (!children.length) return;
   const cx = parentNode.x, cy = parentNode.y;
   children.forEach((n, i) => {
-    if(n.fixed || n._posSaved) return; // 저장된 위치가 있으면 링 배치로 덮지 않음(재정착 최소화)
+    if(n.fixed) return;
     const angle = (2*Math.PI/children.length)*i - Math.PI/2;
     n.x = cx + Math.cos(angle)*radius; n.y = cy + Math.sin(angle)*radius;
     n.vx = 0; n.vy = 0;
   });
 }
 
-// ── 전체 노드 위치 저장/복원 (재로드 시 재정착 없이 즉시 제자리) ──────────
-// 안정 키(sourcePageId::label) — 노드 id는 재로드마다 바뀌므로 쓰면 안 됨
-function _posKey(n) { return `${(n && n.sourcePageId) || ''}::${((n && n.label) || '').trim()}`; }
-let _posSaveTimer = null;
-let _hasRestoredPositions = false; // 이번 로드에서 저장된 위치를 복원했나 → reveal을 즉시로
-function saveNodePositions() {
-  let data = {}; // 기존 저장분과 병합 → 지금 안 열린 페이지의 위치도 보존
-  try { data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}'); } catch (e) {}
-  nodes.forEach(n => { if (n.visible) data[_posKey(n)] = { x: Math.round(n.x), y: Math.round(n.y) }; });
-  if (typeof snSet === 'function') snSet('snlog_node_pos', JSON.stringify(data), 'pages');
-}
-function _scheduleSavePositions() { clearTimeout(_posSaveTimer); _posSaveTimer = setTimeout(saveNodePositions, 800); }
-// 복원 잠금 해제 — 드래그/슬라이더 등 사용자가 배치를 바꾸려 할 때 물리 재작동
-function _unlockLayout() { if (typeof nodes === 'undefined') return; nodes.forEach(n => { n._posSaved = false; }); isStable = false; }
-// 로드/머지/엔트리로드 후 호출 — 저장된 위치를 씨앗으로 넣고 _posSaved 표시(지연 로드 노드도 커버)
-function restoreNodePositions() {
-  _hasRestoredPositions = false;
-  try {
-    const data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}');
-    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; _hasRestoredPositions = true; } });
-  } catch (e) {}
-}
-
 function revealByLevel(nodeIds, onComplete) {
-  const LEVEL_DELAY = _hasRestoredPositions ? 0 : 500; // 저장된 위치가 있으면 펼침 애니메이션 없이 즉시
+  const LEVEL_DELAY = 500;
   const RADII = [0, 300, 220, 150, 100];
   const maxLevel = Math.max(...nodes.filter(n => nodeIds.has(n.id)).map(n => n.level), 0);
   for (let lv = 1; lv <= maxLevel; lv++) {
@@ -635,9 +610,8 @@ function revealByLevel(nodeIds, onComplete) {
     }, lv * LEVEL_DELAY);
   }
   isStable = false;
-  const tail = _hasRestoredPositions ? 60 : 600; // 복원 시 화면맞춤도 바로
   return new Promise(resolve => {
-    setTimeout(() => { fitGraph(); if(onComplete) onComplete(); resolve(); }, maxLevel * LEVEL_DELAY + tail);
+    setTimeout(() => { fitGraph(); if(onComplete) onComplete(); resolve(); }, maxLevel * LEVEL_DELAY + 600);
   });
 }
 
@@ -881,7 +855,6 @@ function buildGraph() {
   const root = nodes.find(n => n.level === 0);
   if (root) { root.x = W/2; root.y = H/2; root.vx = 0; root.vy = 0; }
   nodes.forEach(n => { n.visible = n.level === 0; });
-  restoreNodePositions(); // 저장된 위치 씨앗(reveal 전) → 재정착 최소화
   revealByLevel(new Set(nodes.map(n => n.id)), restoreFixedPositions);
   resolveWikiLinks();
 }
@@ -928,7 +901,6 @@ function mergeGraph(title, markdown, pageId) {
     edges.push({ from: firstRoot.id, to: newRootNewId, weakLink: true });
   }
   const newNodeIds = new Set(Object.values(idMap));
-  restoreNodePositions(); // 저장된 위치 씨앗(reveal 전) → 재정착 최소화
   const ret = revealByLevel(newNodeIds, restoreFixedPositions);
   resolveWikiLinks();
   return ret;
