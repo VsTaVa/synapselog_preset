@@ -829,13 +829,29 @@ function showConfirm(title, msg, onOk, accent) {
 }
 function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); _confirmCallback = null; }
 
-function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지의 노션 데이터를 새로 불러옵니다. 계속할까요?', bulkSync); }
+function confirmBulkSync() { showConfirm('전체 동기화', '수정된 페이지만 새로 불러옵니다. 계속할까요?', bulkSync); }
+// 캐시에 저장된, 마지막 동기화 시점의 노션 수정일(last_edited_time)
+function _cachedLastEdited(pageId) {
+  try { const c = JSON.parse(sessionStorage.getItem('snlog_' + pageId) || 'null'); return (c && c.lastEdited) || null; }
+  catch (e) { return null; }
+}
 async function bulkSync() {
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
-  for (const pid of ids) { await syncPage(pid); }
+  let synced = 0, skipped = 0;
+  for (const pid of ids) {
+    // 수정일 확인(가벼운 pageMeta) → 마지막 동기화 이후 안 바뀐 페이지는 전체 재요청 스킵
+    let changed = true;
+    const prev = _cachedLastEdited(pid);
+    if (prev) {
+      try { const meta = await notionFetch({ pageId: pid, action: 'pageMeta' }); if (meta && meta.lastEdited && meta.lastEdited === prev) changed = false; }
+      catch (e) { changed = true; } // 확인 실패 시 안전하게 동기화
+    }
+    if (changed) { await syncPage(pid); synced++; } else skipped++;
+  }
   await syncMdFileHandles();
   await syncFolderBatches();
   await refreshSidebarPageList(); // 노션 페이지 목록도 갱신(새 페이지 반영)
+  if (typeof toast === 'function') toast(`동기화 완료 · 갱신 ${synced}${skipped ? ` · 변경없음 ${skipped}` : ''}`, { type: 'success' });
 }
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다. 계속할까요?', () => {
