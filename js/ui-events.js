@@ -822,6 +822,7 @@ function restoreSearchHistory() {
 
 // ── 메인 루프 & 초기화 ────────────────────────────────────────────────
 
+restoreSlider(); // 저장된 슬라이더 값을 인풋에 먼저 넣고 → updateConfig가 기본값으로 덮어쓰지 않게
 updateConfig();
 applyLang();
 updateShortcutHints();
@@ -877,6 +878,5 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);
     setTimeout(loadProfile, 400);
-    setTimeout(restoreSlider, 200);
   });
 }
