@@ -64,7 +64,7 @@ canvas { display: block; }
 /* .panel-title = 패널 최상단 제목(기존 유지). 아래는 그 하위 요소 통일 규격. */
 /* 제목·소제목만 주황. 보조/본문 텍스트는 흰·회색 유지. */
 .rail-subhead { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; padding: 0 2px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
-.rail-subhead.mt { margin-top: 16px; }
+.rail-subhead.mt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
 .rail-hint { font-size: 10.5px; font-weight: 500; letter-spacing: 0; color: var(--text-faint); }
 .rail-lead { font-size: 11.5px; color: var(--text-mute); line-height: 1.6; margin: 0 2px 14px; }
 .rail-note { font-size: 10.5px; color: var(--text-faint); line-height: 1.55; margin-top: 7px; padding: 0 2px; }
@@ -76,10 +76,8 @@ canvas { display: block; }
 .rail-btn.sm { flex: 1; width: auto; padding: 5px; font-size: 11px; border-radius: var(--radius-sm); }
 .rail-btn.ghost { background: none; border-color: var(--border); color: var(--text-dim); font-weight: 600; }
 .rail-btn.ghost:hover { background: var(--hover); }
-/* 통찰(Insight) — 노드 탭에 병합 */
-.insight-in-node { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+/* 통찰(Insight) — 노드 탭에 병합. 소제목 구분선은 .rail-subhead.mt가 담당 */
 .insight-sec { margin-bottom: 16px; }
-.insight-sec:first-child .rail-subhead.mt { margin-top: 0; }
 .insight-sec:last-child { margin-bottom: 0; }
 .insight-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }

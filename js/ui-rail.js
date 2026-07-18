@@ -55,14 +55,15 @@ function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 // ── 통찰(Insight) : "적히지 않은 관계"를 계산해서 제안 (노드 탭에 병합) ──────
 // 중심(허브)·연결 제안 모두 순수 그래프/키워드 계산 (AI·토큰 0).
 let _linkSuggestCache = null;
-let _dismissedPairs = new Set(); // 거절한 쌍 "idA|idB"(정렬) — 다시 제안 안 함
-function _pairKey(aId, bId) { return [aId, bId].sort().join('|'); }
+let _dismissedPairs = new Set(); // 거절한 쌍 — 안정 키(sourcePageId::label)로 저장(노드 id는 재로드/동기화마다 바뀌므로 쓰면 안 됨)
+function _stableNodeKey(n) { return `${(n && n.sourcePageId) || ''}::${((n && n.label) || '').trim()}`; }
+function _pairKey(a, b) { return [_stableNodeKey(a), _stableNodeKey(b)].sort().join('§§'); }
 function _saveDismissed() {
   if (!_useLocalStorage) return;
-  try { localStorage.setItem('snlog_dismissed_pairs', JSON.stringify([..._dismissedPairs])); } catch (e) {}
+  try { localStorage.setItem('snlog_dismissed_pairs_v2', JSON.stringify([..._dismissedPairs])); } catch (e) {}
 }
 (function _restoreDismissed() {
-  try { if (!_useLocalStorage) return; const s = localStorage.getItem('snlog_dismissed_pairs'); if (s) JSON.parse(s).forEach(k => _dismissedPairs.add(k)); } catch (e) {}
+  try { if (!_useLocalStorage) return; const s = localStorage.getItem('snlog_dismissed_pairs_v2'); if (s) JSON.parse(s).forEach(k => _dismissedPairs.add(k)); } catch (e) {}
 })();
 
 function _nodeDegree(id) { let d = 0; edges.forEach(e => { if (e.from === id || e.to === id) d++; }); return d; }
@@ -95,7 +96,7 @@ function _computeLinkSuggestions(topN) {
     for (let j = i + 1; j < toks.length; j++) {
       const B = toks[j];
       if (connected.has(A.n.id + '|' + B.n.id)) continue;
-      if (_dismissedPairs.has(_pairKey(A.n.id, B.n.id))) continue; // 거절한 쌍 제외
+      if (_dismissedPairs.has(_pairKey(A.n, B.n))) continue; // 거절한 쌍 제외
       if (_titleKey(A.n.label) === _titleKey(B.n.label)) continue;
       let shared = 0; const terms = [];
       A.t.forEach(t => { if (B.t.has(t)) { shared++; terms.push(t); } });
@@ -186,7 +187,7 @@ function insightShowPair(i) {
 function insightDismiss(i) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p) return;
-  _dismissedPairs.add(_pairKey(p.a.id, p.b.id)); _saveDismissed();
+  _dismissedPairs.add(_pairKey(p.a, p.b)); _saveDismissed();
   _refreshSuggest();
 }
 
