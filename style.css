@@ -147,7 +147,7 @@ canvas { display: block; }
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
 }
 /* 좌측 액티비티 레일 + 플라이아웃 */
-#activity-rail { position: fixed; top: 0; left: 0; width: 56px; height: 100vh; z-index: 260; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 14px; background: rgba(8,9,14,0.98); border-right: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(12px); }
+#activity-rail { position: fixed; top: 0; left: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 260; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 14px; background: rgba(8,9,14,0.98); border-right: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(12px); }
 .rail-grp { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .rail-logo { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 8px; }
 .rail-logo img { width: 27px; height: 27px; }
@@ -157,7 +157,7 @@ canvas { display: block; }
 .rail-icon.active::before { content: ''; position: absolute; left: -7px; top: 50%; transform: translateY(-50%); width: 3px; height: 22px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .rail-avatar { background: rgba(var(--accent-rgb),0.18); color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 6px; overflow: hidden; }
 .rail-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
-#sidebar { position: fixed; top: 0; left: 56px; width: var(--sidebar-w); max-width: calc(100vw - 72px); height: 100vh; z-index: 200; display: flex; flex-direction: column; background: transparent; transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.18s; overflow: hidden; transform: translateX(calc(-100% - 60px)); opacity: 0; pointer-events: none; }
+#sidebar { position: fixed; top: 0; left: 56px; width: var(--sidebar-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; z-index: 200; display: flex; flex-direction: column; background: transparent; transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.18s; overflow: hidden; transform: translateX(calc(-100% - 60px)); opacity: 0; pointer-events: none; }
 #sidebar.open { transform: translateX(0); opacity: 1; }
 .rail-pane { display: none; }
 .rail-pane.active { display: block; pointer-events: auto; }
@@ -294,7 +294,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }
 .detail-body { flex: 1; overflow-y: auto; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
-#detail-panel { position: fixed; top: 12px; right: -700px; width: var(--detail-w); height: calc(100vh - 24px); background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
+#detail-panel { position: fixed; top: 12px; right: -700px; width: var(--detail-w); height: calc(100vh - 24px); height: calc(100dvh - 24px); background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
 #detail-panel.open { right: 12px; }
 #detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 24px; height: 88px; border-radius: 12px 0 0 12px; background: rgba(var(--accent-rgb),0.2); border: 1px solid rgba(var(--accent-rgb),0.55); border-right: none; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: background 0.2s, color 0.2s, opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
