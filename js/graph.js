@@ -595,17 +595,22 @@ let _hasRestoredPositions = false; // 이번 로드에서 저장된 위치를 �
 function saveNodePositions() {
   let data = {}; // 기존 저장분과 병합 → 지금 안 열린 페이지의 위치도 보존
   try { data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}'); } catch (e) {}
-  nodes.forEach(n => { if (n.visible) data[_posKey(n)] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+  const vis = nodes.filter(n => n.visible);
+  vis.forEach(n => { data[_posKey(n)] = { x: Math.round(n.x), y: Math.round(n.y) }; });
   if (typeof snSet === 'function') snSet('snlog_node_pos', JSON.stringify(data), 'pages');
+  console.log('[pos] 저장:', vis.length, '노드 →', Object.keys(data).length, '누적 / localStorage사용?', typeof _useLocalStorage !== 'undefined' ? _useLocalStorage : '?', '/ 샘플키:', vis[0] ? _posKey(vis[0]) : '-');
 }
 function _scheduleSavePositions() { clearTimeout(_posSaveTimer); _posSaveTimer = setTimeout(saveNodePositions, 800); }
 // 로드/머지 후 reveal 전에 호출 — 저장된 위치를 씨앗으로 넣고 _posSaved 표시
 function restoreNodePositions() {
   _hasRestoredPositions = false;
+  let cnt = 0, stored = 0;
   try {
-    const data = JSON.parse((typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}');
-    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; _hasRestoredPositions = true; } });
-  } catch (e) {}
+    const raw = (typeof snGet === 'function' ? snGet('snlog_node_pos', 'pages') : '') || '{}';
+    const data = JSON.parse(raw); stored = Object.keys(data).length;
+    nodes.forEach(n => { const p = data[_posKey(n)]; if (p) { n.x = p.x; n.y = p.y; n.vx = 0; n.vy = 0; n._posSaved = true; _hasRestoredPositions = true; cnt++; } });
+  } catch (e) { console.log('[pos] 복원 에러', e); }
+  console.log('[pos] 복원:', cnt, '/', nodes.length, '매칭 (저장분', stored, ') / 샘플키:', nodes[0] ? _posKey(nodes[0]) : '-');
 }
 
 function revealByLevel(nodeIds, onComplete) {
