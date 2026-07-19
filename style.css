@@ -340,6 +340,13 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-settings-menu button.on { color: var(--accent); }
 .detail-settings-menu button.danger { color: #ff6b6b; }
 .detail-settings-menu button.danger:hover { background: rgba(255,90,90,0.16); color: #ff8a8a; }
+
+/* 레일 이미지 저장 → 사이즈 선택 플로팅 메뉴 */
+.export-size-menu { position: fixed; z-index: 9500; display: flex; flex-direction: column; gap: 3px; min-width: 122px; padding: 8px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.export-size-menu .esm-title { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); padding: 2px 4px 5px; }
+.export-size-menu .esm-btn { font-size: 12.5px; font-family: inherit; text-align: left; padding: 8px 10px; border-radius: 6px; background: none; border: 1px solid transparent; color: var(--text); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.export-size-menu .esm-btn:hover { background: rgba(var(--accent-rgb),0.15); color: #fff; }
+.export-size-menu .esm-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); }
 .detail-settings-menu button svg { flex-shrink: 0; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(var(--accent-rgb),0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
 .detail-edit-actions { position: sticky; bottom: 0; display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding: 12px 0; background: #0e0f16; border-top: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 0 #0e0f16; z-index: 5; }
