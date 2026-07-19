@@ -301,8 +301,10 @@ function createNodeChip(node, opts) {
   const full = (n.label || '').trim() || '(제목 없음)';
   const short = full.length > 10 ? full.slice(0, 10) + '…' : full;
   const x = opts.removable ? `<span class="node-chip-x" data-x="${n.id}">×</span>` : '';
+  // 북마크된 노드는 칩 앞에 주황 북마크 표식(그래프의 주황 제목과 동일 의미)
+  const bm = (typeof isBookmarked === 'function' && isBookmarked(n)) ? `<svg class="node-chip-bm" width="9" height="9" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>` : '';
   const cls = 'node-chip' + (opts.className ? ' ' + opts.className : '');
-  return `<span class="${cls}" data-nid="${n.id}" title="${escapeHtml(full)}" style="${_chipColorStyle(n)}"><span class="node-chip-label">${escapeHtml(short)}</span>${x}</span>`;
+  return `<span class="${cls}" data-nid="${n.id}" title="${escapeHtml(full)}" style="${_chipColorStyle(n)}">${bm}<span class="node-chip-label">${escapeHtml(short)}</span>${x}</span>`;
 }
 
 // 노드칩 클릭(위임): 칩 → 상세 패널 열기, × → 선택 해제. 어디에 렌더돼도 동작.

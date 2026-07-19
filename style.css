@@ -590,6 +590,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 150px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
 .node-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-chip:hover { filter: brightness(1.18); }
+.node-chip-bm { flex-shrink: 0; }
 .node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
 .node-chip-x:hover { opacity: 1; }
 .node-chip--badge { padding: 1px 6px; font-size: 9px; font-weight: 700; max-width: none; vertical-align: 1px; }
