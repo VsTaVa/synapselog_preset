@@ -146,9 +146,9 @@ canvas { display: block; }
   --hover: rgba(var(--fg-rgb),0.06);     /* 기본 호버 배경 */
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
   /* ── 유리질감 (레일·패널·설정·플로팅 공통) — 은은한 강도 ── */
-  --glass-bg: rgba(var(--surface-rgb),0.72);       /* 뒤 그래프가 살짝 비침 */
-  --glass-bg-solid: rgba(var(--surface-rgb),0.82); /* 스크롤 있는 설정 등 살짝 더 불투명 */
-  --glass-blur: blur(14px) saturate(1.3);
+  --glass-bg: rgba(var(--surface-rgb),0.55);       /* 뒤 그래프가 비침 */
+  --glass-bg-solid: rgba(var(--surface-rgb),0.68); /* 스크롤 있는 설정 등 살짝 더 불투명 */
+  --glass-blur: blur(18px) saturate(1.4);
   --glass-border: rgba(var(--fg-rgb),0.14);
 }
 /* 좌측 액티비티 레일 + 플라이아웃 */
