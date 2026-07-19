@@ -574,7 +574,7 @@ const LANG = {
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
-    's-all-cache':'전체 캐시','s-aihist':'AI 대화 기록','s-clear-hist':'대화·최근 기록','s-clear-hist-sub':'AI 대화·최근 본 노드만 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
+    's-all-cache':'전체 캐시','s-all-cache-sub':'노드 모드·그래프 설정 포함 전부 초기화 (로그인 유지)','s-aihist':'AI 대화 기록','s-clear-hist':'대화·최근 기록','s-clear-hist-sub':'AI 대화·최근 본 노드만 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
@@ -603,7 +603,7 @@ const LANG = {
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
     's-connect-cache':'Connect Cache','s-connect-cache-sub':'Manual edge connections',
-    's-all-cache':'All Cache','s-aihist':'AI Chat History','s-clear-hist':'Chat & Recent','s-clear-hist-sub':'Clears AI chat & recent nodes only','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
+    's-all-cache':'All Cache','s-all-cache-sub':'Resets everything incl. node mode & graph settings (stays logged in)','s-aihist':'AI Chat History','s-clear-hist':'Chat & Recent','s-clear-hist-sub':'Clears AI chat & recent nodes only','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
   }
 };
 
@@ -778,15 +778,27 @@ function setExportSize(size) {
 }
 
 function clearCache(type) {
+  // 전체 초기화: 노드 모드(색상·배치·연결/제목 표시·회전)·그래프 설정(슬라이더)·페이지·북마크·본문 캐시 등 전부 삭제.
+  // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
+  if (type === 'all') {
+    showConfirm('전체 초기화', '노드 모드·그래프 설정을 포함해 저장된 데이터를 전부 초기화할까요?\n(로그인·언어·단축키는 유지되고, 새로고침됩니다)', () => {
+      const keep = ['snlog_token','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
+      [...Object.keys(sessionStorage), ...Object.keys(localStorage)]
+        .filter(k => k.startsWith('snlog_') && !keep.includes(k))
+        .forEach(k => { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch (e) {} });
+      location.reload();
+    }, true);
+    return;
+  }
   const allKeys = [...Object.keys(sessionStorage), ...Object.keys(localStorage)];
-  if (type === 'pages' || type === 'all') {
+  if (type === 'pages') {
     allKeys.filter(k => k.startsWith('snlog_') && !['snlog_token','snlog_ai_key','snlog_pages','snlog_manual_links','snlog_use_local','snlog_scopes','snlog_export_size','snlog_slider','snlog_search_history'].includes(k))
       .forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); });
     sessionStorage.removeItem('snlog_pages'); localStorage.removeItem('snlog_pages');
   }
-  if (type === 'slider' || type === 'all') { sessionStorage.removeItem('snlog_slider'); localStorage.removeItem('snlog_slider'); }
-  if (type === 'connect' || type === 'all') { sessionStorage.removeItem('snlog_manual_links'); localStorage.removeItem('snlog_manual_links'); }
-  if (type === 'search' || type === 'all') { sessionStorage.removeItem('snlog_search_history'); localStorage.removeItem('snlog_search_history'); }
+  if (type === 'slider') { sessionStorage.removeItem('snlog_slider'); localStorage.removeItem('snlog_slider'); }
+  if (type === 'connect') { sessionStorage.removeItem('snlog_manual_links'); localStorage.removeItem('snlog_manual_links'); }
+  if (type === 'search') { sessionStorage.removeItem('snlog_search_history'); localStorage.removeItem('snlog_search_history'); }
   const msg = document.getElementById('settings-token-msg');
   if (msg) { msg.textContent = '삭제됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 1500); }
 }
