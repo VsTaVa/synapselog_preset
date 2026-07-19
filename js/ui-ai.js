@@ -329,10 +329,10 @@ function _renderAiChat() {
   if (!_aiChat.length) {
     box.innerHTML =
       `<div class="aichat-help">` +
-        `<div class="aichat-help-title">AI 기능을 쓰려면 제미나이 API 키(무료)가 필요합니다</div>` +
-        `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속(구글 로그인) → <b>Create API key</b> → 키 복사 (AIza… 로 시작, 카드 등록 없이 무료)</div>` +
-        `<div class="aichat-help-step"><b>2.</b> 왼쪽 아래 <b>설정(⚙)</b> → <b>AI API 키</b> 칸에 붙여넣고 <b>저장</b></div>` +
-        `<div class="aichat-help-step"><b>3.</b> AI와 자유롭게 대화하며 글을 다듬고, <b>"검색해줘"</b>로 노드 검색, <b>"하위 노드에 넣어줘"</b>로 저장하세요</div>` +
+        `<div class="aichat-help-title">AI 기능을 사용하려면 Gemini API 키(무료)가 필요합니다</div>` +
+        `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속 → <b>Create API key</b> → 키 복사 (AIza… 로 시작, 카드 등록 없이 무료)</div>` +
+        `<div class="aichat-help-step"><b>2.</b> 좌측 하단 <b>설정(⚙)</b> → <b>AI API 키</b> 입력 후 저장</div>` +
+        `<div class="aichat-help-step"><b>3.</b> AI 대화창에서 노드 검색, 요약, 편집 가능</div>` +
       `</div>`;
     return;
   }
