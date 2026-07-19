@@ -75,16 +75,16 @@ function renderPanes(animateId) {
     el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : '');
     el.dataset.pane = i;
     el.innerHTML =
-      `<div class="detail-pane-bar">` +
-        `<span class="pane-bar-spacer"></span>` +
-        (_stack.length >= 2 ? `<button class="pane-swap-btn" title="위·아래 패널 교체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>` : '') +
-        `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
-        `<button class="pane-x" title="이 패널 닫기">✕</button>` +
+      `<div class="detail-header">` +
+        `<div class="detail-title"></div>` +
+        `<div class="detail-header-actions">` +
+          (_stack.length >= 2 ? `<button class="pane-swap-btn" title="위·아래 패널 교체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>` : '') +
+          `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
+          `<button class="pane-x" title="이 패널 닫기">✕</button>` +
+        `</div>` +
       `</div>` +
       `<div class="detail-body">` +
-        `<div class="detail-title-row"><div class="detail-title-main"><div class="detail-title"></div></div><div class="detail-title-actions"></div></div>` +
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
-        `<div class="detail-divider"></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
     const swb = el.querySelector('.pane-swap-btn');
@@ -124,12 +124,12 @@ function renderPaneContent(i, n) {
   const titleEl = paneEl.querySelector('.detail-title');
   const dateEl = paneEl.querySelector('.detail-date');
   const contentEl = paneEl.querySelector('.detail-content');
-  const titleRow = paneEl.querySelector('.detail-title-row');
+  const headerEl = paneEl.querySelector('.detail-header');
   if (!n) {
     if (titleEl) titleEl.textContent = '';
     if (dateEl) dateEl.style.display = 'none';
     if (contentEl) contentEl.innerHTML = '';
-    const oldLink = titleRow && titleRow.querySelector('.detail-notion-link');
+    const oldLink = headerEl && headerEl.querySelector('.detail-notion-link');
     if (oldLink) oldLink.style.display = 'none';
     return;
   }
@@ -139,28 +139,26 @@ function renderPaneContent(i, n) {
     else { dateEl.style.display = 'none'; }
   }
   // 노션에서 보기 / 북마크는 설정(⚙) 메뉴로 이동 — 예전 직접 아이콘이 남아있으면 제거
-  titleRow.querySelectorAll('.detail-notion-link, .detail-bookmark-btn').forEach(el => el.remove());
+  headerEl.querySelectorAll('.detail-notion-link, .detail-bookmark-btn').forEach(el => el.remove());
   // 노션에서 보기 링크 대상 (로컬/MD 노드는 없음)
   const isLocalLike = n.local || String(n.sourcePageId || '').startsWith('md_');
   // 노드 연결 링크와 동일하게 페이지ID 포함(notion.so/<page>?pvs=4#<block>) → 페이지 이동+블록 스크롤
   const notionHref = isLocalLike ? '' : _wikiUrlFor(n);
 
-  const titleActions = titleRow.querySelector('.detail-title-actions') || titleRow;
+  const headerActions = headerEl.querySelector('.detail-header-actions');
   // AI 요약 가짜 노드는 톱니(수정·동기화·삭제 등) 없이 본문만 표시
   if (!n._aiSummary) {
   // 모든 동작(수정·동기화·하위추가·노션보기·북마크·삭제)을 ⚙ 메뉴 하나로 통합
-  let setBtn = titleRow.querySelector('.detail-settings-btn');
+  let setBtn = headerEl.querySelector('.detail-settings-btn');
   if (!setBtn) {
     setBtn = document.createElement('button');
     setBtn.className = 'detail-edit-btn detail-settings-btn';
     setBtn.title = '메뉴 (수정·추가·북마크·삭제)';
     setBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
-    titleActions.appendChild(setBtn);
+    // ⚙은 액션 묶음 맨 앞(접기·닫기 왼쪽)
+    headerActions.insertBefore(setBtn, headerActions.firstChild);
   }
   setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
-  if (titleEl && titleActions && titleActions !== titleRow) {
-    requestAnimationFrame(() => { titleEl.style.paddingRight = (titleActions.offsetWidth + 10) + 'px'; });
-  }
   }
 
   let rawDesc = escapeHtml(n.desc || '(내용 없음)')
