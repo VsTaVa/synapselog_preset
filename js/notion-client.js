@@ -691,11 +691,12 @@ function savePageList() {
     const title = cached ? (JSON.parse(cached).title || pageId) : pageId;
     list.push({ pageId, title });
   });
-  try { sessionStorage.setItem('snlog_pages', JSON.stringify(list)); } catch(e) {}
+  // 'pages' 스코프로 저장 → 로컬 저장 켜져 있으면 localStorage에 남아 F5·재시작에도 페이지 목록 복원(노드 위치는 저장 안 함)
+  snSet('snlog_pages', JSON.stringify(list), 'pages');
 }
 
 async function restorePageList() {
-  const saved = sessionStorage.getItem('snlog_pages');
+  const saved = snGet('snlog_pages', 'pages');
   if (!saved) return;
   let list; try { list = JSON.parse(saved); } catch(e) { return; }
   for (const { pageId, title } of list) {
