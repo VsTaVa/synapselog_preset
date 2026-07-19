@@ -554,7 +554,7 @@ const LANG = {
     'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
     's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
-    's-api':'Notion API 토큰','sc-save':'저장','sc-placeholder-token':'새 토큰 입력...',
+    's-api':'Notion API','sc-save':'저장','sc-placeholder-token':'새 API 입력...',
     's-aikey':'AI API','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
     's-imgsize':'이미지 저장 크기',
     's-shortcuts':'키보드 단축키','s-shortcuts-hint':'버튼 클릭 후 원하는 키 입력',
