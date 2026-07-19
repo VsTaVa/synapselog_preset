@@ -574,7 +574,7 @@ const LANG = {
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
-    's-all-cache':'전체 캐시','s-aihist':'AI 대화 기록','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
+    's-all-cache':'전체 캐시','s-aihist':'AI 대화 기록','s-clear-hist':'대화·최근 기록','s-clear-hist-sub':'AI 대화·최근 본 노드만 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
@@ -603,7 +603,7 @@ const LANG = {
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
     's-connect-cache':'Connect Cache','s-connect-cache-sub':'Manual edge connections',
-    's-all-cache':'All Cache','s-aihist':'AI Chat History','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
+    's-all-cache':'All Cache','s-aihist':'AI Chat History','s-clear-hist':'Chat & Recent','s-clear-hist-sub':'Clears AI chat & recent nodes only','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
   }
 };
 
@@ -798,6 +798,45 @@ function clearAiHistory() {
     try { localStorage.removeItem('snlog_aichat'); } catch (e) {}
     if (typeof _renderAiChat === 'function') _renderAiChat();
     toast('AI 대화 기록을 지웠어요', { type: 'success' });
+  }, true);
+}
+
+// 대화·최근 기록만 삭제 — AI 대화 + 최근 본 노드. (수동연결·북마크·페이지 등은 건드리지 않음)
+function clearChatAndRecent() {
+  showConfirm('대화·최근 기록 삭제', 'AI 대화와 최근 본 노드 기록을 지울까요?', () => {
+    _aiChat = [];
+    try { localStorage.removeItem('snlog_aichat'); sessionStorage.removeItem('snlog_aichat'); } catch (e) {}
+    if (typeof _renderAiChat === 'function') _renderAiChat();
+    if (typeof _recentNodes !== 'undefined') _recentNodes = []; // 최근 본 노드는 메모리에만 존재 → 직접 초기화
+    if (typeof renderBookmarkList === 'function') renderBookmarkList();
+    toast('AI 대화·최근 기록을 지웠어요', { type: 'success' });
+  }, true);
+}
+
+// 저장된 노션 토큰 삭제 (세션 + 로컬)
+function clearToken() {
+  if (!_savedToken) { const m = document.getElementById('settings-token-msg'); if (m) { m.textContent = '저장된 토큰이 없어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
+  showConfirm('노션 토큰 삭제', '저장된 노션 API 토큰을 지울까요?', () => {
+    _savedToken = '';
+    try { sessionStorage.removeItem('snlog_token'); localStorage.removeItem('snlog_token'); } catch (e) {}
+    const input = document.getElementById('settings-token-input');
+    if (input) { input.value = ''; input.placeholder = t('sc-placeholder-token') || '새 토큰 입력...'; }
+    const m = document.getElementById('settings-token-msg');
+    if (m) { m.textContent = '삭제됐어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
+    if (typeof loadProfile === 'function') loadProfile();
+  }, true);
+}
+
+// 저장된 AI API 키 삭제 (세션 + 로컬)
+function clearAiKey() {
+  if (!_savedAiKey) { const m = document.getElementById('settings-aikey-msg'); if (m) { m.textContent = '저장된 키가 없어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
+  showConfirm('AI API 키 삭제', '저장된 AI API 키를 지울까요?', () => {
+    _savedAiKey = '';
+    try { sessionStorage.removeItem('snlog_ai_key'); localStorage.removeItem('snlog_ai_key'); } catch (e) {}
+    const input = document.getElementById('settings-aikey-input');
+    if (input) { input.value = ''; input.placeholder = 'AIza...'; }
+    const m = document.getElementById('settings-aikey-msg');
+    if (m) { m.textContent = '삭제됐어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
   }, true);
 }
 

@@ -465,6 +465,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .token-edit-row input:focus { border-color: rgba(var(--accent-rgb),0.5); }
 .token-edit-row button { font-size: 11px; font-weight: 700; font-family: inherit; padding: 7px 12px; border-radius: 6px; cursor: pointer; background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); transition: background 0.2s; }
 .token-edit-row button:hover { background: rgba(var(--accent-rgb),0.25); }
+.token-edit-row .s-trash-btn { background: none; border: none; color: var(--danger); padding: 6px 8px; flex-shrink: 0; }
+.token-edit-row .s-trash-btn:hover { background: rgba(255,90,90,0.14); color: #ff8a8a; }
 #status { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: rgba(var(--fg-rgb),0.5); pointer-events: none; }
 .shortcut-btn { font-size: 11px; font-weight: 700; font-family: 'Noto Sans KR', monospace; padding: 4px 10px; border-radius: 5px; cursor: pointer; min-width: 52px; text-align: center; background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.15); color: rgba(var(--fg-rgb),0.7); transition: all 0.15s; }
 .shortcut-btn:hover { background: rgba(var(--fg-rgb),0.12); color: var(--fg); border-color: rgba(var(--fg-rgb),0.25); }
