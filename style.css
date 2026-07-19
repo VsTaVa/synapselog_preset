@@ -432,7 +432,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .profile-action-btn.white { color: #fff; }
 .profile-action-btn.accent { color: var(--accent); }
 .profile-action-btn.accent:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
-#settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: blur(6px); }
+#settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 #settings-modal.open { display: flex; }
 #settings-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 16px; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.7); padding: 24px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #settings-box::-webkit-scrollbar { width: 3px; }
