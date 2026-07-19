@@ -26,7 +26,7 @@ canvas { display: block; }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 #legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
-#legend-body { display: none; width: 276px; padding: 12px; background: rgba(11,13,19,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
+#legend-body { display: none; width: 276px; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #legend.open #legend-body { display: flex; gap: 11px; }
 .lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
@@ -293,7 +293,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
 #detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 10px; padding: 0; }
-.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: rgba(10,11,18,0.97); border: 1px solid rgba(255,255,255,0.09); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: blur(12px); }
+.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 @keyframes paneRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }
