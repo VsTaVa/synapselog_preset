@@ -451,11 +451,11 @@ const _SAMPLE_MD = `# 노트 샘플
 
 ### AI
 
-- /Node Summary: 단일 또는 복수 노드 요약
-- /Node Link: 노드 연결 추천 기능
-- /Node Edit: 선택한 노드 본문 다듬기
-- /import: 웹&유튜브(자막) 링크를 마크다운 노드로 가져오기
-- AI 키워드 검색 요약 기능
+- **/Node Summary:** 단일 또는 복수 노드 요약
+- **/Node Link:** 노드 연결 추천 기능
+- **/Node Edit:** 선택한 노드 본문 다듬기
+- **/import:** 웹&유튜브(자막) 링크를 마크다운 노드로 가져오기
+- **AI 키워드 검색 요약 기능**
 
 ### 범례
 
@@ -616,18 +616,21 @@ window._selectedPageIds = new Set();
 function renderPageList(pages) {
   const list = document.getElementById('page-list');
   if (!list) return;
+  window._lastPickerPages = pages; // 토글로 다시 그릴 때 검색 필터 결과 유지
   if (pages.length === 0) { list.innerHTML = _emptyPagesHtml(false); return; }
   // 사이드바 목록과 동일하게 상위/하위를 트리 순서 + 들여쓰기 가이드로 표시
   const ordered = _orderPagesByHierarchy(pages.filter(p => p.title && p.title.trim()));
-  list.innerHTML = ordered.map((row, i) => row.p.isDatabase ? `
-    <div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">
-      <div class="page-pick-item is-db">
+  const vis = _visibleRows(ordered);
+  list.innerHTML = vis.map((row, i) => row.p.isDatabase ? `
+    <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
+      ${_pliToggle(row)}
+      <div class="page-pick-item pli-group">
         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
-        <span class="node-chip node-chip--badge db-badge">DB</span>
       </div>
     </div>
   ` : `
-    <div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">
+    <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
+      ${_pliToggle(row)}
       <div class="page-pick-item" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)"
         style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; font-size:13px; color:rgba(255,255,255,0.75);">
         <div style="width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;" class="pick-check"></div>
@@ -710,7 +713,8 @@ function renderSidebarPageList(pages) {
   if (!listEl) return;
   if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
-  listEl.innerHTML = ordered.map((row, i) => `<div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">${_pageItemHtml(row.p)}</div>`).join('');
+  const vis = _visibleRows(ordered);
+  listEl.innerHTML = vis.map((row, i) => `<div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
 }
 
 // 목록이 비는 가장 흔한 원인은 '통합을 페이지에 연결' 누락 — 원인과 해결을 같이 안내
@@ -725,6 +729,33 @@ function _emptyPagesHtml(compact) {
     </ol>
     <a class="pe-link" href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">통합 관리 열기</a>
   </div>`;
+}
+
+// 하위 페이지 접기/펼치기 — 기본은 전부 닫힘(세션 중에만 유지)
+let _expandedPages = new Set();
+function togglePageGroup(id) {
+  if (_expandedPages.has(id)) _expandedPages.delete(id); else _expandedPages.add(id);
+  if (window._lastPickerPages && document.getElementById('page-list')) renderPageList(window._lastPickerPages);
+  refreshSidebarRender();
+}
+// 닫힌 상위가 조상 중 하나라도 있으면 숨김
+function _visibleRows(ordered) {
+  const rowById = new Map(ordered.map(r => [r.p.id, r]));
+  return ordered.filter(r => {
+    let pid = r.parentRowId;
+    while (pid) {
+      if (!_expandedPages.has(pid)) return false;
+      const pr = rowById.get(pid);
+      pid = pr ? pr.parentRowId : null;
+    }
+    return true;
+  });
+}
+// 하위가 있는 행엔 토글, 없으면 같은 폭의 빈 칸(줄맞춤용)
+function _pliToggle(row) {
+  if (!row.hasKids) return '<span class="pli-toggle-sp"></span>';
+  const open = _expandedPages.has(row.p.id);
+  return `<button class="pli-toggle${open ? ' open' : ''}" title="하위 페이지 펼치기/접기" aria-label="하위 페이지 펼치기/접기" onclick="event.stopPropagation();togglePageGroup('${row.p.id}')"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>`;
 }
 
 // 들여쓰기 가이드 클래스 — 같은 깊이가 연속된 구간의 처음/끝을 '[' 처럼 꺾기 위한 표시
@@ -754,11 +785,12 @@ function _orderPagesByHierarchy(pages) {
     return (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true });
   };
   const out = [], seen = new Set();
-  const walk = (p, depth) => {
+  const walk = (p, depth, parentRowId) => {
     if (seen.has(p.id)) return; // 순환 방어
     seen.add(p.id);
-    out.push({ p, depth });
-    (children.get(p.id) || []).sort(cmp).forEach(k => walk(k, depth + 1));
+    const kids = (children.get(p.id) || []).sort(cmp);
+    out.push({ p, depth, parentRowId: parentRowId || null, hasKids: kids.length > 0 });
+    kids.forEach(k => walk(k, depth + 1, p.id));
   };
   // 부모가 목록에 없어도(통합이 상위 페이지에 미연결) 하위 페이지·DB 항목이면 한 단계 들여씀
   const baseDepth = p => (p.parentType === 'page_id' || p.parentType === 'database_id') ? 1 : 0;
@@ -796,10 +828,10 @@ function _pageItemHtml(p) {
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
     const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
-    // 데이터베이스는 하위 항목의 부모 자리를 잡아주는 표시용 행 (추가 대상 아님)
+    // 데이터베이스는 하위 항목을 묶어주는 상위 행으로만 표시 (추가 대상 아님)
     if (p.isDatabase) {
-      return `<div class="page-list-item is-db" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}">${safeTitle}<span class="node-chip node-chip--badge db-badge">DB</span></span>
+      return `<div class="page-list-item pli-group" data-page-id="${p.id}">
+        <span class="item-label" title="${safeTitle}">${safeTitle}</span>
       </div>`;
     }
     if (p.isLocal) {

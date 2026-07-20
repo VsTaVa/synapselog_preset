@@ -191,7 +191,13 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #sidebar-page-list::-webkit-scrollbar, #md-folder-list::-webkit-scrollbar { width: 3px; }
 #sidebar-page-list::-webkit-scrollbar-thumb, #md-folder-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 /* 페이지 목록 상·하위 구분: 깊이만큼 들여쓰고 그만큼 세로 가이드선(Indent Guide) */
-.pli-row { position:relative; padding-left:calc(var(--d,0) * 13px); }
+.pli-row { position:relative; display:flex; align-items:center; gap:3px; padding-left:calc(var(--d,0) * 13px); }
+.pli-row > .page-list-item, .pli-row > .page-pick-item { flex:1; min-width:0; }
+/* 하위 페이지 접기/펼치기 토글 (기본 닫힘) */
+.pli-toggle { flex-shrink:0; width:15px; height:15px; display:flex; align-items:center; justify-content:center; padding:0; background:none; border:none; border-radius:3px; cursor:pointer; color:var(--text-mute); transition:color .15s, transform .15s; }
+.pli-toggle:hover { color:var(--accent); }
+.pli-toggle.open { transform:rotate(90deg); color:var(--accent); }
+.pli-toggle-sp { flex-shrink:0; width:15px; }
 /* 조상 단계 세로선 (가장 안쪽 단계는 아래 대괄호가 담당) */
 .pli-row::before { content:''; position:absolute; left:5px; top:-4px; bottom:-4px; width:calc(max(var(--d,0) - 1, 0) * 13px); pointer-events:none; background-image:repeating-linear-gradient(to right, var(--accent) 0 2px, transparent 2px 13px); }
 /* 가장 안쪽 단계: '[' 모양 — 그룹 첫 행에서 위로, 마지막 행에서 아래로 꺾임 */
@@ -200,11 +206,9 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:2px solid var(--accent); border-bottom-left-radius:4px; }
 /* 하위가 하나뿐이면 위아래 선이 겹치므로 가로 팔 하나만 */
 .pli-row.pli-child.pli-first.pli-last::after { border-bottom:none; border-radius:0; }
-/* 데이터베이스 행 — 하위 항목의 부모 자리만 잡아주는 표시용(추가·선택 불가) */
-.page-list-item.is-db { background:rgba(var(--accent-rgb),0.06); border-color:rgba(var(--accent-rgb),0.22); border-style:dashed; }
-.page-list-item.is-db .item-label { cursor:default; color:var(--text-dim); }
-.page-pick-item.is-db { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px; border:1px dashed rgba(var(--accent-rgb),0.28); background:rgba(var(--accent-rgb),0.06); font-size:13px; color:var(--text-dim); cursor:default; }
-.db-badge { background:rgba(var(--accent-rgb),0.14); border-color:rgba(var(--accent-rgb),0.4); color:var(--accent); margin-left:6px; }
+/* 하위를 묶어주는 상위 행 — 추가·선택 대상이 아니라 그룹 머리글로만 동작 */
+.page-list-item.pli-group .item-label { cursor:default; color:var(--text-dim); }
+.page-pick-item.pli-group { display:flex; align-items:center; padding:9px 12px; border-radius:8px; border:1px solid rgba(var(--fg-rgb),0.08); background:rgba(var(--fg-rgb),0.04); font-size:13px; color:var(--text-dim); cursor:default; }
 .page-list-item { display:flex; align-items:center; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.15s; min-height:30px; }
 .page-list-item.active { border-left:3px solid var(--accent); }
 .page-list-item.focused { border-color:rgba(var(--accent-rgb),0.6); background:rgba(var(--accent-rgb),0.1); }
