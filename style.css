@@ -395,6 +395,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-body-block.dragging { opacity: 0.45; }
 .body-edit-row { width: 100%; box-sizing: border-box; min-height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; white-space: pre-wrap; word-break: break-word; }
 .body-edit-row:focus { border-color: rgba(var(--accent-rgb),0.7); }
+/* 편집기 안 검색 키워드 강조 (읽기뷰와 동일 톤) — 저장 시 태그는 제거됨 */
+.body-edit-row mark { background: rgba(var(--accent-rgb),0.35); color: var(--accent); border-radius: 3px; padding: 0 2px; }
 .body-edit-row:empty:before { content: attr(data-placeholder); color: rgba(255,255,255,0.3); pointer-events: none; }
 .body-edit-row strong, .body-edit-row b { color: var(--accent); font-weight: 700; }
 .body-edit-row del, .body-edit-row s, .body-edit-row strike { color: rgba(255,255,255,0.5); }

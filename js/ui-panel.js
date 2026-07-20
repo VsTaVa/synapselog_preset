@@ -336,6 +336,32 @@ function htmlFromMarkdown(t) {
     // [텍스트](url) → 편집기에서 원자적 링크 칩(긴 URL 숨김). href엔 원본 유지
     .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (m, txt, url) => `<a href="${url}" class="wl-ref wl-chip" contenteditable="false">${txt}</a>`);
 }
+// 편집기 안에서도 검색 키워드를 강조 — 텍스트 노드만 감싸므로 태그·href가 깨지지 않고,
+// markdownFromHtml이 모르는 태그(<mark>)는 텍스트만 남기고 벗겨내므로 저장에 영향 없음
+function markKeywordInEl(el, kw) {
+  const needle = (kw || '').trim().toLowerCase();
+  if (!el || !needle) return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  const targets = [];
+  let tn;
+  while ((tn = walker.nextNode())) {
+    if (tn.nodeValue && tn.nodeValue.toLowerCase().includes(needle)) targets.push(tn);
+  }
+  targets.forEach(t => {
+    const val = t.nodeValue, lower = val.toLowerCase();
+    const frag = document.createDocumentFragment();
+    let idx = 0, at;
+    while ((at = lower.indexOf(needle, idx)) !== -1) {
+      if (at > idx) frag.appendChild(document.createTextNode(val.slice(idx, at)));
+      const m = document.createElement('mark');
+      m.textContent = val.slice(at, at + needle.length);
+      frag.appendChild(m);
+      idx = at + needle.length;
+    }
+    if (idx < val.length) frag.appendChild(document.createTextNode(val.slice(idx)));
+    t.parentNode.replaceChild(frag, t);
+  });
+}
 function markdownFromHtml(el) {
   function walk(node) {
     let s = '';
@@ -590,6 +616,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const ce = document.createElement('div');
     ce.className = 'body-edit-row'; ce.contentEditable = 'true';
     ce.innerHTML = htmlFromMarkdown(text);
+    if (typeof searchKeyword !== 'undefined') markKeywordInEl(ce, searchKeyword); // 검색 중이면 편집기에서도 키워드 강조
     if (!blk) ce.dataset.placeholder = '본문 내용…';
     const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk };
     // 드래그 핸들 (로컬 단일 본문은 순서 불필요)
