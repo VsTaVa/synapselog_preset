@@ -406,6 +406,58 @@ function exportPageById(pageId) {
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
+// 설정 없이 바로 둘러보는 샘플 그래프 — .MD 임포트와 동일 경로라 별도 처리 불필요
+const _SAMPLE_MD = `# 지식 그래프 둘러보기
+이 노드는 샘플입니다. 노션 없이 기능을 그대로 사용해볼 수 있습니다.
+
+## 노드 다루기
+노드를 클릭하면 우측 패널에서 내용을 봅니다.
+우클릭(모바일은 더블탭)하면 연결·북마크·삭제 같은 도구가 나옵니다.
+Ctrl+클릭으로 노드를 제자리에 고정합니다.
+
+### 연결 만들기
+노드를 두 개 선택하고 '노드 간 연결'을 누르면 링크가 생깁니다.
+{{화면 조작}} 처럼 적으면 다른 노드로 이어지는 링크가 됩니다.
+
+## 화면 조작
+마우스 휠로 확대·축소, 드래그로 이동합니다.
+빈 공간을 더블클릭하면 화면에 맞춥니다.
+빈 공간을 우클릭한 채 위아래로 끌면 화면이 회전합니다.
+
+### 보기 바꾸기
+노드 모드에서 배치를 힘기반·방사형·페이지별로 바꿉니다.
+노드 색상을 노드별 또는 헤딩 깊이별로 볼 수 있습니다.
+
+## 검색과 북마크
+좌측 검색에서 키워드를 넣으면 해당 노드가 밝아지고 나머지는 흐려집니다.
+자주 보는 노드는 북마크하면 제목이 주황색으로 표시됩니다.
+
+## AI 기능
+제미나이 무료 키를 넣으면 선택한 노드를 요약하거나 연결을 추천받습니다.
+키가 없어도 그래프 기능은 모두 사용할 수 있습니다.
+
+## 다음 단계
+시작 화면으로 돌아가 노션 토큰을 넣으면 실제 페이지가 그래프가 됩니다.
+마크다운 파일이나 폴더를 그대로 불러올 수도 있습니다.`;
+
+function startWithSample() {
+  document.getElementById('login-screen').style.display = 'none';
+  buildGraph(); loop();
+  const title = '샘플 노트', pageId = 'md_sample_' + Date.now();
+  setTimeout(() => {
+    mergeGraph(title, _SAMPLE_MD, pageId);
+    _addedPageIds.add(pageId);
+    sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: _SAMPLE_MD, isMd: true, _cachedAt: Date.now() }));
+    const wrap = document.getElementById('sidebar-page-list-wrap');
+    if (wrap) wrap.style.display = 'block';
+    if (!window._sidebarPageList) window._sidebarPageList = [];
+    window._sidebarPageList.push({ id: pageId, title, isMd: true });
+    refreshSidebarRender();
+    updateBulkActionsVisibility(); savePageList();
+    setTimeout(() => { try { fitGraph(true); } catch (e) {} }, 700);
+  }, 100);
+}
+
 function startWithMd(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -477,7 +529,7 @@ window._selectedPageIds = new Set();
 function renderPageList(pages) {
   const list = document.getElementById('page-list');
   if (!list) return;
-  if (pages.length === 0) { list.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:20px 0;">페이지가 없어요</div>'; return; }
+  if (pages.length === 0) { list.innerHTML = _emptyPagesHtml(false); return; }
   // 사이드바 목록과 동일하게 상위/하위를 트리 순서 + 들여쓰기 가이드로 표시
   const ordered = _orderPagesByHierarchy(pages.filter(p => p.title && p.title.trim()));
   list.innerHTML = ordered.map((row, i) => `
@@ -562,9 +614,23 @@ async function refreshSidebarPageList() {
 function renderSidebarPageList(pages) {
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return;
-  if (!pages || !pages.length) { listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">페이지 없음</div>'; return; }
+  if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
   listEl.innerHTML = ordered.map((row, i) => `<div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">${_pageItemHtml(row.p)}</div>`).join('');
+}
+
+// 목록이 비는 가장 흔한 원인은 '통합을 페이지에 연결' 누락 — 원인과 해결을 같이 안내
+function _emptyPagesHtml(compact) {
+  return `<div class="pages-empty${compact ? ' compact' : ''}">
+    <div class="pe-title">연결된 페이지 없음</div>
+    <div class="pe-desc">노션에서 통합을 연결한 페이지만 목록에 나타납니다.</div>
+    <ol class="pe-steps">
+      <li>노션에서 원하는 페이지 열기</li>
+      <li>우측 상단 <b>···</b> → <b>연결</b></li>
+      <li>발급 때 만든 <b>integration</b> 선택</li>
+    </ol>
+    <a class="pe-link" href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">통합 관리 열기</a>
+  </div>`;
 }
 
 // 들여쓰기 가이드 클래스 — 같은 깊이가 연속된 구간의 처음/끝을 '[' 처럼 꺾기 위한 표시

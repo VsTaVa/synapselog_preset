@@ -107,6 +107,24 @@ canvas { display: block; }
 #login-error { margin-top: 10px; font-size: 12px; color: var(--danger); text-align: center; display: none; }
 .login-help { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--fg-rgb),0.06); font-size: 11px; color: rgba(var(--fg-rgb),0.6); line-height: 1.8; }
 .login-help a { color: rgba(var(--accent-rgb),0.6); text-decoration: none; }
+/* 로그인 대체 진입(샘플·MD) 버튼 */
+.login-alt { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:11px; background:rgba(var(--fg-rgb),0.05); border:1px solid rgba(var(--fg-rgb),0.12); border-radius:8px; color:var(--text-dim); font-size:13px; font-weight:700; font-family:inherit; letter-spacing:0.04em; cursor:pointer; transition:background 0.2s, color 0.2s, border-color 0.2s; }
+.login-alt:hover { background:rgba(var(--fg-rgb),0.09); color:var(--fg); }
+.login-alt + .login-alt { margin-top:8px; }
+.login-alt.accent { background:rgba(var(--accent-rgb),0.1); border-color:rgba(var(--accent-rgb),0.35); color:var(--accent); }
+.login-alt.accent:hover { background:rgba(var(--accent-rgb),0.18); border-color:rgba(var(--accent-rgb),0.55); color:var(--accent); }
+
+/* 페이지 목록이 비었을 때 원인·해결 안내 */
+.pages-empty { padding:14px 12px; border:1px dashed rgba(var(--accent-rgb),0.3); border-radius:8px; background:rgba(var(--accent-rgb),0.04); }
+/* 안내가 목록 높이(96px)에 잘리지 않게 — 비었을 때만 높이 제한 해제 */
+#sidebar-page-list:has(.pages-empty) { max-height:none !important; overflow-y:visible !important; }
+.pages-empty.compact { padding:11px 10px; }
+.pages-empty .pe-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:5px; }
+.pages-empty .pe-desc { font-size:11px; color:var(--text-dim); line-height:1.5; margin-bottom:8px; }
+.pages-empty .pe-steps { margin:0 0 9px; padding-left:16px; font-size:11px; color:var(--text-mute); line-height:1.75; }
+.pages-empty .pe-steps b { color:var(--text); }
+.pages-empty .pe-link { display:inline-block; font-size:11px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1px solid rgba(var(--accent-rgb),0.4); }
+.pages-empty .pe-link:hover { border-bottom-color:var(--accent); }
 .login-help a:hover { color: var(--accent); }
 .login-help b { color: rgba(var(--accent-rgb),0.9); }
 .panel-box { background: var(--glass-bg); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
