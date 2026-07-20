@@ -560,7 +560,17 @@ function renderSidebarPageList(pages) {
   if (!listEl) return;
   if (!pages || !pages.length) { listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">페이지 없음</div>'; return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
-  listEl.innerHTML = ordered.map(({ p, depth }) => `<div class="pli-row" style="--d:${depth}">${_pageItemHtml(p)}</div>`).join('');
+  // 같은 깊이가 연속된 구간의 처음/끝에서 가이드선을 '[' 처럼 꺾기 위해 표시
+  listEl.innerHTML = ordered.map(({ p, depth }, i) => {
+    const prev = ordered[i - 1], next = ordered[i + 1];
+    let cls = 'pli-row';
+    if (depth > 0) {
+      cls += ' pli-child';
+      if (!prev || prev.depth < depth) cls += ' pli-first';
+      if (!next || next.depth < depth) cls += ' pli-last';
+    }
+    return `<div class="${cls}" style="--d:${depth}">${_pageItemHtml(p)}</div>`;
+  }).join('');
 }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
