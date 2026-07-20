@@ -165,8 +165,9 @@ function renderPaneContent(i, n) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
     .replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>')
     .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
-  // 목록 마커("1. ", "- ")를 주황색으로 강조 (줄머리만)
-  rawDesc = rawDesc.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
+  // 목록 마커(줄머리만) — "- "/"* "는 노션처럼 원(•)으로, 번호는 그대로. 편집기의 _listMark와 동일한 표기
+  rawDesc = rawDesc.replace(/^(\s*)(\d+\.|[-*])(\s)/gm,
+    (m, sp, mk, tail) => `${sp}<span class="md-mark">${/^\d/.test(mk) ? mk : '•'}</span>${tail}`);
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
   rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
