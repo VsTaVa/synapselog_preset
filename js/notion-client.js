@@ -227,7 +227,7 @@ function renderMdFolderList() {
     const files = [...batch.files.entries()];
     return `<div class="md-folder-group" data-folder-id="${folderBatchId}">
       <div class="md-folder-header">
-        <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}">📁 ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
+        <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}"><svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
         <div class="item-actions"><button title="이 폴더 동기화" onclick="syncFolderBatch('${folderBatchId}')">↻</button><button title="폴더 전체 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
       </div>
       <div class="md-folder-files">
@@ -585,7 +585,9 @@ function _orderPagesByHierarchy(pages) {
     out.push({ p, depth });
     (children.get(p.id) || []).sort(cmp).forEach(k => walk(k, depth + 1));
   };
-  roots.sort(cmp).forEach(r => walk(r, 0));
+  // 부모가 목록에 없어도(통합이 상위 페이지에 연결 안 됨) 하위 페이지·DB 항목이면 한 단계 들여씀
+  const baseDepth = p => (p.parentType === 'page_id' || p.parentType === 'database_id') ? 1 : 0;
+  roots.sort(cmp).forEach(r => walk(r, baseDepth(r)));
   pages.forEach(p => { if (!seen.has(p.id)) { seen.add(p.id); out.push({ p, depth: 0 }); } }); // 누락 방어
   return out;
 }

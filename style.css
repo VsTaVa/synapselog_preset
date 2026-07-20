@@ -196,6 +196,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .md-folder-group { border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(255,255,255,0.03); overflow:hidden; flex-shrink:0; }
 .md-folder-header { display:flex; align-items:center; justify-content:space-between; padding:7px 9px; background:rgba(var(--accent-rgb),0.07); gap:6px; }
 .md-folder-name { font-size:12px; color:rgba(255,255,255,0.85); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.md-folder-ic { vertical-align:-2px; color:var(--accent); flex-shrink:0; }
 .md-folder-header .item-actions { display:flex; align-items:center; flex-shrink:0; }
 .md-folder-header .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:2px 4px; line-height:1; color:rgba(255,255,255,0.4); transition:color 0.15s; }
 .md-folder-header .item-actions button:first-child:hover { color:rgba(255,255,255,0.85); }
@@ -277,7 +278,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .btn-sync:hover { color: rgba(255,255,255,0.8); }
 .btn-remove { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--accent); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
 .btn-remove:hover { color: #ffbe76; }
-#confirm-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: blur(4px); }
+#confirm-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 #confirm-modal.open { display: flex; }
 #confirm-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 24px 22px; width: 300px; box-shadow: 0 16px 48px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #confirm-box .confirm-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
@@ -524,7 +525,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-suggest-top { align-items: flex-start; }
 
 /* ── 최초 사용 온보딩 ── */
-#onboarding { position: fixed; inset: 0; z-index: 900; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+#onboarding { position: fixed; inset: 0; z-index: 900; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 #onboarding.show { display: flex; }
 .ob-card { width: 344px; max-width: 88vw; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid var(--accent); border-radius: 14px; padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .ob-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; }
