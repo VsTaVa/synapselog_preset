@@ -513,7 +513,9 @@ function draw() {
       ctx.font = lblFont; ctx.textBaseline = 'top';
       ctx.textAlign = 'center';
       const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
-      ctx.fillStyle = isMatch ? '#ffffff' : (_bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})` : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`);
+      // 검색으로 직접 걸린 노드는 주황(결과), 경로상 조상은 흰색(맥락)
+      const _hit = (typeof searchDirect !== 'undefined') && searchDirect.has(n.id);
+      ctx.fillStyle = _hit ? '#ed7000' : isMatch ? '#ffffff' : (_bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})` : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`);
       ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
     });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';

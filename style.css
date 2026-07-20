@@ -175,11 +175,11 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 /* 페이지 목록 상·하위 구분: 깊이만큼 들여쓰고 그만큼 세로 가이드선(Indent Guide) */
 .pli-row { position:relative; padding-left:calc(var(--d,0) * 13px); }
 /* 조상 단계 세로선 (가장 안쪽 단계는 아래 대괄호가 담당) */
-.pli-row::before { content:''; position:absolute; left:5px; top:-4px; bottom:-4px; width:calc(max(var(--d,0) - 1, 0) * 13px); pointer-events:none; background-image:repeating-linear-gradient(to right, var(--accent) 0 1px, transparent 1px 13px); }
+.pli-row::before { content:''; position:absolute; left:5px; top:-4px; bottom:-4px; width:calc(max(var(--d,0) - 1, 0) * 13px); pointer-events:none; background-image:repeating-linear-gradient(to right, var(--accent) 0 2px, transparent 2px 13px); }
 /* 가장 안쪽 단계: '[' 모양 — 그룹 첫 행에서 위로, 마지막 행에서 아래로 꺾임 */
-.pli-row.pli-child::after { content:''; position:absolute; left:calc((var(--d,0) - 1) * 13px + 5px); width:7px; top:-4px; bottom:-4px; border-left:1px solid var(--accent); pointer-events:none; }
-.pli-row.pli-child.pli-first::after { top:50%; border-top:1px solid var(--accent); border-top-left-radius:4px; }
-.pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:1px solid var(--accent); border-bottom-left-radius:4px; }
+.pli-row.pli-child::after { content:''; position:absolute; left:calc((var(--d,0) - 1) * 13px + 5px); width:7px; top:-4px; bottom:-4px; border-left:2px solid var(--accent); pointer-events:none; }
+.pli-row.pli-child.pli-first::after { top:50%; border-top:2px solid var(--accent); border-top-left-radius:4px; }
+.pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:2px solid var(--accent); border-bottom-left-radius:4px; }
 /* 하위가 하나뿐이면 위아래 선이 겹치므로 가로 팔 하나만 */
 .pli-row.pli-child.pli-first.pli-last::after { border-bottom:none; border-radius:0; }
 .page-list-item { display:flex; align-items:center; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.15s; min-height:30px; }
