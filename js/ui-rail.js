@@ -197,10 +197,36 @@ function _refreshSuggest() {
   if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
 }
 
+// 현재 불러온 그래프를 버림 — 시작 화면에서 새로 고를 때 이전 페이지가 섞이지 않게
+function discardCurrentGraph() {
+  nodes = []; edges = [];
+  Object.keys(nodeMap).forEach(k => delete nodeMap[k]);
+  if (typeof _addedPageIds !== 'undefined') _addedPageIds.clear();
+  if (typeof _stack !== 'undefined') _stack = [];
+  if (typeof _activeNode !== 'undefined') _activeNode = null;
+  if (typeof closePanel === 'function') closePanel();
+  if (typeof clearMultiSelect === 'function') clearMultiSelect();
+  if (typeof clearGraphHighlight === 'function') clearGraphHighlight();
+  if (typeof _recentNodes !== 'undefined') _recentNodes = [];
+  if (typeof _linkSuggestCache !== 'undefined') _linkSuggestCache = null;
+  window._sidebarPageList = [];
+  window._NOTION_MARKDOWN = ''; window._NOTION_TITLE = '';
+  // 저장된 페이지 목록도 지워야 새로고침 때 버린 그래프가 되살아나지 않음
+  if (typeof snRemove === 'function') snRemove('snlog_pages', 'pages');
+  const wrap = document.getElementById('sidebar-page-list-wrap');
+  if (wrap) wrap.style.display = 'none';
+  if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
+  if (typeof renderMdFolderList === 'function') renderMdFolderList();
+  if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
+  if (typeof renderBookmarkList === 'function') renderBookmarkList();
+  isStable = false;
+}
+
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
 function backToLoginScreen() {
-  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요?\n현재 그래프는 그대로 유지됩니다.', () => {
+  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요?\n현재 그래프는 버려집니다.', () => {
     closeRailFlyout();
+    discardCurrentGraph();
     const ls = document.getElementById('login-screen');
     if (ls) ls.style.display = '';
     // 페이지 선택 화면이 토큰 폼을 덮어쓴 상태일 수 있으므로 원본 마크업으로 되돌림
