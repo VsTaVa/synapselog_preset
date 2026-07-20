@@ -30,7 +30,7 @@ function renderBookmarkList() {
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
   let html = `<div class="rail-subhead">북마크</div>`;
   html += bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
-    : `<div class="rail-empty"><b>북마크</b>한 노드 모음</div>`;
+    : `<div class="rail-empty">북마크 노드 모음</div>`;
   html += `<div class="rail-subhead mt">최근 본 노드</div>`;
   html += recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
     : `<div class="rail-empty">클릭한 노드 기록</div>`;

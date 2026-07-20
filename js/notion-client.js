@@ -759,38 +759,42 @@ function _pliToggle(row) {
 }
 
 // 들여쓰기 가이드 클래스 — 같은 깊이가 연속된 구간의 처음/끝을 '[' 처럼 꺾기 위한 표시
+function _pliIndex(ordered) {
+  if (!ordered._idx) ordered._idx = new Map(ordered.map((r, n) => [r.p.id, n]));
+  return ordered._idx;
+}
+// 자손 행은 건너뛰고, 같은 부모를 둔 같은 깊이의 형제가 그 방향에 있는지 판정
+function _pliHasSibling(ordered, row, dir) {
+  const start = _pliIndex(ordered).get(row.p.id);
+  if (start === undefined) return false;
+  for (let j = start + dir; j >= 0 && j < ordered.length; j += dir) {
+    const o = ordered[j];
+    if (o.depth > row.depth) continue;      // 자손 — 건너뜀
+    if (o.depth < row.depth) return false;  // 그룹이 끝남
+    return o.parentRowId === row.parentRowId;
+  }
+  return false;
+}
 function _pliRowClass(ordered, i) {
-  const depth = ordered[i].depth;
-  if (!depth) return 'pli-row';
-  // 자손 행(더 깊은 depth)은 건너뛰고 같은 깊이의 형제가 위/아래에 있는지로 판정.
-  // 목록이 자손 행으로 끝나도 상위 그룹이 제대로 닫히게 하려면 이 방식이어야 함.
-  const sibling = (dir) => {
-    for (let j = i + dir; j >= 0 && j < ordered.length; j += dir) {
-      const d = ordered[j].depth;
-      if (d > depth) continue;
-      return d === depth;
-    }
-    return false;
-  };
+  const row = ordered[i];
+  // 상위 행이 목록에 없는 묶음(부모 미연결 하위·DB 등)은 들여쓰기만 하고 선으로 잇지 않음
+  if (!row.depth || !row.parentRowId) return 'pli-row';
   let cls = 'pli-row pli-child';
-  if (!sibling(-1)) cls += ' pli-first';
-  if (!sibling(1)) cls += ' pli-last';
+  if (!_pliHasSibling(ordered, row, -1)) cls += ' pli-first';
+  if (!_pliHasSibling(ordered, row, 1)) cls += ' pli-last';
   return cls;
 }
 
-// 조상 단계 세로선 — 그 단계에 아래로 남은 형제가 있을 때만 그림(끝난 그룹의 선이 흘러내리지 않게)
+// 조상 단계 세로선 — 실제 상위 행이 있고, 그 단계에 아래로 형제가 남았을 때만
 function _pliGuides(ordered, i) {
-  const depth = ordered[i].depth;
-  let html = '';
-  for (let k = 1; k < depth; k++) {
-    let cont = false;
-    for (let j = i + 1; j < ordered.length; j++) {
-      const d = ordered[j].depth;
-      if (d > k) continue;
-      cont = (d === k);
-      break;
-    }
-    if (cont) html += `<i class="pli-g" style="--k:${k}"></i>`;
+  const map = _pliIndex(ordered);
+  let html = '', pid = ordered[i].parentRowId;
+  while (pid !== null && pid !== undefined) {
+    const idx = map.get(pid);
+    const anc = idx === undefined ? null : ordered[idx];
+    if (!anc) break;
+    if (anc.parentRowId && _pliHasSibling(ordered, anc, 1)) html += `<i class="pli-g" style="--k:${anc.depth}"></i>`;
+    pid = anc.parentRowId;
   }
   return html;
 }
