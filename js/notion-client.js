@@ -478,11 +478,15 @@ function renderPageList(pages) {
   const list = document.getElementById('page-list');
   if (!list) return;
   if (pages.length === 0) { list.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:20px 0;">페이지가 없어요</div>'; return; }
-  list.innerHTML = pages.map(p => `
-    <div class="page-pick-item" data-id="${p.id}" onclick="togglePageSelect('${p.id}', this)"
-      style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; font-size:13px; color:rgba(255,255,255,0.75);">
-      <div style="width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;" class="pick-check"></div>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.title) || '(제목 없음)'}</span>
+  // 사이드바 목록과 동일하게 상위/하위를 트리 순서 + 들여쓰기 가이드로 표시
+  const ordered = _orderPagesByHierarchy(pages.filter(p => p.title && p.title.trim()));
+  list.innerHTML = ordered.map((row, i) => `
+    <div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">
+      <div class="page-pick-item" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)"
+        style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; font-size:13px; color:rgba(255,255,255,0.75);">
+        <div style="width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;" class="pick-check"></div>
+        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
+      </div>
     </div>
   `).join('');
 }
@@ -560,17 +564,18 @@ function renderSidebarPageList(pages) {
   if (!listEl) return;
   if (!pages || !pages.length) { listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">페이지 없음</div>'; return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
-  // 같은 깊이가 연속된 구간의 처음/끝에서 가이드선을 '[' 처럼 꺾기 위해 표시
-  listEl.innerHTML = ordered.map(({ p, depth }, i) => {
-    const prev = ordered[i - 1], next = ordered[i + 1];
-    let cls = 'pli-row';
-    if (depth > 0) {
-      cls += ' pli-child';
-      if (!prev || prev.depth < depth) cls += ' pli-first';
-      if (!next || next.depth < depth) cls += ' pli-last';
-    }
-    return `<div class="${cls}" style="--d:${depth}">${_pageItemHtml(p)}</div>`;
-  }).join('');
+  listEl.innerHTML = ordered.map((row, i) => `<div class="${_pliRowClass(ordered, i)}" style="--d:${row.depth}">${_pageItemHtml(row.p)}</div>`).join('');
+}
+
+// 들여쓰기 가이드 클래스 — 같은 깊이가 연속된 구간의 처음/끝을 '[' 처럼 꺾기 위한 표시
+function _pliRowClass(ordered, i) {
+  const depth = ordered[i].depth;
+  if (!depth) return 'pli-row';
+  const prev = ordered[i - 1], next = ordered[i + 1];
+  let cls = 'pli-row pli-child';
+  if (!prev || prev.depth < depth) cls += ' pli-first';
+  if (!next || next.depth < depth) cls += ' pli-last';
+  return cls;
 }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
