@@ -203,6 +203,9 @@ function backToLoginScreen() {
     closeRailFlyout();
     const ls = document.getElementById('login-screen');
     if (ls) ls.style.display = '';
+    // 페이지 선택 화면이 토큰 폼을 덮어쓴 상태일 수 있으므로 원본 마크업으로 되돌림
+    const box = document.getElementById('login-box');
+    if (box && window._loginBoxHtml) box.innerHTML = window._loginBoxHtml;
     const tokenIn = document.getElementById('input-token');
     if (tokenIn && _savedToken) tokenIn.value = _savedToken;
     const err = document.getElementById('login-error');

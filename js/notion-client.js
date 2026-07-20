@@ -596,6 +596,8 @@ async function startGraph() {
 
 async function showPagePicker() {
   const loginBox = document.getElementById('login-box');
+  // 토큰 입력 폼을 덮어쓰기 전에 원본을 보관 — 시작 화면으로 돌아갈 때 복원용
+  if (loginBox && !window._loginBoxHtml) window._loginBoxHtml = loginBox.innerHTML;
   loginBox.innerHTML = `
     <div class="login-title">Synapse<span>Log</span></div>
     <div class="login-sub" style="margin-bottom:14px;">불러올 페이지를 선택하세요</div>
