@@ -623,14 +623,14 @@ function renderPageList(pages) {
   const vis = _visibleRows(ordered);
   list.innerHTML = vis.map((row, i) => row.p.isDatabase ? `
     <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
-      ${_pliToggle(row)}
+      ${_pliGuides(vis, i)}${_pliToggle(row)}
       <div class="page-pick-item pli-group">
         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
       </div>
     </div>
   ` : `
     <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
-      ${_pliToggle(row)}
+      ${_pliGuides(vis, i)}${_pliToggle(row)}
       <div class="page-pick-item" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)"
         style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; font-size:13px; color:rgba(255,255,255,0.75);">
         <div style="width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;" class="pick-check"></div>
@@ -714,7 +714,7 @@ function renderSidebarPageList(pages) {
   if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
   const vis = _visibleRows(ordered);
-  listEl.innerHTML = vis.map((row, i) => `<div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
+  listEl.innerHTML = vis.map((row, i) => `<div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">${_pliGuides(vis, i)}${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
 }
 
 // 목록이 비는 가장 흔한 원인은 '통합을 페이지에 연결' 누락 — 원인과 해결을 같이 안내
@@ -762,11 +762,37 @@ function _pliToggle(row) {
 function _pliRowClass(ordered, i) {
   const depth = ordered[i].depth;
   if (!depth) return 'pli-row';
-  const prev = ordered[i - 1], next = ordered[i + 1];
+  // 자손 행(더 깊은 depth)은 건너뛰고 같은 깊이의 형제가 위/아래에 있는지로 판정.
+  // 목록이 자손 행으로 끝나도 상위 그룹이 제대로 닫히게 하려면 이 방식이어야 함.
+  const sibling = (dir) => {
+    for (let j = i + dir; j >= 0 && j < ordered.length; j += dir) {
+      const d = ordered[j].depth;
+      if (d > depth) continue;
+      return d === depth;
+    }
+    return false;
+  };
   let cls = 'pli-row pli-child';
-  if (!prev || prev.depth < depth) cls += ' pli-first';
-  if (!next || next.depth < depth) cls += ' pli-last';
+  if (!sibling(-1)) cls += ' pli-first';
+  if (!sibling(1)) cls += ' pli-last';
   return cls;
+}
+
+// 조상 단계 세로선 — 그 단계에 아래로 남은 형제가 있을 때만 그림(끝난 그룹의 선이 흘러내리지 않게)
+function _pliGuides(ordered, i) {
+  const depth = ordered[i].depth;
+  let html = '';
+  for (let k = 1; k < depth; k++) {
+    let cont = false;
+    for (let j = i + 1; j < ordered.length; j++) {
+      const d = ordered[j].depth;
+      if (d > k) continue;
+      cont = (d === k);
+      break;
+    }
+    if (cont) html += `<i class="pli-g" style="--k:${k}"></i>`;
+  }
+  return html;
 }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
