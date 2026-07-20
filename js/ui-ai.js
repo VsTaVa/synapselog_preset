@@ -332,7 +332,7 @@ function _renderAiChat() {
     box.innerHTML =
       `<div class="aichat-help">` +
         `<div class="aichat-help-title">AI 기능을 사용하려면 Gemini API 키(무료)가 필요합니다</div>` +
-        `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속 → <b>Create API key</b> → 키 복사 (AIza… 로 시작, 카드 등록 없이 무료)</div>` +
+        `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속 → <b>Create API key</b> → 키 복사 </div>` +
         `<div class="aichat-help-step"><b>2.</b> 좌측 하단 <b>설정(⚙)</b> → <b>AI API 키</b> 입력 후 저장</div>` +
         `<div class="aichat-help-step"><b>3.</b> AI 대화창에서 노드 검색, 요약, 편집 가능</div>` +
       `</div>`;
