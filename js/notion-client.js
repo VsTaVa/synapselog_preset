@@ -600,9 +600,21 @@ function _orderPagesByHierarchy(pages) {
     out.push({ p, depth });
     (children.get(p.id) || []).sort(cmp).forEach(k => walk(k, depth + 1));
   };
-  // 부모가 목록에 없어도(통합이 상위 페이지에 연결 안 됨) 하위 페이지·DB 항목이면 한 단계 들여씀
+  // 부모가 목록에 없어도(통합이 상위 페이지에 미연결) 하위 페이지·DB 항목이면 한 단계 들여씀
   const baseDepth = p => (p.parentType === 'page_id' || p.parentType === 'database_id') ? 1 : 0;
-  roots.sort(cmp).forEach(r => walk(r, baseDepth(r)));
+  // 최상위 페이지를 먼저 배치(각각 자기 하위를 바로 아래 달고 감) → 상위가 항상 하위 맨 위에 옴
+  roots.filter(r => !baseDepth(r)).sort(cmp).forEach(r => walk(r, 0));
+  // 부모를 목록에서 못 찾은 하위들은 같은 부모끼리 묶어서 뒤에 배치(최상위들 사이에 흩어지지 않게)
+  const orphanGroups = new Map();
+  roots.filter(r => baseDepth(r) && !seen.has(r.id)).forEach(r => {
+    const k = r.parentId || '';
+    if (!orphanGroups.has(k)) orphanGroups.set(k, []);
+    orphanGroups.get(k).push(r);
+  });
+  [...orphanGroups.values()]
+    .map(g => g.sort(cmp))
+    .sort((a, b) => cmp(a[0], b[0]))
+    .forEach(g => g.forEach(r => walk(r, 1)));
   pages.forEach(p => { if (!seen.has(p.id)) { seen.add(p.id); out.push({ p, depth: 0 }); } }); // 누락 방어
   return out;
 }
