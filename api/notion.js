@@ -76,7 +76,8 @@ export default async function handler(req, res) {
       const pages = [];
       let cursor = undefined;
       do {
-        const body = { filter: { value: 'page', property: 'object' }, page_size: 100 };
+        // object 필터 없이 조회 — DB 항목의 부모는 데이터베이스라, DB를 빼면 항목들이 전부 부모 없는 상태가 됨
+        const body = { page_size: 100 };
         if (cursor) body.start_cursor = cursor;
         const res2 = await fetch('https://api.notion.com/v1/search', {
           method: 'POST',
@@ -86,14 +87,22 @@ export default async function handler(req, res) {
         if (!res2.ok) { const e = await res2.json(); throw new Error(e.message || '목록 조회 실패'); }
         const data = await res2.json();
         for (const p of data.results) {
-          const props = p.properties || {};
-          const titleProp = Object.values(props).find(v => v.type === 'title');
-          const title = (titleProp?.title?.map(t => t.plain_text || '').join('') || p.child_page?.title || '').trim();
+          const isDb = p.object === 'database';
+          let title;
+          if (isDb) {
+            title = (p.title || []).map(t => t.plain_text || '').join('').trim();
+          } else {
+            const props = p.properties || {};
+            const titleProp = Object.values(props).find(v => v.type === 'title');
+            title = (titleProp?.title?.map(t => t.plain_text || '').join('') || p.child_page?.title || '').trim();
+          }
           if (!title) continue;
-          // 상위/하위 구분용 부모 정보 (parent.type: 'workspace' | 'page_id' | 'database_id')
+          // 상위/하위 구분용 부모 정보 (parent.type: 'workspace' | 'page_id' | 'database_id' | 'block_id')
           const par = p.parent || {};
-          const parentId = (par.page_id || par.database_id || '').replace(/-/g, '');
-          pages.push({ id: p.id.replace(/-/g, ''), title, parentType: par.type || '', parentId });
+          const parentId = (par.page_id || par.database_id || par.block_id || '').replace(/-/g, '');
+          const row = { id: p.id.replace(/-/g, ''), title, parentType: par.type || '', parentId };
+          if (isDb) row.isDatabase = true; // 목록에선 부모 행으로만 표시(추가 대상 아님)
+          pages.push(row);
         }
         cursor = data.has_more ? data.next_cursor : undefined;
       } while (cursor);

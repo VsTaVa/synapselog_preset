@@ -200,6 +200,11 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:2px solid var(--accent); border-bottom-left-radius:4px; }
 /* 하위가 하나뿐이면 위아래 선이 겹치므로 가로 팔 하나만 */
 .pli-row.pli-child.pli-first.pli-last::after { border-bottom:none; border-radius:0; }
+/* 데이터베이스 행 — 하위 항목의 부모 자리만 잡아주는 표시용(추가·선택 불가) */
+.page-list-item.is-db { background:rgba(var(--accent-rgb),0.06); border-color:rgba(var(--accent-rgb),0.22); border-style:dashed; }
+.page-list-item.is-db .item-label { cursor:default; color:var(--text-dim); }
+.page-pick-item.is-db { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px; border:1px dashed rgba(var(--accent-rgb),0.28); background:rgba(var(--accent-rgb),0.06); font-size:13px; color:var(--text-dim); cursor:default; }
+.db-badge { background:rgba(var(--accent-rgb),0.14); border-color:rgba(var(--accent-rgb),0.4); color:var(--accent); margin-left:6px; }
 .page-list-item { display:flex; align-items:center; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.15s; min-height:30px; }
 .page-list-item.active { border-left:3px solid var(--accent); }
 .page-list-item.focused { border-color:rgba(var(--accent-rgb),0.6); background:rgba(var(--accent-rgb),0.1); }

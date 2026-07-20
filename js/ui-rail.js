@@ -30,10 +30,10 @@ function renderBookmarkList() {
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
   let html = `<div class="rail-subhead">북마크</div>`;
   html += bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
-    : `<div class="rail-empty">노드 선택 후 <b>북마크</b>를 누르면 여기에 모여요.</div>`;
+    : `<div class="rail-empty"><b>북마크</b>한 노드 모음</div>`;
   html += `<div class="rail-subhead mt">최근 본 노드</div>`;
   html += recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
-    : `<div class="rail-empty">아직 없어요.</div>`;
+    : `<div class="rail-empty">클릭한 노드 기록</div>`;
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
