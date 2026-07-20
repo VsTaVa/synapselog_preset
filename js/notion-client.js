@@ -559,12 +559,39 @@ function renderSidebarPageList(pages) {
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return;
   if (!pages || !pages.length) { listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">페이지 없음</div>'; return; }
-  const sorted = [...pages].filter(p => p.title && p.title.trim()).sort((a, b) => {
+  const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
+  listEl.innerHTML = ordered.map(({ p, depth }) => `<div class="pli-row" style="--d:${depth}">${_pageItemHtml(p)}</div>`).join('');
+}
+
+// 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
+function _orderPagesByHierarchy(pages) {
+  const byId = new Map(pages.map(p => [p.id, p]));
+  const children = new Map();
+  const roots = [];
+  pages.forEach(p => {
+    const par = (p.parentId && p.parentId !== p.id && byId.has(p.parentId)) ? p.parentId : null;
+    if (par) { if (!children.has(par)) children.set(par, []); children.get(par).push(p); }
+    else roots.push(p);
+  });
+  const cmp = (a, b) => {
     const fa = _favoritePageIds.has(a.id) ? 0 : 1, fb = _favoritePageIds.has(b.id) ? 0 : 1;
     if (fa !== fb) return fa - fb;
     return (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true });
-  });
-  listEl.innerHTML = sorted.map(p => {
+  };
+  const out = [], seen = new Set();
+  const walk = (p, depth) => {
+    if (seen.has(p.id)) return; // 순환 방어
+    seen.add(p.id);
+    out.push({ p, depth });
+    (children.get(p.id) || []).sort(cmp).forEach(k => walk(k, depth + 1));
+  };
+  roots.sort(cmp).forEach(r => walk(r, 0));
+  pages.forEach(p => { if (!seen.has(p.id)) { seen.add(p.id); out.push({ p, depth: 0 }); } }); // 누락 방어
+  return out;
+}
+
+function _pageItemHtml(p) {
+  {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
     let mdBadge = '';
@@ -606,7 +633,7 @@ function renderSidebarPageList(pages) {
         <div class="item-actions">${starBtn}</div>
       </div>`;
     }
-  }).join('');
+  }
 }
 
 function refreshSidebarRender() {

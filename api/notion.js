@@ -90,7 +90,10 @@ export default async function handler(req, res) {
           const titleProp = Object.values(props).find(v => v.type === 'title');
           const title = (titleProp?.title?.map(t => t.plain_text || '').join('') || p.child_page?.title || '').trim();
           if (!title) continue;
-          pages.push({ id: p.id.replace(/-/g, ''), title });
+          // 상위/하위 구분용 부모 정보 (parent.type: 'workspace' | 'page_id' | 'database_id')
+          const par = p.parent || {};
+          const parentId = (par.page_id || par.database_id || '').replace(/-/g, '');
+          pages.push({ id: p.id.replace(/-/g, ''), title, parentType: par.type || '', parentId });
         }
         cursor = data.has_more ? data.next_cursor : undefined;
       } while (cursor);

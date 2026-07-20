@@ -172,6 +172,9 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #detail-resize-handle:hover, #detail-resize-handle.dragging { background: rgba(var(--accent-rgb),0.4); }
 #sidebar-page-list::-webkit-scrollbar, #md-folder-list::-webkit-scrollbar { width: 3px; }
 #sidebar-page-list::-webkit-scrollbar-thumb, #md-folder-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+/* 페이지 목록 상·하위 구분: 깊이만큼 들여쓰고 그만큼 세로 가이드선(Indent Guide) */
+.pli-row { position:relative; padding-left:calc(var(--d,0) * 13px); }
+.pli-row::before { content:''; position:absolute; left:5px; top:-3px; bottom:-3px; width:calc(var(--d,0) * 13px); pointer-events:none; background-image:repeating-linear-gradient(to right, var(--border) 0 1px, transparent 1px 13px); }
 .page-list-item { display:flex; align-items:center; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.15s; min-height:30px; }
 .page-list-item.active { border-left:3px solid var(--accent); }
 .page-list-item.focused { border-color:rgba(var(--accent-rgb),0.6); background:rgba(var(--accent-rgb),0.1); }
@@ -364,9 +367,11 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-item { display: flex; align-items: stretch; gap: 6px; }
 .body-edit-item .body-edit-row { flex: 1; min-width: 0; }
-.body-edit-handle { flex-shrink: 0; display: flex; align-items: center; padding: 0 2px; color: rgba(255,255,255,0.3); cursor: grab; font-size: 14px; user-select: none; }
+.body-edit-handle { flex-shrink: 0; display: flex; align-items: center; padding: 0 2px; color: rgba(255,255,255,0.3); cursor: grab; font-size: 14px; user-select: none; touch-action: none; -webkit-user-select: none; }
 .body-edit-handle:hover { color: var(--accent); }
 .body-edit-handle:active { cursor: grabbing; }
+/* 터치 기기: 문단 순서 바꾸기 핸들을 손가락으로 잡기 쉽게 */
+@media (pointer: coarse) { .body-edit-handle { padding: 0 8px; font-size: 17px; } }
 .body-edit-item.dragging { opacity: 0.45; }
 .body-edit-item.drag-over { box-shadow: 0 -2px 0 var(--accent); }
 .body-edit-mark { flex-shrink: 0; min-width: 15px; text-align: right; padding-top: 9px; color: rgba(255,255,255,0.45); font-size: 13px; line-height: 1.6; user-select: none; }

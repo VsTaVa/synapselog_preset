@@ -578,6 +578,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   const list = document.createElement('div'); list.className = 'body-edit-list';
   contentEl.appendChild(list);
   let _bodyDrag = null;
+  let _bodyTouchOver = null; // 모바일 터치 드래그 중 위에 올라간 행
   const reorderBodyRow = (dragRow, targetRow) => {
     if (dragRow === targetRow) return;
     const fi = rows.indexOf(dragRow); if (fi >= 0) rows.splice(fi, 1);
@@ -600,6 +601,36 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       item.addEventListener('dragover', e => { if (_bodyDrag && _bodyDrag !== rowObj) { e.preventDefault(); item.classList.add('drag-over'); } });
       item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
       item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
+      // 모바일: HTML5 드래그앤드롭은 터치에서 동작하지 않아 터치 이벤트로 같은 동작을 구현
+      const _touchClear = () => {
+        item.classList.remove('dragging');
+        if (_bodyTouchOver) _bodyTouchOver.classList.remove('drag-over');
+        _bodyTouchOver = null; _bodyDrag = null;
+      };
+      handle.addEventListener('touchstart', e => {
+        e.preventDefault(); // 스크롤·텍스트 선택 방지
+        _bodyDrag = rowObj; _bodyTouchOver = null;
+        item.classList.add('dragging');
+      }, { passive: false });
+      handle.addEventListener('touchmove', e => {
+        if (!_bodyDrag) return;
+        e.preventDefault();
+        const t = e.touches[0]; if (!t) return;
+        const under = document.elementFromPoint(t.clientX, t.clientY);
+        const over = under && under.closest ? under.closest('.body-edit-item') : null;
+        if (_bodyTouchOver && _bodyTouchOver !== over) _bodyTouchOver.classList.remove('drag-over');
+        if (over && over !== item) { over.classList.add('drag-over'); _bodyTouchOver = over; }
+        else _bodyTouchOver = null;
+      }, { passive: false });
+      handle.addEventListener('touchend', e => {
+        e.preventDefault();
+        if (_bodyDrag && _bodyTouchOver) {
+          const target = rows.find(r => r.item === _bodyTouchOver);
+          if (target) reorderBodyRow(_bodyDrag, target);
+        }
+        _touchClear();
+      }, { passive: false });
+      handle.addEventListener('touchcancel', _touchClear);
     }
     if (blk && blk.mark) { const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.textContent = blk.mark; item.appendChild(mk); }
     item.appendChild(ce);
