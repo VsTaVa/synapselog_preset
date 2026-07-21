@@ -3,17 +3,18 @@
 const _searchHistory = [];
 const MAX_HISTORY = 8;
 
+// 검색 횟수 누적 — '자주 검색하는 키워드'용 (검색 기록과 달리 지워도 남는 통계)
+let _searchCounts = (() => { try { return JSON.parse(snGet('snlog_search_counts', 'search') || '{}'); } catch (e) { return {}; } })();
+function _saveSearchCounts() { snSet('snlog_search_counts', JSON.stringify(_searchCounts), 'search'); }
+
 function renderSearchHistory() {
-  const container = document.getElementById('search-history');
-  if (!container) return;
-  container.innerHTML = '';
-  _searchHistory.forEach((kw, idx) => {
-    const item = document.createElement('div');
-    item.className = 'search-history-item';
-    item.innerHTML = `<span>${escapeHtml(kw)}</span><button class="search-history-del" onclick="deleteHistory(${idx},event)">✕</button>`;
-    item.addEventListener('click', () => { searchInput.value = kw; doSearch(kw); });
-    container.appendChild(item);
-  });
+  const el = document.getElementById('search-history');
+  if (!el) return;
+  if (searchKeyword || !_searchHistory.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="rail-subhead">검색 기록</div><div class="sp-chips">`
+    + _searchHistory.map((kw, i) => `<span class="sp-chip sp-chip-del"><button class="sp-chip-go" onclick="runKeyword('${escapeHtml(kw).replace(/'/g, "&#39;")}')">${escapeHtml(kw)}</button><button class="sp-chip-x" onclick="deleteHistory(${i},event)" aria-label="기록 삭제">✕</button></span>`).join('')
+    + `</div>`;
+  el.style.display = 'block';
 }
 
 function addHistory(kw) {
@@ -22,10 +23,39 @@ function addHistory(kw) {
   if (idx !== -1) _searchHistory.splice(idx, 1);
   _searchHistory.unshift(kw);
   if (_searchHistory.length > MAX_HISTORY) _searchHistory.pop();
+  saveSearchHistory();
+  _searchCounts[kw] = (_searchCounts[kw] || 0) + 1;
+  _saveSearchCounts();
+  renderSearchHistory();
+  renderFrequentKeywords();
+}
+
+function deleteHistory(idx, e) {
+  if (e) e.stopPropagation();
+  _searchHistory.splice(idx, 1);
+  saveSearchHistory();
   renderSearchHistory();
 }
 
-function deleteHistory(idx, e) { e.stopPropagation(); _searchHistory.splice(idx, 1); renderSearchHistory(); }
+// 검색창에 넣고 바로 검색 (칩 클릭 공용)
+function runKeyword(kw) {
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = kw;
+  doSearch(kw);
+}
+
+// 자주 검색하는 키워드 — 누적 횟수 2회 이상, 많은 순
+function renderFrequentKeywords() {
+  const el = document.getElementById('search-frequent');
+  if (!el) return;
+  const top = Object.entries(_searchCounts).filter(e => e[1] >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10);
+  if (searchKeyword || !top.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="rail-subhead mt">자주 검색하는 키워드</div><div class="sp-chips">`
+    + top.map(([k, c]) => `<button class="sp-chip" onclick="runKeyword('${escapeHtml(k).replace(/'/g, "&#39;")}')">${escapeHtml(k)}<span class="sp-count">${c}</span></button>`).join('')
+    + `</div>`;
+  el.style.display = 'block';
+}
 
 // 그래프 노드 제목에서 자주 나오는 키워드 top N (문서빈도 기준, AI 없이 코드로)
 function _popularKeywords(topN) {
@@ -111,6 +141,8 @@ function doSearch(kw) {
     if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
   }
   if (typeof renderPopularKeywords === 'function') renderPopularKeywords();
+  if (typeof renderSearchHistory === 'function') renderSearchHistory();
+  if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
   isStable = false;
 }
 let _searchFitTimer = null;
@@ -123,8 +155,10 @@ function highlightAiNodes(nodeList) {
 }
 
 searchInput.addEventListener('input', e => doSearch(e.target.value));
-searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { doSearch(searchInput.value.trim()); } });
-document.getElementById('search-btn').addEventListener('click', () => { doSearch(searchInput.value.trim()); });
+// 확정 검색(엔터·검색 버튼)만 기록 — 타이핑 중간값이 기록에 쌓이지 않게
+function _commitSearch() { const kw = searchInput.value.trim(); doSearch(kw); if (kw) addHistory(kw); }
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') _commitSearch(); });
+document.getElementById('search-btn').addEventListener('click', _commitSearch);
 clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
 
 

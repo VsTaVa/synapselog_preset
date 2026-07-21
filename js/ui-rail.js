@@ -12,7 +12,12 @@ function openRailSection(name) {
   document.querySelectorAll('#sidebar .rail-pane').forEach(el => el.classList.toggle('active', el.dataset.section === name));
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
-  if (name === 'search') { setTimeout(() => document.getElementById('search-input')?.focus(), 60); if (typeof renderPopularKeywords === 'function') renderPopularKeywords(); }
+  if (name === 'search') {
+    setTimeout(() => document.getElementById('search-input')?.focus(), 60);
+    if (typeof renderSearchHistory === 'function') renderSearchHistory();
+    if (typeof renderPopularKeywords === 'function') renderPopularKeywords();
+    if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
+  }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
   if (name === 'bookmarks') { renderBookmarkList(); renderInsights(); }
   applyRailSecState(); // 정적 마크업(노드 모드·그래프 설정)에 저장된 접힘 상태 반영
@@ -62,6 +67,11 @@ function renderBookmarkList() {
   let html = railSecHead('bm', '북마크');
   html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
     : `<div class="rail-empty">북마크 노드 모음</div>`);
+  const freq = _frequentNodes(8);
+  html += railSecHead('freq', '자주 본 노드', 'mt');
+  html += railSecBody('freq', freq.length
+    ? freq.map(f => rowHtml(f.n, `<span class="bm-count">${f.c}</span>`)).join('')
+    : `<div class="rail-empty">2번 이상 연 노드</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
   html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc, true)).join('')
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
@@ -75,6 +85,25 @@ function renderBookmarkList() {
     };
   });
 }
+// ── 자주 본 노드 — 조회 횟수 누적 (노드 id는 재로드마다 바뀌므로 안정 키로 저장) ──
+let _nodeViews = (() => { try { return JSON.parse(localStorage.getItem('snlog_node_views') || '{}'); } catch (e) { return {}; } })();
+function bumpNodeView(n) {
+  const k = _stableNodeKey(n);
+  if (!k || k === '::') return;
+  _nodeViews[k] = (_nodeViews[k] || 0) + 1;
+  try { localStorage.setItem('snlog_node_views', JSON.stringify(_nodeViews)); } catch (e) {}
+}
+// 2회 이상 본 노드를 많이 본 순으로 (현재 그래프에 있는 것만)
+function _frequentNodes(topN) {
+  const out = [];
+  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => {
+    if (!n.visible || n._aiSummary) return;
+    const c = _nodeViews[_stableNodeKey(n)] || 0;
+    if (c >= 2) out.push({ n, c });
+  });
+  return out.sort((a, b) => b.c - a.c).slice(0, topN);
+}
+
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
 function removeRecentNode(id) {
   _recentNodes = _recentNodes.filter(x => x !== id);
