@@ -15,6 +15,31 @@ function openRailSection(name) {
   if (name === 'search') { setTimeout(() => document.getElementById('search-input')?.focus(), 60); if (typeof renderPopularKeywords === 'function') renderPopularKeywords(); }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
   if (name === 'bookmarks') { renderBookmarkList(); renderInsights(); }
+  applyRailSecState(); // 정적 마크업(노드 모드·그래프 설정)에 저장된 접힘 상태 반영
+}
+
+// ── 레일 섹션 접기/펼치기 (기본 열림, 선택은 localStorage 유지) ──────
+let _railOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_rail_open') || '{}'); } catch (e) { return {}; } })();
+function isRailSecOpen(key) { return _railOpen[key] !== false; }
+function toggleRailSec(key) {
+  _railOpen[key] = !isRailSecOpen(key);
+  try { localStorage.setItem('snlog_rail_open', JSON.stringify(_railOpen)); } catch (e) {}
+  applyRailSecState();
+}
+// 머리글·본문 모두 data-sec를 달아두고 closed 클래스만 토글 (재렌더 불필요)
+function applyRailSecState() {
+  document.querySelectorAll('#sidebar [data-sec]').forEach(el => {
+    el.classList.toggle('closed', !isRailSecOpen(el.dataset.sec));
+  });
+}
+const _RAIL_CARET = `<svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+// 접히는 소제목 머리글 (JS로 그리는 레일 섹션용)
+function railSecHead(key, label, extraCls) {
+  const cls = 'rail-subhead rail-sec-head' + (extraCls ? ' ' + extraCls : '') + (isRailSecOpen(key) ? '' : ' closed');
+  return `<button type="button" class="${cls}" data-sec="${key}" onclick="toggleRailSec('${key}')">${_RAIL_CARET}${label}</button>`;
+}
+function railSecBody(key, inner) {
+  return `<div class="rail-secbody${isRailSecOpen(key) ? '' : ' closed'}" data-sec="${key}">${inner}</div>`;
 }
 
 // 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
@@ -28,12 +53,12 @@ function renderBookmarkList() {
   const rowHtml = (n, ic) => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${ic}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
-  let html = `<div class="rail-subhead">북마크</div>`;
-  html += bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
-    : `<div class="rail-empty">북마크 노드 모음</div>`;
-  html += `<div class="rail-subhead mt">최근 본 노드</div>`;
-  html += recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
-    : `<div class="rail-empty">클릭한 노드 기록</div>`;
+  let html = railSecHead('bm', '북마크');
+  html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
+    : `<div class="rail-empty">북마크 노드 모음</div>`);
+  html += railSecHead('recent', '최근 본 노드', 'mt');
+  html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
+    : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
@@ -124,16 +149,16 @@ function renderInsights() {
 
   let html = '';
   // 중심 노드 (연결 3개 초과, 최대 10)
-  html += `<div class="insight-sec"><div class="rail-subhead mt">중심 노드</div>`;
-  html += hubs.length
+  html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
+  html += railSecBody('hubs', hubs.length
     ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
-    : `<div class="rail-empty">연결 4개 이상 노드 없음</div>`;
+    : `<div class="rail-empty">연결 4개 이상 노드 없음</div>`);
   html += `</div>`;
 
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
   _linkSuggestCache = _computeLinkSuggestions(5);
-  html += `<div class="insight-sec"><div class="rail-subhead mt">연결 제안</div>`;
-  html += `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div></div>`;
+  html += `<div class="insight-sec">` + railSecHead('suggest', '연결 제안', 'mt');
+  html += railSecBody('suggest', `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div>`) + `</div>`;
 
   el.innerHTML = html;
 }
@@ -224,7 +249,7 @@ function discardCurrentGraph() {
 
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
 function backToLoginScreen() {
-  showConfirm('시작 화면으로', '노션 연결 · 시작 화면으로 돌아갈까요?\n현재 그래프는 버려집니다.', () => {
+  showConfirm('시작 화면으로', '현재 그래프를 비우고\n시작 화면으로 돌아갑니다.', () => {
     closeRailFlyout();
     discardCurrentGraph();
     const ls = document.getElementById('login-screen');

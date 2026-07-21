@@ -65,6 +65,13 @@ canvas { display: block; }
 /* 제목·소제목만 주황. 보조/본문 텍스트는 흰·회색 유지. */
 .rail-subhead { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; padding: 0 2px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
 .rail-subhead.mt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+/* 접히는 섹션 머리글 — 기존 제목 스타일(.rail-subhead/.panel-title/.cfg-subtitle)은 그대로 두고 버튼 기본값만 해제 */
+.rail-sec-head { width: 100%; background: none; border: none; font-family: inherit; text-align: left; cursor: pointer; align-items: center; }
+button.rail-sec-head { display: flex; gap: 6px; }
+.rail-sec-caret { flex-shrink: 0; transform: rotate(90deg); transition: transform 0.15s; }
+.rail-sec-head.closed .rail-sec-caret { transform: rotate(0deg); }
+.rail-sec-head:hover { color: #ffa94d; }
+.rail-secbody.closed { display: none; }
 .rail-hint { font-size: 10.5px; font-weight: 500; letter-spacing: 0; color: var(--text-faint); }
 .rail-lead { font-size: 11.5px; color: var(--text-mute); line-height: 1.6; margin: 0 2px 14px; }
 .rail-note { font-size: 10.5px; color: var(--text-faint); line-height: 1.55; margin-top: 7px; padding: 0 2px; }
