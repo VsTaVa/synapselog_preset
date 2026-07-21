@@ -600,25 +600,25 @@ async function showPagePicker() {
   if (loginBox && !window._loginBoxHtml) window._loginBoxHtml = loginBox.innerHTML;
   loginBox.innerHTML = `
     <div class="login-title">Synapse<span>Log</span></div>
-    <div class="login-sub" style="margin-bottom:14px;">불러올 페이지를 선택하세요</div>
-    <div style="position:relative; margin-bottom:10px;">
-      <input type="text" id="page-search-input" autocomplete="off" placeholder="페이지 검색..." style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:#fff; outline:none; transition:border-color 0.2s;" oninput="filterPageList(this.value)" onfocus="this.style.borderColor='rgba(237,112,0,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"/>
+    <div class="login-sub picker-sub">불러올 페이지를 선택하세요</div>
+    <div class="picker-search-wrap">
+      <input type="text" id="page-search-input" autocomplete="off" placeholder="페이지 검색..." oninput="filterPageList(this.value)" />
     </div>
-    <div id="page-list" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; margin-bottom:12px;">
-      <div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:20px 0;">불러오는 중...</div>
+    <div id="page-list">
+      <div class="picker-hint">불러오는 중...</div>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button onclick="startWithSelected()" style="flex:1; background:rgba(237,112,0,0.15); border:1px solid rgba(237,112,0,0.4); border-radius:8px; padding:11px; color:#ed7000; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(237,112,0,0.25)'" onmouseout="this.style.background='rgba(237,112,0,0.15)'">선택한 페이지 불러오기</button>
-      <button onclick="skipToGraph()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:11px 14px; color:rgba(255,255,255,0.5); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">건너뛰기</button>
+    <div class="picker-actions">
+      <button class="picker-btn primary" onclick="startWithSelected()">선택한 페이지 불러오기</button>
+      <button class="picker-btn" onclick="skipToGraph()">건너뛰기</button>
     </div>
-    <div id="page-pick-error" style="font-size:12px; color:#ff6b6b; text-align:center; margin-top:8px; display:none;"></div>
+    <div id="page-pick-error"></div>
   `;
   try {
     const data = await notionFetch({ action: 'list' });
     window._pageList = data.pages || [];
     renderPageList(window._pageList);
   } catch(e) {
-    document.getElementById('page-list').innerHTML = `<div style="text-align:center; color:#ff6b6b; font-size:12px; padding:16px 0;">${e.message}</div>`;
+    document.getElementById('page-list').innerHTML = `<div class="picker-hint err">${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -636,35 +636,24 @@ function renderPageList(pages) {
     <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
       ${_pliGuides(vis, i)}${_pliToggle(row)}
       <div class="page-pick-item pli-group">
-        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
+        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
       </div>
     </div>
   ` : `
     <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
       ${_pliGuides(vis, i)}${_pliToggle(row)}
-      <div class="page-pick-item" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)"
-        style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); cursor:pointer; transition:background 0.15s; font-size:13px; color:rgba(255,255,255,0.75);">
-        <div style="width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;" class="pick-check"></div>
-        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
+      <div class="page-pick-item${window._selectedPageIds.has(row.p.id) ? ' selected' : ''}" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)">
+        <div class="pick-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
       </div>
     </div>
   `).join('');
 }
 
 function togglePageSelect(pageId, el) {
-  if (window._selectedPageIds.has(pageId)) {
-    window._selectedPageIds.delete(pageId);
-    el.style.background = 'rgba(255,255,255,0.04)'; el.style.borderColor = 'rgba(255,255,255,0.08)';
-    el.querySelector('.pick-check').style.background = '';
-    el.querySelector('.pick-check').style.borderColor = 'rgba(255,255,255,0.25)';
-    el.querySelector('.pick-check').innerHTML = '';
-  } else {
-    window._selectedPageIds.add(pageId);
-    el.style.background = 'rgba(237,112,0,0.1)'; el.style.borderColor = 'rgba(237,112,0,0.35)';
-    el.querySelector('.pick-check').style.background = '#ed7000';
-    el.querySelector('.pick-check').style.borderColor = '#ed7000';
-    el.querySelector('.pick-check').innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
+  const on = !window._selectedPageIds.has(pageId);
+  if (on) window._selectedPageIds.add(pageId); else window._selectedPageIds.delete(pageId);
+  el.classList.toggle('selected', on); // 표시는 CSS가 담당 — 재렌더돼도 선택 상태가 유지됨
 }
 
 function filterPageList(query) {
