@@ -59,7 +59,12 @@ canvas { display: block; }
 .bm-item { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px; cursor: pointer; transition: background 0.13s; }
 .bm-item:hover { background: rgba(255,255,255,0.06); }
 .bm-ic { flex-shrink: 0; display: inline-flex; align-items: center; }
-.bm-label { font-size: 12.5px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bm-label { flex: 1; min-width: 0; font-size: 12.5px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 최근 본 노드 개별 제거 — 평소엔 흐리게, 행에 올리면 드러남 */
+.bm-x { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; border-radius: 4px; color: var(--text-faint); opacity: 0; cursor: pointer; transition: opacity 0.13s, color 0.13s, background 0.13s; }
+.bm-item:hover .bm-x { opacity: 1; }
+.bm-x:hover { color: var(--danger); background: rgba(255,90,90,0.14); }
+@media (pointer: coarse) { .bm-x { opacity: 1; } }
 /* ── 레일 타이포 통일 모듈 : 모든 레일 패널의 제목·소제목·보조텍스트 공통 규격 ── */
 /* .panel-title = 패널 최상단 제목(기존 유지). 아래는 그 하위 요소 통일 규격. */
 /* 제목·소제목만 주황. 보조/본문 텍스트는 흰·회색 유지. */
@@ -98,7 +103,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .insight-arrow:hover { background: rgba(var(--accent-rgb),0.3); }
 .insight-ic-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 22px; background: none; border: 1px solid var(--border); color: var(--text-mute); cursor: pointer; border-radius: var(--radius-sm); transition: color 0.15s, background 0.15s, border-color 0.15s; }
 .insight-ic-btn:hover { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); background: var(--hover); }
-.insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 8px; padding: 0 1px; }
+/* 제안 이유(공통 키워드)는 노드 쌍 바로 아래 붙여 근거로 읽히게, 동작 버튼은 그 아래 */
+.insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(var(--surface-rgb),0.95); border: 1px solid rgba(var(--fg-rgb),0.09); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: var(--fg); text-align: center; margin-bottom: 4px; }

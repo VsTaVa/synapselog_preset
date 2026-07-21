@@ -50,14 +50,20 @@ function renderBookmarkList() {
   if (!el) return;
   const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
   const clockIc = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
-  const rowHtml = (n, ic) => `<div class="bm-item" data-nid="${n.id}" title="${escapeHtml((n.label || '(제목 없음)').trim())}"><span class="bm-ic">${ic}</span><span class="bm-label">${escapeHtml((n.label || '(제목 없음)').trim())}</span></div>`;
+  const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  const rowHtml = (n, ic, del) => {
+    const t = escapeHtml((n.label || '(제목 없음)').trim());
+    return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span>`
+      + (del ? `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>` : '')
+      + `</div>`;
+  };
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
   let html = railSecHead('bm', '북마크');
   html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
     : `<div class="rail-empty">북마크 노드 모음</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
-  html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc)).join('')
+  html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc, true)).join('')
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
@@ -69,6 +75,12 @@ function renderBookmarkList() {
     };
   });
 }
+// 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
+function removeRecentNode(id) {
+  _recentNodes = _recentNodes.filter(x => x !== id);
+  renderBookmarkList();
+}
+
 function closeRailFlyout() {
   if (!_activeRailSection) return;
   _activeRailSection = null;
@@ -174,13 +186,13 @@ function _renderSuggestHtml(list) {
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
       <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-bi" aria-hidden="true">${biIc}</span>${createNodeChip(p.b)}</div>
+      ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
       <div class="insight-acts">
         <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노션에 기록)">←</button>
         <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노션에 기록)">→</button>
         <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프에서 보기">${zoomIc}</button>
         <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
       </div>
-      ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
     </div>`;
   }).join('');
 }
