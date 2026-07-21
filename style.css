@@ -72,7 +72,9 @@ canvas { display: block; }
 /* 제목·소제목만 주황. 보조/본문 텍스트는 흰·회색 유지. */
 .rail-subhead { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; padding: 0 2px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
 /* 섹션 구분선 — 어떤 제목 클래스를 쓰든 .mt 하나로 통일 (예전 .cfg-divider 별도 요소 대체) */
-.rail-subhead.mt, .rail-sec-head.mt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.rail-subhead.mt, .rail-sec-head.mt { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
+/* 접힌 섹션은 아래 여백을 없애 구분선 위/아래 간격을 14px로 대칭 */
+.rail-sec-head.closed { margin-bottom: 0; }
 /* 접히는 섹션 머리글 — 기존 제목 스타일(.rail-subhead/.panel-title/.cfg-subtitle)은 그대로 두고 버튼 기본값만 해제 */
 .rail-sec-head { width: 100%; background: none; border: none; font-family: inherit; text-align: left; cursor: pointer; align-items: center; }
 button.rail-sec-head { display: flex; gap: 6px; }
@@ -92,8 +94,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-btn.ghost { background: none; border-color: var(--border); color: var(--text-dim); font-weight: 600; }
 .rail-btn.ghost:hover { background: var(--hover); }
 /* 통찰(Insight) — 노드 탭에 병합. 소제목 구분선은 .rail-subhead.mt가 담당 */
-.insight-sec { margin-bottom: 16px; }
-.insight-sec:last-child { margin-bottom: 0; }
+/* 섹션 간격은 .mt 구분선이 담당 — 여기서 또 주면 이중으로 벌어짐 */
+.insight-sec { margin-bottom: 0; }
 .insight-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
