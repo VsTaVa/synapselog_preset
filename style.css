@@ -64,7 +64,8 @@ canvas { display: block; }
 /* .panel-title = 패널 최상단 제목(기존 유지). 아래는 그 하위 요소 통일 규격. */
 /* 제목·소제목만 주황. 보조/본문 텍스트는 흰·회색 유지. */
 .rail-subhead { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; padding: 0 2px; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
-.rail-subhead.mt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+/* 섹션 구분선 — 어떤 제목 클래스를 쓰든 .mt 하나로 통일 (예전 .cfg-divider 별도 요소 대체) */
+.rail-subhead.mt, .rail-sec-head.mt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
 /* 접히는 섹션 머리글 — 기존 제목 스타일(.rail-subhead/.panel-title/.cfg-subtitle)은 그대로 두고 버튼 기본값만 해제 */
 .rail-sec-head { width: 100%; background: none; border: none; font-family: inherit; text-align: left; cursor: pointer; align-items: center; }
 button.rail-sec-head { display: flex; gap: 6px; }
@@ -137,7 +138,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .panel-box { background: var(--glass-bg); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
 .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.cfg-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 12px; }
 /* 주황 체크박스: 기본 주황 라인, 체크 시 주황 칠 + 흰 체크 */
 .ck-orange { display: inline-flex; align-items: center; cursor: pointer; }
 .ck-orange input { display: none; }
@@ -171,6 +171,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --text-faint: rgba(var(--fg-rgb),0.35);/* 가장 흐린 */
   --border: rgba(var(--fg-rgb),0.1);     /* 기본 경계선 */
   --border-soft: rgba(var(--fg-rgb),0.07);
+  --divider: rgba(var(--fg-rgb),0.14);   /* 섹션 구분선 — 유리 배경 위에서도 보이게 */
   --hover: rgba(var(--fg-rgb),0.06);     /* 기본 호버 배경 */
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
   /* ── 유리질감 (레일·패널·설정·플로팅 공통) — 은은한 강도 ── */
