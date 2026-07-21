@@ -1136,7 +1136,7 @@ async function bulkSync() {
   await refreshSidebarPageList(); // 노션 페이지 목록도 갱신(새 페이지 반영)
 }
 function confirmBulkClose() {
-  showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다. 계속할까요?', () => {
+  showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다.', () => {
     const ids = [..._addedPageIds];
     ids.forEach(pid => { const el = document.querySelector(`[data-page-id="${pid}"]`); removePage(pid, el); });
     document.getElementById('bulk-actions').style.display = 'none';

@@ -141,6 +141,9 @@ canvas { display: block; }
 .ck-orange:hover .ck-box { border-color: #ff9d3c; }
 .s-trash-btn { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px 0 4px 8px; display: inline-flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
 .s-trash-btn:hover { color: #ff8a8a; background: rgba(255,90,90,0.14); }
+/* 가볍게 지우는 동작(기록 삭제)은 흰색 — 전부 날리는 빨간 휴지통과 파괴력을 구분 */
+.s-trash-btn.soft { color: var(--text-dim); }
+.s-trash-btn.soft:hover { color: var(--fg); background: var(--hover); }
 .settings-row-sub.s-warn-sub { color: rgba(var(--accent-rgb),0.7); }
 .cfg-subtitle { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
 #bulk-actions { display: flex; gap: 6px; }

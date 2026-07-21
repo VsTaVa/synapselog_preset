@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260713cj">
+<link rel="stylesheet" href="style.css?v=20260713ck">
 </head>
 <body>
 <div id="login-screen">
@@ -207,7 +207,7 @@
           <button class="s-trash-btn" onclick="clearAiKey()" title="저장된 AI API 키 삭제" aria-label="저장된 AI API 키 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
         </div>
         <div id="settings-aikey-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
-        <div class="settings-row" style="margin-top:14px;"><div><span class="settings-row-label" data-i18n="s-clear-hist">대화·최근 기록</span><div class="settings-row-sub" data-i18n="s-clear-hist-sub">AI 대화·최근 본 노드 삭제</div></div><button class="s-trash-btn" onclick="clearChatAndRecent()" title="AI 대화·최근 본 노드 삭제" aria-label="AI 대화·최근 본 노드 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
+        <div class="settings-row" style="margin-top:14px;"><div><span class="settings-row-label" data-i18n="s-clear-hist">대화·최근 기록</span><div class="settings-row-sub" data-i18n="s-clear-hist-sub">AI 대화·최근 본 노드 삭제</div></div><button class="s-trash-btn soft" onclick="clearChatAndRecent()" title="AI 대화·최근 본 노드 삭제" aria-label="AI 대화·최근 본 노드 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
         <div class="settings-row"><div><span class="settings-row-label" data-i18n="s-all-cache">전체 캐시</span><div class="settings-row-sub" data-i18n="s-all-cache-sub">노드 모드·그래프 설정 포함 전부 초기화 (로그인 유지)</div></div><button class="s-trash-btn" onclick="clearCache('all')" title="전체 초기화" aria-label="전체 초기화"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
       </div>
     </div>
@@ -239,15 +239,15 @@
 <div id="status"></div>
 <div id="multi-select-menu"></div>
 
-<script src="js/utils.js?v=20260713cj" defer></script>
-<script src="js/graph.js?v=20260713cj" defer></script>
-<script src="js/notion-client.js?v=20260713cj" defer></script>
-<script src="js/ui-core.js?v=20260713cj" defer></script>
-<script src="js/ui-legend.js?v=20260713cj" defer></script>
-<script src="js/ui-ai.js?v=20260713cj" defer></script>
-<script src="js/ui-embed.js?v=20260713cj" defer></script>
-<script src="js/ui-rail.js?v=20260713cj" defer></script>
-<script src="js/ui-panel.js?v=20260713cj" defer></script>
-<script src="js/ui-events.js?v=20260713cj" defer></script>
+<script src="js/utils.js?v=20260713ck" defer></script>
+<script src="js/graph.js?v=20260713ck" defer></script>
+<script src="js/notion-client.js?v=20260713ck" defer></script>
+<script src="js/ui-core.js?v=20260713ck" defer></script>
+<script src="js/ui-legend.js?v=20260713ck" defer></script>
+<script src="js/ui-ai.js?v=20260713ck" defer></script>
+<script src="js/ui-embed.js?v=20260713ck" defer></script>
+<script src="js/ui-rail.js?v=20260713ck" defer></script>
+<script src="js/ui-panel.js?v=20260713ck" defer></script>
+<script src="js/ui-events.js?v=20260713ck" defer></script>
 </body>
 </html>
