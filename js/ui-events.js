@@ -608,7 +608,7 @@ const LANG = {
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
-    's-all-cache':'전체 캐시','s-all-cache-sub':'전체 초기화(로그인 유지)','s-aihist':'AI 대화 기록','s-clear-hist':'대화·최근 기록','s-clear-hist-sub':'AI 대화·최근 본 노드만 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
+    's-all-cache':'전체 캐시','s-all-cache-sub':'전체 초기화(로그인 유지)','s-aihist':'AI 대화 기록','s-clear-hist':'사용 기록','s-clear-hist-sub':'AI 대화·검색 기록·최근/자주 본 노드','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
@@ -637,7 +637,7 @@ const LANG = {
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
     's-connect-cache':'Connect Cache','s-connect-cache-sub':'Manual edge connections',
-    's-all-cache':'All Cache','s-all-cache-sub':'Resets everything incl. node mode & graph settings (stays logged in)','s-aihist':'AI Chat History','s-clear-hist':'Chat & Recent','s-clear-hist-sub':'Clears AI chat & recent nodes only','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
+    's-all-cache':'All Cache','s-all-cache-sub':'Resets everything incl. node mode & graph settings (stays logged in)','s-aihist':'AI Chat History','s-clear-hist':'Usage History','s-clear-hist-sub':'AI chat, search history, recent/frequent nodes','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
   }
 };
 
@@ -847,15 +847,27 @@ function clearAiHistory() {
   }, true);
 }
 
-// 대화·최근 기록만 삭제 — AI 대화 + 최근 본 노드. (수동연결·북마크·페이지 등은 건드리지 않음)
+// 사용 기록만 삭제 — AI 대화 · 검색 기록/자주 검색 · 최근/자주 본 노드.
+// (수동연결·북마크·페이지·설정 등 실제 데이터는 건드리지 않음)
 function clearChatAndRecent() {
-  showConfirm('대화·최근 기록 삭제', 'AI 대화와 최근 본 노드 기록을 지울까요?', () => {
+  showConfirm('사용 기록 삭제', 'AI 대화, 검색 기록, 최근·자주 본 노드 기록을 모두 지울까요?', () => {
+    const drop = k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} };
+    // AI 대화
     _aiChat = [];
-    try { localStorage.removeItem('snlog_aichat'); sessionStorage.removeItem('snlog_aichat'); } catch (e) {}
+    drop('snlog_aichat');
     if (typeof _renderAiChat === 'function') _renderAiChat();
-    if (typeof _recentNodes !== 'undefined') _recentNodes = []; // 최근 본 노드는 메모리에만 존재 → 직접 초기화
+    // 검색 기록 + 자주 검색하는 키워드 (_searchHistory는 const 배열이라 비우기)
+    if (typeof _searchHistory !== 'undefined') _searchHistory.length = 0;
+    if (typeof _searchCounts !== 'undefined') _searchCounts = {};
+    drop('snlog_search_history'); drop('snlog_search_counts');
+    if (typeof renderSearchHistory === 'function') renderSearchHistory();
+    if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
+    // 최근 본 노드(메모리) + 자주 본 노드(누적 조회수)
+    if (typeof _recentNodes !== 'undefined') _recentNodes = [];
+    if (typeof _nodeViews !== 'undefined') _nodeViews = {};
+    drop('snlog_node_views');
     if (typeof renderBookmarkList === 'function') renderBookmarkList();
-    toast('AI 대화·최근 기록을 지웠어요', { type: 'success' });
+    toast('사용 기록을 지웠어요', { type: 'success' });
   }, true);
 }
 
