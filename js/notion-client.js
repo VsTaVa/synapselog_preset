@@ -599,7 +599,7 @@ async function showPagePicker() {
   // 토큰 입력 폼을 덮어쓰기 전에 원본을 보관 — 시작 화면으로 돌아갈 때 복원용
   if (loginBox && !window._loginBoxHtml) window._loginBoxHtml = loginBox.innerHTML;
   loginBox.innerHTML = `
-    <button type="button" class="picker-back" onclick="backToTokenInput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>토큰 다시 입력</button>
+    <button type="button" class="picker-back" onclick="backToTokenInput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>뒤로 가기</button>
     <div class="login-title">Synapse<span>Log</span></div>
     <div class="login-sub picker-sub">불러올 페이지를 선택하세요</div>
     <div class="picker-search-wrap">
