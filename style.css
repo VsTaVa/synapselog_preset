@@ -212,6 +212,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row.pli-child.pli-first.pli-last::after { border-bottom:none; border-radius:0; }
 /* ── 초기 페이지 선택 화면 (인라인 스타일 이관 · 토큰 사용) ── */
 .picker-sub { margin-bottom:14px; }
+.picker-back { display:inline-flex; align-items:center; gap:4px; margin-bottom:10px; padding:4px 6px 4px 0; background:none; border:none; font-size:12px; font-family:inherit; color:var(--text-mute); cursor:pointer; transition:color .15s; }
+.picker-back:hover { color:var(--accent); }
 .picker-search-wrap { position:relative; margin-bottom:10px; }
 #page-search-input { width:100%; box-sizing:border-box; background:rgba(var(--fg-rgb),0.05); border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:var(--fg); outline:none; transition:border-color .2s; }
 #page-search-input:focus { border-color:rgba(var(--accent-rgb),0.5); }
