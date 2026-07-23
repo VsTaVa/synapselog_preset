@@ -98,9 +98,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .insight-sec { margin-bottom: 0; }
 .insight-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }
-/* 중심 노드: 페이지 / 헤딩1 그룹 구분 (소제목보다 한 단계 약한 라벨) */
-.hub-group + .hub-group { margin-top: 9px; }
-.hub-grouplbl { font-size: 10px; font-weight: 700; color: var(--text-mute); margin-bottom: 5px; padding: 0 2px; }
 /* 중심 노드 항목 — 누르면 하위 전체 활성화 */
 .hub-item { cursor: pointer; border-radius: 12px; padding: 1px 2px; transition: background 0.13s; }
 .hub-item:hover { background: rgba(var(--accent-rgb),0.12); }

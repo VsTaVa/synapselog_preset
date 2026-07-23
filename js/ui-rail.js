@@ -137,13 +137,11 @@ function _saveDismissed() {
 // 각 항목의 하위 노드 개수를 함께 반환(뱃지 표시용).
 function _computeHubs(topN) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
-  // 페이지로 볼 것: 최상위 · 하위 페이지 · 데이터베이스 · DB 항목.
+  // 페이지만: 최상위 · 하위 페이지 · 데이터베이스 · DB 항목.
   // 노션이 하위 페이지/DB 항목을 ##(헤딩2)로 내려주므로 헤딩 깊이가 아니라 마커로 판정해야 함.
   const isPageLike = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entryNotionId;
-  const roots = vis.filter(n => isPageLike(n) || (n.headingDepth || n.level) === 1);
-  const scored = roots.map(n => ({ n, deg: _descendantIds(n.id).length, isPage: isPageLike(n) }));
-  // 페이지류 먼저, 그 안에서는 하위 많은 순
-  scored.sort((a, b) => (a.isPage === b.isPage ? 0 : a.isPage ? -1 : 1) || (b.deg - a.deg));
+  const scored = vis.filter(isPageLike).map(n => ({ n, deg: _descendantIds(n.id).length }));
+  scored.sort((a, b) => (a.n.level - b.n.level) || (b.deg - a.deg)); // 상위 페이지 먼저, 그 다음 하위 많은 순
   return scored.slice(0, topN);
 }
 
@@ -220,11 +218,9 @@ function renderInsights() {
   // 중심 노드 (연결 3개 초과, 최대 10)
   html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
   const hubChip = h => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`;
-  const hubGroup = (label, items) => items.length
-    ? `<div class="hub-group"><div class="hub-grouplbl">${label}</div><div class="insight-chips">${items.map(hubChip).join('')}</div></div>` : '';
   html += railSecBody('hubs', hubs.length
-    ? hubGroup('페이지', hubs.filter(h => h.isPage)) + hubGroup('헤딩 1', hubs.filter(h => !h.isPage))
-    : `<div class="rail-empty">페이지·헤딩1 없음</div>`);
+    ? `<div class="insight-chips">${hubs.map(hubChip).join('')}</div>`
+    : `<div class="rail-empty">페이지 없음</div>`);
   html += `</div>`;
 
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
