@@ -138,7 +138,7 @@ function _saveDismissed() {
 function _computeHubs(topN) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
   const roots = vis.filter(n => n.level === 0 || (n.headingDepth || n.level) === 1);
-  const scored = roots.map(n => ({ n, deg: _descendantIds(n.id).length }));
+  const scored = roots.map(n => ({ n, deg: _descendantIds(n.id).length, isPage: n.level === 0 }));
   // 페이지 먼저, 그 다음 하위 많은 순
   scored.sort((a, b) => (a.n.level - b.n.level) || (b.deg - a.deg));
   return scored.slice(0, topN);
@@ -216,8 +216,11 @@ function renderInsights() {
   let html = '';
   // 중심 노드 (연결 3개 초과, 최대 10)
   html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
+  const hubChip = h => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`;
+  const hubGroup = (label, items) => items.length
+    ? `<div class="hub-group"><div class="hub-grouplbl">${label}</div><div class="insight-chips">${items.map(hubChip).join('')}</div></div>` : '';
   html += railSecBody('hubs', hubs.length
-    ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
+    ? hubGroup('페이지', hubs.filter(h => h.isPage)) + hubGroup('헤딩 1', hubs.filter(h => !h.isPage))
     : `<div class="rail-empty">페이지·헤딩1 없음</div>`);
   html += `</div>`;
 
