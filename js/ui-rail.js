@@ -132,15 +132,40 @@ function _saveDismissed() {
   try { if (!_useLocalStorage) return; const s = localStorage.getItem('snlog_dismissed_pairs_v2'); if (s) JSON.parse(s).forEach(k => _dismissedPairs.add(k)); } catch (e) {}
 })();
 
-function _nodeDegree(id) { let d = 0; edges.forEach(e => { if (e.from === id || e.to === id) d++; }); return d; }
-function _crossLinkCount(id) { let c = 0; edges.forEach(e => { if ((e.manualLink || e.wikiLink) && (e.from === id || e.to === id)) c++; }); return c; }
 
-// 중심(허브): 연결 3개 초과(=4개 이상) 노드만, 연결 많은 순 top N
+// 중심 노드 = 문서의 뼈대 — 페이지(최상위) + 헤딩1. 연결 수가 아니라 구조로 뽑는다.
+// 각 항목의 하위 노드 개수를 함께 반환(뱃지 표시용).
 function _computeHubs(topN) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
-  const scored = vis.map(n => { const deg = _nodeDegree(n.id); const cross = _crossLinkCount(n.id); return { n, deg, cross, score: deg + cross * 2 }; });
-  scored.sort((a, b) => b.score - a.score);
-  return scored.filter(x => x.deg > 3).slice(0, topN);
+  const roots = vis.filter(n => n.level === 0 || (n.headingDepth || n.level) === 1);
+  const scored = roots.map(n => ({ n, deg: _descendantIds(n.id).length }));
+  // 페이지 먼저, 그 다음 하위 많은 순
+  scored.sort((a, b) => (a.n.level - b.n.level) || (b.deg - a.deg));
+  return scored.slice(0, topN);
+}
+
+// 구조적 하위 노드 전체(손자 이하 포함) — 약한/수동 링크는 계층이 아니므로 제외
+function _descendantIds(rootId) {
+  const out = [], seen = new Set([rootId]), q = [rootId];
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => {
+      if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) {
+        seen.add(e.to); out.push(e.to); q.push(e.to);
+      }
+    });
+  }
+  return out;
+}
+
+// 중심 노드 클릭 → 자기 자신 + 모든 하위 노드를 그래프에서 활성화
+function insightFocusBranch(nid) {
+  const n = nodeMap[nid];
+  if (!n) return;
+  const ids = [nid, ..._descendantIds(nid)];
+  if (typeof applyGraphHighlight === 'function') {
+    applyGraphHighlight(ids, '', { max: 20, fit: true, fitDelay: 320 }); // 마커=본문에 없는 문자
+  }
 }
 
 // 제목 → 의미 토큰 집합(불용어·순수숫자 제외, 한글 어간 처리). _aiTerms 재활용.
@@ -192,8 +217,8 @@ function renderInsights() {
   // 중심 노드 (연결 3개 초과, 최대 10)
   html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
   html += railSecBody('hubs', hubs.length
-    ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap" title="연결 ${h.deg}개${h.cross ? ' · 교차 ' + h.cross : ''}">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
-    : `<div class="rail-empty">연결 4개 이상 노드 없음</div>`);
+    ? `<div class="insight-chips">` + hubs.map(h => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`).join('') + `</div>`
+    : `<div class="rail-empty">페이지·헤딩1 없음</div>`);
   html += `</div>`;
 
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
