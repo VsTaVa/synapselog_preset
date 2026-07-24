@@ -51,7 +51,28 @@ function toggleDetailPanel() {
   _detailPanelCollapsed = !_detailPanelCollapsed;
   detailPanel.classList.toggle('panel-collapsed', _detailPanelCollapsed);
   updateDetailReopenTab();
+  renderDetailRail();
   _autoFitPanel();
+}
+
+// 우측 레일: 최근 본 노드 최대 5개를 노드색 원으로 세로 배치. 열린 패널(활성) 노드는 글로우. 패널과 함께 열림.
+function renderDetailRail() {
+  const rail = document.getElementById('detail-rail');
+  if (!rail) return;
+  const visuallyOpen = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
+  rail.classList.toggle('open', visuallyOpen && anyTabs());
+  if (!visuallyOpen) { rail.innerHTML = ''; return; }
+  const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성
+  const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
+    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
+  rail.innerHTML = recents.map(n => {
+    const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
+    const t = escapeHtml((n.label || '(제목 없음)').trim());
+    return `<button class="dr-dot${openIds.has(n.id) ? ' active' : ''}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" title="${t}" aria-label="${t}"></button>`;
+  }).join('');
+  rail.querySelectorAll('.dr-dot').forEach(d => {
+    d.onclick = () => { const n = nodeMap[d.dataset.nid]; if (n) { openPanel(n); if (typeof focusViewOnNode === 'function') focusViewOnNode(n); } };
+  });
 }
 
 function reopenDetailPanel() {
@@ -59,6 +80,7 @@ function reopenDetailPanel() {
   if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
   else { showPanel(); }
   updateDetailReopenTab();
+  renderDetailRail();
   _autoFitPanel();
 }
 
@@ -94,6 +116,7 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
+  renderDetailRail();
 }
 
 function mdTableToHtml(text) {

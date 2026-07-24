@@ -538,7 +538,7 @@ function worldToScreen(wx, wy) {
 function viewportCenter() {
   const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = (dpEl && dpEl.classList.contains('open')) ? dpEl.offsetWidth + 20 : 0;
+  const detailWidth = (dpEl && dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed')) ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40;
   return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
 }
@@ -632,7 +632,7 @@ function fitGraph(rotate = true) {
   const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = dpEl.classList.contains('open') ? dpEl.offsetWidth + 20 : 0;
+  const detailWidth = dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed') ? dpEl.offsetWidth + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
