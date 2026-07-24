@@ -100,7 +100,7 @@ export default async function handler(req, res) {
           // 상위/하위 구분용 부모 정보 (parent.type: 'workspace' | 'page_id' | 'database_id' | 'block_id')
           const par = p.parent || {};
           const parentId = (par.page_id || par.database_id || par.block_id || '').replace(/-/g, '');
-          const row = { id: p.id.replace(/-/g, ''), title, parentType: par.type || '', parentId };
+          const row = { id: p.id.replace(/-/g, ''), title, parentType: par.type || '', parentId, lastEdited: p.last_edited_time || '' };
           if (isDb) row.isDatabase = true; // 목록에선 부모 행으로만 표시(추가 대상 아님)
           pages.push(row);
         }

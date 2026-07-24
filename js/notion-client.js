@@ -1084,13 +1084,44 @@ function showConfirm(title, msg, onOk, accent) {
 }
 function closeConfirm() { document.getElementById('confirm-modal').classList.remove('open'); _confirmCallback = null; }
 
-function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지의 노션 데이터를 새로 불러옵니다. 계속할까요?', bulkSync); }
-async function bulkSync() {
+// 페이지별 최종수정일 저장(증분 동기화용) — 하위·DB 항목 포함. 민감정보 아니라 항상 localStorage.
+let _pageEdited = (() => { try { return JSON.parse(localStorage.getItem('snlog_page_edited') || '{}'); } catch (e) { return {}; } })();
+function _savePageEdited() { try { localStorage.setItem('snlog_page_edited', JSON.stringify(_pageEdited)); } catch (e) {} }
+
+function confirmBulkSync() { showConfirm('동기화', '수정된 페이지만 다시 불러옵니다.\n(변경 없는 페이지는 건너뜀)', bulkSync); }
+
+// 증분 동기화: 노션 전체 목록의 수정일을 비교해 바뀐 최상위 페이지만 재동기화.
+async function bulkSync(opts) {
+  opts = opts || {};
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
-  for (const pid of ids) { await syncPage(pid); }
+  let force = !!opts.force;
+  let latest = null, parentOf = {};
+  try {
+    const data = await notionFetch({ action: 'list' });
+    latest = {};
+    (data.pages || []).forEach(p => { if (p.id) { latest[p.id] = p.lastEdited || ''; parentOf[p.id] = p.parentId || ''; } });
+  } catch (e) { force = true; } // 목록 실패 → 안전하게 전체 동기화
+
+  let toSync = ids;
+  if (!force && latest) {
+    const addedSet = new Set(ids);
+    // 바뀐 페이지(수정일 다름 or 신규) → 속한 최상위 추가페이지로 환산
+    const rootOf = id => { let cur = id, g = 0; while (cur && g++ < 60) { if (addedSet.has(cur)) return cur; cur = parentOf[cur]; } return null; };
+    const need = new Set();
+    Object.keys(latest).forEach(id => { if (latest[id] !== _pageEdited[id]) { const r = rootOf(id); if (r) need.add(r); } });
+    ids.forEach(id => { if (!(id in _pageEdited)) need.add(id); }); // 한 번도 동기화 안 한 페이지
+    toSync = ids.filter(id => need.has(id));
+  }
+
+  for (const pid of toSync) { await syncPage(pid); } // non-silent: 엔트리 캐시·하위 노드까지 갱신
   await syncMdFileHandles();
   await syncFolderBatches();
+  if (latest) { _pageEdited = latest; _savePageEdited(); } // 수정일 기준선 갱신
   await refreshSidebarPageList(); // 노션 페이지 목록도 갱신(새 페이지 반영)
+  if (!opts.silent) {
+    const skipped = ids.length - toSync.length;
+    toast(toSync.length ? `${toSync.length}개 페이지 동기화${skipped ? ` · ${skipped}개 변경 없음` : ''}` : '변경된 페이지 없음', { type: 'success' });
+  }
 }
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다.', () => {
