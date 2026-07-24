@@ -100,8 +100,7 @@ function addRecentNode(n) {
   _recentNodes = _recentNodes.filter(key => key !== k);
   _recentNodes.unshift(k);
   if (_recentNodes.length > 12) _recentNodes.length = 12;
-  if (typeof renderDetailRail === 'function') renderDetailRail();
-  if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
+  // 레일 렌더는 호출자(openPanel→renderPanes)가 한 번만 수행 — 여기서 또 그리면 등장 애니메이션이 즉시 잘림
 }
 
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
