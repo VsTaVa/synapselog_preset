@@ -1049,17 +1049,13 @@ async function syncPage(pageId, opts) {
            .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
     }
     // 헤딩(구조·헤딩 본문)은 항상 다시 받아 본문 수정·삭제까지 반영 — 위치는 syncPageIncremental이 보존
-    const _descBefore = {}; nodes.filter(n => n.sourcePageId === pageId).forEach(n => { _descBefore[n.id] = (n.desc || ''); });
     const data = await notionFetch({ pageId, action: 'headings' });
-    console.log('[sync] 바뀐엔트리:', changed ? [...changed].map(x=>x.slice(0,6)) : '(전부/force)', '| headings본문블록수(BB):', (data.markdown.match(/\[BB:/g)||[]).length);
     try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
     const ghostId = 'ghost_' + pageId;
     if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
     const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
     if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
     // [진단] 본문(desc)이 실제로 바뀐 노드 = 동기화가 반영한 것
-    const _chg = nodes.filter(n => n.sourcePageId === pageId && (n.id in _descBefore) && _descBefore[n.id] !== (n.desc || ''));
-    console.log('[sync] 본문 바뀐 노드:', _chg.map(n => ({ 제목: (n.label||'').slice(0,12), 이전길이: _descBefore[n.id].length, 지금길이: (n.desc||'').length })));
     if (!opts.silent) {
       // 바뀐 엔트리(또는 전부)의 하위만 지우고 그 엔트리만 재로드 → 안 바뀐 subtree는 그대로(재배치 없음)
       const entryNodes = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId);
@@ -1067,9 +1063,10 @@ async function syncPage(pageId, opts) {
       const cleared = new Set();
       targets.forEach(n => _clearEntryDescendantsOf(n).forEach(id => cleared.add(id)));
       if (cleared.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(cleared);
-      if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
       for (const n of targets) { await _loadEntryNode(n, pageId); }
-    } else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
+    }
+    // 엔트리 본문까지 다시 로드한 뒤 패널 갱신 — 로드 전에 부르면 옛 내용으로 그려져 본문 수정/삭제가 안 보임
+    if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
   } catch(e) { /* 아래 finally에서 스핀 정지 */ } finally {
     if (overlay) hideLoading();
     // 동기화 끝날 때까지 계속 돌고, 너무 빨리 끝나면 최소 600ms는 보이게
