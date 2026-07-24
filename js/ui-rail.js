@@ -242,9 +242,9 @@ function _renderSuggestHtml(list) {
       <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-bi" aria-hidden="true">${biIc}</span>${createNodeChip(p.b)}</div>
       ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
       <div class="insight-acts">
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노션에 기록)">←</button>
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노션에 기록)">→</button>
-        <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프에서 보기">${zoomIc}</button>
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노드 연결)">←</button>
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노드 연결)">→</button>
+        <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프 보기">${zoomIc}</button>
         <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
       </div>
     </div>`;

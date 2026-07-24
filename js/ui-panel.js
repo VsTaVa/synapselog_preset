@@ -80,7 +80,7 @@ function renderPanes(animateId) {
         `<div class="detail-header-actions">` +
           (_stack.length >= 2 ? `<button class="pane-swap-btn" title="위·아래 패널 교체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>` : '') +
           `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
-          `<button class="pane-x" title="이 패널 닫기">✕</button>` +
+          `<button class="pane-x" title="닫기">✕</button>` +
         `</div>` +
       `</div>` +
       `<div class="detail-body">` +
@@ -153,7 +153,7 @@ function renderPaneContent(i, n) {
   if (!setBtn) {
     setBtn = document.createElement('button');
     setBtn.className = 'detail-edit-btn detail-settings-btn';
-    setBtn.title = '메뉴 (수정·추가·북마크·삭제)';
+    setBtn.title = '메뉴';
     setBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
     // ⚙은 액션 묶음 맨 앞(접기·닫기 왼쪽)
     headerActions.insertBefore(setBtn, headerActions.firstChild);

@@ -228,7 +228,7 @@ function renderMdFolderList() {
     return `<div class="md-folder-group" data-folder-id="${folderBatchId}">
       <div class="md-folder-header">
         <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}"><svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
-        <div class="item-actions"><button title="이 폴더 동기화" onclick="syncFolderBatch('${folderBatchId}')">↻</button><button title="폴더 전체 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
+        <div class="item-actions"><button title="폴더 동기화" onclick="syncFolderBatch('${folderBatchId}')">↻</button><button title="폴더 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
       </div>
       <div class="md-folder-files">
         ${files.map(([path, info]) => `<div class="md-folder-file" data-page-id="${info.pageId}">
@@ -866,7 +866,7 @@ function _pageItemHtml(p) {
       mdBadge = ` <span class="node-chip node-chip--badge" style="${style}">${txt}</span>`;
     }
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')">${isFav ? '★' : '☆'}</button>`;
-    const exportBtn = `<button class="btn-sync" title="마크다운 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
+    const exportBtn = `<button class="btn-sync" title="MD파일 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
     // 데이터베이스는 하위 항목을 묶어주는 상위 행으로만 표시 (추가 대상 아님)
     if (p.isDatabase) {
