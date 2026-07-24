@@ -1111,6 +1111,10 @@ async function bulkSync(opts) {
     Object.keys(latest).forEach(id => { if (latest[id] !== _pageEdited[id]) { const r = rootOf(id); if (r) need.add(r); } });
     ids.forEach(id => { if (!(id in _pageEdited)) need.add(id); }); // 한 번도 동기화 안 한 페이지
     toSync = ids.filter(id => need.has(id));
+    // [진단] 왜 전체가 도는지 확인용 — 원인 파악 후 제거
+    console.log('[sync] 추가페이지', ids.length, '개 / 목록', Object.keys(latest).length, '개 / 저장된수정일', Object.keys(_pageEdited).length, '개');
+    console.log('[sync] 추가페이지가 목록/저장에 있나:', ids.map(id => ({ id: id.slice(0, 8), inList: id in latest, inSaved: id in _pageEdited, listTS: latest[id], savedTS: _pageEdited[id], same: latest[id] === _pageEdited[id] })));
+    console.log('[sync] 동기화 대상', toSync.length, '개:', toSync.map(id => id.slice(0, 8)));
   }
 
   for (const pid of toSync) { await syncPage(pid); } // non-silent: 엔트리 캐시·하위 노드까지 갱신
