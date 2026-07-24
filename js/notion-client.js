@@ -1046,6 +1046,8 @@ async function syncPage(pageId, opts) {
              });
         // 페이지 자체 수정일이 그대로면 헤딩·구조는 안 바뀐 것 → 무거운 headings 재요청 생략(속도↑)
         if ((pageId in _pageEdited) && latest[pageId] === _pageEdited[pageId]) headingsChanged = false;
+        // [진단] 최상위 페이지가 목록에 잡히나 / 수정일이 바뀌었나 확인
+        console.log('[sync] 최상위', pageId.slice(0,8), '목록에있나:', pageId in latest, '| 이전:', _pageEdited[pageId], '| 지금:', latest[pageId], '| headings재요청:', headingsChanged, '| 바뀐엔트리:', [...changed].map(x=>x.slice(0,8)));
         _pageEdited = { ..._pageEdited, ...latest }; _savePageEdited(); // 수정일 기준선 갱신
       } catch (e) { changed = null; headingsChanged = true; }
     }
