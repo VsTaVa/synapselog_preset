@@ -963,3 +963,30 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     restoreSearchHistory(); // 저장해둔 검색 기록 복원
   });
 }
+
+// ── 모바일 롱프레스 툴팁 — 터치 기기에선 title 호버가 안 뜨므로 길게 누르면 표시 ──
+(function () {
+  let _lpTimer = null, _lpEl = null;
+  const tip = () => document.getElementById('tooltip');
+  function show(el, x, y) {
+    const t = tip(); if (!t) return;
+    const label = el.getAttribute('title') || el.getAttribute('aria-label'); if (!label) return;
+    t.textContent = label; t.style.display = 'block';
+    // 화면 밖으로 안 나가게 보정
+    const w = t.offsetWidth || 120;
+    t.style.left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8)) + 'px';
+    t.style.top = Math.max(8, y - 40) + 'px';
+  }
+  function hide() { const t = tip(); if (t) t.style.display = 'none'; }
+  document.addEventListener('touchstart', (e) => {
+    const el = e.target.closest('[title],[aria-label]');
+    if (!el || el.closest('#c')) return; // 캔버스는 자체 처리
+    const tt = e.touches[0];
+    _lpEl = el;
+    _lpTimer = setTimeout(() => { show(el, tt.clientX, tt.clientY); _lpEl = null; }, 450);
+  }, { passive: true });
+  const cancel = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } hide(); _lpEl = null; };
+  document.addEventListener('touchend', cancel);
+  document.addEventListener('touchmove', cancel, { passive: true });
+  document.addEventListener('touchcancel', cancel);
+})();
