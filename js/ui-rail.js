@@ -53,16 +53,28 @@ let _recentNodes = [];
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
-  const rowHtml = (n, ic) => {
+  const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+  const clockIc = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
+  const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  const rowHtml = (n, ic, del) => {
     const t = escapeHtml((n.label || '(제목 없음)').trim());
-    return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span></div>`;
+    return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span>`
+      + (del ? `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>` : '')
+      + `</div>`;
   };
-  // 북마크·최근 본 노드는 우측 레일이 대체 → 좌측 노드 탭엔 '자주 본 노드'만
+  const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
+  const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
+  let html = railSecHead('bm', '북마크');
+  html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
+    : `<div class="rail-empty">북마크 노드 모음</div>`);
   const freq = _frequentNodes(8);
-  let html = railSecHead('freq', '자주 본 노드');
+  html += railSecHead('freq', '자주 본 노드', 'mt');
   html += railSecBody('freq', freq.length
     ? freq.map(f => rowHtml(f.n, `<span class="bm-count">${f.c}</span>`)).join('')
     : `<div class="rail-empty">2번 이상 연 노드</div>`);
+  html += railSecHead('recent', '최근 본 노드', 'mt');
+  html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc, true)).join('')
+    : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
@@ -92,20 +104,9 @@ function _frequentNodes(topN) {
   return out.sort((a, b) => b.c - a.c).slice(0, topN);
 }
 
-// 최근 본/선택한 노드로 추가 — 단일 클릭 선택·상세 열기 공용. 우측 레일·노드 목록 갱신.
-function addRecentNode(n) {
-  if (!n || typeof _recentNodes === 'undefined') return;
-  const k = _stableNodeKey(n); // 안정 키(sourcePageId::label) — 동기화로 노드 id가 바뀌어도 유지
-  if (!k || k === '::') return;
-  _recentNodes = _recentNodes.filter(key => key !== k);
-  _recentNodes.unshift(k);
-  if (_recentNodes.length > 12) _recentNodes.length = 12;
-  // 레일 렌더는 호출자(openPanel→renderPanes)가 한 번만 수행 — 여기서 또 그리면 등장 애니메이션이 즉시 잘림
-}
-
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
 function removeRecentNode(id) {
-  _recentNodes = _recentNodes.filter(k => k !== id); // id=안정 키
+  _recentNodes = _recentNodes.filter(x => x !== id);
   renderBookmarkList();
 }
 

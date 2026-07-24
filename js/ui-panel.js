@@ -51,65 +51,7 @@ function toggleDetailPanel() {
   _detailPanelCollapsed = !_detailPanelCollapsed;
   detailPanel.classList.toggle('panel-collapsed', _detailPanelCollapsed);
   updateDetailReopenTab();
-  renderDetailRail();
   _autoFitPanel();
-}
-
-// 우측 레일: 최근 본 노드 최대 5개를 노드색 원으로 세로 배치(아래=최신). 열린 패널 노드는 글로우.
-// 패널이 열려 있거나 접혀 있을 때(탭이 있으면) 표시 — 접히면 화면 우측 끝에 도킹.
-let _railNewestId = null;
-function renderDetailRail() {
-  const rail = document.getElementById('detail-rail');
-  if (!rail) return;
-  const K = (typeof _stableNodeKey === 'function') ? _stableNodeKey : (n => (n && n.id) || '');
-  const openKeys = new Set(_stack.map(K)); // 열린 패널(최대 2) = 활성(글로우). 안정 키로 비교(동기화 후에도 매칭)
-  // 북마크는 5개 제한 없이 전부 (최근과 별개로 최상단에 표시)
-  const bms = (typeof nodes !== 'undefined' ? nodes : [])
-    .filter(n => n.visible && typeof isBookmarked === 'function' && isBookmarked(n));
-  // _recentNodes는 안정 키 배열(최신이 앞) → 현재 노드로 해석. 동기화로 id 바뀌어도 유지
-  const byKey = new Map();
-  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => { if (n.visible) { const k = K(n); if (!byKey.has(k)) byKey.set(k, n); } });
-  const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
-    .map(k => byKey.get(k)).filter(Boolean).slice(0, 5);
-  const show = bms.length > 0 || recents.length > 0;
-  rail.classList.toggle('open', show);
-  if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
-  const newest = recents.length ? recents[0] : null; // 최신 = 맨 위
-  const newestKey = newest ? K(newest) : null;
-  const enterId = (newestKey && newestKey !== _railNewestId) ? newest.id : null; // 새 최신만 등장 애니메이션(키 기준)
-  // FLIP: 최근 그룹 원들이 위치 이동할 때 부드럽게 — 재렌더 전 위치 기록(최근 원만)
-  const prevY = {};
-  rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
-  const dot = (n, extraCls) => {
-    let c = (typeof nodeRgb === 'function') ? nodeRgb(n) : null;
-    if (!Array.isArray(c) || c.length < 3 || c.some(v => typeof v !== 'number' || isNaN(v))) c = [237, 112, 0]; // 색 깨진 노드 방어(투명 원·글로우 없음 원인)
-    const t = escapeHtml((n.label || '(제목 없음)').trim());
-    const cls = 'dr-dot' + (openKeys.has(K(n)) ? ' active' : '') + (extraCls || '');
-    return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;
-  };
-  const bmIc = `<span class="dr-head" title="북마크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>`;
-  const clockIc = `<span class="dr-head" title="최근 본 노드"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
-  let html = '';
-  if (bms.length) html += `<div class="dr-group">${bmIc}${bms.map(n => dot(n)).join('')}</div>`;
-  if (recents.length) html += `<div class="dr-group">${clockIc}${recents.map(n => dot(n, 'dr-recent' + (n.id === enterId ? ' enter' : ''))).join('')}</div>`;
-  rail.innerHTML = html;
-  // 최근 원: 옛 위치 → 새 위치로 슬라이드 (WAAPI라 인라인 스타일 안 남김, 호버 유지)
-  rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => {
-    const nid = d.dataset.nid;
-    if (nid in prevY && d.animate) {
-      const dy = prevY[nid] - d.getBoundingClientRect().top;
-      if (dy) d.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 340, easing: 'cubic-bezier(0.34,1.2,0.5,1)' });
-    }
-  });
-  _railNewestId = newestKey;
-  rail.querySelectorAll('.dr-dot').forEach(d => {
-    d.onclick = () => {
-      const n = nodeMap[d.dataset.nid]; if (!n) return;
-      _detailPanelCollapsed = false; // 접혀 있으면 펼치면서 열기
-      openPanel(n);
-      if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
-    };
-  });
 }
 
 function reopenDetailPanel() {
@@ -117,7 +59,6 @@ function reopenDetailPanel() {
   if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
   else { showPanel(); }
   updateDetailReopenTab();
-  renderDetailRail();
   _autoFitPanel();
 }
 
@@ -153,7 +94,6 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
-  renderDetailRail();
 }
 
 function mdTableToHtml(text) {
@@ -1035,10 +975,13 @@ function showPanel() {
 
 function openPanel(n) {
   _activeNode = n;
-  // 최근 본 노드 추적(우측 레일·노드 섹션) + '자주 본 노드' 집계는 실제 열 때만
-  if (n && n.id) {
-    if (typeof bumpNodeView === 'function') bumpNodeView(n);
-    if (typeof addRecentNode === 'function') addRecentNode(n);
+  // 최근 본 노드 추적 (노드 섹션용)
+  if (n && n.id && typeof _recentNodes !== 'undefined') {
+    _recentNodes = _recentNodes.filter(id => id !== n.id);
+    _recentNodes.unshift(n.id);
+    if (_recentNodes.length > 12) _recentNodes.length = 12;
+    if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
+    if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }
   const _wasOpen = detailPanel.classList.contains('open');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
