@@ -53,21 +53,16 @@ let _recentNodes = [];
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
-  const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
   const rowHtml = (n, ic) => {
     const t = escapeHtml((n.label || '(제목 없음)').trim());
     return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span></div>`;
   };
-  const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
-  let html = railSecHead('bm', '북마크');
-  html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
-    : `<div class="rail-empty">북마크 노드 모음</div>`);
+  // 북마크·최근 본 노드는 우측 레일이 대체 → 좌측 노드 탭엔 '자주 본 노드'만
   const freq = _frequentNodes(8);
-  html += railSecHead('freq', '자주 본 노드', 'mt');
+  let html = railSecHead('freq', '자주 본 노드');
   html += railSecBody('freq', freq.length
     ? freq.map(f => rowHtml(f.n, `<span class="bm-count">${f.c}</span>`)).join('')
     : `<div class="rail-empty">2번 이상 연 노드</div>`);
-  // '최근 본 노드' 섹션은 우측 레일이 대체 → 좌측 노드 탭에선 제거
   el.innerHTML = html;
   el.querySelectorAll('.bm-item').forEach(row => {
     row.onclick = () => {
