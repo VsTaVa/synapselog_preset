@@ -62,27 +62,33 @@ function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
   const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성(글로우)
+  const bms = (typeof nodes !== 'undefined' ? nodes : [])
+    .filter(n => n.visible && typeof isBookmarked === 'function' && isBookmarked(n)).slice(0, 5);
   // _recentNodes는 최신이 앞 → 위=최신, 아래=오래된
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
     .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
-  const show = recents.length > 0; // 패널과 무관하게 최근 노드가 있으면 레일 표시
+  const show = bms.length > 0 || recents.length > 0;
   rail.classList.toggle('open', show);
   if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
   const newest = recents.length ? recents[0] : null; // 최신 = 맨 위
-  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 아래→위 등장
-  // FLIP: 새 원이 아래에 들어올 때 기존 원들도 위로 미끄러지게 — 재렌더 전 위치 기록
+  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 등장 애니메이션
+  // FLIP: 최근 그룹 원들이 위치 이동할 때 부드럽게 — 재렌더 전 위치 기록(최근 원만)
   const prevY = {};
-  rail.querySelectorAll('.dr-dot').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
-  // 상단 시계 아이콘 = '최근 본 노드' 표시 (좌측 레일의 최근 섹션을 대체)
-  const clockIc = `<span class="dr-clock" title="최근 본 노드"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
-  rail.innerHTML = clockIc + recents.map(n => {
+  rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
+  const dot = (n, extraCls) => {
     const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
     const t = escapeHtml((n.label || '(제목 없음)').trim());
-    const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (n.id === enterId ? ' enter' : '');
+    const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (extraCls || '');
     return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;
-  }).join('');
-  // 기존 원들: 옛 위치 → 새 위치로 슬라이드 (WAAPI라 인라인 스타일 안 남김, 호버 유지)
-  rail.querySelectorAll('.dr-dot').forEach(d => {
+  };
+  const bmIc = `<span class="dr-head" title="북마크"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>`;
+  const clockIc = `<span class="dr-head dr-head-dim" title="최근 본 노드"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
+  let html = '';
+  if (bms.length) html += `<div class="dr-group">${bmIc}${bms.map(n => dot(n)).join('')}</div>`;
+  if (recents.length) html += `<div class="dr-group">${clockIc}${recents.map(n => dot(n, 'dr-recent' + (n.id === enterId ? ' enter' : ''))).join('')}</div>`;
+  rail.innerHTML = html;
+  // 최근 원: 옛 위치 → 새 위치로 슬라이드 (WAAPI라 인라인 스타일 안 남김, 호버 유지)
+  rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => {
     const nid = d.dataset.nid;
     if (nid in prevY && d.animate) {
       const dy = prevY[nid] - d.getBoundingClientRect().top;

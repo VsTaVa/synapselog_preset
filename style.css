@@ -411,16 +411,19 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 /* 우측 레일 — 좌측 액티비티 레일과 동일한 유리 바. 화면 우측 끝에 고정, 패널은 그 왼쪽에 뜸 */
-#detail-rail { position: fixed; top: 0; right: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 205; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: var(--glass-bg); border-left: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.24s, visibility 0.24s; }
+#detail-rail { position: fixed; top: 0; right: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 205; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: var(--glass-bg); border-left: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.24s, visibility 0.24s; }
 #detail-rail.open { opacity: 1; visibility: visible; pointer-events: auto; }
-.dr-clock { flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+/* 레일 그룹(북마크·최근) + 그룹 머리 아이콘 */
+.dr-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.dr-head { flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--accent); margin-bottom: 2px; }
+.dr-head-dim { color: rgba(255,255,255,0.4); }
 .dr-dot { position: relative; width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%; cursor: pointer; border: none; background: var(--dot); box-shadow: 0 1px 5px rgba(0,0,0,0.45); transition: transform 0.15s; }
 .dr-dot:hover { box-shadow: 0 0 0 3px rgba(255,255,255,0.22), 0 1px 6px rgba(0,0,0,0.5); }
 /* 호버 시 왼쪽에 펼쳐지는 이름 칩(노드색 테두리) */
 .dr-label { position: absolute; right: calc(100% + 11px); top: 50%; transform: translateY(-50%) translateX(8px); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; padding: 4px 10px; border-radius: 8px; background: rgba(18,20,28,0.97); border: 1px solid var(--dot); color: #fff; font-size: 11.5px; line-height: 1.4; opacity: 0; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: opacity 0.14s, transform 0.14s; }
 .dr-dot:hover .dr-label { opacity: 1; transform: translateY(-50%) translateX(0); }
 /* 활성(열린 패널) 노드: 그래프 뷰와 동일한 소프트 방사형 글로우 */
-.dr-dot.active::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, var(--dot) 0%, transparent 68%); opacity: 0.85; pointer-events: none; }
+.dr-dot.active::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, var(--dot) 0%, transparent 68%); opacity: 0.95; pointer-events: none; }
 /* 새로 선택된 노드(맨 위): 위에서 아래로 내려오는 등장 */
 @keyframes drDown { from { opacity: 0; transform: translateY(-18px) scale(0.5); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .dr-dot.enter { animation: drDown 0.34s cubic-bezier(0.34,1.4,0.5,1); }
