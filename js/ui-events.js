@@ -372,7 +372,8 @@ canvas.addEventListener('mouseup', e => {
     if (!n.fixed) { n.vx = 0; n.vy = 0; }
     unfreezeSubtree(n); saveFixedPositions(); isStable = false;
   } else if (elapsed < 150 && n && n === mouseDownNode) {
-    clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
+    // 단일 클릭 = 노드 선택(툴 메뉴) + 우측 레일에 추가. 더블클릭이 오면 취소되고 패널이 열림
+    clearTimeout(_clickTimer); _clickTimer = setTimeout(() => { toggleMultiSelect(n); if (typeof addRecentNode === 'function') addRecentNode(n); }, 220);
   } else if (elapsed < 150 && !n) {
     clearAllModes();
   }
@@ -409,22 +410,16 @@ function unfreezeSubtree(node) {
 }
 
 canvas.addEventListener('dblclick', e => {
-  clearTimeout(_clickTimer);
+  clearTimeout(_clickTimer); // 단일 클릭(선택) 예약 취소
   const n = getNodeAt(e.clientX, e.clientY);
   if (!n) { fitGraph(true); return; } // 빈 공간 더블클릭 → 화면 맞춤
-  if (_pcSelectGesture !== 'dblclick') return; // 우클릭 모드면 노드 더블클릭은 무시(단일클릭이 패널 염)
-  // 더블클릭 → 선택에 추가 (기존 선택 유지, 여러 개 누적 가능)
-  if (!_multiSelected.includes(n)) toggleMultiSelect(n);
+  toggleNodePanel(n); // 노드 더블클릭 → 상세 패널 열기
 });
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
-  if (_suppressContext) { _suppressContext = false; return; } // 방금 빈 곳 우클릭 드래그(회전)였음 — 메뉴/선택 안 함
-  // 우클릭 → 노드 위면 선택(누적)하고 종료
-  if (_pcSelectGesture === 'rightclick') {
-    const node = getNodeAt(e.clientX, e.clientY);
-    if (node) { if (!_multiSelected.includes(node)) toggleMultiSelect(node); return; }
-  }
+  if (_suppressContext) { _suppressContext = false; return; } // 방금 빈 곳 우클릭 드래그(회전)였음
+  // 우클릭 노드 선택은 폐지 — 선택은 단일 클릭이 담당. (빈 곳 우클릭 드래그=회전은 유지)
   const w = screenToWorld(e.clientX, e.clientY);
   let closest = null, minDist = 12 / scale;
   edges.filter(e2 => e2.manualLink).forEach(e2 => {
@@ -515,12 +510,13 @@ canvas.addEventListener('touchend', e => {
     } else if (elapsed < 300 && n) {
       const now = Date.now();
       if (_lastTapNode === n && now - _lastTapTime < 350) {
-        // 더블탭 → 선택에 추가 (기존 선택 유지)
+        // 더블탭 → 상세 패널 열기
         clearTimeout(_clickTimer);
-        if (!_multiSelected.includes(n)) toggleMultiSelect(n);
+        toggleNodePanel(n);
         _lastTapNode = null; _lastTapTime = 0;
       } else {
-        clearTimeout(_clickTimer); _clickTimer = setTimeout(() => toggleNodePanel(n), 220);
+        // 단일 탭 → 노드 선택(툴 메뉴) + 우측 레일 추가
+        clearTimeout(_clickTimer); _clickTimer = setTimeout(() => { toggleMultiSelect(n); if (typeof addRecentNode === 'function') addRecentNode(n); }, 220);
         _lastTapNode = n; _lastTapTime = now;
       }
     } else if (elapsed < 300 && !n) {
@@ -603,7 +599,7 @@ const LANG = {
     'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-sliders':'슬라이더','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
     'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
-    'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그','sc-zoom':'화면 확대 / 축소','sc-zoom-sub':'마우스 휠 (모바일: 두 손가락)','sc-zoom-key':'마우스 휠',
+    'sc-sel-sub':'노드 클릭 (모바일: 탭)','sc-rightclick':'클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그','sc-zoom':'화면 확대 / 축소','sc-zoom-sub':'마우스 휠 (모바일: 두 손가락)','sc-zoom-key':'마우스 휠',
     's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
@@ -632,7 +628,7 @@ const LANG = {
     'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-sliders':'Sliders','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
     'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a keyword to chat with AI',
-    'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag','sc-zoom':'Zoom In / Out','sc-zoom-sub':'Mouse wheel (mobile: pinch)','sc-zoom-key':'Mouse wheel',
+    'sc-sel-sub':'Click node (mobile: tap)','sc-rightclick':'Click','sc-fit-sub2':'Spacebar · double-click empty space / double-tap','sc-dblclick2':'Space · Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag','sc-zoom':'Zoom In / Out','sc-zoom-sub':'Mouse wheel (mobile: pinch)','sc-zoom-key':'Mouse wheel',
     's-local-warn':'⚠ API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'⚠ API token is stored in this device\'s browser. Not recommended on shared devices.',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',

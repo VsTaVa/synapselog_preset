@@ -61,18 +61,13 @@ let _railNewestId = null;
 function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
-  const show = detailPanel.classList.contains('open') && anyTabs(); // 접힘(open+collapsed)도 open 유지 → 표시
-  const collapsed = detailPanel.classList.contains('panel-collapsed');
-  rail.classList.toggle('open', show);
-  rail.classList.toggle('collapsed', show && collapsed);
-  // 레일이 재열기 역할 → 기존 재열기 탭 버튼은 겹치니 숨김
-  const tgl = document.getElementById('detail-panel-sidebar-toggle');
-  if (tgl && show) tgl.classList.remove('visible');
-  if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
-  const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성
+  const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성(글로우)
   // _recentNodes는 최신이 앞 → 위=오래된, 아래=최신 이 되도록 뒤집음
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
     .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5).reverse();
+  const show = recents.length > 0; // 패널과 무관하게 최근 노드가 있으면 레일 표시
+  rail.classList.toggle('open', show);
+  if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
   const newest = recents.length ? recents[recents.length - 1] : null;
   const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 아래→위 등장
   // FLIP: 새 원이 아래에 들어올 때 기존 원들도 위로 미끄러지게 — 재렌더 전 위치 기록
@@ -1026,13 +1021,10 @@ function showPanel() {
 
 function openPanel(n) {
   _activeNode = n;
-  // 최근 본 노드 추적 (노드 섹션용)
-  if (n && n.id && typeof _recentNodes !== 'undefined') {
-    _recentNodes = _recentNodes.filter(id => id !== n.id);
-    _recentNodes.unshift(n.id);
-    if (_recentNodes.length > 12) _recentNodes.length = 12;
-    if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
-    if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
+  // 최근 본 노드 추적(우측 레일·노드 섹션) + '자주 본 노드' 집계는 실제 열 때만
+  if (n && n.id) {
+    if (typeof bumpNodeView === 'function') bumpNodeView(n);
+    if (typeof addRecentNode === 'function') addRecentNode(n);
   }
   const _wasOpen = detailPanel.classList.contains('open');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거

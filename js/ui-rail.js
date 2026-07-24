@@ -104,6 +104,16 @@ function _frequentNodes(topN) {
   return out.sort((a, b) => b.c - a.c).slice(0, topN);
 }
 
+// 최근 본/선택한 노드로 추가 — 단일 클릭 선택·상세 열기 공용. 우측 레일·노드 목록 갱신.
+function addRecentNode(n) {
+  if (!n || !n.id || typeof _recentNodes === 'undefined') return;
+  _recentNodes = _recentNodes.filter(id => id !== n.id);
+  _recentNodes.unshift(n.id);
+  if (_recentNodes.length > 12) _recentNodes.length = 12;
+  if (typeof renderDetailRail === 'function') renderDetailRail();
+  if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
+}
+
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
 function removeRecentNode(id) {
   _recentNodes = _recentNodes.filter(x => x !== id);
