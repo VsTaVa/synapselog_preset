@@ -1311,10 +1311,17 @@ async function _loadEntriesBackground(pageId) {
     labelEl.insertAdjacentHTML('beforeend', ` <span class="entry-load-tag" style="color:rgba(237,112,0,0.45);font-size:9px;">로딩 0/${total}</span>`);
   }
 
-  for (const node of entryNodes) {
-    await _loadEntryNode(node, pageId);
-    loaded++; setTag(`로딩 ${loaded}/${total}`);
-  }
+  // 동시 4개씩 병렬 로드(공유 인덱스에서 하나씩 꺼내는 워커 풀). JS 단일 스레드라 노드 추가는 원자적 → 경합 없음.
+  const CONCURRENCY = 4;
+  let _i = 0;
+  const worker = async () => {
+    while (_i < entryNodes.length) {
+      const node = entryNodes[_i++];
+      await _loadEntryNode(node, pageId);
+      loaded++; setTag(`로딩 ${loaded}/${total}`);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, entryNodes.length) }, worker));
 
   const tag = getTag(); if (tag) tag.remove();
   try {
