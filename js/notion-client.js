@@ -1030,41 +1030,31 @@ async function syncPage(pageId, opts) {
   if (overlay) showLoading('동기화 중...');
   try {
     // 증분 판정: 노션 목록으로 '바뀐 하위/DB 페이지'만 추림. force면 전부, 목록 실패 시에도 전부.
-    let changed = null;      // null=전부, Set=바뀐 엔트리 id만
-    let headingsChanged = true; // 헤딩(구조·헤딩텍스트) 재요청 여부 — 최상위 페이지 자체 수정일로 판단
+    // headings(최상위 페이지 본문·헤딩·구조)는 항상 다시 받는다 — 헤딩 아래 본문 수정·삭제를 놓치지 않으려면 필요.
+    // 속도는 엔트리 본문을 '바뀐 것만' 받는 것 + 병렬 로드로 확보(무거운 건 엔트리 쪽이라 이걸로 충분).
+    let changed = null; // null=전부, Set=바뀐 엔트리 id만
     if (!opts.force) {
       try {
         const list = await notionFetch({ action: 'list' });
-        const latest = {}, titleOf = {};
-        (list.pages || []).forEach(p => { if (p.id) { latest[p.id] = p.lastEdited || ''; titleOf[p.id] = (p.title || '').trim(); } });
+        const latest = {}; (list.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
         changed = new Set();
         nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
-             .forEach(n => {
-               if (latest[n.entryNotionId] === _pageEdited[n.entryNotionId]) return;
-               changed.add(n.entryNotionId);
-               // headings 생략 대비: 제목 변경은 목록 제목으로 바로 반영
-               const t = titleOf[n.entryNotionId];
-               if (t && t !== n.label) { n.label = t; if (typeof refreshOpenPanes === 'function') refreshOpenPanes(); }
-             });
-        // 페이지 자체 수정일이 그대로면 헤딩·구조는 안 바뀐 것 → 무거운 headings 재요청 생략(속도↑)
-        if ((pageId in _pageEdited) && latest[pageId] === _pageEdited[pageId]) headingsChanged = false;
+             .forEach(n => { if (latest[n.entryNotionId] !== _pageEdited[n.entryNotionId]) changed.add(n.entryNotionId); });
         _pageEdited = { ..._pageEdited, ...latest }; _savePageEdited(); // 수정일 기준선 갱신
-      } catch (e) { changed = null; headingsChanged = true; }
+      } catch (e) { changed = null; }
     }
     // 바뀐(또는 전부) 엔트리 캐시만 제거 → _loadEntryNode가 그것만 새로 받고 나머지는 캐시 재사용
     if (!opts.silent) {
       nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId && (!changed || changed.has(n.entryNotionId)))
            .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
     }
-    // 헤딩(구조·헤딩 텍스트)은 페이지 자체가 바뀐 경우에만 통째로 다시 받음 — DB 항목만 고친 경우는 생략해 빨라짐
-    if (headingsChanged) {
-      const data = await notionFetch({ pageId, action: 'headings' });
-      try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
-      const ghostId = 'ghost_' + pageId;
-      if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
-      const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
-      if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
-    }
+    // 헤딩(구조·헤딩 본문)은 항상 다시 받아 본문 수정·삭제까지 반영 — 위치는 syncPageIncremental이 보존
+    const data = await notionFetch({ pageId, action: 'headings' });
+    try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
+    const ghostId = 'ghost_' + pageId;
+    if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
+    const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
+    if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
     if (!opts.silent) {
       // 바뀐 엔트리(또는 전부)의 하위만 지우고 그 엔트리만 재로드 → 안 바뀐 subtree는 그대로(재배치 없음)
       const entryNodes = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId);
