@@ -74,13 +74,24 @@ function renderDetailRail() {
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
     .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5).reverse();
   const newest = recents.length ? recents[recents.length - 1] : null;
-  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 애니메이션
+  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 아래→위 등장
+  // FLIP: 새 원이 아래에 들어올 때 기존 원들도 위로 미끄러지게 — 재렌더 전 위치 기록
+  const prevY = {};
+  rail.querySelectorAll('.dr-dot').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
   rail.innerHTML = recents.map(n => {
     const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
     const t = escapeHtml((n.label || '(제목 없음)').trim());
     const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (n.id === enterId ? ' enter' : '');
     return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" title="${t}" aria-label="${t}"></button>`;
   }).join('');
+  // 기존 원들: 옛 위치 → 새 위치로 슬라이드 (WAAPI라 인라인 스타일 안 남김, 호버 유지)
+  rail.querySelectorAll('.dr-dot').forEach(d => {
+    const nid = d.dataset.nid;
+    if (nid in prevY && d.animate) {
+      const dy = prevY[nid] - d.getBoundingClientRect().top;
+      if (dy) d.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 340, easing: 'cubic-bezier(0.34,1.2,0.5,1)' });
+    }
+  });
   _railNewestId = newest ? newest.id : null;
   rail.querySelectorAll('.dr-dot').forEach(d => {
     d.onclick = () => {
