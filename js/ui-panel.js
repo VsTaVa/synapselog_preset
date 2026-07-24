@@ -55,23 +55,40 @@ function toggleDetailPanel() {
   _autoFitPanel();
 }
 
-// 우측 레일: 최근 본 노드 최대 5개를 노드색 원으로 세로 배치. 열린 패널(활성) 노드는 글로우. 패널과 함께 열림.
+// 우측 레일: 최근 본 노드 최대 5개를 노드색 원으로 세로 배치(아래=최신). 열린 패널 노드는 글로우.
+// 패널이 열려 있거나 접혀 있을 때(탭이 있으면) 표시 — 접히면 화면 우측 끝에 도킹.
+let _railNewestId = null;
 function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
-  const visuallyOpen = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
-  rail.classList.toggle('open', visuallyOpen && anyTabs());
-  if (!visuallyOpen) { rail.innerHTML = ''; return; }
+  const show = detailPanel.classList.contains('open') && anyTabs(); // 접힘(open+collapsed)도 open 유지 → 표시
+  const collapsed = detailPanel.classList.contains('panel-collapsed');
+  rail.classList.toggle('open', show);
+  rail.classList.toggle('collapsed', show && collapsed);
+  // 레일이 재열기 역할 → 기존 재열기 탭 버튼은 겹치니 숨김
+  const tgl = document.getElementById('detail-panel-sidebar-toggle');
+  if (tgl && show) tgl.classList.remove('visible');
+  if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
   const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성
+  // _recentNodes는 최신이 앞 → 위=오래된, 아래=최신 이 되도록 뒤집음
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
-    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
+    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5).reverse();
+  const newest = recents.length ? recents[recents.length - 1] : null;
+  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 애니메이션
   rail.innerHTML = recents.map(n => {
     const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
     const t = escapeHtml((n.label || '(제목 없음)').trim());
-    return `<button class="dr-dot${openIds.has(n.id) ? ' active' : ''}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" title="${t}" aria-label="${t}"></button>`;
+    const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (n.id === enterId ? ' enter' : '');
+    return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" title="${t}" aria-label="${t}"></button>`;
   }).join('');
+  _railNewestId = newest ? newest.id : null;
   rail.querySelectorAll('.dr-dot').forEach(d => {
-    d.onclick = () => { const n = nodeMap[d.dataset.nid]; if (n) { openPanel(n); if (typeof focusViewOnNode === 'function') focusViewOnNode(n); } };
+    d.onclick = () => {
+      const n = nodeMap[d.dataset.nid]; if (!n) return;
+      _detailPanelCollapsed = false; // 접혀 있으면 펼치면서 열기
+      openPanel(n);
+      if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
+    };
   });
 }
 

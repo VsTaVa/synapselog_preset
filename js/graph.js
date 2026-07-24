@@ -537,8 +537,11 @@ function worldToScreen(wx, wy) {
 // 보이는 영역(레일·우측 패널 제외)의 화면 중심 — 회전 축·화면맞춤 기준점
 function viewportCenter() {
   const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  const drEl = document.getElementById('detail-rail');
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = (dpEl && dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed')) ? dpEl.offsetWidth + 20 : 0;
+  const panelW = (dpEl && dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed')) ? dpEl.offsetWidth : 0;
+  const drW = (drEl && drEl.classList.contains('open')) ? drEl.offsetWidth : 0; // 우측 레일도 차지
+  const detailWidth = (panelW || drW) ? panelW + drW + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40;
   return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
 }
@@ -630,9 +633,12 @@ function fitGraph(rotate = true) {
     if (a.length) { visibleNodes = a; subsetActive = true; }
   }
   const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  const drEl = document.getElementById('detail-rail');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed') ? dpEl.offsetWidth + 20 : 0;
+  const panelW = (dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed')) ? dpEl.offsetWidth : 0;
+  const drW = (drEl && drEl.classList.contains('open')) ? drEl.offsetWidth : 0; // 우측 레일도 차지
+  const detailWidth = (panelW || drW) ? panelW + drW + 20 : 0;
   const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
