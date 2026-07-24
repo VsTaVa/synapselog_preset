@@ -62,13 +62,13 @@ function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
   const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성(글로우)
-  // _recentNodes는 최신이 앞 → 위=오래된, 아래=최신 이 되도록 뒤집음
+  // _recentNodes는 최신이 앞 → 위=최신, 아래=오래된
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
-    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5).reverse();
+    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
   const show = recents.length > 0; // 패널과 무관하게 최근 노드가 있으면 레일 표시
   rail.classList.toggle('open', show);
   if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
-  const newest = recents.length ? recents[recents.length - 1] : null;
+  const newest = recents.length ? recents[0] : null; // 최신 = 맨 위
   const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 아래→위 등장
   // FLIP: 새 원이 아래에 들어올 때 기존 원들도 위로 미끄러지게 — 재렌더 전 위치 기록
   const prevY = {};
@@ -77,7 +77,7 @@ function renderDetailRail() {
     const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
     const t = escapeHtml((n.label || '(제목 없음)').trim());
     const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (n.id === enterId ? ' enter' : '');
-    return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" title="${t}" aria-label="${t}"></button>`;
+    return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;
   }).join('');
   // 기존 원들: 옛 위치 → 새 위치로 슬라이드 (WAAPI라 인라인 스타일 안 남김, 호버 유지)
   rail.querySelectorAll('.dr-dot').forEach(d => {
