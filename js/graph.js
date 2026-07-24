@@ -666,7 +666,7 @@ function fitGraph(rotate = true) {
     if (rx < bx0) bx0 = rx; if (rx > bx1) bx1 = rx; if (ry < by0) by0 = ry; if (ry > by1) by1 = ry;
   }
   const graphW = (bx1 - bx0) || 1, graphH = (by1 - by0) || 1;
-  const targetScale = Math.min(availW/graphW, availH/graphH, 1.5) * 0.82;
+  const targetScale = Math.min(availW/graphW, availH/graphH, 1.5) * 0.9;
   const cbx = (bx0 + bx1)/2, cby = (by0 + by1)/2; // 목표 회전 좌표계의 경계 중심
   const itc = Math.cos(-targetRot), itsn = Math.sin(-targetRot);
   const w0x = W/2 + (cbx*itc - cby*itsn), w0y = H/2 + (cbx*itsn + cby*itc); // 항상 가운데 둘 월드 점
