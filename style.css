@@ -208,6 +208,16 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-pane { display: none; }
 .rail-pane.active { display: block; pointer-events: auto; }
 body.resizing-panel { cursor: ew-resize; user-select: none; }
+/* UI 크롬은 텍스트 선택·롱프레스 콜아웃 방지 (드래그하면 파란 선택 영역이 뜨던 문제) */
+#activity-rail, #sidebar, #legend, #settings-modal, #onboarding, #login-screen, #status,
+.detail-header, .detail-pane-bar, .panel-title, .rail-subhead, .cfg-subtitle, button, label {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+/* 실제로 읽거나 입력하는 텍스트는 선택 허용 */
+.detail-content, .detail-body-text, .body-edit-row, .aichat-bubble, .aichat-messages,
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+}
 body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: none; }
 #detail-resize-handle { position: absolute; top: 0; left: -3px; width: 6px; height: 100%; cursor: ew-resize; background: transparent; transition: background 0.15s; z-index: 10; }
 #detail-resize-handle:hover, #detail-resize-handle.dragging { background: rgba(var(--accent-rgb),0.4); }
