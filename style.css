@@ -281,7 +281,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item:not(.active):hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
 .page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:rgba(255,255,255,0.35); transition:color 0.15s; }
-.page-list-item .item-actions .btn-sync:hover { color:rgba(255,255,255,0.8); }
+.page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:rgba(255,255,255,0.8); }
 .page-list-item .item-actions .btn-remove { color:var(--accent); }
 .page-list-item .item-actions .btn-remove:hover { color:#ffbe76; }
 .page-list-item .item-actions .btn-favorite { color:rgba(255,255,255,0.25); font-size:13px; }
@@ -368,8 +368,8 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .added-page-item:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
 .added-page-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; color: rgba(255,255,255,0.75); transition: color 0.15s; }
 .added-page-item .btn-group { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-.btn-sync { background: none; border: none; cursor: pointer; font-size: 12px; color: rgba(255,255,255,0.4); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
-.btn-sync:hover { color: rgba(255,255,255,0.8); }
+.btn-sync, .btn-export { background: none; border: none; cursor: pointer; font-size: 12px; color: rgba(255,255,255,0.4); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
+.btn-sync:hover, .btn-export:hover { color: rgba(255,255,255,0.8); }
 .btn-remove { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--accent); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
 .btn-remove:hover { color: #ffbe76; }
 #confirm-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
