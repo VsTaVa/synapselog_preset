@@ -1140,17 +1140,24 @@ function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지�
 async function bulkSync(opts) {
   opts = opts || {};
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
-  // 수정일 기준선 갱신(다음 증분 비교용)
+  const allBtn = document.querySelector('.sync-all'); // 상단 전체 동기화 버튼
+  if (allBtn) allBtn.classList.add('syncing');
+  const _spinStart = Date.now();
   try {
-    const data = await notionFetch({ action: 'list' });
-    const latest = {}; (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
-    _pageEdited = latest; _savePageEdited();
-  } catch (e) {}
-  for (const pid of ids) { await syncPage(pid, { force: true }); }
-  await syncMdFileHandles();
-  await syncFolderBatches();
-  await refreshSidebarPageList();
-  if (!opts.silent) toast(`${ids.length}개 페이지 전체 동기화`, { type: 'success' });
+    // 수정일 기준선 갱신(다음 증분 비교용)
+    try {
+      const data = await notionFetch({ action: 'list' });
+      const latest = {}; (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
+      _pageEdited = latest; _savePageEdited();
+    } catch (e) {}
+    for (const pid of ids) { await syncPage(pid, { force: true, noOverlay: true }); } // 오버레이 없이 조용히
+    await syncMdFileHandles();
+    await syncFolderBatches();
+    await refreshSidebarPageList();
+    if (!opts.silent) toast(`${ids.length}개 페이지 전체 동기화`, { type: 'success' });
+  } finally {
+    if (allBtn) { const wait = Math.max(0, 600 - (Date.now() - _spinStart)); setTimeout(() => allBtn.classList.remove('syncing'), wait); }
+  }
 }
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다.', () => {
