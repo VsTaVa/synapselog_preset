@@ -137,11 +137,10 @@ function _saveDismissed() {
 // 각 항목의 하위 노드 개수를 함께 반환(뱃지 표시용).
 function _computeHubs(topN) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
-  // 페이지만: 최상위 · 하위 페이지 · 데이터베이스 · DB 항목.
-  // 노션이 하위 페이지/DB 항목을 ##(헤딩2)로 내려주므로 헤딩 깊이가 아니라 마커로 판정해야 함.
-  const isPageLike = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entryNotionId;
-  const scored = vis.filter(isPageLike).map(n => ({ n, deg: _descendantIds(n.id).length }));
-  scored.sort((a, b) => (a.n.level - b.n.level) || (b.deg - a.deg)); // 상위 페이지 먼저, 그 다음 하위 많은 순
+  // 단일 하위 페이지 + DB 내부 페이지만. (최상위 페이지·데이터베이스 제목은 제외)
+  // 둘 다 노션 페이지라 entryNotionId를 가짐 — 최상위(level 0)·DB 제목(isDbNode)은 안 가짐.
+  const scored = vis.filter(n => !!n.entryNotionId).map(n => ({ n, deg: _descendantIds(n.id).length }));
+  scored.sort((a, b) => b.deg - a.deg); // 하위 많은 순
   return scored.slice(0, topN);
 }
 
