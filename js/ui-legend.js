@@ -83,7 +83,7 @@ function _legendSymbolsHtml() {
 }
 function _legendToolsHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-note lg-note-top">노드 클릭 시 도구 툴바 표시 · 더블클릭은 본문 열기</div>`
+  return `<div class="lg-note lg-note-top">노드 우클릭 시 도구 툴바 표시</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
     + row('하위 노드 추가', '자식 노드 생성')
     + row('노드 동기화', 'Notion 최신화')
@@ -331,8 +331,7 @@ function _editToolsHtml(node) {
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
   const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   const isLocalLike = node.local || String(node.sourcePageId || '').startsWith('md_') || String(node.sourcePageId || '').startsWith('local_');
-  const openIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14" y1="4" x2="14" y2="20"/></svg>`;
-  let html = `<button onclick="multiSelectOpenPanel()" title="상세 본문 열기 (더블클릭과 동일)">${openIcon} 본문 열기</button>`;
+  let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="해당 노드에 하위 노드 추가">${branchIcon} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="노션 동기화">${syncIcon} 노드 동기화</button>`;
   if (!isLocalLike && (node.notionBlockId || node.sourcePageId)) html += `<button onclick="multiSelectOpenNotion()" title="노션 페이지 해당 위치로 이동.">${notionIcon} 노션에서 보기</button>`;

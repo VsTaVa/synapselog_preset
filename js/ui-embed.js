@@ -323,15 +323,6 @@ function multiSelectSatellite() {
   clearMultiSelect();
 }
 
-// 선택 툴 → 본문 열기: 첫 선택 노드의 상세 패널 열기 (선택 해제)
-function multiSelectOpenPanel() {
-  const n = _multiSelected && _multiSelected[0];
-  if (!n) return;
-  clearMultiSelect();
-  if (typeof openPanel === 'function') openPanel(n);
-  if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
-}
-
 function multiSelectBookmark() {
   if (_multiSelected.length < 1) return;
   const targets = _multiSelected.slice();
