@@ -1024,7 +1024,7 @@ async function syncPage(pageId, opts) {
   opts = opts || {};
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const syncBtn = item?.querySelector('.btn-sync');
-  if (syncBtn) syncBtn.textContent = '⟳';
+  if (syncBtn) syncBtn.classList.add('syncing');
   const overlay = !opts.silent && !opts.noOverlay; // 오버레이만 별도 제어 (동기화 작업 자체는 그대로)
   if (overlay) showLoading('동기화 중...');
   try {
@@ -1064,7 +1064,7 @@ async function syncPage(pageId, opts) {
       const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
       if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
     }
-    if (syncBtn) syncBtn.textContent = '↻';
+    if (syncBtn) syncBtn.classList.remove('syncing');
     if (!opts.silent) {
       // 바뀐 엔트리(또는 전부)의 하위만 지우고 그 엔트리만 재로드 → 안 바뀐 subtree는 그대로(재배치 없음)
       const entryNodes = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId);
@@ -1075,7 +1075,7 @@ async function syncPage(pageId, opts) {
       if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
       for (const n of targets) { await _loadEntryNode(n, pageId); }
     } else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-  } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (overlay) hideLoading(); }
+  } catch(e) { if (syncBtn) syncBtn.classList.remove('syncing'); } finally { if (overlay) hideLoading(); }
 }
 
 
