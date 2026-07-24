@@ -991,7 +991,13 @@ function openPanel(n) {
     if (_stack.length > MAX_STACK) _stack.shift();
     added = true;
   }
-  _detailPanelCollapsed = false;
+  // 사용자가 패널을 접어둔 상태면 노드를 눌러도 펼치지 않음 — 내용만 갱신하고 '열기' 버튼으로만 펼침
+  if (_detailPanelCollapsed) {
+    detailPanel.classList.add('open', 'panel-collapsed');
+    renderPanes(added ? n.id : null);
+    updateDetailReopenTab();
+    return;
+  }
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
   renderPanes(added ? n.id : null);
