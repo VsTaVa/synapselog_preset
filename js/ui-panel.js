@@ -77,7 +77,8 @@ function renderDetailRail() {
   const prevY = {};
   rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
   const dot = (n, extraCls) => {
-    const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
+    let c = (typeof nodeRgb === 'function') ? nodeRgb(n) : null;
+    if (!Array.isArray(c) || c.length < 3 || c.some(v => typeof v !== 'number' || isNaN(v))) c = [237, 112, 0]; // 색 깨진 노드 방어(투명 원·글로우 없음 원인)
     const t = escapeHtml((n.label || '(제목 없음)').trim());
     const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (extraCls || '');
     return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;

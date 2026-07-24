@@ -411,7 +411,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 /* 우측 레일 — 좌측 액티비티 레일과 동일한 유리 바. 화면 우측 끝에 고정, 패널은 그 왼쪽에 뜸 */
-#detail-rail { position: fixed; top: 0; right: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 205; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: var(--glass-bg); border-left: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.24s, visibility 0.24s; }
+#detail-rail { position: fixed; top: 0; right: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 205; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 16px; gap: 20px; background: var(--glass-bg); border-left: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.24s, visibility 0.24s; }
 #detail-rail.open { opacity: 1; visibility: visible; pointer-events: auto; }
 /* 레일 그룹(북마크·최근) + 그룹 머리 아이콘 */
 .dr-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
