@@ -966,7 +966,7 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
 
 // ── 모바일 롱프레스 툴팁 — 터치 기기에선 title 호버가 안 뜨므로 길게 누르면 표시 ──
 (function () {
-  let _lpTimer = null, _lpEl = null;
+  let _lpTimer = null, _lpStartX = 0, _lpStartY = 0, _lpShown = false;
   const tip = () => document.getElementById('tooltip');
   function show(el, x, y) {
     const t = tip(); if (!t) return;
@@ -976,17 +976,27 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     const w = t.offsetWidth || 120;
     t.style.left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8)) + 'px';
     t.style.top = Math.max(8, y - 40) + 'px';
+    _lpShown = true;
   }
-  function hide() { const t = tip(); if (t) t.style.display = 'none'; }
+  function hide() { const t = tip(); if (t) t.style.display = 'none'; _lpShown = false; }
   document.addEventListener('touchstart', (e) => {
     const el = e.target.closest('[title],[aria-label]');
     if (!el || el.closest('#c')) return; // 캔버스는 자체 처리
     const tt = e.touches[0];
-    _lpEl = el;
-    _lpTimer = setTimeout(() => { show(el, tt.clientX, tt.clientY); _lpEl = null; }, 450);
+    _lpStartX = tt.clientX; _lpStartY = tt.clientY; _lpShown = false;
+    _lpTimer = setTimeout(() => { show(el, _lpStartX, _lpStartY); _lpTimer = null; }, 450);
   }, { passive: true });
-  const cancel = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } hide(); _lpEl = null; };
-  document.addEventListener('touchend', cancel);
-  document.addEventListener('touchmove', cancel, { passive: true });
-  document.addEventListener('touchcancel', cancel);
+  document.addEventListener('touchmove', (e) => {
+    if (_lpShown) return; // 이미 뜬 뒤엔 손이 움직여도 유지 (처음 위치에 고정)
+    // 뜨기 전 움직임은 스크롤 의도로 보고 취소 (오차 10px 허용)
+    if (_lpTimer) {
+      const tt = e.touches[0];
+      if (Math.abs(tt.clientX - _lpStartX) > 10 || Math.abs(tt.clientY - _lpStartY) > 10) {
+        clearTimeout(_lpTimer); _lpTimer = null;
+      }
+    }
+  }, { passive: true });
+  const end = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } hide(); };
+  document.addEventListener('touchend', end);
+  document.addEventListener('touchcancel', end);
 })();
