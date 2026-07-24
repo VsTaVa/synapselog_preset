@@ -1253,13 +1253,21 @@ async function _loadEntryNode(node, pageId) {
   const cacheKey = `snlog_entry_${node.entryNotionId}`;
   let md = sessionStorage.getItem(cacheKey);
   if (!md) {
-    try {
-      const data = await notionFetch({ pageId: node.entryNotionId, action: 'entry' });
-      md = data.markdown || '';
-      if (md) try { sessionStorage.setItem(cacheKey, md); } catch(e) {}
-    } catch(e) { return; }
+    // rate limit(429)·일시 오류로 조용히 누락되던 문제 → 백오프 재시도(요청 성공하면 내용 비어도 통과)
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      try {
+        const data = await notionFetch({ pageId: node.entryNotionId, action: 'entry' });
+        md = data.markdown || '';
+        if (md) try { sessionStorage.setItem(cacheKey, md); } catch(e) {}
+        ok = true;
+      } catch(e) {
+        if (attempt < 2) await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+      }
+    }
+    if (!ok) return; // 3번 다 실패
   }
-  if (!md) return;
+  if (!md) return; // 성공했지만 내용 없음
   const newIds = _addEntryChildNodes(node, md);
   if (newIds.size > 0) {
     // 새로 추가된 자식 + 이 엔트리만 물리 해제 — 이미 자리 잡은 다른 노드는 그대로 둠(재배치 방지)
@@ -1304,7 +1312,7 @@ async function _loadEntriesBackground(pageId) {
   }
 
   // 동시 4개씩 병렬 로드(공유 인덱스에서 하나씩 꺼내는 워커 풀). JS 단일 스레드라 노드 추가는 원자적 → 경합 없음.
-  const CONCURRENCY = 4;
+  const CONCURRENCY = 3; // 노션 rate limit(초당 ~3) 여유 — 초과분은 _loadEntryNode 재시도로 커버
   let _i = 0;
   const worker = async () => {
     while (_i < entryNodes.length) {
