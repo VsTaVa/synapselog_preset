@@ -939,32 +939,7 @@ async function createChildNode(node, rawTitle) {
 }
 
 // "노드 편집" 섹션의 하위 노드 추가 — 현재 활성 노드에 (제목 없음) 자식 생성
-async function addChildToActive() {
-  const n = _activeNode;
-  if (!n) { alert('먼저 노드를 클릭해 선택하세요.'); return; }
-  if (!canAddChild(n)) { alert('이 노드에는 하위 노드를 만들 수 없어요.\n(최하위(####)이거나 생성이 제한된 노드입니다)'); return; }
-  const btn = document.getElementById('add-child-btn');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-  try {
-    const ids = await createChildNode(n, '(제목 없음)');
-    if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]);
-  } catch (err) {
-    alert('하위 노드 추가 실패: ' + (err.message || err));
-  } finally {
-    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
-  }
-}
-
 // 그래프 설정 세부(슬라이더) 토글
-function toggleGraphDetail() {
-  const d = document.getElementById('gcfg-detail');
-  const t = document.getElementById('gcfg-toggle');
-  if (!d) return;
-  const open = (d.style.display === 'none' || !d.style.display);
-  d.style.display = open ? 'block' : 'none';
-  if (t) t.classList.toggle('open', open);
-}
-
 // 페이지 목록 클릭 → 그 페이지 하위 트리만 활성(화면 맞춤), 나머지 비활성
 function focusPage(pageId) {
   if (!pageId) return;

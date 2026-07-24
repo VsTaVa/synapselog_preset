@@ -19,12 +19,6 @@ function _decKey(s) {
     return o;
   } catch (e) { return ''; }
 }
-function _maskKey(s) {
-  if (!s) return '';
-  if (s.length <= 8) return '••••';
-  return s.slice(0, 4) + '••••' + s.slice(-4);
-}
-
 // ── 색상/수치 헬퍼 ──────────────────────────────────────────────────
 
 let _hueIndex = 0;

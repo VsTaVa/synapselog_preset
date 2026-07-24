@@ -379,11 +379,6 @@ function newLocalRoot() {
   if (inp) inp.value = '';
 }
 
-function focusLocalRoot(pageId) {
-  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
-  if (root && typeof openPanel === 'function') { openPanel(root); highlightSidebarPage(pageId); }
-}
-
 // 노드 하위 트리를 .md 파일로 내보내기
 function exportNodeMarkdown(node) {
   let md = '# ' + node.label + '\n';
@@ -940,46 +935,6 @@ async function addPageById(pageId) {
     updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
     _loadEntriesBackground(pageId);
   } catch(e) {} finally { hideLoading(); }
-}
-
-async function addPage() {
-  const raw = document.getElementById('add-page-id').value.trim();
-  const pageId = (raw.match(/([a-f0-9]{32})/i)?.[1] || raw.replace(/-/g, '')).toLowerCase();
-  const errEl = document.getElementById('add-page-error');
-  const btn = document.getElementById('add-page-submit-btn');
-  if (!pageId) { errEl.textContent = 'Page ID를 입력해주세요'; errEl.style.display = 'block'; return; }
-  if (_addedPageIds.has(pageId)) { errEl.textContent = '이미 추가된 페이지예요'; errEl.style.display = 'block'; return; }
-  if (!_savedToken) { errEl.textContent = '토큰 정보가 없어요. 새로고침 후 다시 시도해주세요'; errEl.style.display = 'block'; return; }
-  if (btn) { btn.style.pointerEvents = 'none'; btn.style.opacity = '0.4'; }
-  errEl.style.display = 'none';
-  showLoading('노션 페이지 불러오는 중...');
-  try {
-    const cacheKey = `snlog_${pageId}`;
-    const cached = sessionStorage.getItem(cacheKey);
-    let data;
-    if (cached) { try { data = JSON.parse(cached); setLoadingText('캐시에서 불러오는 중...'); } catch(e) { data = null; } }
-    if (!data) {
-      data = await notionFetch({ pageId, action: 'headings' });
-      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
-    }
-    _addedPageIds.add(pageId);
-    mergeGraph(data.title || '추가 페이지', data.markdown || '', pageId);
-    const list = document.getElementById('added-pages-list');
-    const item = document.createElement('div');
-    item.className = 'added-page-item'; item.dataset.pageId = pageId;
-    const isCached = !!cached && !JSON.parse(cached)._headingsOnly;
-    item.innerHTML = `<span>📄 ${escapeHtml(data.title || pageId)}${isCached ? ' <span style="color:rgba(237,112,0,0.5);font-size:9px;">캐시</span>' : ''}</span><div class="btn-group"><button class="btn-sync" title="동기화" onclick="syncPage('${pageId}')">↻</button><button class="btn-remove" onclick="removePage('${pageId}', this.closest('.added-page-item'))">✕</button></div>`;
-    list.appendChild(item);
-    updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
-    _loadEntriesBackground(pageId);
-    document.getElementById('add-page-id').value = '';
-    isStable = false;
-  } catch(e) {
-    errEl.textContent = e.message; errEl.style.display = 'block';
-  } finally {
-    hideLoading();
-    if (btn) { btn.style.pointerEvents = ''; btn.style.opacity = ''; }
-  }
 }
 
 function savePageList() {

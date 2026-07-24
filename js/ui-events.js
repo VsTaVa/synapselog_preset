@@ -805,12 +805,6 @@ function updateAiKey() {
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
 }
 
-function setExportSize(size) {
-  _exportSize = size;
-  localStorage.setItem('snlog_export_size', size);
-  [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', s === size); });
-}
-
 function clearCache(type) {
   // 전체 초기화: 노드 모드(색상·배치·연결/제목 표시·회전)·그래프 설정(슬라이더)·페이지·북마크·본문 캐시 등 전부 삭제.
   // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
@@ -838,15 +832,6 @@ function clearCache(type) {
 }
 
 // AI 대화 기록 삭제 (세션 + 로컬 저장분)
-function clearAiHistory() {
-  showConfirm('AI 대화 기록 삭제', 'AI 대화 기록을 모두 지울까요?', () => {
-    _aiChat = [];
-    try { localStorage.removeItem('snlog_aichat'); } catch (e) {}
-    if (typeof _renderAiChat === 'function') _renderAiChat();
-    toast('AI 대화 기록을 지웠어요', { type: 'success' });
-  }, true);
-}
-
 // 사용 기록만 삭제 — AI 대화 · 검색 기록/자주 검색 · 최근/자주 본 노드.
 // (수동연결·북마크·페이지·설정 등 실제 데이터는 건드리지 않음)
 function clearChatAndRecent() {
@@ -975,5 +960,6 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);
     setTimeout(loadProfile, 400);
+    restoreSearchHistory(); // 저장해둔 검색 기록 복원
   });
 }

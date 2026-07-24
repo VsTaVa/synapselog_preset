@@ -116,7 +116,6 @@ function closeRailFlyout() {
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('open');
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
 }
-function toggleSidebar() { closeRailFlyout(); } // 구버전 호환(Esc 등)
 
 // ── 통찰(Insight) : "적히지 않은 관계"를 계산해서 제안 (노드 탭에 병합) ──────
 // 중심(허브)·연결 제안 모두 순수 그래프/키워드 계산 (AI·토큰 0).
