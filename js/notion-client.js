@@ -890,7 +890,7 @@ function _pageItemHtml(p) {
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
-          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}')">↻</button>`}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;
@@ -1025,7 +1025,8 @@ async function syncPage(pageId, opts) {
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const syncBtn = item?.querySelector('.btn-sync');
   if (syncBtn) syncBtn.textContent = '⟳';
-  if (!opts.silent) showLoading('동기화 중...');
+  const overlay = !opts.silent && !opts.noOverlay; // 오버레이만 별도 제어 (동기화 작업 자체는 그대로)
+  if (overlay) showLoading('동기화 중...');
   try {
     // 증분 판정: 노션 목록으로 '바뀐 하위/DB 페이지'만 추림. force면 전부, 목록 실패 시에도 전부.
     let changed = null;      // null=전부, Set=바뀐 엔트리 id만
@@ -1046,8 +1047,6 @@ async function syncPage(pageId, opts) {
              });
         // 페이지 자체 수정일이 그대로면 헤딩·구조는 안 바뀐 것 → 무거운 headings 재요청 생략(속도↑)
         if ((pageId in _pageEdited) && latest[pageId] === _pageEdited[pageId]) headingsChanged = false;
-        // [진단] 최상위 페이지가 목록에 잡히나 / 수정일이 바뀌었나 확인
-        console.log('[sync] 최상위', pageId.slice(0,8), '목록에있나:', pageId in latest, '| 이전:', _pageEdited[pageId], '| 지금:', latest[pageId], '| headings재요청:', headingsChanged, '| 바뀐엔트리:', [...changed].map(x=>x.slice(0,8)));
         _pageEdited = { ..._pageEdited, ...latest }; _savePageEdited(); // 수정일 기준선 갱신
       } catch (e) { changed = null; headingsChanged = true; }
     }
@@ -1076,7 +1075,7 @@ async function syncPage(pageId, opts) {
       if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
       for (const n of targets) { await _loadEntryNode(n, pageId); }
     } else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-  } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (!opts.silent) hideLoading(); }
+  } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (overlay) hideLoading(); }
 }
 
 
