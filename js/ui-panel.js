@@ -73,7 +73,9 @@ function renderDetailRail() {
   // FLIP: 새 원이 아래에 들어올 때 기존 원들도 위로 미끄러지게 — 재렌더 전 위치 기록
   const prevY = {};
   rail.querySelectorAll('.dr-dot').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
-  rail.innerHTML = recents.map(n => {
+  // 상단 시계 아이콘 = '최근 본 노드' 표시 (좌측 레일의 최근 섹션을 대체)
+  const clockIc = `<span class="dr-clock" title="최근 본 노드"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
+  rail.innerHTML = clockIc + recents.map(n => {
     const c = (typeof nodeRgb === 'function' && nodeRgb(n)) || [237, 112, 0];
     const t = escapeHtml((n.label || '(제목 없음)').trim());
     const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (n.id === enterId ? ' enter' : '');
