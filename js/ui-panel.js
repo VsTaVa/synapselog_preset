@@ -61,18 +61,22 @@ let _railNewestId = null;
 function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
-  const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성(글로우)
+  const K = (typeof _stableNodeKey === 'function') ? _stableNodeKey : (n => (n && n.id) || '');
+  const openKeys = new Set(_stack.map(K)); // 열린 패널(최대 2) = 활성(글로우). 안정 키로 비교(동기화 후에도 매칭)
   // 북마크는 5개 제한 없이 전부 (최근과 별개로 최상단에 표시)
   const bms = (typeof nodes !== 'undefined' ? nodes : [])
     .filter(n => n.visible && typeof isBookmarked === 'function' && isBookmarked(n));
-  // _recentNodes는 최신이 앞 → 위=최신, 아래=오래된
+  // _recentNodes는 안정 키 배열(최신이 앞) → 현재 노드로 해석. 동기화로 id 바뀌어도 유지
+  const byKey = new Map();
+  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => { if (n.visible) { const k = K(n); if (!byKey.has(k)) byKey.set(k, n); } });
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
-    .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
+    .map(k => byKey.get(k)).filter(Boolean).slice(0, 5);
   const show = bms.length > 0 || recents.length > 0;
   rail.classList.toggle('open', show);
   if (!show) { rail.innerHTML = ''; _railNewestId = null; return; }
   const newest = recents.length ? recents[0] : null; // 최신 = 맨 위
-  const enterId = (newest && newest.id !== _railNewestId) ? newest.id : null; // 새로 등장한 것만 등장 애니메이션
+  const newestKey = newest ? K(newest) : null;
+  const enterId = (newestKey && newestKey !== _railNewestId) ? newest.id : null; // 새 최신만 등장 애니메이션(키 기준)
   // FLIP: 최근 그룹 원들이 위치 이동할 때 부드럽게 — 재렌더 전 위치 기록(최근 원만)
   const prevY = {};
   rail.querySelectorAll('.dr-dot.dr-recent').forEach(d => { prevY[d.dataset.nid] = d.getBoundingClientRect().top; });
@@ -80,7 +84,7 @@ function renderDetailRail() {
     let c = (typeof nodeRgb === 'function') ? nodeRgb(n) : null;
     if (!Array.isArray(c) || c.length < 3 || c.some(v => typeof v !== 'number' || isNaN(v))) c = [237, 112, 0]; // 색 깨진 노드 방어(투명 원·글로우 없음 원인)
     const t = escapeHtml((n.label || '(제목 없음)').trim());
-    const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (extraCls || '');
+    const cls = 'dr-dot' + (openKeys.has(K(n)) ? ' active' : '') + (extraCls || '');
     return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;
   };
   const bmIc = `<span class="dr-head" title="북마크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>`;
@@ -97,7 +101,7 @@ function renderDetailRail() {
       if (dy) d.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 340, easing: 'cubic-bezier(0.34,1.2,0.5,1)' });
     }
   });
-  _railNewestId = newest ? newest.id : null;
+  _railNewestId = newestKey;
   rail.querySelectorAll('.dr-dot').forEach(d => {
     d.onclick = () => {
       const n = nodeMap[d.dataset.nid]; if (!n) return;

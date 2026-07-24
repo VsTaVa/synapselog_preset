@@ -94,9 +94,11 @@ function _frequentNodes(topN) {
 
 // 최근 본/선택한 노드로 추가 — 단일 클릭 선택·상세 열기 공용. 우측 레일·노드 목록 갱신.
 function addRecentNode(n) {
-  if (!n || !n.id || typeof _recentNodes === 'undefined') return;
-  _recentNodes = _recentNodes.filter(id => id !== n.id);
-  _recentNodes.unshift(n.id);
+  if (!n || typeof _recentNodes === 'undefined') return;
+  const k = _stableNodeKey(n); // 안정 키(sourcePageId::label) — 동기화로 노드 id가 바뀌어도 유지
+  if (!k || k === '::') return;
+  _recentNodes = _recentNodes.filter(key => key !== k);
+  _recentNodes.unshift(k);
   if (_recentNodes.length > 12) _recentNodes.length = 12;
   if (typeof renderDetailRail === 'function') renderDetailRail();
   if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
@@ -104,7 +106,7 @@ function addRecentNode(n) {
 
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
 function removeRecentNode(id) {
-  _recentNodes = _recentNodes.filter(x => x !== id);
+  _recentNodes = _recentNodes.filter(k => k !== id); // id=안정 키
   renderBookmarkList();
 }
 
