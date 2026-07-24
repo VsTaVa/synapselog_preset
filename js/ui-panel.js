@@ -62,8 +62,9 @@ function renderDetailRail() {
   const rail = document.getElementById('detail-rail');
   if (!rail) return;
   const openIds = new Set(_stack.map(x => x.id)); // 현재 열린 패널(최대 2) = 활성(글로우)
+  // 북마크는 5개 제한 없이 전부 (최근과 별개로 최상단에 표시)
   const bms = (typeof nodes !== 'undefined' ? nodes : [])
-    .filter(n => n.visible && typeof isBookmarked === 'function' && isBookmarked(n)).slice(0, 5);
+    .filter(n => n.visible && typeof isBookmarked === 'function' && isBookmarked(n));
   // _recentNodes는 최신이 앞 → 위=최신, 아래=오래된
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : [])
     .map(id => nodeMap[id]).filter(n => n && n.visible).slice(0, 5);
@@ -81,8 +82,8 @@ function renderDetailRail() {
     const cls = 'dr-dot' + (openIds.has(n.id) ? ' active' : '') + (extraCls || '');
     return `<button class="${cls}" data-nid="${n.id}" style="--dot:rgb(${c[0]},${c[1]},${c[2]})" aria-label="${t}"><span class="dr-label">${t}</span></button>`;
   };
-  const bmIc = `<span class="dr-head" title="북마크"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>`;
-  const clockIc = `<span class="dr-head dr-head-dim" title="최근 본 노드"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
+  const bmIc = `<span class="dr-head" title="북마크"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>`;
+  const clockIc = `<span class="dr-head" title="최근 본 노드"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>`;
   let html = '';
   if (bms.length) html += `<div class="dr-group">${bmIc}${bms.map(n => dot(n)).join('')}</div>`;
   if (recents.length) html += `<div class="dr-group">${clockIc}${recents.map(n => dot(n, 'dr-recent' + (n.id === enterId ? ' enter' : ''))).join('')}</div>`;
