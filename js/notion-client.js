@@ -890,7 +890,7 @@ function _pageItemHtml(p) {
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
-          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncPage('${p.id}')">↻</button>`}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">↻</button>` : '') : `<button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}')">↻</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">✕</button>
         </div>
       </div>`;
@@ -985,6 +985,21 @@ async function restorePageList() {
 
 // 엔트리(DB/하위페이지) 노드의 하위 트리만 제거 — 엔트리 노드 자체는 보존.
 // 수동 동기화 시 _loadEntriesBackground가 새로 만들기 전에 호출해 중복 생성 방지.
+// 엔트리 노드 1개의 구조적 하위만 제거 (증분: 바뀐 엔트리만 새로 받기 위함)
+function _clearEntryDescendantsOf(entryNode) {
+  const desc = new Set(); const q = [entryNode.id]; const seen = new Set(q);
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) { seen.add(e.to); desc.add(e.to); q.push(e.to); } });
+  }
+  if (desc.size) {
+    nodes = nodes.filter(n => !desc.has(n.id));
+    edges = edges.filter(e => !desc.has(e.from) && !desc.has(e.to));
+    desc.forEach(id => delete nodeMap[id]);
+  }
+  return desc;
+}
+
 function _clearEntryDescendants(pageId) {
   const entryDesc = new Set();
   const q = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId).map(n => n.id);
@@ -1012,27 +1027,40 @@ async function syncPage(pageId, opts) {
   if (syncBtn) syncBtn.textContent = '⟳';
   if (!opts.silent) showLoading('동기화 중...');
   try {
-    // 엔트리 캐시 새로고침. changedEntries(Set)가 오면 바뀐 것만 지워 재요청 → 나머지는 캐시 유지(요청 0).
+    // 증분 판정: 노션 목록으로 '바뀐 하위/DB 페이지'만 추림. force면 전부, 목록 실패 시에도 전부.
+    let changed = null; // null=전부, Set=바뀐 엔트리 id만
+    if (!opts.force) {
+      try {
+        const list = await notionFetch({ action: 'list' });
+        const latest = {}; (list.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
+        changed = new Set();
+        nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
+             .forEach(n => { if (latest[n.entryNotionId] !== _pageEdited[n.entryNotionId]) changed.add(n.entryNotionId); });
+        _pageEdited = { ..._pageEdited, ...latest }; _savePageEdited(); // 수정일 기준선 갱신
+      } catch (e) { changed = null; }
+    }
+    // 바뀐(또는 전부) 엔트리 캐시만 제거 → _loadEntryNode가 그것만 새로 받고 나머지는 캐시 재사용
     if (!opts.silent) {
-      const only = opts.changedEntries; // Set | null(=전부)
-      nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId && (!only || only.has(n.entryNotionId)))
+      nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId && (!changed || changed.has(n.entryNotionId)))
            .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
     }
+    // 헤딩(구조·헤딩 텍스트)은 항상 다시 받음 — 텍스트 수정/삭제도 반영, 위치는 syncPageIncremental이 보존
     const data = await notionFetch({ pageId, action: 'headings' });
     try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
-    // ghost(미로드 placeholder) 노드 제거
     const ghostId = 'ghost_' + pageId;
     if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
-    // 증분 동기화 — 기존 노드 위치/탭 유지, 변경분만 반영
     const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
     if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
     if (syncBtn) syncBtn.textContent = '↻';
     if (!opts.silent) {
-      // 기존 엔트리 하위 노드 제거 후 새로 로드 → 중복·구조변경 미반영 방지
-      const cleared = _clearEntryDescendants(pageId);
+      // 바뀐 엔트리(또는 전부)의 하위만 지우고 그 엔트리만 재로드 → 안 바뀐 subtree는 그대로(재배치 없음)
+      const entryNodes = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId);
+      const targets = changed ? entryNodes.filter(n => changed.has(n.entryNotionId)) : entryNodes;
+      const cleared = new Set();
+      targets.forEach(n => _clearEntryDescendantsOf(n).forEach(id => cleared.add(id)));
       if (cleared.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(cleared);
       if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-      _loadEntriesBackground(pageId);
+      for (const n of targets) { await _loadEntryNode(n, pageId); }
     } else if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
   } catch(e) { if (syncBtn) syncBtn.textContent = '↻'; } finally { if (!opts.silent) hideLoading(); }
 }
@@ -1089,46 +1117,23 @@ function closeConfirm() { document.getElementById('confirm-modal').classList.rem
 let _pageEdited = (() => { try { return JSON.parse(localStorage.getItem('snlog_page_edited') || '{}'); } catch (e) { return {}; } })();
 function _savePageEdited() { try { localStorage.setItem('snlog_page_edited', JSON.stringify(_pageEdited)); } catch (e) {} }
 
-function confirmBulkSync() { showConfirm('동기화', '수정된 페이지만 다시 불러옵니다.\n(변경 없는 페이지는 건너뜀)', bulkSync); }
+function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지를 노션에서 통째로 다시 불러옵니다.\n(개별 페이지의 ↻은 바뀐 부분만 받습니다)', bulkSync); }
 
-// 증분 동기화: 노션 전체 목록의 수정일을 비교해 바뀐 최상위 페이지만 재동기화.
+// 전체 동기화: 모든 추가 페이지를 강제로 통째로 재요청. 증분은 페이지별 ↻이 담당.
 async function bulkSync(opts) {
   opts = opts || {};
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
-  let force = !!opts.force;
-  let latest = null;
+  // 수정일 기준선 갱신(다음 증분 비교용)
   try {
     const data = await notionFetch({ action: 'list' });
-    latest = {};
-    (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
-  } catch (e) { force = true; } // 목록 실패 → 안전하게 전체 동기화
-
-  let toSync = ids, changedByPage = {};
-  if (!force && latest) {
-    const addedSet = new Set(ids);
-    // 최상위 페이지 수정일은 무시(하위 편집마다 바뀌어 신뢰 못 함). 하위/DB 페이지 각자 수정일만 비교.
-    // 엔트리가 어느 최상위에 속하는지는 이미 로드된 그래프 노드의 sourcePageId로 판정(가장 정확).
-    const pageOfEntry = {};
-    nodes.forEach(n => { if (n.entryNotionId) pageOfEntry[n.entryNotionId] = n.sourcePageId; });
-    Object.keys(latest).forEach(id => {
-      if (latest[id] === _pageEdited[id]) return;        // 안 바뀜
-      const R = pageOfEntry[id];                          // 이 하위/DB 페이지가 속한 최상위
-      if (R && addedSet.has(R)) (changedByPage[R] = changedByPage[R] || new Set()).add(id);
-    });
-    const firstTime = ids.filter(id => !(id in _pageEdited)); // 첫 동기화(기준선 없음)는 전체
-    toSync = ids.filter(id => changedByPage[id] || firstTime.includes(id));
-  }
-
-  // changedEntries=Set이면 그 엔트리 캐시만 지워 재요청 → 나머지는 캐시 유지(요청 0)
-  for (const pid of toSync) { await syncPage(pid, { changedEntries: (force || !changedByPage[pid]) ? null : changedByPage[pid] }); }
+    const latest = {}; (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
+    _pageEdited = latest; _savePageEdited();
+  } catch (e) {}
+  for (const pid of ids) { await syncPage(pid, { force: true }); }
   await syncMdFileHandles();
   await syncFolderBatches();
-  if (latest) { _pageEdited = latest; _savePageEdited(); } // 수정일 기준선 갱신
-  await refreshSidebarPageList(); // 노션 페이지 목록도 갱신(새 페이지 반영)
-  if (!opts.silent) {
-    const skipped = ids.length - toSync.length;
-    toast(toSync.length ? `${toSync.length}개 페이지 동기화${skipped ? ` · ${skipped}개 변경 없음` : ''}` : '변경된 페이지 없음', { type: 'success' });
-  }
+  await refreshSidebarPageList();
+  if (!opts.silent) toast(`${ids.length}개 페이지 전체 동기화`, { type: 'success' });
 }
 function confirmBulkClose() {
   showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다.', () => {
@@ -1241,8 +1246,9 @@ async function _loadEntryNode(node, pageId) {
   if (!md) return;
   const newIds = _addEntryChildNodes(node, md);
   if (newIds.size > 0) {
-    newIds.forEach(id => { if (nodeMap[id]) nodeMap[id].visible = true; });
-    nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+    // 새로 추가된 자식 + 이 엔트리만 물리 해제 — 이미 자리 잡은 다른 노드는 그대로 둠(재배치 방지)
+    newIds.forEach(id => { const nn = nodeMap[id]; if (nn) { nn.visible = true; nn._frozen = false; nn._frozenFrames = 0; } });
+    if (node) { node._frozen = false; node._frozenFrames = 0; }
     isStable = false;
     const nestedChildPages = [...newIds].map(id => nodeMap[id]).filter(n => n?.entryNotionId);
     for (const child of nestedChildPages) await _loadEntryNode(child, pageId);
