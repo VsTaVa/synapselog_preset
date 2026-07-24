@@ -1012,9 +1012,10 @@ async function syncPage(pageId, opts) {
   if (syncBtn) syncBtn.textContent = '⟳';
   if (!opts.silent) showLoading('동기화 중...');
   try {
-    // 수동 동기화만 엔트리 캐시까지 새로고침 (자동 폴링은 가볍게 헤딩만)
+    // 엔트리 캐시 새로고침. changedEntries(Set)가 오면 바뀐 것만 지워 재요청 → 나머지는 캐시 유지(요청 0).
     if (!opts.silent) {
-      nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
+      const only = opts.changedEntries; // Set | null(=전부)
+      nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId && (!only || only.has(n.entryNotionId)))
            .forEach(n => sessionStorage.removeItem(`snlog_entry_${n.entryNotionId}`));
     }
     const data = await notionFetch({ pageId, action: 'headings' });
@@ -1095,29 +1096,31 @@ async function bulkSync(opts) {
   opts = opts || {};
   const ids = [..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_'));
   let force = !!opts.force;
-  let latest = null, parentOf = {};
+  let latest = null;
   try {
     const data = await notionFetch({ action: 'list' });
     latest = {};
-    (data.pages || []).forEach(p => { if (p.id) { latest[p.id] = p.lastEdited || ''; parentOf[p.id] = p.parentId || ''; } });
+    (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
   } catch (e) { force = true; } // 목록 실패 → 안전하게 전체 동기화
 
-  let toSync = ids;
+  let toSync = ids, changedByPage = {};
   if (!force && latest) {
     const addedSet = new Set(ids);
-    // 바뀐 페이지(수정일 다름 or 신규) → 속한 최상위 추가페이지로 환산
-    const rootOf = id => { let cur = id, g = 0; while (cur && g++ < 60) { if (addedSet.has(cur)) return cur; cur = parentOf[cur]; } return null; };
-    const need = new Set();
-    Object.keys(latest).forEach(id => { if (latest[id] !== _pageEdited[id]) { const r = rootOf(id); if (r) need.add(r); } });
-    ids.forEach(id => { if (!(id in _pageEdited)) need.add(id); }); // 한 번도 동기화 안 한 페이지
-    toSync = ids.filter(id => need.has(id));
-    // [진단] 왜 전체가 도는지 확인용 — 원인 파악 후 제거
-    console.log('[sync] 추가페이지', ids.length, '개 / 목록', Object.keys(latest).length, '개 / 저장된수정일', Object.keys(_pageEdited).length, '개');
-    console.log('[sync] 추가페이지가 목록/저장에 있나:', ids.map(id => ({ id: id.slice(0, 8), inList: id in latest, inSaved: id in _pageEdited, listTS: latest[id], savedTS: _pageEdited[id], same: latest[id] === _pageEdited[id] })));
-    console.log('[sync] 동기화 대상', toSync.length, '개:', toSync.map(id => id.slice(0, 8)));
+    // 최상위 페이지 수정일은 무시(하위 편집마다 바뀌어 신뢰 못 함). 하위/DB 페이지 각자 수정일만 비교.
+    // 엔트리가 어느 최상위에 속하는지는 이미 로드된 그래프 노드의 sourcePageId로 판정(가장 정확).
+    const pageOfEntry = {};
+    nodes.forEach(n => { if (n.entryNotionId) pageOfEntry[n.entryNotionId] = n.sourcePageId; });
+    Object.keys(latest).forEach(id => {
+      if (latest[id] === _pageEdited[id]) return;        // 안 바뀜
+      const R = pageOfEntry[id];                          // 이 하위/DB 페이지가 속한 최상위
+      if (R && addedSet.has(R)) (changedByPage[R] = changedByPage[R] || new Set()).add(id);
+    });
+    const firstTime = ids.filter(id => !(id in _pageEdited)); // 첫 동기화(기준선 없음)는 전체
+    toSync = ids.filter(id => changedByPage[id] || firstTime.includes(id));
   }
 
-  for (const pid of toSync) { await syncPage(pid); } // non-silent: 엔트리 캐시·하위 노드까지 갱신
+  // changedEntries=Set이면 그 엔트리 캐시만 지워 재요청 → 나머지는 캐시 유지(요청 0)
+  for (const pid of toSync) { await syncPage(pid, { changedEntries: (force || !changedByPage[pid]) ? null : changedByPage[pid] }); }
   await syncMdFileHandles();
   await syncFolderBatches();
   if (latest) { _pageEdited = latest; _savePageEdited(); } // 수정일 기준선 갱신
