@@ -588,8 +588,8 @@ async function startGraph() {
     errEl.style.display = 'block'; return;
   }
   _savedToken = token;
-  try { sessionStorage.setItem('snlog_token', token); } catch(e) {}
-  if (_useLocalStorage) { try { localStorage.setItem('snlog_token', token); } catch(e) {} }
+  try { sessionStorage.setItem('snlog_token', _encKey(token)); } catch(e) {}
+  if (_useLocalStorage) { try { localStorage.setItem('snlog_token', _encKey(token)); } catch(e) {} }
   errEl.style.display = 'none';
   showPagePicker();
 }

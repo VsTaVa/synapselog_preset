@@ -777,7 +777,7 @@ function onStorageToggle(el) {
   localStorage.setItem('snlog_use_local', _useLocalStorage);
   const warn = document.getElementById('s-local-warn');
   if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _savedToken); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _savedAiKey); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -787,8 +787,8 @@ function updateToken() {
   if (!val) { if (msg) { msg.textContent = '토큰을 입력해주세요'; msg.style.display = 'block'; } return; }
   if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식이 아닙니다 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
   _savedToken = val;
-  sessionStorage.setItem('snlog_token', val);
-  if (_useLocalStorage) localStorage.setItem('snlog_token', val);
+  sessionStorage.setItem('snlog_token', _encKey(val));
+  if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile();
@@ -799,8 +799,8 @@ function updateAiKey() {
   const val = input?.value.trim();
   if (!val) { if (msg) { msg.textContent = 'API 키를 입력해주세요'; msg.style.display = 'block'; } return; }
   _savedAiKey = val;
-  sessionStorage.setItem('snlog_ai_key', val);
-  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', val);
+  sessionStorage.setItem('snlog_ai_key', _encKey(val));
+  if (_useLocalStorage) localStorage.setItem('snlog_ai_key', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'AI API 저장됨'; }
   if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
 }
