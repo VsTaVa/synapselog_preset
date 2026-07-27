@@ -405,9 +405,10 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
 #detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
 #detail-panel.open { right: 0; }
-#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 24px; height: 88px; border-radius: 12px 0 0 12px; background: rgba(var(--accent-rgb),0.2); border: 1px solid rgba(var(--accent-rgb),0.55); border-right: none; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: background 0.2s, color 0.2s, opacity 0.2s, visibility 0.2s; }
+/* 우측 패널 열기 — 패널과 같은 유리 재질의 엣지 핸들(패널이 살짝 삐져나온 손잡이). accent는 화살표만 */
+#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 22px; height: 84px; border-radius: 12px 0 0 12px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: -6px 0 24px rgba(0,0,0,0.45); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; transition: background 0.2s, color 0.2s, width 0.15s, opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
-#detail-panel-sidebar-toggle:hover { background: rgba(var(--accent-rgb),0.35); color: #ffbe76; }
+#detail-panel-sidebar-toggle:hover { background: rgba(var(--accent-rgb),0.14); color: #ffbe76; width: 27px; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 .detail-body { flex: 1; overflow-y: auto; padding: 12px 20px 22px; min-height: 0; }
