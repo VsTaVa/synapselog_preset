@@ -185,6 +185,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --border-soft: rgba(var(--fg-rgb),0.07);
   --divider: rgba(var(--fg-rgb),0.14);   /* 섹션 구분선 — 유리 배경 위에서도 보이게 */
   --hover: rgba(var(--fg-rgb),0.06);     /* 기본 호버 배경 */
+  --icon: #62646b;                       /* 행 아이콘 기본 — 불투명(선 겹침 방지) */
+  --icon-dim: #4a4c53;                   /* 더 흐린 행 아이콘 — 불투명 */
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
   /* ── 유리질감 (레일·패널·설정·플로팅 공통) — 은은한 강도 ── */
   --glass-bg: rgba(var(--surface-rgb),0.55);       /* 뒤 그래프가 비침 */
@@ -280,11 +282,11 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item:not(.active):hover .item-label { color:#fff; }
 .page-list-item:not(.active):hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
-.page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:rgba(255,255,255,0.35); transition:color 0.15s; }
+.page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:var(--icon); transition:color 0.15s; display:flex; align-items:center; }
 .page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:#fff; }
 .page-list-item .item-actions .btn-remove { color:var(--accent); }
 .page-list-item .item-actions .btn-remove:hover { color:#ffbe76; }
-.page-list-item .item-actions .btn-favorite { color:rgba(255,255,255,0.25); font-size:13px; }
+.page-list-item .item-actions .btn-favorite { color:var(--icon-dim); }
 .page-list-item .item-actions .btn-favorite:hover { color:var(--accent); }
 .page-list-item .item-actions .btn-favorite.active { color:var(--accent); }
 .md-folder-group { border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(255,255,255,0.03); overflow:hidden; flex-shrink:0; }
@@ -395,7 +397,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
 #detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 10px; padding: 0; }
-.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-radius: 12px; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 @keyframes paneRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }

@@ -608,7 +608,7 @@ const LANG = {
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
-    's-all-cache':'전체 캐시','s-all-cache-sub':'전체 초기화(로그인 유지)','s-aihist':'AI 대화 기록','s-clear-hist':'사용 기록','s-clear-hist-sub':'AI 대화·검색 기록·최근/자주 본 노드','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
+    's-all-cache':'전체 캐시','s-all-cache-sub':'전체 초기화','s-aihist':'AI 대화 기록','s-clear-hist':'사용 기록','s-clear-hist-sub':'검색 & 대화 기록 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
   },
   en: {
     'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',

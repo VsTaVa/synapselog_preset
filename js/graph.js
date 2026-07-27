@@ -867,7 +867,7 @@ function mergeGraph(title, markdown, pageId) {
   const trackId = pageId || title;
   const existingNodes = nodes.filter(n => n.visible !== false);
   let newRootX, newRootY;
-  if (existingNodes.length === 0) { newRootX = W/2 + 500; newRootY = H/2; }
+  if (existingNodes.length === 0) { newRootX = W/2; newRootY = H/2; } // 첫 그래프는 겹칠 대상이 없으니 중력 중심에서 생성
   else {
     const minX = Math.min(...existingNodes.map(n => n.x)), maxX = Math.max(...existingNodes.map(n => n.x));
     const minY = Math.min(...existingNodes.map(n => n.y)), maxY = Math.max(...existingNodes.map(n => n.y));

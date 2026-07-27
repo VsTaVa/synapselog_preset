@@ -413,7 +413,7 @@ function applyAiLink(aId, bId) {
 // ── AI 슬래시 명령어 (확장 가능) ─────────────────────────────────────
 const _AI_COMMANDS = [
   { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
-  { name: '/Node Link', hint: '선택한 노드의 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
+  { name: '/Node Link', hint: '선택한 노드에 대한 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
   { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
   { name: '/Import', hint: '웹·유튜브(자막) 링크를 마크다운 노드로 가져오기', run: (text) => aiImportUrl(text) },
 ];

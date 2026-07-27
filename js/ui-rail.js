@@ -71,7 +71,7 @@ function renderBookmarkList() {
   html += railSecHead('freq', '자주 본 노드', 'mt');
   html += railSecBody('freq', freq.length
     ? freq.map(f => rowHtml(f.n, `<span class="bm-count">${f.c}</span>`)).join('')
-    : `<div class="rail-empty">2번 이상 연 노드</div>`);
+    : `<div class="rail-empty">2번 이상 선택된 노드</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
   html += railSecBody('recent', recents.length ? recents.map(n => rowHtml(n, clockIc, true)).join('')
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
