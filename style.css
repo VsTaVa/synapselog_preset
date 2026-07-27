@@ -411,9 +411,8 @@ body.resizing-panes .detail-pane { transition: none; }
 /* 경계선 탭 팝업 (갤럭시식) — UI 박스 없이 아이콘만 뜬다 */
 .pane-divider-menu { position: absolute; left: 50%; transform: translate(-50%,-50%); z-index: 12; padding: 0; display: flex; flex-direction: column; gap: 2px; animation: pdmIn 0.14s ease; }
 @keyframes pdmIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.94); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
-.pdm-item { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--icon); width: 30px; height: 28px; padding: 0; border-radius: 6px; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); transition: color 0.13s, filter 0.15s; }
+.pdm-item { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--accent); width: 30px; height: 28px; padding: 0; border-radius: 6px; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); transition: filter 0.15s; }
 .pdm-item:hover { filter: drop-shadow(0 0 6px rgba(var(--accent-rgb),0.9)) drop-shadow(0 1px 2px rgba(0,0,0,0.55)); }
-.pdm-item:active { color: var(--accent); }
 /* 접기 팝업은 패널 왼쪽 가장자리 세로 중앙에 (전환 팝업과 앵커만 다름) */
 .panel-edge-menu { left: 0; top: 50%; }
 /* 폭을 접힘 임계 아래로 끌면 그립을 accent로 강조 — 손 떼면 접힘 예고 */
