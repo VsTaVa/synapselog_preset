@@ -177,6 +177,10 @@ function _listMark(line) {
   return '';
 }
 
+// 노드 표시용 텍스트 헬퍼 — 제목 없으면 '(제목 없음)', 본문은 trim(+선택적 길이 제한)
+function nodeTitle(n) { return ((n && n.label) || '(제목 없음)').trim(); }
+function nodeBody(n, len) { const b = ((n && n.desc) || '').trim(); return len ? b.slice(0, len) : b; }
+
 function dist(a, b) { return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
 
 function getChildCount(nodeId) {

@@ -49,6 +49,30 @@ function _aiErrMsg(e) {
   return '실패: ' + raw;
 }
 
+// AI 작업 공통 실행기 — 진행 표시 → 작업 → 실패 시 에러 메시지 + 재시도 버튼
+// task는 async 함수. 내부에서 waitId로 _aiChatReplace를 직접 호출해 결과를 그린다.
+function _aiRun(waitId, progressText, task) {
+  const run = async () => {
+    _aiChatReplace(waitId, progressText, []);
+    try { await task(); }
+    catch (e) { _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run); }
+  };
+  run();
+}
+
+// AI 키 필요 가드 — 없으면 안내 + 설정 열기. 있으면 true.
+function requireAiKey() {
+  if (_savedAiKey) return true;
+  toast('설정에서 AI API 키 먼저 입력', { type: 'error' });
+  openSettings();
+  return false;
+}
+
+// AI 대화 레일 열기 (이미 열려 있으면 그대로)
+function openAiChat() {
+  openAiChat();
+}
+
 async function geminiSummarize(text) {
   const prompt = `다음은 지식 그래프에서 선택한 노드들의 제목과 내용이야. 핵심만 한국어로 간결하게 요약해줘.\n- 불릿 몇 개로 정리\n- 노드 간 관계나 공통 주제가 보이면 짚어줘\n- 원문에 없는 내용은 지어내지 마\n\n---\n${text}`;
   return geminiGenerate(prompt);
@@ -74,62 +98,55 @@ function _aiExpandNodes(baseNodes) {
 async function aiSummarizeNodes(nodeList, userText) {
   const base = (nodeList || []).filter(Boolean);
   if (!base.length) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
+  if (!requireAiKey()) return;
   let list = _aiExpandNodes(base);
   if (list.length > 30) list = list.slice(0, 30); // 토큰 보호(상위 노드 대량 하위 대비)
   const combined = list.map(nd => {
-    const title = (nd.label || '(제목 없음)').trim();
-    const body = (nd.desc || '').trim().slice(0, 350);
+    const title = nodeTitle(nd);
+    const body = nodeBody(nd, 350);
     return body ? `## ${title}\n${body}` : `## ${title}`;
   }).join('\n\n');
-  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Summary', null, null, base);
   const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
-  const run = async () => {
-    _aiChatReplace(waitId, '요약하는 중… ⏳', []);
-    try { const summary = await geminiSummarize(combined); _aiChatReplace(waitId, summary, list); if (typeof highlightAiNodes === 'function') highlightAiNodes(list); }
-    catch (e) { _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run); }
-  };
-  run();
+  _aiRun(waitId, '요약하는 중… ⏳', async () => {
+    const summary = await geminiSummarize(combined);
+    _aiChatReplace(waitId, summary, list);
+    if (typeof highlightAiNodes === 'function') highlightAiNodes(list);
+  });
 }
 
 // 노드 하나에 대해 AI가 연결하면 좋은 관련 노드를 제안 → 대화창에 '연결' 버튼으로 표시
 async function aiSuggestLinks(node, userText) {
   if (!node) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
+  if (!requireAiKey()) return;
   // 이미 연결(구조·위키)된 노드 + 자기 자신 제외
   const connected = new Set([node.id]);
   (edges || []).forEach(e => { if (e.from === node.id) connected.add(e.to); if (e.to === node.id) connected.add(e.from); });
   const query = (node.label || '') + ' ' + (node.desc || '').slice(0, 300);
   const cands = _aiSearchNodes(query, 16).filter(c => !connected.has(c.id)).slice(0, 8);
-  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Link', null, null, [node]);
   if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드 없음.'); return; }
   const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
-  const baseText = `${(node.label || '(제목 없음)').trim()}\n${(node.desc || '').trim().slice(0, 400)}`;
-  const candText = cands.map((c, i) => `[${i + 1}] ${(c.label || '(제목 없음)').trim()}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
+  const baseText = `${nodeTitle(node)}\n${nodeBody(node, 400)}`;
+  const candText = cands.map((c, i) => `[${i + 1}] ${nodeTitle(c)}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
   const prompt = `기준 노드와 의미상 연결하면 좋은 후보를 골라줘. 억지로 다 고르지 말고 관련 있는 것만. 출력은 각 줄 "[번호] 이유(한 줄)" 형식으로만, 관련된 게 없으면 "없음"이라고만 해.\n\n[기준 노드]\n${baseText}\n\n[후보]\n${candText}`;
-  const run = async () => {
-    _aiChatReplace(waitId, '연결 후보 분석 중… ⏳', []);
-    try {
-      const ans = await geminiGenerate(prompt);
-      const suggestions = [];
-      const seen = new Set();
-      ans.split('\n').forEach(line => {
-        const m = line.match(/\[?\s*(\d+)\s*\]?[.)\s-]+(.*)$/);
-        if (!m) return;
-        const idx = parseInt(m[1], 10) - 1;
-        const c = cands[idx];
-        if (c && !seen.has(c.id)) { seen.add(c.id); suggestions.push({ aId: node.id, bId: c.id, targetLabel: (c.label || '(제목 없음)').trim(), reason: (m[2] || '').trim() }); }
-      });
-      if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드 없음.', [], null); return; }
-      _aiChatReplace(waitId, '아래 노드와 연결 추천:', [], suggestions);
-      if (typeof highlightAiNodes === 'function') highlightAiNodes([node].concat(suggestions.map(s => nodeMap[s.bId]).filter(Boolean)));
-    } catch (e) {
-      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
-    }
-  };
-  run();
+  _aiRun(waitId, '연결 후보 분석 중… ⏳', async () => {
+    const ans = await geminiGenerate(prompt);
+    const suggestions = [];
+    const seen = new Set();
+    ans.split('\n').forEach(line => {
+      const m = line.match(/\[?\s*(\d+)\s*\]?[.)\s-]+(.*)$/);
+      if (!m) return;
+      const idx = parseInt(m[1], 10) - 1;
+      const c = cands[idx];
+      if (c && !seen.has(c.id)) { seen.add(c.id); suggestions.push({ aId: node.id, bId: c.id, targetLabel: nodeTitle(c), reason: (m[2] || '').trim() }); }
+    });
+    if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드 없음.', [], null); return; }
+    _aiChatReplace(waitId, '아래 노드와 연결 추천:', [], suggestions);
+    if (typeof highlightAiNodes === 'function') highlightAiNodes([node].concat(suggestions.map(s => nodeMap[s.bId]).filter(Boolean)));
+  });
 }
 
 // 노드 우클릭 메뉴 → 선택 반영 후 AI 대화창 열기 (/ 명령어로 작업)
@@ -139,31 +156,25 @@ function openAiActions(nodes) {
     nodes.forEach(n => { if (n) { n.multiSelected = true; _multiSelected.push(n); } });
     renderMultiSelectMenu();
   }
-  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  openAiChat();
 }
 
 // 글 다듬기: 노드 본문을 AI가 정리 → 대화창에 미리보기 + [적용](편집 열기)
 async function aiRefineNode(node, userText) {
   if (!node) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
+  if (!requireAiKey()) return;
   const editable = node.local || (node.notionBlockId && node.notionParentId);
   if (!editable) { toast('이 노드는 본문 편집 불가 (노션 하위 노드만)', { type: 'error' }); return; }
   const body = (node.desc || '').trim();
   if (!body) { toast('다듬을 본문 없음', { type: 'error' }); return; }
-  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Edit', null, null, [node]);
   const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
   const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
-  const run = async () => {
-    _aiChatReplace(waitId, '다듬는 중… ⏳', []);
-    try {
-      const refined = (await geminiGenerate(prompt)).trim();
-      _aiChatReplace(waitId, refined, [], null, { nodeId: node.id, text: refined, done: false });
-    } catch (e) {
-      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
-    }
-  };
-  run();
+  _aiRun(waitId, '다듬는 중… ⏳', async () => {
+    const refined = (await geminiGenerate(prompt)).trim();
+    _aiChatReplace(waitId, refined, [], null, { nodeId: node.id, text: refined, done: false });
+  });
 }
 
 // 웹/유튜브 링크 → 서버리스로 본문·자막 추출 → 제미나이 마크다운 → 그래프 로컬 노드
@@ -171,14 +182,12 @@ async function aiImportUrl(url) {
   url = (url || '').trim();
   if (!url) { toast('/Import 뒤에 웹 주소나 유튜브 링크 입력', { type: 'error' }); return; }
   if (!/^https?:\/\//i.test(url)) { toast('http로 시작하는 링크 입력', { type: 'error' }); return; }
-  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
-  if (_activeRailSection !== 'aichat') openRailSection('aichat');
+  if (!requireAiKey()) return;
+  openAiChat();
   const isYt = /(?:youtube\.com|youtu\.be)/i.test(url);
   _aiChatPush('user', `/Import ${url}`);
   const waitId = _aiChatPush('ai', '링크 내용 가져오는 중… ⏳');
-  const run = async () => {
-    _aiChatReplace(waitId, '링크 내용 가져오는 중… ⏳', []);
-    try {
+  _aiRun(waitId, '링크 내용 가져오는 중… ⏳', async () => {
     const res = await fetch('/api/extract?url=' + encodeURIComponent(url));
     let data = {};
     try { data = await res.json(); } catch (e) {}
@@ -206,11 +215,7 @@ async function aiImportUrl(url) {
     isStable = false;
     _aiChatReplace(waitId, `"${title}" 임시 노드로 추가됨. (${isYt ? '자막' : '본문'} 기반 — 저장하려면 사이드바에서 내보내기)`, []);
     if (typeof fitGraph === 'function') setTimeout(() => fitGraph(true), 400);
-    } catch (e) {
-      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
-    }
-  };
-  run();
+  });
 }
 
 // ── AI 대화 (그래프 검색 기반) ────────────────────────────────────────
@@ -654,7 +659,7 @@ async function sendAiChat() {
       return;
     }
   }
-  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
+  if (!requireAiKey()) return;
   if (input) { input.value = ''; _autoGrowAiInput(input); }
   // 저장: 대화하며 만든 글을 하위 노드로 넣기 ("하위노드에 넣어줘")
   if (/하위\s*노드|자식\s*노드|노드에?\s*넣|노드로\s*(넣|만들|저장)|하위로\s*넣/.test(q)) { aiSaveToChild(q); return; }
@@ -671,20 +676,14 @@ function _aiConverse(q) {
     .filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|넣는 중|넣음/.test(m.text))
     .slice(-8)
     .map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
-  const nodeCtx = sel.map(n => `## ${(n.label || '(제목 없음)').trim()}\n${(n.desc || '').trim().slice(0, 600)}`).join('\n\n');
+  const nodeCtx = sel.map(n => `## ${nodeTitle(n)}\n${nodeBody(n, 600)}`).join('\n\n');
   _aiChatPush('user', q, null, null, sel.length ? sel : null);
   if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
   const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
-  const run = async () => {
-    _aiChatReplace(waitId, '생각하는 중… ⏳', []);
-    try {
-      const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${nodeCtx ? '\n\n[사용자가 첨부한 노드]\n' + nodeCtx : ''}${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
-      const ans = await geminiGenerate(prompt);
-      _aiChatReplace(waitId, ans, []);
-    } catch (e) {
-      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
-    }
-  };
-  run();
+  _aiRun(waitId, '생각하는 중… ⏳', async () => {
+    const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${nodeCtx ? '\n\n[사용자가 첨부한 노드]\n' + nodeCtx : ''}${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
+    const ans = await geminiGenerate(prompt);
+    _aiChatReplace(waitId, ans, []);
+  });
 }
 

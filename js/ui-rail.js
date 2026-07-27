@@ -57,7 +57,7 @@ function renderBookmarkList() {
   const clockIc = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
   const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   const rowHtml = (n, ic, del) => {
-    const t = escapeHtml((n.label || '(제목 없음)').trim());
+    const t = escapeHtml(nodeTitle(n));
     return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span>`
       + (del ? `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>` : '')
       + `</div>`;

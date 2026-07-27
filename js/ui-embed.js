@@ -77,16 +77,14 @@ function _aiAnswerRAG(q) {
   _aiChatPush('user', q, null, null, sel.length ? sel : null);
   if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
   const waitId = _aiChatPush('ai', '검색 중… ⏳');
-  const run = async () => {
-    _aiChatReplace(waitId, '검색 중… ⏳', []);
-    try {
+  _aiRun(waitId, '검색 중… ⏳', async () => {
       // 1순위: 임베딩 의미검색(제목 벡터 캐시). 실패/저유사도면 키워드+부분일치로 폴백
       let matched = await _semanticSearchNodes(q, 6);
       if (!matched) { const searchQuery = await _aiExtractKeywords(q); matched = _aiSearchNodes(searchQuery, 6); }
       if (sel.length) { const ids = new Set(matched.map(n => n.id)); matched = [...sel.filter(n => !ids.has(n.id)), ...matched].slice(0, 8); }
       const context = matched.map((n, i) => {
-        const body = (n.desc || '').trim().slice(0, 500);
-        return `[${i + 1}] ${(n.label || '(제목 없음)').trim()}${body ? '\n' + body : ''}`;
+        const body = nodeBody(n, 500);
+        return `[${i + 1}] ${nodeTitle(n)}${body ? '\n' + body : ''}`;
       }).join('\n\n');
       const prompt = context
         ? `너는 SynapseLog(지식 그래프 도구)의 AI 조수야. 한국어로 답해줘.\n- 도구 사용법/기능을 물으면 [도구 안내]를 근거로 답해.\n- 지식 내용을 물으면 [검색된 노드]를 근거로 답하고, 없는 내용은 지어내지 마.\n\n[도구 안내]\n${_SYNAPSE_GUIDE}\n\n[검색된 노드]\n${context}\n\n[질문]\n${q}`
@@ -94,11 +92,7 @@ function _aiAnswerRAG(q) {
       const ans = await geminiGenerate(prompt);
       _aiChatReplace(waitId, ans, matched);
       if (matched.length && typeof highlightAiNodes === 'function') highlightAiNodes(matched);
-    } catch (e) {
-      _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
-    }
-  };
-  run();
+  });
 }
 
 // 대화한 글(가장 최근 AI 답변)을 선택/열린 노드의 하위 노드로 넣기 → 편집창에서 확인 후 저장
