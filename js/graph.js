@@ -915,9 +915,11 @@ function mergeGraph(title, markdown, pageId) {
   }
   const newRoot = result.nodes.find(n => n.level === 0);
   const newRootOldId = newRoot ? newRoot.id : null;
+  const _isLocalPage = /^(md_|local_)/.test(String(trackId)); // MD·임시 노드는 노션이 아니므로 편집/삭제 가능하게 local 표시
   result.nodes.forEach(n => {
     const oldId = n.id, newId = prefix + oldId;
     idMap[oldId] = newId; n.id = newId; n.sourcePageId = trackId;
+    if (_isLocalPage) n.local = true;
     n.visible = false; n.x = newRootX; n.y = newRootY; n.vx = 0; n.vy = 0;
     nodes.push(n); nodeMap[newId] = n;
   });

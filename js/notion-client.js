@@ -322,7 +322,8 @@ function serializeChildrenMd(nodeId, depth) {
 // 로컬 노드 트리를 localStorage에 저장 (새로고침해도 유지)
 function saveLocalPages() {
   try {
-    const roots = nodes.filter(n => n.local && n.level === 0);
+    // 임시(local_) 노드만 여기에 저장. MD 파일(md_)은 원본 파일/세션으로 따로 관리하므로 제외(이중 복원 방지)
+    const roots = nodes.filter(n => n.local && n.level === 0 && String(n.sourcePageId || '').startsWith('local_'));
     const pages = roots.map(r => ({ pageId: r.sourcePageId, title: r.label, desc: r.desc || '', markdown: serializeChildrenMd(r.id, 1) }));
     localStorage.setItem('snlog_local_pages', JSON.stringify(pages));
   } catch (e) {}
@@ -458,6 +459,8 @@ async function writeBackMdFile(pageId) {
   const md = buildFileMarkdown(root);
   const w = await handle.createWritable();
   await w.write(md); await w.close();
+  // 세션 캐시도 갱신(stale 방지)
+  try { const meta = _mdPageMeta(pageId) || {}; meta.markdown = md; meta._cachedAt = Date.now(); sessionStorage.setItem('snlog_' + pageId, JSON.stringify(meta)); } catch (e) {}
   // 방금 쓴 걸 외부 변경으로 오인해 재동기화하지 않도록 lastModified 갱신
   try {
     const lm = (await handle.getFile()).lastModified;
