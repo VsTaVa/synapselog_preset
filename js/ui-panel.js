@@ -62,8 +62,6 @@ function reopenDetailPanel() {
   _autoFitPanel();
 }
 
-const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
-
 // 상하 분할 시 위 패널이 차지하는 비율(0~1). 갤럭시 화면분할처럼 경계선 드래그로 조절
 let _paneRatio = 0.5;
 function _applyPaneRatio() {
@@ -148,38 +146,6 @@ function _openPaneMenu() {
     };
     document.addEventListener('mousedown', _paneMenuDocHandler);
     document.addEventListener('touchstart', _paneMenuDocHandler);
-  }, 0);
-}
-
-// 좌우 폭 그립 탭 → 접기 팝업 (현재 액션: 패널 접기). 패널 왼쪽 가장자리 세로 중앙에 뜬다
-let _edgeMenuOpen = false, _edgeMenuDocHandler = null;
-function _closeEdgeMenu() {
-  const m = document.getElementById('panel-edge-menu');
-  if (m) m.remove();
-  if (_edgeMenuDocHandler) {
-    document.removeEventListener('mousedown', _edgeMenuDocHandler);
-    document.removeEventListener('touchstart', _edgeMenuDocHandler);
-    _edgeMenuDocHandler = null;
-  }
-  _edgeMenuOpen = false;
-}
-function _openEdgeMenu() {
-  _closeEdgeMenu();
-  const panel = document.getElementById('detail-panel');
-  if (!panel || !anyTabs()) return;
-  const m = document.createElement('div');
-  m.id = 'panel-edge-menu';
-  m.className = 'pane-divider-menu panel-edge-menu';
-  m.innerHTML = `<button type="button" class="pdm-item" title="패널 접기" aria-label="패널 접기">${_paneCollapseIcon}</button>`;
-  m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closeEdgeMenu(); toggleDetailPanel(); };
-  panel.appendChild(m);
-  _edgeMenuOpen = true;
-  setTimeout(() => {
-    _edgeMenuDocHandler = (ev) => {
-      if (!ev.target.closest('#panel-edge-menu') && !ev.target.closest('#detail-resize-handle')) _closeEdgeMenu();
-    };
-    document.addEventListener('mousedown', _edgeMenuDocHandler);
-    document.addEventListener('touchstart', _edgeMenuDocHandler);
   }, 0);
 }
 
