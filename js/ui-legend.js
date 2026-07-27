@@ -103,10 +103,10 @@ function _legendAiHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
   return `<div class="lg-note lg-note-top">제미나이 API 필요</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
-    + row('노드 요약', '선택 노드(하위·연결 포함)')
+    + row('노드 요약', '선택 노드(하위&연결 포함)')
     + row('연결 추천', '관련 노드를 찾아 연결 제안')
-    + row('본문 다듬기', '선택 노드 문법·문장 교정')
-    + row('링크 가져오기', '웹·유튜브를 시각화')
+    + row('본문 다듬기', '선택 노드 문법&문장 교정')
+    + row('링크 가져오기', '웹&유튜브를 시각화')
     + `</div>`;
 }
 

@@ -156,7 +156,7 @@ function showViewStatus() {
   if (!statusEl) return;
   const pct = Math.round(scale * 100);
   const deg = Math.round(((_viewRotation * 180 / Math.PI) % 360 + 360) % 360);
-  statusEl.textContent = `확대 ${pct}%` + (deg ? `   ·   회전 ${deg}°` : '');
+  statusEl.textContent = `확대 ${pct}%` + (deg ? `   &   회전 ${deg}°` : '');
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1400);
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;

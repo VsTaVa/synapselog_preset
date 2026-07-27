@@ -135,7 +135,7 @@ function _openPaneMenu() {
   m.id = 'pane-divider-menu';
   m.className = 'pane-divider-menu';
   m.style.top = (_paneRatio * 100) + '%';
-  m.innerHTML = `<button type="button" class="pdm-item" title="위·아래 전환" aria-label="위·아래 전환"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>`;
+  m.innerHTML = `<button type="button" class="pdm-item" title="위&아래 전환" aria-label="위&아래 전환"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>`;
   m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closePaneMenu(); swapPanes(); };
   panel.appendChild(m);
   _paneMenuOpen = true;
@@ -179,7 +179,7 @@ function renderPanes(animateId) {
   if (_stack.length >= 2) {
     const dv = document.createElement('div');
     dv.className = 'pane-divider';
-    dv.title = '드래그하여 위·아래 패널 크기 조절';
+    dv.title = '드래그하여 위&아래 패널 크기 조절';
     dv.innerHTML = `<span class="pane-divider-grip"></span>`;
     dv.addEventListener('mousedown', e => _startPaneDrag(e, dv));
     dv.addEventListener('touchstart', e => _startPaneDrag(e, dv), { passive: false });
@@ -361,7 +361,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const canEdit = n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length);
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
-  const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목·본문 수정</button>` : '';
+  const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
   const aiActItem = `<button data-act="aiact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 작업</button>`;

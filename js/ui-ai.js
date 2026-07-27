@@ -42,7 +42,7 @@ function _aiErrMsg(e) {
   const status = e && e.status;
   const raw = (e && e.message) || String(e || '');
   const m = raw.toLowerCase();
-  if (status === 429 || /\b429\b|rate limit|quota|resource[_ ]?exhausted|too many/.test(m)) return 'AI 무료 한도(분당·하루 요청 수) 초과. 잠시 후 다시 시도.';
+  if (status === 429 || /\b429\b|rate limit|quota|resource[_ ]?exhausted|too many/.test(m)) return 'AI 무료 한도(분당&하루 요청 수) 초과. 잠시 후 다시 시도.';
   if (status === 401 || status === 403 || /api[ _]?key|permission denied|invalid.*key|unauthenticated/.test(m)) return 'AI API 키 문제. 설정에서 키 다시 확인.';
   if (/failed to fetch|networkerror|network error|load failed/.test(m)) return '네트워크 오류. 연결 확인 후 다시 시도.';
   if (/빈 응답|안전 필터/.test(raw)) return 'AI 응답 생성 실패 (안전 필터일 수 있음). 다시 시도.';
@@ -195,7 +195,7 @@ async function aiImportUrl(url) {
     const srcTitle = (data.title || '').trim() || (isYt ? '유튜브 영상' : '가져온 문서');
     const bodyText = (data.text || '').trim();
     if (!bodyText) throw new Error('내용 추출 실패 (자막 없음 / 접근 차단)');
-    _aiChatReplace(waitId, '요약·마크다운 작성 중… ⏳', []);
+    _aiChatReplace(waitId, '요약&마크다운 작성 중… ⏳', []);
     const prompt = `아래 ${isYt ? '유튜브 자막' : '웹 문서'} 내용을 한국어 마크다운으로 구조화해줘.\n[규칙]\n- 첫 줄은 "# 제목" 하나 (문서 전체 제목)\n- 주요 주제는 "## 소제목", 세부 내용은 "- 불릿"으로\n- 핵심만 간결히, 원문에 없는 내용은 지어내지 마\n- 코드블록·설명·머리말 없이 마크다운 본문만 출력\n\n[출처 제목] ${srcTitle}\n[내용]\n${bodyText.slice(0, 8000)}`;
     let md = (await geminiGenerate(prompt)).trim();
     md = md.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/i, '').trim();
@@ -421,7 +421,7 @@ const _AI_COMMANDS = [
   { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
   { name: '/Node Link', hint: '선택한 노드에 대한 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개 선택', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
   { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개 선택', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
-  { name: '/Import', hint: '웹·유튜브(자막) 링크를 마크다운 노드로 가져오기', run: (text) => aiImportUrl(text) },
+  { name: '/Import', hint: '웹&유튜브(자막) 링크를 마크다운 노드로 가져오기', run: (text) => aiImportUrl(text) },
 ];
 function _matchAiCommand(raw) {
   const lower = (raw || '').toLowerCase();

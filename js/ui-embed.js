@@ -340,7 +340,7 @@ function multiSelectOpenNotion() {
   clearMultiSelect();
   const url = _wikiUrlFor(node);
   if (url && /^https?:/i.test(url)) window.open(url, '_blank');
-  else toast('이 노드는 노션 링크 없음 (로컬·MD 노드)', { type: 'error' });
+  else toast('이 노드는 노션 링크 없음 (로컬&MD 노드)', { type: 'error' });
 }
 
 function multiSelectAddChild() {
@@ -357,7 +357,7 @@ function multiSelectDelete() {
   const targets = _multiSelected.slice();
   clearMultiSelect();
   const deletable = targets.filter(canDeleteNode);
-  if (!deletable.length) { toast('선택한 노드는 삭제 불가 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
+  if (!deletable.length) { toast('선택한 노드는 삭제 불가 (페이지&DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   const skipped = targets.length - deletable.length;
   const totalCount = deletable.reduce((s, n) => s + _subtreeIds(n.id).length, 0);
   const hasNotion = deletable.some(n => !n.local);

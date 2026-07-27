@@ -261,7 +261,7 @@ function insightConnectDir(i, dir) {
     toast('이미 연결됨');
   } else {
     _wikiConnect(from, to); // from 본문에 [to](url) 추가 → from → to 단방향, 노션에 반영
-    toast(`연결 · ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
+    toast(`연결 & ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
   }
   if (typeof highlightAiNodes === 'function') highlightAiNodes([from, to]);
   _refreshSuggest(); // 이은 쌍은 다음 후보로 교체
