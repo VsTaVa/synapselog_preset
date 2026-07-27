@@ -862,11 +862,17 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       .filter(r => r.text.length); // 내용 비운 기존 블록은 삭제로 처리(빈 블록 유지 X)
 
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
+    let localWroteFile = false;
     try {
       if (isLocal) {
         if (titleChanged) node.label = newTitle;
         node.desc = rows.map(valOf).join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
         saveLocalPages();
+        // MD 파일에서 온 노드면 원본 .md에 되쓰기(핸들 있을 때만). 실패해도 세션 저장은 유지
+        if (typeof writeBackMdFile === 'function' && String(node.sourcePageId || '').startsWith('md_')) {
+          try { localWroteFile = await writeBackMdFile(node.sourcePageId); }
+          catch (e) { toast('파일 쓰기 실패(세션엔 저장됨): ' + (e.message || e), { type: 'error', duration: 5000 }); }
+        }
       } else {
         const tgt = _appendTarget(node);
         // 제목 변경 먼저 적용
@@ -913,7 +919,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); // 본문 변경 → 위키링크 재해석
       isStable = false;
       finish();
-      toast(isLocal ? '저장됨' : '노션에 저장됨', { type: 'success' });
+      toast(isLocal ? (localWroteFile ? '파일에 저장됨' : '저장됨') : '노션에 저장됨', { type: 'success' });
     } catch (err) {
       saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
       toast('저장 실패: ' + (err.message || err), { type: 'error', duration: 5000 });

@@ -166,20 +166,38 @@ function _wikiUrlFor(b) {
   return `snlog:node:${b.sourcePageId || ''}:${encodeURIComponent(b.label)}`; // 로컬 폴백
 }
 function _wikiLinkText(b) { return `[${b.label}](${_wikiUrlFor(b)})`; }
+// 로컬(옵시디언) 링크 문법: 파일=[[노트]], 헤딩=[[노트#헤딩]]
+function _wikiLinkTextLocal(b) {
+  if (b.level === 0) return `[[${b.label}]]`;
+  const root = (typeof nodes !== 'undefined') ? nodes.find(n => n.sourcePageId === b.sourcePageId && n.level === 0) : null;
+  return root ? `[[${root.label}#${b.label}]]` : `[[${b.label}]]`;
+}
 function _linkResolvesTo(url, b) { const t = _nodeFromLinkUrl(url); return !!(t && t.id === b.id); }
 function _hasWikiLinkTo(a, b) {
   const text = (a.bodyBlocks && a.bodyBlocks.length) ? a.bodyBlocks.map(x => x.text).join('\n') : (a.desc || '');
   const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m;
   while ((m = re.exec(text))) { if (_linkResolvesTo(m[2], b)) return true; }
+  // 로컬은 [[ ]] 형식도 검사
+  if (typeof _isLocalSource === 'function' && _isLocalSource(a) && typeof _nodeFromWikiRef === 'function') {
+    const rw = /\[\[([^\]\n]+?)\]\]/g; let w;
+    while ((w = rw.exec(text))) { const t = _nodeFromWikiRef(w[1], a); if (t && t.id === b.id) return true; }
+  }
   return false;
 }
 function _wikiReflect() { if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); isStable = false; refreshOpenPanes(); }
 // A→B 위키 연결: 그래프 즉시 반영 + 노션 저장은 백그라운드(실패 시 롤백)
 function _wikiConnect(a, b) {
-  const text = _wikiLinkText(b);
+  // 로컬 노드는 옵시디언식 [[ ]]로, 노션 노드는 [텍스트](url)로
+  const localA = (typeof _isLocalSource === 'function') ? _isLocalSource(a) : a.local;
+  const text = localA ? _wikiLinkTextLocal(b) : _wikiLinkText(b);
   if (a.local) {
     a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
-    _wikiReflect(); saveLocalPages(); return;
+    _wikiReflect(); saveLocalPages();
+    // 링크를 원본 .md에도 반영(핸들 있을 때). 비차단
+    if (typeof writeBackMdFile === 'function' && String(a.sourcePageId || '').startsWith('md_')) {
+      writeBackMdFile(a.sourcePageId).catch(() => {});
+    }
+    return;
   }
   const blk = { id: '_tmp_' + Date.now() + Math.random().toString(36).slice(2), text, _pending: true };
   a.bodyBlocks = (a.bodyBlocks || []).concat([blk]);

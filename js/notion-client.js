@@ -399,6 +399,78 @@ function exportPageById(pageId) {
   else alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.');
 }
 
+// ── 로컬(MD) 원본 파일 쓰기 (File System Access, readwrite) ──────────────
+// 임포트가 파일명을 가상 루트(레벨0)로 넣으므로, 파일 재구성 땐 루트 헤딩을 쓰지 않고
+// 각 노드의 headingDepth로 원래 #레벨을 복원한다(단순 재구성 시 #→## 밀림 방지).
+function _serializeFileChildren(nodeId) {
+  let md = '';
+  edges.filter(e => e.from === nodeId && !e.weakLink && !e.manualLink).forEach(e => {
+    const c = nodeMap[e.to];
+    if (!c) return;
+    const depth = Math.min(Math.max(c.headingDepth || 1, 1), 6);
+    md += '#'.repeat(depth) + ' ' + c.label + '\n';
+    if (c.desc && c.desc !== '(내용 없음)') md += c.desc.replace(/\n+$/, '') + '\n';
+    md += _serializeFileChildren(c.id);
+  });
+  return md;
+}
+function buildFileMarkdown(root) {
+  let md = '';
+  if (root.desc && root.desc !== '(내용 없음)') md += root.desc.replace(/\n+$/, '') + '\n';
+  md += _serializeFileChildren(root.id);
+  return md.replace(/^\n+/, '');
+}
+function _mdPageMeta(pageId) {
+  try { return JSON.parse(sessionStorage.getItem('snlog_' + pageId) || 'null'); } catch (e) { return null; }
+}
+// relPath(디렉터리 기준 상대경로)로 폴더 배치 안의 파일 핸들 획득
+async function _fileHandleFromDir(dir, relPath) {
+  const parts = String(relPath).split('/').filter(Boolean);
+  if (!parts.length) return null;
+  let cur = dir;
+  for (let i = 0; i < parts.length - 1; i++) cur = await cur.getDirectoryHandle(parts[i]);
+  return cur.getFileHandle(parts[parts.length - 1]);
+}
+// 단일 파일 임포트(_mdFileHandles) 또는 폴더 배치(디렉터리 핸들+relPath)에서 쓰기 핸들 해석
+async function _mdWriteHandle(pageId) {
+  const info = window._mdFileHandles && window._mdFileHandles.get(pageId);
+  if (info && info.handle) return { handle: info.handle, single: info };
+  const meta = _mdPageMeta(pageId);
+  if (meta && meta.folderBatchId && meta.relPath && window._folderBatches) {
+    const batch = window._folderBatches.get(meta.folderBatchId);
+    if (batch && batch.handle) {
+      try { const fh = await _fileHandleFromDir(batch.handle, meta.relPath); if (fh) return { handle: fh, batch, relPath: meta.relPath, folderBatchId: meta.folderBatchId }; } catch (e) {}
+    }
+  }
+  return null;
+}
+// 현재 그래프의 해당 파일 내용을 원본 .md에 덮어쓴다. 핸들 없으면(입력창 폴백) false.
+async function writeBackMdFile(pageId) {
+  if (!pageId) return false;
+  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  if (!root) return false;
+  const resolved = await _mdWriteHandle(pageId);
+  if (!resolved || !resolved.handle) return false; // 핸들 없이 임포트된 파일은 원본 쓰기 불가
+  const handle = resolved.handle;
+  let perm = await handle.queryPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') { toast('파일 쓰기 권한 필요', { type: 'error' }); return false; }
+  const md = buildFileMarkdown(root);
+  const w = await handle.createWritable();
+  await w.write(md); await w.close();
+  // 방금 쓴 걸 외부 변경으로 오인해 재동기화하지 않도록 lastModified 갱신
+  try {
+    const lm = (await handle.getFile()).lastModified;
+    if (resolved.single) { resolved.single.lastModified = lm; await _idbSave('files', { id: pageId, handle, lastModified: lm }); }
+    else if (resolved.batch && resolved.relPath) {
+      const rec = resolved.batch.files.get(resolved.relPath);
+      if (rec) { rec.lastModified = lm; resolved.batch.files.set(resolved.relPath, rec); }
+      if (typeof _saveFolderBatchToIDB === 'function') await _saveFolderBatchToIDB(resolved.folderBatchId);
+    }
+  } catch (e) {}
+  return true;
+}
+
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
 
 // 설정 없이 바로 둘러보는 샘플 그래프 — .MD 임포트와 동일 경로라 별도 처리 불필요
