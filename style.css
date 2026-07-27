@@ -396,7 +396,15 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-x { color: var(--accent); font-size: 16px; line-height: 1; }
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
-#detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 0; padding: 0; }
+#detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 0; padding: 0; position: relative; }
+/* 상하 분할 경계선 — 갤럭시 화면분할식 드래그 핸들. 경계 위에 떠서 패널 간격은 0 유지 */
+/* 스트립 자체는 클릭 통과(pointer-events:none), 가운데 그립만 잡히게 해서 아래 패널 헤더 버튼을 안 가림 */
+.pane-divider { position: absolute; left: 0; right: 0; height: 18px; transform: translateY(-50%); z-index: 6; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.pane-divider-grip { pointer-events: auto; width: 52px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; }
+.pane-divider-grip::before { content: ''; width: 36px; height: 4px; border-radius: 3px; background: rgba(var(--fg-rgb),0.2); box-shadow: 0 0 0 1px rgba(0,0,0,0.35); transition: background 0.15s, width 0.15s; }
+.pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
+body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
+body.resizing-panes .detail-pane { transition: none; }
 .detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 /* 분할 시 아래 패널은 위 패널과 맞닿으므로 위쪽 테두리 겹침(2px) 제거 */
 #detail-panes.split .detail-pane + .detail-pane { border-top: none; }

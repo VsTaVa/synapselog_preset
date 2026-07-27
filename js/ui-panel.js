@@ -64,6 +64,52 @@ function reopenDetailPanel() {
 
 const _paneCollapseIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>`;
 
+// 상하 분할 시 위 패널이 차지하는 비율(0~1). 갤럭시 화면분할처럼 경계선 드래그로 조절
+let _paneRatio = 0.5;
+function _applyPaneRatio() {
+  const wrap = document.getElementById('detail-panes');
+  if (!wrap || !wrap.classList.contains('split')) return;
+  const panes = wrap.querySelectorAll('.detail-pane');
+  if (panes.length >= 2) {
+    panes[0].style.flex = `${_paneRatio} 1 0`;
+    panes[1].style.flex = `${1 - _paneRatio} 1 0`;
+  }
+  const dv = wrap.querySelector('.pane-divider');
+  if (dv) dv.style.top = (_paneRatio * 100) + '%';
+}
+// 경계선 드래그: 마우스·터치 공통. 드래그 동안만 document 리스너를 달았다 뗀다(누적 방지)
+function _startPaneDrag(e, dv) {
+  const wrap = document.getElementById('detail-panes');
+  if (!wrap) return;
+  const avail = wrap.clientHeight;
+  if (avail <= 0) return;
+  const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  const startRatio = _paneRatio;
+  const minR = Math.min(0.35, 64 / avail); // 한쪽이 최소 64px는 남게
+  document.body.classList.add('resizing-panes');
+  dv.classList.add('dragging');
+  const move = (ev) => {
+    const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    let r = startRatio + (y - startY) / avail;
+    _paneRatio = Math.max(minR, Math.min(1 - minR, r));
+    _applyPaneRatio();
+    if (ev.cancelable) ev.preventDefault();
+  };
+  const up = () => {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup', up);
+    document.removeEventListener('touchend', up);
+    document.body.classList.remove('resizing-panes');
+    dv.classList.remove('dragging');
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive: false });
+  document.addEventListener('mouseup', up);
+  document.addEventListener('touchend', up);
+  if (e.cancelable) e.preventDefault();
+}
+
 // 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
 function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
@@ -94,6 +140,17 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
+  // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
+  if (_stack.length >= 2) {
+    const dv = document.createElement('div');
+    dv.className = 'pane-divider';
+    dv.title = '드래그하여 위·아래 패널 크기 조절';
+    dv.innerHTML = `<span class="pane-divider-grip"></span>`;
+    dv.addEventListener('mousedown', e => _startPaneDrag(e, dv));
+    dv.addEventListener('touchstart', e => _startPaneDrag(e, dv), { passive: false });
+    wrap.appendChild(dv);
+    _applyPaneRatio();
+  }
 }
 
 function mdTableToHtml(text) {
