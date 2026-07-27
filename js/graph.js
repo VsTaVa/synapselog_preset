@@ -823,22 +823,53 @@ function _nodeFromLinkUrl(url) {
   for (const id of ids) { const n = nodes.find(x => (x.entryNotionId && norm(x.entryNotionId) === id) || (x.sourcePageId && norm(x.sourcePageId) === id)); if (n) return n; }
   return null;
 }
-// 모든 노드의 본문에서 [텍스트](url) 링크를 스캔 → 노드로 해석되는 것만 약한 위키 엣지 재생성. 멱등
+// ── 옵시디언식 위키링크 [[노트]] / [[노트#헤딩]] / [[#헤딩]] (별칭 [[..|별칭]]) ──
+// 로컬(MD) 노드 전용 — 노션은 [텍스트](url) 그대로. 헤딩도 노드라 #헤딩까지 매칭.
+const _WIKI_RE = /\[\[([^\]\n]+?)\]\]/g;
+function _isLocalSource(n) { return !!(n && (n.local || /^(md_|local_)/.test(String(n.sourcePageId || '')))); }
+function _wnorm(s) { return (s || '').trim().toLowerCase(); }
+function _nodeFromWikiRef(ref, src) {
+  if (!ref) return null;
+  ref = ref.split('|')[0].trim();            // 별칭(| 뒤) 제거
+  if (!ref) return null;
+  const hash = ref.indexOf('#');
+  let notePart = (hash >= 0 ? ref.slice(0, hash) : ref).trim();
+  const headPart = (hash >= 0 ? ref.slice(hash + 1) : '').trim();
+  notePart = notePart.split('/').pop();      // [[폴더/노트]] → 파일명만 (옵시디언 기본)
+  let pageId = null;
+  if (!notePart) { pageId = src.sourcePageId; } // [[#헤딩]] → 같은 파일
+  else {                                        // [[노트]] / [[노트#헤딩]] → 그 파일 루트를 제목으로
+    const root = nodes.find(n => _isLocalSource(n) && n.level === 0 && _wnorm(n.label) === _wnorm(notePart));
+    if (!headPart) return root || null;         // 파일 자체 링크 → 루트 노드
+    if (root) pageId = root.sourcePageId;
+  }
+  if (pageId) {
+    const hit = nodes.find(n => _isLocalSource(n) && String(n.sourcePageId || '') === String(pageId) && _wnorm(n.label) === _wnorm(headPart));
+    if (hit) return hit;
+  }
+  return nodes.find(n => _isLocalSource(n) && _wnorm(n.label) === _wnorm(headPart)) || null; // 못 찾으면 헤딩 전역 매칭(로컬)
+}
+// 모든 노드 본문에서 링크를 스캔 → 노드로 해석되는 것만 약한 위키 엣지 재생성. 멱등
 const _LINK_RE = /\[([^\]]*)\]\(([^)\s]+)\)/g;
 function resolveWikiLinks() {
   edges = edges.filter(e => !e.wikiLink);
   const seen = new Set();
+  const addWiki = (src, target) => {
+    if (!target || target.id === src.id) return;
+    const key = src.id + '>' + target.id;
+    if (seen.has(key)) return; seen.add(key);
+    edges.push({ from: src.id, to: target.id, weakLink: true, wikiLink: true });
+  };
   nodes.forEach(src => {
     const text = (src.bodyBlocks && src.bodyBlocks.length) ? src.bodyBlocks.map(b => b.text).join('\n') : (src.desc || '');
-    if (!text || text.indexOf('](') < 0) return;
-    _LINK_RE.lastIndex = 0; let m;
-    while ((m = _LINK_RE.exec(text))) {
-      const target = _nodeFromLinkUrl(m[2]);
-      if (target && target.id !== src.id) {
-        const key = src.id + '>' + target.id;
-        if (seen.has(key)) continue; seen.add(key);
-        edges.push({ from: src.id, to: target.id, weakLink: true, wikiLink: true });
-      }
+    if (!text) return;
+    if (text.indexOf('](') >= 0) {                 // 표준/노션식 [텍스트](url)
+      _LINK_RE.lastIndex = 0; let m;
+      while ((m = _LINK_RE.exec(text))) addWiki(src, _nodeFromLinkUrl(m[2]));
+    }
+    if (_isLocalSource(src) && text.indexOf('[[') >= 0) { // 옵시디언식 [[..]] — 로컬 노드만
+      _WIKI_RE.lastIndex = 0; let w;
+      while ((w = _WIKI_RE.exec(text))) addWiki(src, _nodeFromWikiRef(w[1], src));
     }
   });
 }
