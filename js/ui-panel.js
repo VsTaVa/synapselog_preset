@@ -137,7 +137,7 @@ function _openPaneMenu() {
   m.id = 'pane-divider-menu';
   m.className = 'pane-divider-menu';
   m.style.top = (_paneRatio * 100) + '%';
-  m.innerHTML = `<button type="button" class="pdm-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg><span>위·아래 전환</span></button>`;
+  m.innerHTML = `<button type="button" class="pdm-item" title="위·아래 전환" aria-label="위·아래 전환"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>`;
   m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closePaneMenu(); swapPanes(); };
   panel.appendChild(m);
   _paneMenuOpen = true;
