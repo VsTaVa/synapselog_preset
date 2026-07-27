@@ -225,7 +225,8 @@ function renderPaneContent(i, n) {
     if (oldLink) oldLink.style.display = 'none';
     return;
   }
-  if (titleEl) { titleEl.textContent = n.label; titleEl.title = n.label; }
+  // 제목은 기존 노드칩 컴포넌트 그대로 사용(색·북마크 표식·클릭 이동 포함)
+  if (titleEl) { titleEl.innerHTML = (typeof createNodeChip === 'function') ? createNodeChip(n) : escapeHtml(n.label); titleEl.title = n.label; }
   if (dateEl) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
