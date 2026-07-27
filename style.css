@@ -744,6 +744,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
 .node-chip-x:hover { opacity: 1; }
 .node-chip--badge { padding: 1px 6px; font-size: 9px; font-weight: 700; max-width: none; vertical-align: 1px; }
+/* 우측 패널 제목용 큰 노드칩 — 글자 더 넓게, 살짝 크게 */
+.node-chip--lg { font-size: 13px; padding: 4px 11px; gap: 4px; max-width: 100%; }
 .node-chip--badge::before { display: none; }
 /* 근거·검색결과: 라벨은 한 줄 차지, 칩은 유동 너비로 줄바꿈 */
 .aichat-refs { flex-direction: row; flex-wrap: wrap; align-items: center; }
