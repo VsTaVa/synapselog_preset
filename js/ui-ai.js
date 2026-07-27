@@ -412,9 +412,9 @@ function applyAiLink(aId, bId) {
 
 // ── AI 슬래시 명령어 (확장 가능) ─────────────────────────────────────
 const _AI_COMMANDS = [
-  { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택해주세요', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
-  { name: '/Node Link', hint: '선택한 노드에 대한 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
-  { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개를 선택해주세요', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
+  { name: '/Node Summary', hint: '선택한 노드 요약', run: () => { if (!_multiSelected.length) { toast('노드를 먼저 선택', { type: 'error' }); return; } const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns); } },
+  { name: '/Node Link', hint: '선택한 노드에 대한 연결 추천', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개 선택', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiSuggestLinks(n); } },
+  { name: '/Node Edit', hint: '선택한 노드 본문 다듬기', run: () => { if (_multiSelected.length !== 1) { toast('노드 1개 선택', { type: 'error' }); return; } const n = _multiSelected[0]; clearMultiSelect(); aiRefineNode(n); } },
   { name: '/Import', hint: '웹·유튜브(자막) 링크를 마크다운 노드로 가져오기', run: (text) => aiImportUrl(text) },
 ];
 function _matchAiCommand(raw) {
@@ -648,7 +648,7 @@ async function sendAiChat() {
       if (input) { input.value = ''; _autoGrowAiInput(input); }
       _hideAiCmdMenu();
       if (intent === 'summary') { const ns = _multiSelected.slice(); clearMultiSelect(); aiSummarizeNodes(ns, q); return; }
-      if (_multiSelected.length !== 1) { toast('이 작업은 노드 1개만 선택해주세요', { type: 'error' }); return; }
+      if (_multiSelected.length !== 1) { toast('이 작업은 노드 1개만 선택', { type: 'error' }); return; }
       const n = _multiSelected[0]; clearMultiSelect();
       if (intent === 'link') aiSuggestLinks(n, q); else aiRefineNode(n, q);
       return;
@@ -668,7 +668,7 @@ async function sendAiChat() {
 function _aiConverse(q) {
   const sel = (_multiSelected || []).slice();
   const hist = _aiChat
-    .filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|넣는 중|넣었어요/.test(m.text))
+    .filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|넣는 중|넣음/.test(m.text))
     .slice(-8)
     .map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
   const nodeCtx = sel.map(n => `## ${(n.label || '(제목 없음)').trim()}\n${(n.desc || '').trim().slice(0, 600)}`).join('\n\n');

@@ -189,8 +189,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --icon-dim: #4a4c53;                   /* 더 흐린 행 아이콘 — 불투명 */
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
   /* ── 유리질감 (레일·패널·설정·플로팅 공통) — 은은한 강도 ── */
-  --glass-bg: rgba(var(--surface-rgb),0.55);       /* 뒤 그래프가 비침 */
-  --glass-bg-solid: rgba(var(--surface-rgb),0.68); /* 스크롤 있는 설정 등 살짝 더 불투명 */
+  --glass-bg: rgba(var(--surface-rgb),0.42);       /* 뒤 그래프가 비침 */
+  --glass-bg-solid: rgba(var(--surface-rgb),0.55); /* 스크롤 있는 설정 등 살짝 더 불투명 */
   --glass-blur: blur(18px) saturate(1.4);
   --glass-border: rgba(var(--fg-rgb),0.14);
 }

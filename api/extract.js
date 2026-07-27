@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const url = (req.query && req.query.url) || (req.body && req.body.url);
-  if (!url) return res.status(400).json({ error: 'url이 필요해요' });
+  if (!url) return res.status(400).json({ error: 'url 필요' });
 
   const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
@@ -26,30 +26,30 @@ export default async function handler(req, res) {
 
   async function extractYouTube(u) {
     const id = ytId(u);
-    if (!id) throw new Error('유튜브 영상 ID를 못 찾았어요');
+    if (!id) throw new Error('유튜브 영상 ID를 찾지 못함');
     const page = await (await fetch('https://www.youtube.com/watch?v=' + id, { headers: { 'User-Agent': UA, 'Accept-Language': 'ko,en' } })).text();
     let title = ((page.match(/<title>([^<]*)<\/title>/) || [])[1] || '');
     title = decodeEntities(title).replace(/ - YouTube$/, '').trim();
     const m = page.match(/"captionTracks":(\[[\s\S]*?\])/);
-    if (!m) throw new Error('이 영상엔 자막이 없어요 (자막 있는 영상만 가능)');
+    if (!m) throw new Error('이 영상엔 자막 없음 (자막 있는 영상만 가능)');
     let tracks;
     try { tracks = JSON.parse(m[1].replace(/\\u0026/g, '&')); } catch (e) { throw new Error('자막 정보 파싱 실패'); }
-    if (!tracks || !tracks.length) throw new Error('이 영상엔 자막이 없어요');
+    if (!tracks || !tracks.length) throw new Error('이 영상엔 자막 없음');
     const pick = tracks.find(t => t.languageCode === 'ko') || tracks.find(t => t.languageCode === 'en') || tracks[0];
     const baseUrl = String(pick.baseUrl || '').replace(/\\u0026/g, '&');
-    if (!baseUrl) throw new Error('자막 주소를 못 찾았어요');
+    if (!baseUrl) throw new Error('자막 주소를 찾지 못함');
     const xml = await (await fetch(baseUrl, { headers: { 'User-Agent': UA } })).text();
     const texts = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)]
       .map(x => decodeEntities(x[1].replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim())
       .filter(Boolean);
     const text = texts.join(' ');
-    if (!text) throw new Error('자막 내용이 비어있어요');
+    if (!text) throw new Error('자막 내용 비어있음');
     return { title: title || '유튜브 영상', text };
   }
 
   async function extractWeb(u) {
     const r = await fetch(u, { headers: { 'User-Agent': UA, 'Accept-Language': 'ko,en' } });
-    if (!r.ok) throw new Error('페이지를 가져오지 못했어요 (HTTP ' + r.status + ')');
+    if (!r.ok) throw new Error('페이지를 가져오지 못함 (HTTP ' + r.status + ')');
     let html = await r.text();
     let title = ((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '');
     title = decodeEntities(title).replace(/\s+/g, ' ').trim();
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     const section = art ? art[0] : html;
     let text = section.replace(/<(p|br|div|li|h[1-6])[^>]*>/gi, '\n').replace(/<[^>]+>/g, ' ');
     text = decodeEntities(text).replace(/[ \t]+/g, ' ').replace(/\n[ \t]*/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-    if (!text) throw new Error('본문을 추출하지 못했어요');
+    if (!text) throw new Error('본문을 추출하지 못함');
     return { title: title || u, text };
   }
 

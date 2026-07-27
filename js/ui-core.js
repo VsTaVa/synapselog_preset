@@ -212,7 +212,7 @@ function toggleConnectMode() {
   if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
   if (!_connectMode) nodes.forEach(n => { n.connectSelected = false; });
   const s = document.getElementById('status');
-  if (_connectMode && s) { s.textContent = '연결 모드: 첫 번째 노드를 클릭하세요'; closePanel(); }
+  if (_connectMode && s) { s.textContent = '연결 모드: 첫 번째 노드 클릭'; closePanel(); }
   else if (s) s.textContent = '';
   isStable = false;
 }

@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { token, pageId, action } = req.body;
-  if (!token) return res.status(400).json({ error: 'token이 필요해요' });
+  if (!token) return res.status(400).json({ error: 'token 필요' });
 
   const headers = {
     'Authorization': `Bearer ${token}`,
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   // ── action: 'updateBlock' — 기존 블록(헤딩/문단 등) 텍스트 수정 ──────
   if (action === 'updateBlock') {
     const { blockId, text } = req.body;
-    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
       // 블록 유형을 먼저 조회해 올바른 키로 PATCH (레벨 시프트와 무관하게 정확)
       const g = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { headers });
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       const block = await g.json();
       const type = block.type;
       const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
-      if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정할 수 없어요` });
+      if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정 불가` });
 
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
   // ── action: 'appendBlock' — 헤딩 섹션 맨 끝(다음 헤딩 직전)에 새 블록 추가 ──
   if (action === 'appendBlock') {
     const { parentId, afterId, text, blockType } = req.body;
-    if (!parentId) return res.status(400).json({ error: 'parentId가 필요해요' });
+    if (!parentId) return res.status(400).json({ error: 'parentId 필요' });
     // 'heading'이면 부모 헤딩보다 한 단계 깊은 레벨로 자동 결정(아래에서)
     const wantHeading = blockType === 'heading';
     let type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
   // ── action: 'appendBlocks' — 여러 본문 블록을 한 번의 호출로 추가 ──────
   if (action === 'appendBlocks') {
     const { parentId, afterId, texts, blockType, exact } = req.body;
-    if (!parentId || !Array.isArray(texts)) return res.status(400).json({ error: 'parentId/texts가 필요해요' });
+    if (!parentId || !Array.isArray(texts)) return res.status(400).json({ error: 'parentId/texts 필요' });
     if (!texts.length) return res.status(200).json({ ok: true, ids: [] });
     const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
     try {
@@ -245,7 +245,7 @@ export default async function handler(req, res) {
   // ── action: 'deleteBlock' — 블록(헤딩+하위) 삭제(보관) ──────────────
   if (action === 'deleteBlock') {
     const { blockId } = req.body;
-    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
       const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { method: 'DELETE', headers });
       if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '삭제 실패' }); }
@@ -256,7 +256,7 @@ export default async function handler(req, res) {
   // ── action: 'restoreBlock' — 삭제(보관)된 블록 복원(un-archive) ──────
   if (action === 'restoreBlock') {
     const { blockId } = req.body;
-    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
       const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH', headers, body: JSON.stringify({ archived: false })
@@ -269,7 +269,7 @@ export default async function handler(req, res) {
   // ── action: 'pageMeta' — 페이지 last_edited_time만 가볍게 조회 ───────
   if (action === 'pageMeta') {
     const metaId = pageId || (req.body && req.body.pageId);
-    if (!metaId) return res.status(400).json({ error: 'pageId가 필요해요' });
+    if (!metaId) return res.status(400).json({ error: 'pageId 필요' });
     try {
       const r = await fetch(`https://api.notion.com/v1/pages/${metaId}`, { headers });
       if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '조회 실패' }); }
@@ -281,7 +281,7 @@ export default async function handler(req, res) {
   // ── action: 'headingNode' — 헤딩 노드 1개만 동기화 (제목 + 본문 블록) ─
   if (action === 'headingNode') {
     const { blockId, parentId } = req.body;
-    if (!blockId) return res.status(400).json({ error: 'blockId가 필요해요' });
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
       const br = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, { headers });
       if (!br.ok) { const e = await br.json(); return res.status(br.status).json({ error: e.message || '조회 실패' }); }
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
       const type = block.type;
       const hm = /^heading_(\d)$/.exec(type || '');
       const isToggleBlock = type === 'toggle';
-      if (!hm && !isToggleBlock) return res.status(400).json({ error: '헤딩/토글 노드가 아니에요' });
+      if (!hm && !isToggleBlock) return res.status(400).json({ error: '헤딩/토글 노드 아님' });
       const headObj = block[type] || {};
       const title = extractHeadingText(headObj.rich_text);
       const toggleable = isToggleBlock ? true : !!headObj.is_toggleable;
@@ -344,7 +344,7 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
-  if (!pageId) return res.status(400).json({ error: 'pageId가 필요해요' });
+  if (!pageId) return res.status(400).json({ error: 'pageId 필요' });
 
   // 텍스트 추출 함수 — 볼드(**)·취소선(~~) 마크다운으로 보존 (본문용)
   function extractRichText(richTextArr) {
@@ -690,7 +690,7 @@ export default async function handler(req, res) {
     const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers });
     if (!pageRes.ok) {
       const err = await pageRes.json();
-      return res.status(pageRes.status).json({ error: err.message || '페이지를 찾을 수 없어요. Integration이 해당 페이지에 연결되어 있는지 확인해주세요.' });
+      return res.status(pageRes.status).json({ error: err.message || '페이지를 찾을 수 없음. Integration이 해당 페이지에 연결되어 있는지 확인.' });
     }
 
     const pageData = await pageRes.json();
@@ -699,6 +699,6 @@ export default async function handler(req, res) {
 
     res.status(200).json({ title: pageTitle, markdown });
   } catch (e) {
-    res.status(500).json({ error: e.message || '서버 오류가 발생했어요' });
+    res.status(500).json({ error: e.message || '서버 오류 발생' });
   }
 }

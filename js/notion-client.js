@@ -6,7 +6,7 @@ let _addedPageIds = new Set();
 // ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
 
 function _idbOpen() {
-  if (!_useLocalStorage) return Promise.reject(new Error('로컬 저장 사용이 꺼져있어요'));
+  if (!_useLocalStorage) return Promise.reject(new Error('로컬 저장 사용 꺼짐'));
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('synapselog_db', 2);
     req.onupgradeneeded = () => {
@@ -258,7 +258,7 @@ async function notionFetch(body) {
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch(e) { throw new Error('서버 응답 오류'); }
-  if (!res.ok) throw new Error(data.error || '오류가 발생했어요');
+  if (!res.ok) throw new Error(data.error || '오류 발생');
   return data;
 }
 
@@ -396,7 +396,7 @@ function exportNodeMarkdown(node) {
 function exportPageById(pageId) {
   const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
   if (root) exportNodeMarkdown(root);
-  else alert('내보낼 내용을 찾지 못했어요. 페이지를 먼저 불러오거나 열어주세요.');
+  else alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.');
 }
 
 // ── 로그인/페이지 선택 ───────────────────────────────────────────────
@@ -577,9 +577,9 @@ function startWithMd(event) {
 async function startGraph() {
   const token = document.getElementById('input-token').value.trim();
   const errEl = document.getElementById('login-error');
-  if (!token) { errEl.textContent = 'Notion API Token을 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (!token) { errEl.textContent = 'Notion API Token 입력'; errEl.style.display = 'block'; return; }
   if (!token.startsWith('secret_') && !token.startsWith('ntn_')) {
-    errEl.textContent = '올바른 토큰 형식이 아니에요 (secret_ 또는 ntn_ 으로 시작)';
+    errEl.textContent = '올바른 토큰 형식 아님 (secret_ 또는 ntn_ 으로 시작)';
     errEl.style.display = 'block'; return;
   }
   _savedToken = token;
@@ -596,7 +596,7 @@ async function showPagePicker() {
   loginBox.innerHTML = `
     <button type="button" class="picker-back" onclick="backToTokenInput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>뒤로 가기</button>
     <div class="login-title">Synapse<span>Log</span></div>
-    <div class="login-sub picker-sub">불러올 페이지를 선택하세요</div>
+    <div class="login-sub picker-sub">불러올 페이지 선택</div>
     <div class="picker-search-wrap">
       <input type="text" id="page-search-input" autocomplete="off" placeholder="페이지 검색..." oninput="filterPageList(this.value)" />
     </div>
@@ -673,7 +673,7 @@ function filterPageList(query) {
 async function startWithSelected() {
   if (window._selectedPageIds.size === 0) {
     const errEl = document.getElementById('page-pick-error');
-    if (errEl) { errEl.textContent = '페이지를 하나 이상 선택해주세요'; errEl.style.display = 'block'; }
+    if (errEl) { errEl.textContent = '페이지를 하나 이상 선택'; errEl.style.display = 'block'; }
     return;
   }
   document.getElementById('login-screen').style.display = 'none';
@@ -729,7 +729,7 @@ function renderSidebarPageList(pages) {
 function _emptyPagesHtml(compact) {
   return `<div class="pages-empty${compact ? ' compact' : ''}">
     <div class="pe-title">연결된 페이지 없음</div>
-    <div class="pe-desc">노션에서 통합을 연결한 페이지만 목록에 나타납니다.</div>
+    <div class="pe-desc">노션에서 통합을 연결한 페이지만 목록에 표시.</div>
     <ol class="pe-steps">
       <li>노션에서 원하는 페이지 열기</li>
       <li>우측 상단 <b>···</b> → <b>연결</b></li>
@@ -1082,7 +1082,7 @@ function confirmRemoveLocalPage(pageId) {
   const el = document.querySelector(`[data-page-id="${pageId}"]`);
   const page = (window._sidebarPageList || []).find(p => p.id === pageId);
   const title = (page && page.title) ? page.title : '이 페이지';
-  showConfirm('임시 페이지 삭제', `'${title}'을(를) 삭제할까요?\n임시(로컬) 페이지는 복구할 수 없어요.`, () => removePage(pageId, el), true);
+  showConfirm('임시 페이지 삭제', `'${title}' 삭제.\n임시(로컬) 페이지는 복구 불가.`, () => removePage(pageId, el), true);
 }
 
 function removePage(pageId, el) {
@@ -1129,7 +1129,7 @@ function closeConfirm() { document.getElementById('confirm-modal').classList.rem
 let _pageEdited = (() => { try { return JSON.parse(localStorage.getItem('snlog_page_edited') || '{}'); } catch (e) { return {}; } })();
 function _savePageEdited() { try { localStorage.setItem('snlog_page_edited', JSON.stringify(_pageEdited)); } catch (e) {} }
 
-function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지를 노션에서 통째로 다시 불러옵니다.\n(개별 페이지의 ↻은 바뀐 부분만 받습니다)', bulkSync); }
+function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지를 노션에서 통째로 다시 불러오기.\n(개별 페이지 ↻은 바뀐 부분만 받음)', bulkSync); }
 
 // 전체 동기화: 모든 추가 페이지를 강제로 통째로 재요청. 증분은 페이지별 ↻이 담당.
 async function bulkSync(opts) {
@@ -1155,7 +1155,7 @@ async function bulkSync(opts) {
   }
 }
 function confirmBulkClose() {
-  showConfirm('전체 닫기', '추가된 모든 페이지 노드를 제거합니다.', () => {
+  showConfirm('전체 닫기', '추가된 모든 페이지 노드 제거.', () => {
     const ids = [..._addedPageIds];
     ids.forEach(pid => { const el = document.querySelector(`[data-page-id="${pid}"]`); removePage(pid, el); });
     document.getElementById('bulk-actions').style.display = 'none';

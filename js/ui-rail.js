@@ -315,7 +315,7 @@ function discardCurrentGraph() {
 
 // 좌측 레일 로고 → 처음 시작(노션 연결·MD) 화면 다시 열기 (확인 후)
 function backToLoginScreen() {
-  showConfirm('시작 화면으로', '현재 그래프를 비우고\n시작 화면으로 돌아갑니다.', () => {
+  showConfirm('시작 화면으로', '현재 그래프를 비우고\n시작 화면으로 이동.', () => {
     closeRailFlyout();
     discardCurrentGraph();
     const ls = document.getElementById('login-screen');

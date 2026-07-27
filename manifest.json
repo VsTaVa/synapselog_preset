@@ -1,7 +1,7 @@
 {
   "name": "SynapseLog",
   "short_name": "SynapseLog",
-  "description": "노션 페이지를 신경망 그래프로 시각화해요",
+  "description": "노션 페이지를 신경망 그래프로 시각화",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0d12",

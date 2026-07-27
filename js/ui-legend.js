@@ -235,12 +235,12 @@ function handleConnectClick(n) {
   const s = document.getElementById('status');
   if (!_connectFirstNode) {
     _connectFirstNode = n; n.connectSelected = true;
-    if (s) s.textContent = `"${n.label}" 선택됨 — 연결할 노드를 클릭하세요`;
+    if (s) s.textContent = `"${n.label}" 선택됨 — 연결할 노드 클릭`;
     isStable = false; return;
   }
   if (_connectFirstNode.id === n.id) {
     _connectFirstNode.connectSelected = false; _connectFirstNode = null;
-    if (s) s.textContent = '연결 모드: 첫 번째 노드를 클릭하세요';
+    if (s) s.textContent = '연결 모드: 첫 번째 노드 클릭';
     isStable = false; return;
   }
   const a = _connectFirstNode, b = n;

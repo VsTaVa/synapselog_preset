@@ -105,10 +105,10 @@ function _aiAnswerRAG(q) {
 function aiSaveToChild(q) {
   const parent = (_multiSelected.length === 1 ? _multiSelected[0] : null) || (typeof _activeNode !== 'undefined' ? _activeNode : null);
   _aiChatPush('user', q);
-  if (!parent) { _aiChatPush('ai', '어느 노드 아래에 넣을지 몰라요. 먼저 노드를 선택하거나 열어주세요.'); return; }
-  if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '이 노드 아래에는 하위 노드를 만들 수 없어요.'); return; }
+  if (!parent) { _aiChatPush('ai', '어느 노드 아래에 넣을지 모름. 먼저 노드를 선택하거나 열기.'); return; }
+  if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '이 노드 아래에는 하위 노드 생성 불가.'); return; }
   const lastAi = [..._aiChat].reverse().find(m => m.role === 'ai' && m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|어느 노드|넣을 내용|하위 노드로|하위 노드 생성/.test(m.text));
-  if (!lastAi) { _aiChatPush('ai', '넣을 내용이 없어요. 먼저 AI와 대화해서 글을 만들어보세요.'); return; }
+  if (!lastAi) { _aiChatPush('ai', '넣을 내용 없음. 먼저 AI와 대화해서 글 만들기.'); return; }
   const text = lastAi.text.trim();
   const lines = text.split('\n');
   const title = (lines[0] || '').replace(/^#+\s*/, '').replace(/[*_`]/g, '').slice(0, 60).trim() || '새 노드';
@@ -121,9 +121,9 @@ function aiSaveToChild(q) {
       openPanel(child);
       const idx = _stack.findIndex(x => x.id === child.id);
       if (idx >= 0 && body) setTimeout(() => { try { beginNodeEdit(idx, child, body); } catch (e) {} }, 150);
-      _aiChatReplace(waitId, `"${(parent.label || '').trim() || '노드'}" 아래에 "${title}" 하위 노드로 넣었어요.${body ? ' 편집창에서 확인 후 저장하세요.' : ''}`, []);
+      _aiChatReplace(waitId, `"${(parent.label || '').trim() || '노드'}" 아래에 "${title}" 하위 노드로 넣음.${body ? ' 편집창에서 확인 후 저장.' : ''}`, []);
     } else {
-      _aiChatReplace(waitId, '하위 노드 생성에 실패했어요.', []);
+      _aiChatReplace(waitId, '하위 노드 생성 실패.', []);
     }
   }).catch(err => _aiChatReplace(waitId, '하위 노드 생성 실패: ' + (err.message || err), []));
 }
@@ -163,7 +163,7 @@ function multiSelectStartConnect() {
   _connectMode = true;
   _connectFirstNode = node; node.connectSelected = true;
   const s = document.getElementById('status');
-  if (s) s.textContent = `"${node.label}" 기준 — 연결할 노드를 클릭하세요`;
+  if (s) s.textContent = `"${node.label}" 기준 — 연결할 노드 클릭`;
   isStable = false;
 }
 
@@ -346,14 +346,14 @@ function multiSelectOpenNotion() {
   clearMultiSelect();
   const url = _wikiUrlFor(node);
   if (url && /^https?:/i.test(url)) window.open(url, '_blank');
-  else toast('이 노드는 노션 링크가 없어요 (로컬·MD 노드)', { type: 'error' });
+  else toast('이 노드는 노션 링크 없음 (로컬·MD 노드)', { type: 'error' });
 }
 
 function multiSelectAddChild() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
   clearMultiSelect();
-  if (!canAddChild(node)) { toast('이 노드에는 하위 노드를 만들 수 없어요 (최하위/제한 노드)', { type: 'error' }); return; }
+  if (!canAddChild(node)) { toast('이 노드에는 하위 노드 생성 불가 (최하위/제한 노드)', { type: 'error' }); return; }
   createChildNode(node, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); toast('하위 노드 추가됨', { type: 'success' }); }).catch(err => toast('하위 노드 추가 실패: ' + (err.message || err), { type: 'error', duration: 5000 }));
 }
 
@@ -363,11 +363,11 @@ function multiSelectDelete() {
   const targets = _multiSelected.slice();
   clearMultiSelect();
   const deletable = targets.filter(canDeleteNode);
-  if (!deletable.length) { toast('선택한 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
+  if (!deletable.length) { toast('선택한 노드는 삭제 불가 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   const skipped = targets.length - deletable.length;
   const totalCount = deletable.reduce((s, n) => s + _subtreeIds(n.id).length, 0);
   const hasNotion = deletable.some(n => !n.local);
-  const msg = `${deletable.length}개 노드(하위 포함 총 ${totalCount}개)를 삭제할까요?`
+  const msg = `${deletable.length}개 노드(하위 포함 총 ${totalCount}개) 삭제.`
     + (skipped ? `\n(삭제 불가 ${skipped}개는 제외)` : '')
     + (hasNotion ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
   showConfirm('노드 삭제', msg, async () => {
