@@ -548,9 +548,20 @@ window.addEventListener('resize', () => {
 
 // ── 패널 너비 조절 (드래그) ───────────────────────────────────────────
 
+const DETAIL_W_MIN = 280, DETAIL_W_MAX = 720, DETAIL_W_KEEP = 360; // 폭 한계 + 그래프에 남겨둘 최소 가로
+
+// 마지막으로 쓰던 폭 기억 — 접거나 닫아도 다시 열 때 같은 폭으로 뜨게
+function saveDetailWidth() {
+  const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--detail-w'));
+  if (v) localStorage.setItem('snlog_detail_w', v);
+}
+
 (function restorePanelWidths() {
-  const dw = localStorage.getItem('snlog_detail_w');
-  if (dw) document.documentElement.style.setProperty('--detail-w', dw + 'px');
+  const dw = parseInt(localStorage.getItem('snlog_detail_w') || '');
+  if (!dw) return;
+  // 넓은 화면에서 저장한 폭이 지금 화면을 다 덮지 않게 — 그래프 자리를 최소한 남기고 복원
+  const max = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, window.innerWidth - DETAIL_W_KEEP));
+  document.documentElement.style.setProperty('--detail-w', Math.min(dw, max) + 'px');
 })();
 
 (function setupPanelResize() {
@@ -567,7 +578,7 @@ window.addEventListener('resize', () => {
     if (raw < COLLAPSE_AT) { willCollapse = true; dH.classList.add('will-collapse'); if (panel) panel.classList.add('pre-collapse'); }
     else {
       willCollapse = false; dH.classList.remove('will-collapse'); if (panel) panel.classList.remove('pre-collapse');
-      const w = Math.max(280, Math.min(720, raw));
+      const w = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, raw));
       document.documentElement.style.setProperty('--detail-w', w + 'px');
     }
   }
@@ -585,11 +596,11 @@ window.addEventListener('resize', () => {
     const panel = document.getElementById('detail-panel');
     if (willCollapse) { // 너무 좁게 끌면 아예 접힘
       willCollapse = false;
+      saveDetailWidth(); // 접히기 직전 폭도 저장 — 다시 열 때 그 폭 그대로
       if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) toggleDetailPanel();
       return;
     }
-    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--detail-w'));
-    if (v) localStorage.setItem('snlog_detail_w', v);
+    saveDetailWidth();
     try { fitGraph(); } catch (e) {} // 폭 바뀐 만큼 화면 맞춤
   }
   dH.addEventListener('mousedown', start);
