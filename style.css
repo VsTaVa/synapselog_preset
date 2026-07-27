@@ -408,16 +408,18 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
 body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
 body.resizing-panes .detail-pane { transition: none; }
-/* 경계선 탭 팝업 (갤럭시식) — 경계 위 가운데에 유리 카드 */
-.pane-divider-menu { position: absolute; left: 50%; transform: translate(-50%,-50%); z-index: 12; padding: 4px; display: flex; flex-direction: column; gap: 2px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-radius: 9px; box-shadow: 0 8px 26px rgba(0,0,0,0.55); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); animation: pdmIn 0.14s ease; }
+/* 경계선 탭 팝업 (갤럭시식) — UI 박스 없이 아이콘만 뜬다 */
+.pane-divider-menu { position: absolute; left: 50%; transform: translate(-50%,-50%); z-index: 12; padding: 0; display: flex; flex-direction: column; gap: 2px; animation: pdmIn 0.14s ease; }
 @keyframes pdmIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.94); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
-.pdm-item { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--icon); width: 30px; height: 28px; padding: 0; border-radius: 6px; cursor: pointer; transition: background 0.13s, color 0.13s; }
-.pdm-item:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
+.pdm-item { display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--icon); width: 30px; height: 28px; padding: 0; border-radius: 6px; cursor: pointer; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); transition: color 0.13s; }
+.pdm-item:hover { color: var(--accent); }
 /* 접기 팝업은 패널 왼쪽 가장자리 세로 중앙에 (전환 팝업과 앵커만 다름) */
 .panel-edge-menu { left: 0; top: 50%; }
 /* 폭을 접힘 임계 아래로 끌면 그립을 accent로 강조 — 손 떼면 접힘 예고 */
 #detail-resize-handle.will-collapse::before { background: var(--accent); height: 56px; }
-.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); transition: filter 0.15s, opacity 0.15s; }
+/* 폭을 접힘 임계 아래로 끌면 패널을 흐리게 — 놓으면 접힌다는 예고 */
+#detail-panel.pre-collapse .detail-pane { filter: blur(3px); opacity: 0.5; }
 /* 분할 시 아래 패널은 위 패널과 맞닿으므로 위쪽 테두리 겹침(2px) 제거 */
 #detail-panes.split .detail-pane + .detail-pane { border-top: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
@@ -427,11 +429,10 @@ body.resizing-panes .detail-pane { transition: none; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
 #detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
 #detail-panel.open { right: 0; }
-/* 우측 패널 열기 — 패널과 같은 유리 재질의 엣지 핸들. 화살표 대신 세로 손잡이 그립(조절 그립과 동일 언어) */
-#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 22px; height: 84px; border-radius: 12px 0 0 12px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: -6px 0 24px rgba(0,0,0,0.45); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); opacity: 0; visibility: hidden; transition: background 0.2s, width 0.15s, opacity 0.2s, visibility 0.2s; }
+/* 우측 패널 열기 — UI 박스 없이 손잡이 그립만(조절 그립과 동일 크기 4x36). 넓은 히트영역만 투명하게 확보 */
+#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
-#detail-panel-sidebar-toggle:hover { background: rgba(var(--accent-rgb),0.14); width: 27px; }
 #detail-panel-sidebar-toggle:hover::before { background: var(--accent); height: 44px; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 

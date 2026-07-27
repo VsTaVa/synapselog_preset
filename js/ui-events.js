@@ -563,9 +563,10 @@ window.addEventListener('resize', () => {
     if (!moved && (Math.abs(clientX - sx) > 5 || Math.abs(clientY - sy) > 5)) moved = true;
     if (!moved) return;
     const raw = window.innerWidth - clientX;
-    if (raw < COLLAPSE_AT) { willCollapse = true; dH.classList.add('will-collapse'); }
+    const panel = document.getElementById('detail-panel');
+    if (raw < COLLAPSE_AT) { willCollapse = true; dH.classList.add('will-collapse'); if (panel) panel.classList.add('pre-collapse'); }
     else {
-      willCollapse = false; dH.classList.remove('will-collapse');
+      willCollapse = false; dH.classList.remove('will-collapse'); if (panel) panel.classList.remove('pre-collapse');
       const w = Math.max(280, Math.min(720, raw));
       document.documentElement.style.setProperty('--detail-w', w + 'px');
     }
@@ -579,6 +580,7 @@ window.addEventListener('resize', () => {
     if (!active) return;
     active = false;
     document.body.classList.remove('resizing-panel'); dH.classList.remove('dragging', 'will-collapse');
+    const _p = document.getElementById('detail-panel'); if (_p) _p.classList.remove('pre-collapse');
     if (!moved) { // 탭 → 접기 팝업 토글
       if (typeof _edgeMenuOpen !== 'undefined' && _edgeMenuOpen) { if (typeof _closeEdgeMenu === 'function') _closeEdgeMenu(); }
       else if (typeof _openEdgeMenu === 'function') _openEdgeMenu();
