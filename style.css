@@ -189,8 +189,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --icon-dim: #4a4c53;                   /* 더 흐린 행 아이콘 — 불투명 */
   --radius-sm: 7px; --radius: 8px; --radius-lg: 12px;
   /* ── 유리질감 (레일·패널·설정·플로팅 공통) — 은은한 강도 ── */
-  --glass-bg: rgba(var(--surface-rgb),0.2);       /* 뒤 그래프가 비침 */
-  --glass-bg-solid: rgba(var(--surface-rgb),0.2); /* 스크롤 있는 설정 등 살짝 더 불투명 */
+  --glass-bg: rgba(var(--surface-rgb),0.1);       /* 뒤 그래프가 비침 */
+  --glass-bg-solid: rgba(var(--surface-rgb),0.1); /* 스크롤 있는 설정 등 살짝 더 불투명 */
   --glass-blur: blur(18px) saturate(1.4);
   --glass-border: rgba(var(--fg-rgb),0.14);
 }
@@ -396,8 +396,10 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-x { color: var(--accent); font-size: 16px; line-height: 1; }
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
-#detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 10px; padding: 0; }
-.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 12px 0 0 12px; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+#detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 0; padding: 0; }
+.detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+/* 분할 시 아래 패널은 위 패널과 맞닿으므로 위쪽 테두리 겹침(2px) 제거 */
+#detail-panes.split .detail-pane + .detail-pane { border-top: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 @keyframes paneRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }
