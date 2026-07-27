@@ -42,10 +42,10 @@ function _aiErrMsg(e) {
   const status = e && e.status;
   const raw = (e && e.message) || String(e || '');
   const m = raw.toLowerCase();
-  if (status === 429 || /\b429\b|rate limit|quota|resource[_ ]?exhausted|too many/.test(m)) return 'AI 무료 한도(분당·하루 요청 수)에 걸렸어요. 잠시 후 다시 시도해주세요.';
-  if (status === 401 || status === 403 || /api[ _]?key|permission denied|invalid.*key|unauthenticated/.test(m)) return 'AI API 키에 문제가 있어요. 설정에서 키를 다시 확인해주세요.';
-  if (/failed to fetch|networkerror|network error|load failed/.test(m)) return '네트워크 오류예요. 연결을 확인하고 다시 시도해주세요.';
-  if (/빈 응답|안전 필터/.test(raw)) return 'AI가 응답을 만들지 못했어요 (안전 필터일 수 있어요). 다시 시도해주세요.';
+  if (status === 429 || /\b429\b|rate limit|quota|resource[_ ]?exhausted|too many/.test(m)) return 'AI 무료 한도(분당·하루 요청 수) 초과. 잠시 후 다시 시도.';
+  if (status === 401 || status === 403 || /api[ _]?key|permission denied|invalid.*key|unauthenticated/.test(m)) return 'AI API 키 문제. 설정에서 키 다시 확인.';
+  if (/failed to fetch|networkerror|network error|load failed/.test(m)) return '네트워크 오류. 연결 확인 후 다시 시도.';
+  if (/빈 응답|안전 필터/.test(raw)) return 'AI 응답 생성 실패 (안전 필터일 수 있음). 다시 시도.';
   return '실패: ' + raw;
 }
 
@@ -74,7 +74,7 @@ function _aiExpandNodes(baseNodes) {
 async function aiSummarizeNodes(nodeList, userText) {
   const base = (nodeList || []).filter(Boolean);
   if (!base.length) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
   let list = _aiExpandNodes(base);
   if (list.length > 30) list = list.slice(0, 30); // 토큰 보호(상위 노드 대량 하위 대비)
   const combined = list.map(nd => {
@@ -96,7 +96,7 @@ async function aiSummarizeNodes(nodeList, userText) {
 // 노드 하나에 대해 AI가 연결하면 좋은 관련 노드를 제안 → 대화창에 '연결' 버튼으로 표시
 async function aiSuggestLinks(node, userText) {
   if (!node) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
   // 이미 연결(구조·위키)된 노드 + 자기 자신 제외
   const connected = new Set([node.id]);
   (edges || []).forEach(e => { if (e.from === node.id) connected.add(e.to); if (e.to === node.id) connected.add(e.from); });
@@ -104,7 +104,7 @@ async function aiSuggestLinks(node, userText) {
   const cands = _aiSearchNodes(query, 16).filter(c => !connected.has(c.id)).slice(0, 8);
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
   _aiChatPush('user', (userText && userText.trim()) || '/Node Link', null, null, [node]);
-  if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드를 찾지 못했어요.'); return; }
+  if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드 없음.'); return; }
   const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
   const baseText = `${(node.label || '(제목 없음)').trim()}\n${(node.desc || '').trim().slice(0, 400)}`;
   const candText = cands.map((c, i) => `[${i + 1}] ${(c.label || '(제목 없음)').trim()}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
@@ -122,8 +122,8 @@ async function aiSuggestLinks(node, userText) {
         const c = cands[idx];
         if (c && !seen.has(c.id)) { seen.add(c.id); suggestions.push({ aId: node.id, bId: c.id, targetLabel: (c.label || '(제목 없음)').trim(), reason: (m[2] || '').trim() }); }
       });
-      if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드가 없었어요.', [], null); return; }
-      _aiChatReplace(waitId, '아래 노드와 연결을 추천해요:', [], suggestions);
+      if (!suggestions.length) { _aiChatReplace(waitId, '연결할 만한 관련 노드 없음.', [], null); return; }
+      _aiChatReplace(waitId, '아래 노드와 연결 추천:', [], suggestions);
       if (typeof highlightAiNodes === 'function') highlightAiNodes([node].concat(suggestions.map(s => nodeMap[s.bId]).filter(Boolean)));
     } catch (e) {
       _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
@@ -145,11 +145,11 @@ function openAiActions(nodes) {
 // 글 다듬기: 노드 본문을 AI가 정리 → 대화창에 미리보기 + [적용](편집 열기)
 async function aiRefineNode(node, userText) {
   if (!node) return;
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
   const editable = node.local || (node.notionBlockId && node.notionParentId);
-  if (!editable) { toast('이 노드는 본문을 편집할 수 없어요 (노션 하위 노드만)', { type: 'error' }); return; }
+  if (!editable) { toast('이 노드는 본문 편집 불가 (노션 하위 노드만)', { type: 'error' }); return; }
   const body = (node.desc || '').trim();
-  if (!body) { toast('다듬을 본문이 없어요', { type: 'error' }); return; }
+  if (!body) { toast('다듬을 본문 없음', { type: 'error' }); return; }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
   _aiChatPush('user', (userText && userText.trim()) || '/Node Edit', null, null, [node]);
   const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
@@ -169,9 +169,9 @@ async function aiRefineNode(node, userText) {
 // 웹/유튜브 링크 → 서버리스로 본문·자막 추출 → 제미나이 마크다운 → 그래프 로컬 노드
 async function aiImportUrl(url) {
   url = (url || '').trim();
-  if (!url) { toast('/Import 뒤에 웹 주소나 유튜브 링크를 넣어주세요', { type: 'error' }); return; }
-  if (!/^https?:\/\//i.test(url)) { toast('http로 시작하는 링크를 넣어주세요', { type: 'error' }); return; }
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (!url) { toast('/Import 뒤에 웹 주소나 유튜브 링크 입력', { type: 'error' }); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('http로 시작하는 링크 입력', { type: 'error' }); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
   if (_activeRailSection !== 'aichat') openRailSection('aichat');
   const isYt = /(?:youtube\.com|youtu\.be)/i.test(url);
   _aiChatPush('user', `/Import ${url}`);
@@ -185,12 +185,12 @@ async function aiImportUrl(url) {
     if (!res.ok) throw new Error(data.error || ('추출 실패 (HTTP ' + res.status + ')'));
     const srcTitle = (data.title || '').trim() || (isYt ? '유튜브 영상' : '가져온 문서');
     const bodyText = (data.text || '').trim();
-    if (!bodyText) throw new Error('내용을 추출하지 못했어요 (자막 없음 / 접근 차단)');
+    if (!bodyText) throw new Error('내용 추출 실패 (자막 없음 / 접근 차단)');
     _aiChatReplace(waitId, '요약·마크다운 작성 중… ⏳', []);
     const prompt = `아래 ${isYt ? '유튜브 자막' : '웹 문서'} 내용을 한국어 마크다운으로 구조화해줘.\n[규칙]\n- 첫 줄은 "# 제목" 하나 (문서 전체 제목)\n- 주요 주제는 "## 소제목", 세부 내용은 "- 불릿"으로\n- 핵심만 간결히, 원문에 없는 내용은 지어내지 마\n- 코드블록·설명·머리말 없이 마크다운 본문만 출력\n\n[출처 제목] ${srcTitle}\n[내용]\n${bodyText.slice(0, 8000)}`;
     let md = (await geminiGenerate(prompt)).trim();
     md = md.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/i, '').trim();
-    if (!md) throw new Error('마크다운 생성 결과가 비어있어요');
+    if (!md) throw new Error('마크다운 생성 결과 비어있음');
     const title = (md.match(/^#\s+(.+)$/m)?.[1] || srcTitle).trim();
     // 임시(local) 페이지로 추가 — 생성된 마크다운이라 저장 전이므로 "임시" 취급(편집·저장·내보내기 대상)
     const pageId = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -204,7 +204,7 @@ async function aiImportUrl(url) {
     if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
     if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
     isStable = false;
-    _aiChatReplace(waitId, `"${title}" 를 임시 노드로 추가했어요. (${isYt ? '자막' : '본문'} 기반 — 저장하려면 사이드바에서 내보내기)`, []);
+    _aiChatReplace(waitId, `"${title}" 임시 노드로 추가됨. (${isYt ? '자막' : '본문'} 기반 — 저장하려면 사이드바에서 내보내기)`, []);
     if (typeof fitGraph === 'function') setTimeout(() => fitGraph(true), 400);
     } catch (e) {
       _aiChatReplace(waitId, _aiErrMsg(e), [], null, null, run);
@@ -331,7 +331,7 @@ function _renderAiChat() {
   if (!_aiChat.length) {
     box.innerHTML =
       `<div class="aichat-help">` +
-        `<div class="aichat-help-title">AI 기능을 사용하려면 Gemini API 키(무료)가 필요합니다</div>` +
+        `<div class="aichat-help-title">AI 기능 사용에 Gemini API 키(무료) 필요</div>` +
         `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속 → <b>Create API key</b> → 키 복사 </div>` +
         `<div class="aichat-help-step"><b>2.</b> 좌측 하단 <b>설정(⚙)</b> → <b>AI API 키</b> 입력 후 저장</div>` +
         `<div class="aichat-help-step"><b>3.</b> AI 대화창에서 노드 검색, 요약, 편집 가능</div>` +
@@ -393,7 +393,7 @@ function applyAiRefineFromMsg(mid) {
   const m = _aiChat.find(x => x.id === mid);
   if (!m || !m.refine) return;
   const node = nodeMap[m.refine.nodeId];
-  if (!node) { toast('노드를 찾을 수 없어요', { type: 'error' }); return; }
+  if (!node) { toast('노드를 찾을 수 없음', { type: 'error' }); return; }
   openPanel(node);
   const idx = _stack.findIndex(x => x.id === node.id);
   if (idx < 0) return;
@@ -654,7 +654,7 @@ async function sendAiChat() {
       return;
     }
   }
-  if (!_savedAiKey) { toast('설정에서 AI API 키를 먼저 입력해주세요', { type: 'error' }); openSettings(); return; }
+  if (!_savedAiKey) { toast('설정에서 AI API 키 먼저 입력', { type: 'error' }); openSettings(); return; }
   if (input) { input.value = ''; _autoGrowAiInput(input); }
   // 저장: 대화하며 만든 글을 하위 노드로 넣기 ("하위노드에 넣어줘")
   if (/하위\s*노드|자식\s*노드|노드에?\s*넣|노드로\s*(넣|만들|저장)|하위로\s*넣/.test(q)) { aiSaveToChild(q); return; }

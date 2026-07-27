@@ -261,12 +261,12 @@ function deleteNodeSmart(node) {
 
 // 노드 삭제 진입점 — keepChildren=true면 이 노드만 삭제(하위 보존)
 function deleteNodeConfirm(node, keepChildren) {
-  if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제할 수 없어요 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
+  if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제 불가 (페이지·DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   if (keepChildren) {
     const parentEdge = getParentEdge(node.id);
-    if (!parentEdge) { toast('상위 노드가 없어 이 노드만 삭제할 수 없어요', { type: 'error' }); return; }
+    if (!parentEdge) { toast('상위 노드가 없어 이 노드만 삭제 불가', { type: 'error' }); return; }
     const childCount = edges.filter(e => e.from === node.id && !e.weakLink && !e.manualLink).length;
-    const msg = `'${node.label}' 노드만 삭제할까요?\n하위 ${childCount}개는 상위 노드로 옮겨집니다.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
+    const msg = `'${node.label}' 노드만 삭제.\n하위 ${childCount}개는 상위 노드로 이동.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
     showConfirm('이 노드만 삭제', msg, async () => {
       _undoDelete = { entries: [] };
       await deleteNodeOnly(node);
@@ -275,7 +275,7 @@ function deleteNodeConfirm(node, keepChildren) {
     }, true);
   } else {
     const total = _subtreeIds(node.id).length;
-    const msg = `'${node.label}' 노드(하위 포함 총 ${total}개)를 삭제할까요?` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
+    const msg = `'${node.label}' 노드(하위 포함 총 ${total}개) 삭제.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
     showConfirm('노드 삭제', msg, async () => {
       _undoDelete = { entries: [] };
       await deleteNodeSubtree(node);
@@ -437,7 +437,7 @@ canvas.addEventListener('contextmenu', e => {
     const d = Math.sqrt(px * px + py * py);
     if (d < minDist) { minDist = d; closest = e2; }
   });
-  if (closest) { if (confirm(`"${nodeMap[closest.from]?.label}" ↔ "${nodeMap[closest.to]?.label}" 연결을 삭제할까요?`)) { removeManualLink(closest.from, closest.to); } }
+  if (closest) { if (confirm(`"${nodeMap[closest.from]?.label}" ↔ "${nodeMap[closest.to]?.label}" 연결 삭제.`)) { removeManualLink(closest.from, closest.to); } }
 });
 
 canvas.addEventListener('wheel', e => {
@@ -585,9 +585,9 @@ const LANG = {
     'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
     'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
     'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
-    'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드를 입력해 주세요',
+    'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 입력',
     'btn-sync-all':'전체 동기화','btn-close-all':'전체 닫기',
-    's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어를 변경합니다',
+    's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어 변경',
     's-api':'Notion API','sc-save':'저장','sc-placeholder-token':'새 API 입력...',
     's-aikey':'AI API','s-aikey-sub':'Google AI Studio 제미나이 키. 선택 노드 요약·마크다운 작성에 사용.','s-aikey-ph':'AIza...',
     's-imgsize':'이미지 저장 크기',
@@ -604,7 +604,7 @@ const LANG = {
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
     'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 · 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space · 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그','sc-zoom':'화면 확대 / 축소','sc-zoom-sub':'마우스 휠 (모바일: 두 손가락)','sc-zoom-key':'마우스 휠',
-    's-local-warn':'⚠ API 토큰이 이 기기의 브라우저에 저장됩니다. 공용 컴퓨터에서는 사용을 권장하지 않습니다.',
+    's-local-warn':'⚠ API 토큰이 이 기기 브라우저에 저장됨. 공용 컴퓨터 사용 비권장.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'⚠ 로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
@@ -784,32 +784,32 @@ function onStorageToggle(el) {
 function updateToken() {
   const input = document.getElementById('settings-token-input'), msg = document.getElementById('settings-token-msg');
   const val = input?.value.trim();
-  if (!val) { if (msg) { msg.textContent = '토큰을 입력해주세요'; msg.style.display = 'block'; } return; }
-  if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식이 아닙니다 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
+  if (!val) { if (msg) { msg.textContent = '토큰 입력 필요'; msg.style.display = 'block'; } return; }
+  if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식 아님 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
   _savedToken = val;
   sessionStorage.setItem('snlog_token', _encKey(val));
   if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
-  if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
+  if (msg) { msg.textContent = '저장됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile();
 }
 
 function updateAiKey() {
   const input = document.getElementById('settings-aikey-input'), msg = document.getElementById('settings-aikey-msg');
   const val = input?.value.trim();
-  if (!val) { if (msg) { msg.textContent = 'API 키를 입력해주세요'; msg.style.display = 'block'; } return; }
+  if (!val) { if (msg) { msg.textContent = 'API 키 입력 필요'; msg.style.display = 'block'; } return; }
   _savedAiKey = val;
   sessionStorage.setItem('snlog_ai_key', _encKey(val));
   if (_useLocalStorage) localStorage.setItem('snlog_ai_key', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'AI API 저장됨'; }
-  if (msg) { msg.textContent = '저장됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
+  if (msg) { msg.textContent = '저장됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
 }
 
 function clearCache(type) {
   // 전체 초기화: 노드 모드(색상·배치·연결/제목 표시·회전)·그래프 설정(슬라이더)·페이지·북마크·본문 캐시 등 전부 삭제.
   // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
   if (type === 'all') {
-    showConfirm('전체 초기화', '노드 모드·그래프 설정을 포함해 저장된 데이터를 전부 초기화할까요?\n(로그인·언어·단축키는 유지되고, 새로고침됩니다)', () => {
+    showConfirm('전체 초기화', '노드 모드·그래프 설정 포함 저장 데이터 전체 초기화.\n(로그인·언어·단축키 유지, 새로고침됨)', () => {
       const keep = ['snlog_token','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
       [...Object.keys(sessionStorage), ...Object.keys(localStorage)]
         .filter(k => k.startsWith('snlog_') && !keep.includes(k))
@@ -828,14 +828,14 @@ function clearCache(type) {
   if (type === 'connect') { sessionStorage.removeItem('snlog_manual_links'); localStorage.removeItem('snlog_manual_links'); }
   if (type === 'search') { sessionStorage.removeItem('snlog_search_history'); localStorage.removeItem('snlog_search_history'); }
   const msg = document.getElementById('settings-token-msg');
-  if (msg) { msg.textContent = '삭제됐어요'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 1500); }
+  if (msg) { msg.textContent = '삭제됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 1500); }
 }
 
 // AI 대화 기록 삭제 (세션 + 로컬 저장분)
 // 사용 기록만 삭제 — AI 대화 · 검색 기록/자주 검색 · 최근/자주 본 노드.
 // (수동연결·북마크·페이지·설정 등 실제 데이터는 건드리지 않음)
 function clearChatAndRecent() {
-  showConfirm('사용 기록 삭제', 'AI 대화, 검색 기록, 최근·자주 본 노드 기록을 모두 지울까요?', () => {
+  showConfirm('사용 기록 삭제', 'AI 대화·검색 기록·최근·자주 본 노드 기록 전체 삭제.', () => {
     const drop = k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} };
     // AI 대화
     _aiChat = [];
@@ -852,34 +852,34 @@ function clearChatAndRecent() {
     if (typeof _nodeViews !== 'undefined') _nodeViews = {};
     drop('snlog_node_views');
     if (typeof renderBookmarkList === 'function') renderBookmarkList();
-    toast('사용 기록을 지웠어요', { type: 'success' });
+    toast('사용 기록 삭제됨', { type: 'success' });
   }, true);
 }
 
 // 저장된 노션 토큰 삭제 (세션 + 로컬)
 function clearToken() {
-  if (!_savedToken) { const m = document.getElementById('settings-token-msg'); if (m) { m.textContent = '저장된 토큰이 없어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
-  showConfirm('노션 토큰 삭제', '저장된 노션 API 토큰을 지울까요?', () => {
+  if (!_savedToken) { const m = document.getElementById('settings-token-msg'); if (m) { m.textContent = '저장된 토큰 없음'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
+  showConfirm('노션 토큰 삭제', '저장된 노션 API 토큰 삭제.', () => {
     _savedToken = '';
     try { sessionStorage.removeItem('snlog_token'); localStorage.removeItem('snlog_token'); } catch (e) {}
     const input = document.getElementById('settings-token-input');
     if (input) { input.value = ''; input.placeholder = t('sc-placeholder-token') || '새 토큰 입력...'; }
     const m = document.getElementById('settings-token-msg');
-    if (m) { m.textContent = '삭제됐어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
+    if (m) { m.textContent = '삭제됨'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
     if (typeof loadProfile === 'function') loadProfile();
   }, true);
 }
 
 // 저장된 AI API 키 삭제 (세션 + 로컬)
 function clearAiKey() {
-  if (!_savedAiKey) { const m = document.getElementById('settings-aikey-msg'); if (m) { m.textContent = '저장된 키가 없어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
-  showConfirm('AI API 키 삭제', '저장된 AI API 키를 지울까요?', () => {
+  if (!_savedAiKey) { const m = document.getElementById('settings-aikey-msg'); if (m) { m.textContent = '저장된 키 없음'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
+  showConfirm('AI API 키 삭제', '저장된 AI API 키 삭제.', () => {
     _savedAiKey = '';
     try { sessionStorage.removeItem('snlog_ai_key'); localStorage.removeItem('snlog_ai_key'); } catch (e) {}
     const input = document.getElementById('settings-aikey-input');
     if (input) { input.value = ''; input.placeholder = 'AIza...'; }
     const m = document.getElementById('settings-aikey-msg');
-    if (m) { m.textContent = '삭제됐어요'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
+    if (m) { m.textContent = '삭제됨'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
   }, true);
 }
 
