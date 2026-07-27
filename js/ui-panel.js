@@ -151,6 +151,38 @@ function _openPaneMenu() {
   }, 0);
 }
 
+// 좌우 폭 그립 탭 → 접기 팝업 (현재 액션: 패널 접기). 패널 왼쪽 가장자리 세로 중앙에 뜬다
+let _edgeMenuOpen = false, _edgeMenuDocHandler = null;
+function _closeEdgeMenu() {
+  const m = document.getElementById('panel-edge-menu');
+  if (m) m.remove();
+  if (_edgeMenuDocHandler) {
+    document.removeEventListener('mousedown', _edgeMenuDocHandler);
+    document.removeEventListener('touchstart', _edgeMenuDocHandler);
+    _edgeMenuDocHandler = null;
+  }
+  _edgeMenuOpen = false;
+}
+function _openEdgeMenu() {
+  _closeEdgeMenu();
+  const panel = document.getElementById('detail-panel');
+  if (!panel || !anyTabs()) return;
+  const m = document.createElement('div');
+  m.id = 'panel-edge-menu';
+  m.className = 'pane-divider-menu panel-edge-menu';
+  m.innerHTML = `<button type="button" class="pdm-item" title="패널 접기" aria-label="패널 접기">${_paneCollapseIcon}</button>`;
+  m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closeEdgeMenu(); toggleDetailPanel(); };
+  panel.appendChild(m);
+  _edgeMenuOpen = true;
+  setTimeout(() => {
+    _edgeMenuDocHandler = (ev) => {
+      if (!ev.target.closest('#panel-edge-menu') && !ev.target.closest('#detail-resize-handle')) _closeEdgeMenu();
+    };
+    document.addEventListener('mousedown', _edgeMenuDocHandler);
+    document.addEventListener('touchstart', _edgeMenuDocHandler);
+  }, 0);
+}
+
 // 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
 function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
@@ -166,7 +198,6 @@ function renderPanes(animateId) {
       `<div class="detail-header">` +
         `<div class="detail-title"></div>` +
         `<div class="detail-header-actions">` +
-          `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
           `<button class="pane-x" title="닫기">✕</button>` +
         `</div>` +
       `</div>` +
@@ -174,7 +205,6 @@ function renderPanes(animateId) {
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
-    el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
     wrap.appendChild(el);
     renderPaneContent(i, node);

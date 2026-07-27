@@ -556,25 +556,49 @@ window.addEventListener('resize', () => {
 (function setupPanelResize() {
   const dH = document.getElementById('detail-resize-handle');
   if (!dH) return;
-  let active = false;
-  function onMove(clientX) {
+  const COLLAPSE_AT = 200; // 이보다 좁게 끌면 손 떼는 순간 접힘(최소폭 280 아래 저항 구간)
+  let active = false, moved = false, willCollapse = false, sx = 0, sy = 0;
+  function onMove(clientX, clientY) {
     if (!active) return;
-    const w = Math.max(280, Math.min(720, window.innerWidth - clientX));
-    document.documentElement.style.setProperty('--detail-w', w + 'px');
+    if (!moved && (Math.abs(clientX - sx) > 5 || Math.abs(clientY - sy) > 5)) moved = true;
+    if (!moved) return;
+    const raw = window.innerWidth - clientX;
+    if (raw < COLLAPSE_AT) { willCollapse = true; dH.classList.add('will-collapse'); }
+    else {
+      willCollapse = false; dH.classList.remove('will-collapse');
+      const w = Math.max(280, Math.min(720, raw));
+      document.documentElement.style.setProperty('--detail-w', w + 'px');
+    }
   }
-  function start(e) { active = true; e.preventDefault(); document.body.classList.add('resizing-panel'); dH.classList.add('dragging'); }
+  function start(e) {
+    active = true; moved = false; willCollapse = false;
+    const t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY;
+    e.preventDefault(); document.body.classList.add('resizing-panel'); dH.classList.add('dragging');
+  }
   function end() {
     if (!active) return;
+    active = false;
+    document.body.classList.remove('resizing-panel'); dH.classList.remove('dragging', 'will-collapse');
+    if (!moved) { // 탭 → 접기 팝업 토글
+      if (typeof _edgeMenuOpen !== 'undefined' && _edgeMenuOpen) { if (typeof _closeEdgeMenu === 'function') _closeEdgeMenu(); }
+      else if (typeof _openEdgeMenu === 'function') _openEdgeMenu();
+      return;
+    }
+    const panel = document.getElementById('detail-panel');
+    if (willCollapse) { // 너무 좁게 끌면 아예 접힘
+      willCollapse = false;
+      if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) toggleDetailPanel();
+      return;
+    }
     const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--detail-w'));
     if (v) localStorage.setItem('snlog_detail_w', v);
-    document.body.classList.remove('resizing-panel'); dH.classList.remove('dragging'); active = false;
     try { fitGraph(); } catch (e) {} // 폭 바뀐 만큼 화면 맞춤
   }
   dH.addEventListener('mousedown', start);
-  window.addEventListener('mousemove', e => onMove(e.clientX));
+  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
   window.addEventListener('mouseup', end);
   dH.addEventListener('touchstart', start, { passive: false });
-  window.addEventListener('touchmove', e => { if (active) { onMove(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  window.addEventListener('touchmove', e => { if (active) { onMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, { passive: false });
   window.addEventListener('touchend', end);
 })();
 
