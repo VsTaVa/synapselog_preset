@@ -559,7 +559,7 @@ window.addEventListener('resize', () => {
   let active = false;
   function onMove(clientX) {
     if (!active) return;
-    const w = Math.max(280, Math.min(720, window.innerWidth - clientX - 12));
+    const w = Math.max(280, Math.min(720, window.innerWidth - clientX));
     document.documentElement.style.setProperty('--detail-w', w + 'px');
   }
   function start(e) { active = true; e.preventDefault(); document.body.classList.add('resizing-panel'); dH.classList.add('dragging'); }

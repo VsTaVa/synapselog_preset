@@ -221,8 +221,10 @@ input, textarea, [contenteditable="true"] {
   -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
 }
 body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: none; }
-#detail-resize-handle { position: absolute; top: 0; left: -3px; width: 6px; height: 100%; cursor: ew-resize; background: transparent; transition: background 0.15s; z-index: 10; }
-#detail-resize-handle:hover, #detail-resize-handle.dragging { background: rgba(var(--accent-rgb),0.4); }
+/* 좌우 폭 조절 핸들 — 상하 구분선과 같은 그립 스타일(세로 알약), 경계에 떠 있음 */
+#detail-resize-handle { position: absolute; top: 0; left: -7px; width: 14px; height: 100%; cursor: ew-resize; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; touch-action: none; }
+#detail-resize-handle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: rgba(var(--fg-rgb),0.2); box-shadow: 0 0 0 1px rgba(0,0,0,0.35); transition: background 0.15s, height 0.15s; }
+#detail-resize-handle:hover::before, #detail-resize-handle.dragging::before { background: var(--accent); height: 44px; }
 #sidebar-page-list::-webkit-scrollbar, #md-folder-list::-webkit-scrollbar { width: 3px; }
 #sidebar-page-list::-webkit-scrollbar-thumb, #md-folder-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 /* 페이지 목록 상·하위 구분: 깊이만큼 들여쓰고 그만큼 세로 가이드선(Indent Guide) */
@@ -391,8 +393,8 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #confirm-ok:hover { background: rgba(var(--accent-rgb),0.25); }
 .detail-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 16px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .detail-header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-.pane-collapse-btn, .pane-x, .pane-swap-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-.pane-collapse-btn:hover, .pane-swap-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.pane-collapse-btn, .pane-x { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.pane-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
 .pane-x { color: var(--accent); font-size: 16px; line-height: 1; }
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
@@ -405,6 +407,11 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
 body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
 body.resizing-panes .detail-pane { transition: none; }
+/* 경계선 탭 팝업 (갤럭시식) — 경계 위 가운데에 유리 카드 */
+.pane-divider-menu { position: absolute; left: 50%; transform: translate(-50%,-50%); z-index: 8; padding: 4px; display: flex; flex-direction: column; gap: 2px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-radius: 9px; box-shadow: 0 8px 26px rgba(0,0,0,0.55); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); animation: pdmIn 0.14s ease; }
+@keyframes pdmIn { from { opacity: 0; transform: translate(-50%,-50%) scale(0.94); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+.pdm-item { display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--text); font-family: inherit; font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; transition: background 0.13s, color 0.13s; }
+.pdm-item:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
 .detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 /* 분할 시 아래 패널은 위 패널과 맞닿으므로 위쪽 테두리 겹침(2px) 제거 */
 #detail-panes.split .detail-pane + .detail-pane { border-top: none; }

@@ -77,22 +77,28 @@ function _applyPaneRatio() {
   const dv = wrap.querySelector('.pane-divider');
   if (dv) dv.style.top = (_paneRatio * 100) + '%';
 }
-// 경계선 드래그: 마우스·터치 공통. 드래그 동안만 document 리스너를 달았다 뗀다(누적 방지)
+// 경계선 조작: 드래그=크기조절, 짧은 탭(움직임<5px)=위·아래 전환 팝업. 드래그 동안만 document 리스너를 달았다 뗀다(누적 방지)
 function _startPaneDrag(e, dv) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
   const avail = wrap.clientHeight;
   if (avail <= 0) return;
   const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  const startX = e.touches ? e.touches[0].clientX : e.clientX;
   const startRatio = _paneRatio;
   const minR = Math.min(0.35, 64 / avail); // 한쪽이 최소 64px는 남게
+  let moved = false;
   document.body.classList.add('resizing-panes');
   dv.classList.add('dragging');
   const move = (ev) => {
     const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
-    let r = startRatio + (y - startY) / avail;
-    _paneRatio = Math.max(minR, Math.min(1 - minR, r));
-    _applyPaneRatio();
+    const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    if (!moved && (Math.abs(y - startY) > 5 || Math.abs(x - startX) > 5)) moved = true;
+    if (moved) {
+      const r = startRatio + (y - startY) / avail;
+      _paneRatio = Math.max(minR, Math.min(1 - minR, r));
+      _applyPaneRatio();
+    }
     if (ev.cancelable) ev.preventDefault();
   };
   const up = () => {
@@ -102,6 +108,7 @@ function _startPaneDrag(e, dv) {
     document.removeEventListener('touchend', up);
     document.body.classList.remove('resizing-panes');
     dv.classList.remove('dragging');
+    if (!moved) { _paneMenuOpen ? _closePaneMenu() : _openPaneMenu(); } // 탭 → 팝업 토글
   };
   document.addEventListener('mousemove', move);
   document.addEventListener('touchmove', move, { passive: false });
@@ -110,10 +117,45 @@ function _startPaneDrag(e, dv) {
   if (e.cancelable) e.preventDefault();
 }
 
+// 경계선 탭 → 갤럭시식 팝업(현재 액션: 위·아래 전환). 패널 밖으로 나가도 안 잘리게 #detail-panel에 붙임
+let _paneMenuOpen = false, _paneMenuDocHandler = null;
+function _closePaneMenu() {
+  const m = document.getElementById('pane-divider-menu');
+  if (m) m.remove();
+  if (_paneMenuDocHandler) {
+    document.removeEventListener('mousedown', _paneMenuDocHandler);
+    document.removeEventListener('touchstart', _paneMenuDocHandler);
+    _paneMenuDocHandler = null;
+  }
+  _paneMenuOpen = false;
+}
+function _openPaneMenu() {
+  _closePaneMenu();
+  const panel = document.getElementById('detail-panel');
+  if (!panel || _stack.length < 2) return;
+  const m = document.createElement('div');
+  m.id = 'pane-divider-menu';
+  m.className = 'pane-divider-menu';
+  m.style.top = (_paneRatio * 100) + '%';
+  m.innerHTML = `<button type="button" class="pdm-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg><span>위·아래 전환</span></button>`;
+  m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closePaneMenu(); swapPanes(); };
+  panel.appendChild(m);
+  _paneMenuOpen = true;
+  // 바깥 클릭 닫기 (다음 틱에 등록해 이번 탭이 곧바로 닫지 않게). 그립 재탭은 up()의 토글이 처리
+  setTimeout(() => {
+    _paneMenuDocHandler = (ev) => {
+      if (!ev.target.closest('#pane-divider-menu') && !ev.target.closest('.pane-divider-grip')) _closePaneMenu();
+    };
+    document.addEventListener('mousedown', _paneMenuDocHandler);
+    document.addEventListener('touchstart', _paneMenuDocHandler);
+  }, 0);
+}
+
 // 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
 function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
+  if (typeof _closePaneMenu === 'function') _closePaneMenu(); // 재렌더 시 떠 있던 경계 팝업 정리
   wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
   _stack.forEach((node, i) => {
@@ -124,7 +166,6 @@ function renderPanes(animateId) {
       `<div class="detail-header">` +
         `<div class="detail-title"></div>` +
         `<div class="detail-header-actions">` +
-          (_stack.length >= 2 ? `<button class="pane-swap-btn" title="위·아래 패널 교체"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>` : '') +
           `<button class="pane-collapse-btn" title="패널 접기">${_paneCollapseIcon}</button>` +
           `<button class="pane-x" title="닫기">✕</button>` +
         `</div>` +
@@ -133,8 +174,6 @@ function renderPanes(animateId) {
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
-    const swb = el.querySelector('.pane-swap-btn');
-    if (swb) swb.onclick = (e) => { e.stopPropagation(); swapPanes(); };
     el.querySelector('.pane-collapse-btn').onclick = (e) => { e.stopPropagation(); toggleDetailPanel(); };
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
     wrap.appendChild(el);
