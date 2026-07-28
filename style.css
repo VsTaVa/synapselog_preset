@@ -242,12 +242,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-toggle.open { transform:rotate(90deg); color:var(--accent); }
 .pli-toggle-sp { flex-shrink:0; width:15px; }
 /* 조상 단계 세로선 — 아래로 형제가 남은 단계만 JS가 개별로 넣어줌 */
-.pli-g { position:absolute; top:-4px; bottom:0; width:0; left:calc((var(--k) - 1) * 13px + 5px); border-left:2px solid var(--accent); pointer-events:none; }
 /* 가장 안쪽 단계: '[' 모양 — 그룹 첫 행에서 위로, 마지막 행에서 아래로 꺾임.
    위로만 -4px 늘려 행 사이 간격을 잇고 아래로는 넘기지 않음(마지막 행 밑으로 흘러내림 방지) */
-.pli-row.pli-child::after { content:''; position:absolute; left:calc((var(--d,0) - 1) * 13px + 5px); width:7px; top:-4px; bottom:0; border-left:2px solid var(--accent); pointer-events:none; }
-.pli-row.pli-child.pli-first::after { top:50%; border-top:2px solid var(--accent); border-top-left-radius:4px; }
-.pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:2px solid var(--accent); border-bottom-left-radius:4px; }
 /* 하위가 하나뿐이면 위아래 선이 겹치므로 가로 팔 하나만 */
 /* ── 초기 페이지 선택 화면 (인라인 스타일 이관 · 토큰 사용) ── */
 .picker-sub { margin-bottom:14px; }
@@ -299,7 +295,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item .item-actions .btn-favorite:hover { color:var(--accent); }
 .page-list-item .item-actions .btn-favorite.active { color:var(--accent); }
 /* MD 폴더 행 — 페이지 목록 안에서 DB 그룹 머리글과 같은 규격, 아이콘만 폴더 */
-.md-folder-ic { color:var(--icon); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
+.md-folder-ic { color:var(--accent); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
 .pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }

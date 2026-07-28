@@ -907,31 +907,9 @@ function _pliHasSibling(ordered, row, dir) {
   }
   return false;
 }
-function _pliRowClass(ordered, i) {
-  const row = ordered[i];
-  // 선을 그리지 않는 행: 최상위 / 상위 행이 목록에 없는 묶음 / 묶음 머리글(DB·MD 폴더)
-  if (!row.depth || !row.parentRowId || row.p.isDatabase || row.p.isFolder) return 'pli-row';
-  const up = _pliHasSibling(ordered, row, -1), down = _pliHasSibling(ordered, row, 1);
-  if (!up && !down) return 'pli-row'; // 형제 없는 외동은 묶을 게 없으니 선도 안 그림
-  let cls = 'pli-row pli-child';
-  if (!up) cls += ' pli-first';
-  if (!down) cls += ' pli-last';
-  return cls;
-}
-
-// 조상 단계 세로선 — 실제 상위 행이 있고, 그 단계에 아래로 형제가 남았을 때만
-function _pliGuides(ordered, i) {
-  const map = _pliIndex(ordered);
-  let html = '', pid = ordered[i].parentRowId;
-  while (pid !== null && pid !== undefined) {
-    const idx = map.get(pid);
-    const anc = idx === undefined ? null : ordered[idx];
-    if (!anc) break;
-    if (anc.parentRowId && _pliHasSibling(ordered, anc, 1)) html += `<i class="pli-g" style="--k:${anc.depth}"></i>`;
-    pid = anc.parentRowId;
-  }
-  return html;
-}
+// 연결선(트리 라인)은 그리지 않음 — 간격(들여쓰기)·토글만 유지
+function _pliRowClass(ordered, i) { return 'pli-row'; }
+function _pliGuides(ordered, i) { return ''; }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
 function _orderPagesByHierarchy(pages) {
