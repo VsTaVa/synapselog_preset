@@ -267,7 +267,7 @@ function renderPaneContent(i, n) {
   rawDesc = rawDesc.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => {
     const decUrl = url.replace(/&amp;/g, '&');
     const target = (typeof _nodeFromLinkUrl === 'function') ? _nodeFromLinkUrl(decUrl) : null;
-    // 수정 모드와 동일하게 칩(🔗 + 제목만, URL 숨김)으로 표시
+    // 보기 모드에서만 칩(🔗 + 제목만, URL 숨김). 편집 모드는 원문 그대로 보여준다
     if (target) return `<span class="wl-ref wl-chip" data-nid="${target.id}" style="${_chipColorStyle(target)}">${txt}</span>`;
     return `<a class="wl-ref wl-chip wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
@@ -422,13 +422,13 @@ function toast(msg, opts) {
 
 // ── 편집 서식: contenteditable WYSIWYG (볼드/취소선) ──────────────────
 // 저장 시 마크다운(**·~~)으로 직렬화, 표시 시 HTML로 변환
+// 링크는 칩으로 바꾸지 않는다 — 편집 모드에서는 [텍스트](url) / [[노트#헤딩]] 원문 그대로 보여야
+// 링크를 직접 고치거나 지울 수 있다(보기 모드에서만 칩으로 렌더)
 function htmlFromMarkdown(t) {
   return escapeHtml(t || '')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
-    // [텍스트](url) → 편집기에서 원자적 링크 칩(긴 URL 숨김). href엔 원본 유지
-    .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (m, txt, url) => `<a href="${url}" class="wl-ref wl-chip" contenteditable="false">${txt}</a>`);
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
 }
 // 편집기 안에서도 검색 키워드를 강조 — 텍스트 노드만 감싸므로 태그·href가 깨지지 않고,
 // markdownFromHtml이 모르는 태그(<mark>)는 텍스트만 남기고 벗겨내므로 저장에 영향 없음
@@ -853,7 +853,12 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       const keptExistingIds = new Set(rows.filter(r => !r.isNew && valOf(r).trim()).map(r => r.blk.id));
       return (node.bodyBlocks || []).some(b => !keptExistingIds.has(b.id));
     })();
-    if (!titleChanged && !dirty.length && !reordered && !deleted) { finish(); return; }
+    // 로컬(MD)은 본문이 desc 한 덩어리라 '행을 통째로 지운' 변경이 dirty/deleted에 안 잡힌다
+    // (dirty는 남은 행만 보고, deleted는 노션 bodyBlocks 기준) → 재구성한 본문과 원본을 직접 비교
+    const normBody = s => String(s || '').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
+    const localBody = () => normBody(rows.map(valOf).join('\n'));
+    const localChanged = isLocal && localBody() !== normBody(node.desc);
+    if (!titleChanged && !dirty.length && !reordered && !deleted && !localChanged) { finish(); return; }
 
     const origBody = (node.bodyBlocks || []).slice();
     const oldBodyIds = origBody.map(b => b.id);
@@ -866,7 +871,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     try {
       if (isLocal) {
         if (titleChanged) node.label = newTitle;
-        node.desc = rows.map(valOf).join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
+        node.desc = localBody();
+        node.bodyBlocks = []; // 로컬 본문은 desc가 원본 — 남아 있던 블록이 우선 읽혀 삭제가 되돌아 보이던 문제
         saveLocalPages();
         // MD 파일에서 온 노드면 원본 .md에 되쓰기(핸들 있을 때만). 실패해도 세션 저장은 유지
         if (typeof writeBackMdFile === 'function' && String(node.sourcePageId || '').startsWith('md_')) {
