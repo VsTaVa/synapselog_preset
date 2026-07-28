@@ -167,10 +167,20 @@ function _wikiUrlFor(b) {
 }
 function _wikiLinkText(b) { return `[${b.label}](${_wikiUrlFor(b)})`; }
 // 로컬(옵시디언) 링크 문법: 파일=[[노트]], 헤딩=[[노트#헤딩]]
+// [ ] | # 은 [[ ]] 안에 못 들어간다(옵시디언도 동일). 노션 내보내기 파일명처럼 라벨에 이런 문자가
+// 섞이면 [[[작업] 3633…#제목]] 같은 깨진 참조가 되어 링크가 해석되지 않으므로, 그럴 땐 내부 링크
+// [텍스트](snlog:node:<페이지>:<라벨>) 형태로 쓴다 — 라벨이 URL 인코딩돼 어떤 문자든 안전
+const _WIKI_UNSAFE = /[\[\]|#\n]/;
 function _wikiLinkTextLocal(b) {
-  if (b.level === 0) return `[[${b.label}]]`;
-  const root = (typeof nodes !== 'undefined') ? nodes.find(n => n.sourcePageId === b.sourcePageId && n.level === 0) : null;
-  return root ? `[[${root.label}#${b.label}]]` : `[[${b.label}]]`;
+  const root = b.level === 0 ? b
+    : ((typeof nodes !== 'undefined') ? nodes.find(n => n.sourcePageId === b.sourcePageId && n.level === 0) : null);
+  const note = root ? (root.label || '') : (b.label || '');
+  const head = (root && root.id !== b.id) ? (b.label || '') : '';
+  if (!_WIKI_UNSAFE.test(note) && !_WIKI_UNSAFE.test(head)) {
+    return head ? `[[${note}#${head}]]` : `[[${note}]]`;
+  }
+  const txt = String(b.label || '').replace(/[\[\]]/g, '').replace(/\s*\n\s*/g, ' ').trim() || '링크';
+  return `[${txt}](${_wikiUrlFor(b)})`;
 }
 function _linkResolvesTo(url, b) { const t = _nodeFromLinkUrl(url); return !!(t && t.id === b.id); }
 function _hasWikiLinkTo(a, b) {
