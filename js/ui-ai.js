@@ -738,7 +738,8 @@ function _buildAgentAction(call, idxMap) {
   }
   const target = _resolveAgentTarget(args.target, idxMap);
   if (!target) return { note: `대상 노드(${args.target || '?'})를 못 찾았어. 어떤 노드인지 알려줄래?` };
-  if (!target.local) return { note: `'${nodeTitle(target)}'는 노션 노드라 지금은 수정 못 해(노션 지원은 준비 중).` };
+  const isLocal = (typeof _isLocalSource === 'function') ? _isLocalSource(target) : target.local;
+  if (!isLocal) return { note: `'${nodeTitle(target)}'는 노션 노드라 지금은 수정 못 해(노션 지원은 준비 중).` };
   if (name === 'add_child_nodes') {
     const md = String(args.markdown || '').trim(); if (!md) return { note: '추가할 내용이 비었어.' };
     return { action: { summary: `'${nodeTitle(target)}' 아래에 하위 노드 추가`, preview: md, run: () => _applyAddChildren(target, md) } };
@@ -792,7 +793,7 @@ ${idx.text || '(없음)'}`;
 }
 // 편집 의도(수정성 발화) 감지 — 맞으면 에이전트로 (아니면 일반 대화). 오탐은 토큰만 조금 더 쓸 뿐 대화로 답함
 function _agentMutation(q) {
-  return /(하위|자식)[^]*?(노드|넣|추가|만들)|노드[^]*?(추가|생성|만들|넣)|넣어|추가해|만들어\s*줘|연결(해|시켜|하)|이어\s*줘|링크\s*(걸|만들|해)|이름[^]*?(바꾸|변경|고쳐)|제목[^]*?(바꾸|변경|수정|고쳐)|본문[^]*?(바꾸|수정|고쳐|교체|정리)/.test(q);
+  return /(하위|자식)[^]*?(노드|넣|추가|만들)|노드[^]*?(추가|생성|만들|넣)|넣어|추가해|만들어\s*줘|생성해|연결(해|시켜|하)|이어\s*줘|링크\s*(걸|만들|해)|이름[^]*?(바꾸|변경|고쳐)|제목[^]*?(바꾸|변경|수정|고쳐)|(본문|내용|글)[^]*?(바꾸|수정|고쳐|교체|정리|채우|채워|작성|써|추가)|수정해\s*줘|편집해|작성해\s*줘|써\s*줘|채워\s*줘/.test(q);
 }
 
 async function sendAiChat() {
