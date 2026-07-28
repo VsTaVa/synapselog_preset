@@ -249,7 +249,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row.pli-child.pli-first::after { top:50%; border-top:2px solid var(--accent); border-top-left-radius:4px; }
 .pli-row.pli-child.pli-last::after { bottom:50%; border-bottom:2px solid var(--accent); border-bottom-left-radius:4px; }
 /* 하위가 하나뿐이면 위아래 선이 겹치므로 가로 팔 하나만 */
-.pli-row.pli-child.pli-first.pli-last::after { border-bottom:none; border-radius:0; }
 /* ── 초기 페이지 선택 화면 (인라인 스타일 이관 · 토큰 사용) ── */
 .picker-sub { margin-bottom:14px; }
 .picker-back { display:inline-flex; align-items:center; gap:4px; margin-bottom:10px; padding:4px 6px 4px 0; background:none; border:none; font-size:12px; font-family:inherit; color:var(--icon); cursor:pointer; transition:color .15s; }

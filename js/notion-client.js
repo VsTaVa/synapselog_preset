@@ -910,9 +910,11 @@ function _pliRowClass(ordered, i) {
   const row = ordered[i];
   // 선을 그리지 않는 행: 최상위 / 상위 행이 목록에 없는 묶음 / 묶음 머리글(DB·MD 폴더)
   if (!row.depth || !row.parentRowId || row.p.isDatabase || row.p.isFolder) return 'pli-row';
+  const up = _pliHasSibling(ordered, row, -1), down = _pliHasSibling(ordered, row, 1);
+  if (!up && !down) return 'pli-row'; // 형제 없는 외동은 묶을 게 없으니 선도 안 그림
   let cls = 'pli-row pli-child';
-  if (!_pliHasSibling(ordered, row, -1)) cls += ' pli-first';
-  if (!_pliHasSibling(ordered, row, 1)) cls += ' pli-last';
+  if (!up) cls += ' pli-first';
+  if (!down) cls += ' pli-last';
   return cls;
 }
 

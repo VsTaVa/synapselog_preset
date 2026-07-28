@@ -363,7 +363,7 @@ canvas.addEventListener('mouseup', e => {
   if (e.button === 2) return; // 우클릭은 contextmenu에서 처리
   const elapsed = Date.now() - mouseDownTime;
   const n = getNodeAt(e.clientX, e.clientY);
-  if (elapsed < 150 && n && n === mouseDownNode && n.level > 0 && _connectMode) {
+  if (elapsed < 150 && n && n === mouseDownNode && _connectMode && canConnectNode(n)) {
     handleConnectClick(n);
   } else if (elapsed < 150 && n && n === mouseDownNode && (e.ctrlKey || e.metaKey)) {
     // Ctrl/⌘+클릭 → 노드 고정/해제
@@ -510,7 +510,7 @@ canvas.addEventListener('touchend', e => {
   if (_touchMode === 'single' && !_touchMoved) {
     const elapsed = Date.now() - mouseDownTime;
     const n = mouseDownNode;
-    if (elapsed < 300 && n && _connectMode && n.level > 0) {
+    if (elapsed < 300 && n && _connectMode && canConnectNode(n)) {
       handleConnectClick(n);
     } else if (elapsed < 300 && n) {
       const now = Date.now();

@@ -243,6 +243,9 @@ function _wikiDisconnect(a, b) {
     });
 }
 // 공통 토글 — 단일/멀티/순서대로 연결에서 모두 사용
+// 연결 클릭을 받을 수 있는 노드 — 페이지/MD 파일 루트(level 0)도 대상.
+// 페이지에 속하지 않은 합성 최상위 루트만 제외(연결할 본문 자체가 없음)
+function canConnectNode(n) { return !!n && (n.level > 0 || !!n.sourcePageId); }
 function toggleWikiConnect(a, b) {
   if (!a || !b || a.id === b.id) return false;
   const existed = _hasWikiLinkTo(a, b);
