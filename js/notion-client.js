@@ -502,11 +502,33 @@ async function writeBackMdFile(pageId) {
   let perm = await handle.queryPermission({ mode: 'readwrite' });
   if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'readwrite' });
   if (perm !== 'granted') { toast('파일 쓰기 권한 필요', { type: 'error' }); return false; }
+  // 제목(=파일명) 변경 시 실제 파일 이름도 변경 (Chromium handle.move 지원 시). 실패해도 내용은 저장
+  const base = (root.label || 'note').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'note';
+  const desiredName = base + '.md';
+  if (handle.name && handle.name !== desiredName && typeof handle.move === 'function') {
+    try {
+      let name = desiredName, i = 1;
+      if (resolved.batch) {
+        const sib = new Set([...resolved.batch.files.keys()].map(p => p.split('/').pop().toLowerCase()));
+        sib.delete(String(resolved.relPath || '').split('/').pop().toLowerCase());
+        while (sib.has(name.toLowerCase())) name = `${base}-${i++}.md`;
+      }
+      await handle.move(name);
+      if (resolved.batch && resolved.relPath != null) {
+        const oldRel = resolved.relPath;
+        const newRel = (oldRel.includes('/') ? oldRel.slice(0, oldRel.lastIndexOf('/') + 1) : '') + name;
+        const rec = resolved.batch.files.get(oldRel);
+        resolved.batch.files.delete(oldRel);
+        if (rec) resolved.batch.files.set(newRel, rec);
+        resolved.relPath = newRel;
+      }
+    } catch (e) {}
+  }
   const md = buildFileMarkdown(root);
   const w = await handle.createWritable();
   await w.write(md); await w.close();
-  // 세션 캐시도 갱신(stale 방지)
-  try { const meta = _mdPageMeta(pageId) || {}; meta.markdown = md; meta._cachedAt = Date.now(); sessionStorage.setItem('snlog_' + pageId, JSON.stringify(meta)); } catch (e) {}
+  // 세션 캐시 갱신(제목·relPath 포함 — 재로드 시 제목이 옛 파일명으로 되돌아가는 것 방지)
+  try { const meta = _mdPageMeta(pageId) || {}; meta.markdown = md; meta.title = root.label; if (resolved.relPath != null) meta.relPath = resolved.relPath; meta._cachedAt = Date.now(); sessionStorage.setItem('snlog_' + pageId, JSON.stringify(meta)); } catch (e) {}
   // 방금 쓴 걸 외부 변경으로 오인해 재동기화하지 않도록 lastModified 갱신
   try {
     const lm = (await handle.getFile()).lastModified;
