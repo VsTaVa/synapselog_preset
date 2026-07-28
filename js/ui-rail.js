@@ -257,10 +257,10 @@ function insightConnectDir(i, dir) {
   if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
   const from = dir === 'ba' ? p.b : p.a, to = dir === 'ba' ? p.a : p.b;
   if (from.id === to.id) return;
-  if (typeof _hasWikiLinkTo === 'function' && _hasWikiLinkTo(from, to)) {
+  if (typeof isPairConnected === 'function' && isPairConnected(from, to)) {
     toast('이미 연결됨');
   } else {
-    _wikiConnect(from, to); // from 본문에 [to](url) 추가 → from → to 단방향, 노션에 반영
+    toggleWikiConnect(from, to); // 출처가 같으면 본문에 기록, 다르면 수동 연결로
     toast(`연결 & ${(from.label || '').trim()} → ${(to.label || '').trim()}`, { type: 'success' });
   }
   if (typeof highlightAiNodes === 'function') highlightAiNodes([from, to]);

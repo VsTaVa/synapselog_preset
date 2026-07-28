@@ -278,8 +278,32 @@ function _wikiDisconnect(a, b) {
 // 연결 클릭을 받을 수 있는 노드 — 페이지/MD 파일 루트(level 0)도 대상.
 // 페이지에 속하지 않은 합성 최상위 루트만 제외(연결할 본문 자체가 없음)
 function canConnectNode(n) { return !!n && (n.level > 0 || !!n.sourcePageId); }
+// ── 연결 저장 방식은 출처별로 완전히 분리 ────────────────────────────
+// 로컬(MD)끼리  → 본문에 [[ ]]/내부링크 기록 + 원본 .md 되쓰기
+// 노션끼리      → 노션 블록에 [텍스트](노션URL) 추가
+// 서로 다른 출처 → 어느 쪽 본문에도 상대를 가리킬 링크를 못 쓴다(노션은 snlog: URL을 거부하고,
+//                 MD 노드는 노션 블록이 없음). 그래서 그래프에만 남는 수동 연결로 저장한다.
+function _manualEdgeBetween(a, b) {
+  if (!a || !b) return null;
+  return edges.find(e => e.manualLink && ((e.from === a.id && e.to === b.id) || (e.from === b.id && e.to === a.id))) || null;
+}
+// 두 노드가 어떤 방식으로든 이어져 있는지 (위키 링크 / 수동 연결)
+function isPairConnected(a, b) {
+  if (!a || !b) return false;
+  return _hasWikiLinkTo(a, b) || !!_manualEdgeBetween(a, b);
+}
+function _toggleManualLink(a, b) {
+  const e = _manualEdgeBetween(a, b);
+  if (e) edges = edges.filter(x => x !== e);
+  else edges.push({ from: a.id, to: b.id, manualLink: true });
+  saveManualLinks();
+  isStable = false; refreshOpenPanes();
+  return !!e;
+}
 function toggleWikiConnect(a, b) {
   if (!a || !b || a.id === b.id) return false;
+  const la = _isLocalSource(a), lb = _isLocalSource(b);
+  if (la !== lb) return _toggleManualLink(a, b); // MD ↔ 노션은 본문에 기록할 수단이 없음
   const existed = _hasWikiLinkTo(a, b);
   if (existed) _wikiDisconnect(a, b); else _wikiConnect(a, b);
   return existed;

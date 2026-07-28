@@ -184,9 +184,10 @@ function multiSelectChainConnect() {
   const seq = _multiSelected.slice(); // 선택 순서대로 a→b→c
   const pairs = [];
   for (let i = 0; i < seq.length - 1; i++) pairs.push([seq[i], seq[i + 1]]);
-  const allLinked = pairs.every(([a, b]) => _hasWikiLinkTo(a, b));
-  if (allLinked) pairs.forEach(([a, b]) => _wikiDisconnect(a, b));
-  else pairs.forEach(([a, b]) => { if (!_hasWikiLinkTo(a, b)) _wikiConnect(a, b); });
+  // 출처가 섞여 있을 수 있으니 저장 방식 분기는 toggleWikiConnect에 맡긴다
+  const allLinked = pairs.every(([a, b]) => isPairConnected(a, b));
+  if (allLinked) pairs.forEach(([a, b]) => toggleWikiConnect(a, b));
+  else pairs.forEach(([a, b]) => { if (!isPairConnected(a, b)) toggleWikiConnect(a, b); });
   clearMultiSelect();
 }
 

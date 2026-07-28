@@ -411,7 +411,7 @@ function applyAiRefineFromMsg(mid) {
 function applyAiLink(aId, bId) {
   const a = nodeMap[aId], b = nodeMap[bId];
   if (!a || !b) return;
-  if (!_hasWikiLinkTo(a, b)) _wikiConnect(a, b);
+  if (!isPairConnected(a, b)) toggleWikiConnect(a, b); // 출처가 다르면 수동 연결로 저장
   _aiChat.forEach(m => (m.suggestions || []).forEach(s => { if (s.aId === aId && s.bId === bId) s.done = true; }));
   _renderAiChat();
 }
