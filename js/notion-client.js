@@ -156,7 +156,9 @@ async function pickFolderViaFSA() {
   if (!window._folderBatches) window._folderBatches = new Map();
   window._folderBatches.set(folderBatchId, { handle: dirHandle, name: dirHandle.name, files });
   await _saveFolderBatchToIDB(folderBatchId);
-  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+  const rootRow = _registerFolderRows(folderBatchId, window._folderBatches.get(folderBatchId));
+  if (rootRow) _expandedPages.add(rootRow); // 방금 불러온 폴더는 펼쳐둠
+  refreshFolderRows(); updateBulkActionsVisibility(); savePageList();
 }
 
 async function loadFolderBatches() {
@@ -165,7 +167,7 @@ async function loadFolderBatches() {
     const recs = await _idbGetAllFolders();
     if (!window._folderBatches) window._folderBatches = new Map();
     recs.forEach(r => window._folderBatches.set(r.id, { handle: r.handle, name: r.name, files: new Map(r.files) }));
-    renderMdFolderList();
+    refreshFolderRows();
   } catch(e) {}
 }
 
@@ -206,7 +208,7 @@ async function syncFolderBatch(folderBatchId) {
   const batch = window._folderBatches?.get(folderBatchId);
   if (!batch) return;
   try { await _syncOneFolderBatch(folderBatchId, batch); } catch(e) {}
-  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+  refreshFolderRows(); updateBulkActionsVisibility(); savePageList();
 }
 
 async function syncFolderBatches() {
@@ -214,30 +216,66 @@ async function syncFolderBatches() {
   for (const [folderBatchId, batch] of window._folderBatches) {
     try { await _syncOneFolderBatch(folderBatchId, batch); } catch(e) {}
   }
-  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+  refreshFolderRows(); updateBulkActionsVisibility(); savePageList();
 }
 
-function renderMdFolderList() {
-  const wrap = document.getElementById('md-folder-list-wrap');
-  const listEl = document.getElementById('md-folder-list');
-  if (!wrap || !listEl) return;
-  if (!window._folderBatches || window._folderBatches.size === 0) { wrap.style.display = 'none'; listEl.innerHTML = ''; return; }
-  wrap.style.display = 'block';
-  listEl.innerHTML = [...window._folderBatches.entries()].map(([folderBatchId, batch]) => {
-    const files = [...batch.files.entries()];
-    return `<div class="md-folder-group" data-folder-id="${folderBatchId}">
-      <div class="md-folder-header">
-        <span class="md-folder-name" title="${escapeHtml(batch.name || '폴더')}"><svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> ${escapeHtml(batch.name || '폴더')} <span style="color:rgba(237,112,0,0.55);font-size:9px;">${files.length}개</span></span>
-        <div class="item-actions"><button title="폴더 동기화" onclick="syncFolderBatch('${folderBatchId}')">↻</button><button title="폴더 제거" onclick="removeFolderBatch('${folderBatchId}')">✕</button></div>
-      </div>
-      <div class="md-folder-files">
-        ${files.map(([path, info]) => `<div class="md-folder-file" data-page-id="${info.pageId}">
-          <span class="item-label" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
-          <button class="btn-remove" onclick="removePage('${info.pageId}', this.closest('.md-folder-file'))">✕</button>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+// ── MD 폴더 → 페이지 목록 트리 ────────────────────────────────────────
+// 폴더 구조를 노션 하위 페이지와 같은 방식으로 보여준다: 디렉터리마다 묶음 행을 만들고
+// 파일 행에 parentId로 매달아, _orderPagesByHierarchy가 들여쓰기·접기를 그대로 처리하게 함
+function _folderRowId(folderBatchId, relDir) { return relDir ? `fld:${folderBatchId}:${relDir}` : `fld:${folderBatchId}`; }
+
+function _registerFolderRows(folderBatchId, batch) {
+  if (!batch) return null;
+  if (!window._sidebarPageList) window._sidebarPageList = [];
+  const list = window._sidebarPageList;
+  const byId = new Map(list.map(r => [r.id, r]));
+  const ensureDir = (relDir) => {
+    const id = _folderRowId(folderBatchId, relDir);
+    if (byId.has(id)) return id;
+    const parts = relDir ? relDir.split('/') : [];
+    const parentId = relDir ? ensureDir(parts.slice(0, -1).join('/')) : null;
+    const row = { id, title: relDir ? parts[parts.length - 1] : (batch.name || '폴더'),
+                  isFolder: true, folderBatchId, folderRel: relDir, parentId };
+    list.push(row); byId.set(id, row);
+    return id;
+  };
+  const rootId = ensureDir('');
+  for (const [path, info] of batch.files) {
+    const parts = String(path).split('/');
+    const title = parts.pop().replace(/\.md$|\.txt$/i, '');
+    const dirId = ensureDir(parts.join('/'));
+    const existing = byId.get(info.pageId);
+    if (existing) { Object.assign(existing, { title, isMd: true, hasHandle: true, folderBatchId, parentId: dirId }); }
+    else { const row = { id: info.pageId, title, isMd: true, hasHandle: true, folderBatchId, parentId: dirId }; list.push(row); byId.set(row.id, row); }
+  }
+  const wrap = document.getElementById('sidebar-page-list-wrap');
+  if (wrap) wrap.style.display = 'block';
+  return rootId;
+}
+
+// 파일이 다 빠진 폴더 행은 남기지 않음 (안쪽부터 바깥으로 반복 정리)
+function _pruneEmptyFolderRows() {
+  if (!window._sidebarPageList) return;
+  for (let guard = 0; guard < 20; guard++) {
+    const used = new Set(window._sidebarPageList.map(r => r.parentId).filter(Boolean));
+    const next = window._sidebarPageList.filter(r => !(r.isFolder && !used.has(r.id)));
+    if (next.length === window._sidebarPageList.length) return;
+    window._sidebarPageList = next;
+  }
+}
+
+function _unregisterFolderRows(folderBatchId) {
+  if (!window._sidebarPageList) return;
+  window._sidebarPageList = window._sidebarPageList.filter(r => r.folderBatchId !== folderBatchId);
+}
+
+// 배치 전체를 페이지 목록에 다시 반영 (임포트/동기화/복원 공통)
+function refreshFolderRows() {
+  if (window._folderBatches) {
+    for (const [id, batch] of window._folderBatches) _registerFolderRows(id, batch);
+  }
+  _pruneEmptyFolderRows();
+  refreshSidebarRender();
 }
 
 async function removeFolderBatch(folderBatchId) {
@@ -245,8 +283,9 @@ async function removeFolderBatch(folderBatchId) {
   if (!batch) return;
   for (const [, info] of [...batch.files]) { removePage(info.pageId, document.querySelector(`[data-page-id="${info.pageId}"]`)); }
   window._folderBatches.delete(folderBatchId);
+  _unregisterFolderRows(folderBatchId);
   try { await _idbDelete('folders', folderBatchId); } catch(e) {}
-  renderMdFolderList(); updateBulkActionsVisibility(); savePageList();
+  refreshFolderRows(); updateBulkActionsVisibility(); savePageList();
 }
 
 async function notionFetch(body) {
@@ -789,8 +828,8 @@ async function refreshSidebarPageList() {
   try {
     const data = await notionFetch({ action: 'list' });
     const pages = data.pages || [];
-    // 로컬/MD 항목은 노션 목록에 없으므로 보존
-    const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd) && !pages.some(q => q.id === p.id));
+    // 로컬/MD/폴더 항목은 노션 목록에 없으므로 보존
+    const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd || p.isFolder) && !pages.some(q => q.id === p.id));
     window._sidebarPageList = pages.concat(extras);
     renderSidebarPageList(window._sidebarPageList);
   } catch(e) {
@@ -904,6 +943,8 @@ function _orderPagesByHierarchy(pages) {
   const cmp = (a, b) => {
     const fa = _favoritePageIds.has(a.id) ? 0 : 1, fb = _favoritePageIds.has(b.id) ? 0 : 1;
     if (fa !== fb) return fa - fb;
+    const da = a.isFolder ? 0 : 1, db = b.isFolder ? 0 : 1; // 파일 탐색기처럼 폴더 먼저
+    if (da !== db) return da - db;
     return (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true });
   };
   const out = [], seen = new Set();
@@ -953,6 +994,18 @@ function _pageItemHtml(p) {
     const syncSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
     const removeSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
+    // MD 폴더도 데이터베이스처럼 하위를 묶는 상위 행. 배치 루트에만 동기화/제거를 둔다
+    if (p.isFolder) {
+      const folderIc = `<svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+      const acts = p.folderRel ? '' : `<div class="item-actions">
+          <button class="btn-sync" title="폴더 동기화" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
+          <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
+        </div>`;
+      return `<div class="page-list-item pli-group" data-page-id="${p.id}">
+        <span class="item-label" title="${safeTitle}">${folderIc} ${safeTitle}</span>
+        ${acts}
+      </div>`;
+    }
     // 데이터베이스는 하위 항목을 묶어주는 상위 행으로만 표시 (추가 대상 아님)
     if (p.isDatabase) {
       return `<div class="page-list-item pli-group" data-page-id="${p.id}">
@@ -1063,8 +1116,7 @@ async function restorePageList() {
       _loadEntriesBackground(pageId);
     }
   }
-  refreshSidebarRender();
-  renderMdFolderList();
+  refreshFolderRows();
   updateBulkActionsVisibility();
 }
 
@@ -1187,7 +1239,8 @@ function removePage(pageId, el) {
     window._mdFileHandles.delete(pageId);
     _idbDelete('files', pageId).catch(()=>{});
   }
-  isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender(); renderMdFolderList();
+  _pruneEmptyFolderRows(); // 마지막 파일이 빠진 폴더 행은 목록에서 제거
+  isStable = false; updateBulkActionsVisibility(); savePageList(); refreshSidebarRender();
 }
 
 function updateBulkActionsVisibility() {

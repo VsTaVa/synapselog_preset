@@ -307,7 +307,6 @@ function discardCurrentGraph() {
   const wrap = document.getElementById('sidebar-page-list-wrap');
   if (wrap) wrap.style.display = 'none';
   if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
-  if (typeof renderMdFolderList === 'function') renderMdFolderList();
   if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
   if (typeof renderBookmarkList === 'function') renderBookmarkList();
   isStable = false;
