@@ -196,6 +196,9 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --glass-bg-solid: rgba(var(--surface-rgb),0.1); /* 스크롤 있는 설정 등 살짝 더 불투명 */
   --glass-blur: blur(18px) saturate(1.4);
   --glass-border: rgba(var(--fg-rgb),0.14);
+  /* 모달 뒤 딤 — 카드의 유리질감이 죽지 않게 옅게. 여기를 진하게 하면 유리가 검게 막힘 */
+  --overlay: rgba(0,0,0,0.35);
+  --overlay-blur: blur(4px);
 }
 /* 좌측 액티비티 레일 + 플라이아웃 */
 #activity-rail { position: fixed; top: 0; left: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 260; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 14px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
@@ -383,7 +386,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .sync-all.syncing svg { animation: spin 0.7s linear infinite; transform-origin: center; }
 .btn-remove { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--accent); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
 .btn-remove:hover { color: #ffbe76; }
-#confirm-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+#confirm-modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
 #confirm-modal.open { display: flex; }
 #confirm-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 24px 22px; width: 300px; box-shadow: 0 16px 48px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #confirm-box .confirm-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
@@ -571,7 +574,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .profile-action-btn.white { color: #fff; }
 .profile-action-btn.accent { color: var(--accent); }
 .profile-action-btn.accent:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
-#settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+#settings-modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
 #settings-modal.open { display: flex; }
 #settings-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 16px; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.7); padding: 24px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #settings-box::-webkit-scrollbar { width: 3px; }
@@ -656,8 +659,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-suggest-top { align-items: flex-start; }
 
 /* ── 최초 사용 온보딩 ── */
-/* 환영 카드는 유리질감이 보이도록 오버레이를 옅게(설정·확인창처럼 어둡게 덮지 않음) */
-#onboarding { position: fixed; inset: 0; z-index: 900; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+#onboarding { position: fixed; inset: 0; z-index: 900; display: none; align-items: center; justify-content: center; background: var(--overlay); backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
 #onboarding.show { display: flex; }
 .ob-card { width: 344px; max-width: 88vw; background: var(--glass-bg); border: 1px solid var(--glass-border); border-top: 2px solid var(--accent); border-radius: 14px; padding: 22px 22px 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .ob-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; }
