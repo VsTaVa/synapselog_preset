@@ -621,10 +621,13 @@ function revealByLevel(nodeIds, onComplete) {
         if (!byParent.has(parentId)) byParent.set(parentId, { parent: parentNode, children: [] });
         byParent.get(parentId).children.push(n);
       });
-      byParent.forEach(({ parent, children }) => { if (parent) placeChildrenAroundParent(parent, children, radius); });
+      // 방사형은 부모 주위 원배치(물리 시드용)를 쓰면 트리 좌표가 덮여 마지막 레벨들이 방사형에서 벗어남
+      // → 레벨이 열릴 때마다 트리 좌표를 다시 계산해 적용
+      const radial = _layoutMode === 'radial';
+      if (!radial) byParent.forEach(({ parent, children }) => { if (parent) placeChildrenAroundParent(parent, children, radius); });
       levelNodes.forEach(n => { n.visible = true; });
       nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-      isStable = false;
+      if (radial) applyTreeLayout(); else isStable = false;
     }, lv * LEVEL_DELAY);
   }
   isStable = false;
