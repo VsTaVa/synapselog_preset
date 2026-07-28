@@ -666,7 +666,7 @@ const _AI_TOOLS = [{
 async function geminiToolCall(prompt, systemText) {
   if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${_GEMINI_MODEL}:generateContent?key=${encodeURIComponent(_savedAiKey)}`;
-  const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], tools: _AI_TOOLS, toolConfig: { functionCallingConfig: { mode: 'AUTO' } } };
+  const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], tools: _AI_TOOLS, toolConfig: { functionCallingConfig: { mode: 'ANY' } } };
   if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) { let msg = 'HTTP ' + res.status; try { const j = await res.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {} const err = new Error(msg); err.status = res.status; throw err; }
@@ -769,11 +769,11 @@ async function aiAgentCommand(q) {
   const idx = _agentNodeIndex(q, sel);
   const hist = _aiChat.filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|요청 해석/.test(m.text)).slice(-8).map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
   const selLine = sel.length ? `[현재 선택된 노드] ${sel.map(n => nodeTitle(n)).join(', ')} — 대상을 명시하지 않으면 이 노드를 대상으로.\n` : '';
-  const sys = `너는 지식 그래프 편집 조수다. 사용자의 요청이 그래프 수정(하위 노드 추가/본문 수정/제목 변경/노드 연결)이면 알맞은 함수를 호출해라.
-- 대상 노드는 아래 [노드 목록]의 @번호로 지정. "이 노드/여기/선택한"이거나 대상이 안 적혀 있으면 target을 "SELECTED"로.
-- 목록에서 어느 노드인지 확신이 안 서면 함수를 호출하지 말고 한국어로 되물어라(추측 금지).
-- 추가·수정할 내용은 markdown으로. 헤딩 구조가 필요하면 #, ##를 써라. 직전 대화 내용을 넣으라면 그 내용을 markdown에 채워라.
-- 수정 요청이 아니면 그냥 한국어로 답해라.
+  const sys = `너는 SynapseLog(로컬 지식 그래프 앱)의 편집 도구다. 아래 함수를 호출하면 사용자의 **실제 로컬 그래프와 MD 파일이 즉시 수정된다**(사용자 확인 버튼 후 반영). 너는 그럴 능력이 있다.
+- 절대 "할 수 없다/접근 못 한다/노션에 못 쓴다"고 답하지 마라. 이건 노션이 아니라 로컬 노드다. 요청이 수정이면 무조건 알맞은 함수를 호출해라.
+- 대상 노드는 아래 [노드 목록]의 @번호로 지정. "이 노드/여기/선택한"이거나 대상이 안 적혀 있으면 target을 "SELECTED"로 하라.
+- 추가·수정할 내용(markdown)은 **네가 직접 생성**해라. 사용자가 요청한 새 내용을 만들어 채워라(헤딩 구조가 필요하면 #, ##). "직전에 얘기한 걸 넣어줘"면 그 내용을 markdown에 옮겨라.
+- 대상 이름이 [노드 목록]에 없으면 그 이름을 target에 그대로 넣어라(우리가 못 찾으면 사용자에게 되묻는다). 엉뚱한 노드를 고르지 마라.
 ${selLine}[노드 목록]
 ${idx.text || '(없음)'}`;
   const prompt = `${hist ? '[대화]\n' + hist + '\n\n' : ''}[사용자 요청]\n${q}`;
