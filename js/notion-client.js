@@ -900,16 +900,16 @@ function _pliHasSibling(ordered, row, dir) {
     const o = ordered[j];
     if (o.depth > row.depth) continue;      // 자손 — 건너뜀
     if (o.depth < row.depth) return false;  // 그룹이 끝남
-    // DB(그룹 머리글)는 형제로 세지 않음 — 만나면 거기서 그룹이 끊김
-    if (o.p.isDatabase || row.p.isDatabase) return false;
+    // 묶음 머리글(DB·MD 폴더)은 형제로 세지 않음 — 만나면 거기서 그룹이 끊김
+    if (o.p.isDatabase || row.p.isDatabase || o.p.isFolder || row.p.isFolder) return false;
     return o.parentRowId === row.parentRowId;
   }
   return false;
 }
 function _pliRowClass(ordered, i) {
   const row = ordered[i];
-  // 선을 그리지 않는 행: 최상위 / 상위 행이 목록에 없는 묶음 / DB(하위를 묶는 그룹 머리글)
-  if (!row.depth || !row.parentRowId || row.p.isDatabase) return 'pli-row';
+  // 선을 그리지 않는 행: 최상위 / 상위 행이 목록에 없는 묶음 / 묶음 머리글(DB·MD 폴더)
+  if (!row.depth || !row.parentRowId || row.p.isDatabase || row.p.isFolder) return 'pli-row';
   let cls = 'pli-row pli-child';
   if (!_pliHasSibling(ordered, row, -1)) cls += ' pli-first';
   if (!_pliHasSibling(ordered, row, 1)) cls += ' pli-last';
