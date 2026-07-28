@@ -982,14 +982,7 @@ function _pageItemHtml(p) {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
     let mdBadge = '';
-    if (p.isMd || p.isLocal) {
-      const rootN = (typeof nodes !== 'undefined' && Array.isArray(nodes)) ? nodes.find(nd => nd.level === 0 && nd.sourcePageId === p.id) : null;
-      const txt = 'MD';
-      const style = (rootN && typeof _chipColorStyle === 'function')
-        ? _chipColorStyle(rootN)
-        : 'background:rgba(237,112,0,0.14);border-color:rgba(237,112,0,0.4);color:#ed7000;';
-      mdBadge = ` <span class="node-chip node-chip--badge" style="${style}">${txt}</span>`;
-    }
+    if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-md-tag">MD</span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
     const exportBtn = `<button class="btn-export" title="MD파일 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
