@@ -644,6 +644,18 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-apply-btn.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
 .aichat-retry-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.75); transition: background 0.15s; }
 .aichat-retry-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+/* AI 편집 에이전트 — 확인 카드 */
+.aichat-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.aichat-action { background: rgba(var(--accent-rgb),0.06); border: 1px solid rgba(var(--accent-rgb),0.28); border-radius: 9px; padding: 8px 10px; }
+.aichat-action.done { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); opacity: 0.7; }
+.aichat-action-sum { font-size: 12px; font-weight: 700; color: var(--text); }
+.aichat-action-preview { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 4px; line-height: 1.45; white-space: pre-wrap; max-height: 88px; overflow: hidden; }
+.aichat-action-btns { display: flex; gap: 6px; margin-top: 7px; }
+.aichat-act-apply { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 12px; border-radius: 6px; cursor: pointer; background: rgba(var(--accent-rgb),0.18); border: 1px solid rgba(var(--accent-rgb),0.45); color: var(--accent); transition: background 0.15s; }
+.aichat-act-apply:hover { background: rgba(var(--accent-rgb),0.3); }
+.aichat-act-apply.done { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: default; }
+.aichat-act-skip { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 11px; border-radius: 6px; cursor: pointer; background: none; border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.6); transition: background 0.15s, color 0.15s; }
+.aichat-act-skip:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .aichat-suggest-top { align-items: flex-start; }
 
 /* ── 최초 사용 온보딩 ── */
