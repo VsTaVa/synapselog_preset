@@ -165,7 +165,13 @@ function _wikiUrlFor(b) {
   if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_')) return `https://www.notion.so/${String(pid).replace(/-/g, '')}`;
   return `snlog:node:${b.sourcePageId || ''}:${encodeURIComponent(b.label)}`; // 로컬 폴백
 }
-function _wikiLinkText(b) { return `[${b.label}](${_wikiUrlFor(b)})`; }
+// 링크 표시 텍스트에 [ ] 가 남아 있으면 [텍스트](url) 파서가 깨진다(제목이 "[기존 Tool과 차이]" 같은 경우
+// [[기존 Tool과 차이]](url) 이 되어 _LINK_RE가 아예 매칭 실패 → 엣지 안 생김).
+// 대상 식별은 URL이 하므로 표시 텍스트에서 대괄호를 빼도 해석에는 지장 없음
+function _linkSafeText(s) {
+  return String(s || '').replace(/[\[\]]/g, '').replace(/\s*\n\s*/g, ' ').trim() || '링크';
+}
+function _wikiLinkText(b) { return `[${_linkSafeText(b.label)}](${_wikiUrlFor(b)})`; }
 // 로컬(옵시디언) 링크 문법: 파일=[[노트]], 헤딩=[[노트#헤딩]]
 // [ ] | # 은 [[ ]] 안에 못 들어간다(옵시디언도 동일). 노션 내보내기 파일명처럼 라벨에 이런 문자가
 // 섞이면 [[[작업] 3633…#제목]] 같은 깨진 참조가 되어 링크가 해석되지 않으므로, 그럴 땐 내부 링크
@@ -179,8 +185,7 @@ function _wikiLinkTextLocal(b) {
   if (!_WIKI_UNSAFE.test(note) && !_WIKI_UNSAFE.test(head)) {
     return head ? `[[${note}#${head}]]` : `[[${note}]]`;
   }
-  const txt = String(b.label || '').replace(/[\[\]]/g, '').replace(/\s*\n\s*/g, ' ').trim() || '링크';
-  return `[${txt}](${_wikiUrlFor(b)})`;
+  return `[${_linkSafeText(b.label)}](${_wikiUrlFor(b)})`;
 }
 function _linkResolvesTo(url, b) { const t = _nodeFromLinkUrl(url); return !!(t && t.id === b.id); }
 function _hasWikiLinkTo(a, b) {
