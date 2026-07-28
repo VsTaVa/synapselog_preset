@@ -382,9 +382,15 @@ function newLocalRoot() {
 
 // 노드 하위 트리를 .md 파일로 내보내기
 function exportNodeMarkdown(node) {
-  let md = '# ' + node.label + '\n';
-  if (node.desc && node.desc !== '(내용 없음)') md += node.desc.replace(/\n+$/, '') + '\n';
-  md += serializeChildrenMd(node.id, 2);
+  // 페이지 제목(레벨0)은 파일명이 곧 제목 — 헤딩으로 내보내지 않는다(원본 되쓰기와 같은 규칙).
+  // 헤딩 노드를 내보낼 땐 그 노드가 문서의 제목이 되므로 #로 쓴다.
+  let md;
+  if (node.level === 0) md = buildFileMarkdown(node);
+  else {
+    md = '# ' + node.label + '\n';
+    if (node.desc && node.desc !== '(내용 없음)') md += node.desc.replace(/\n+$/, '') + '\n';
+    md += serializeChildrenMd(node.id, 2);
+  }
   const safe = (node.label || 'export').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'export';
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const a = document.createElement('a');
@@ -417,6 +423,7 @@ function _serializeFileChildren(nodeId) {
 }
 function buildFileMarkdown(root) {
   let md = '';
+  if (root.titleHeading) md += '# ' + root.label + '\n'; // 원본이 제목 H1로 시작했으면 그대로 되살림
   if (root.desc && root.desc !== '(내용 없음)') md += root.desc.replace(/\n+$/, '') + '\n';
   md += _serializeFileChildren(root.id);
   return md.replace(/^\n+/, '');

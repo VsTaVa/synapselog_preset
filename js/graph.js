@@ -89,8 +89,10 @@ function parseMarkdown(text, rootTitle) {
   }
 
   const rootId = addNode(rootTitle || '자기관리: 내면', '', null, '', 0);
+  if (rootId) nodeMap[rootId].headingDepth = 0; // 페이지 제목은 헤딩이 아님 — #레벨 0으로 구분
   const currentParents = { 0: rootId, 1: null, 2: null, 3: null, 4: null, 5: null };
   const lines = text.split('\n');
+  let sawHeading = false;
   let pendingEntryId = null;
   let pendingIsDbNode = false;
   let pendingIsChildPage = false;
@@ -112,6 +114,8 @@ function parseMarkdown(text, rootTitle) {
     if (headerMatch) {
       const rawDepth = headerMatch[1].length;
       const depth = Math.min(rawDepth, 5);
+      const isFirstHeading = !sawHeading;
+      sawHeading = true;
       let lbl = headerMatch[2].trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*\*/g, '');
       let nDate = '';
       const inlineDateMatch = lbl.match(/-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-/);
@@ -142,6 +146,19 @@ function parseMarkdown(text, rootTitle) {
         nextIdx++;
       }
       flushBlk();
+      // 파일 맨 앞의 # 제목이 페이지 제목(파일명)과 같으면 헤딩 노드로 쪼개지 않고 루트에 흡수 —
+      // 같은 이름 노드가 둘로 갈라지던 문제. 원본 파일 복원용으로 titleHeading 표시.
+      // 노션 본문(BLOCK/ENTRY 마커 동반)은 블록 ID를 잃으면 편집이 깨지므로 제외.
+      const noNotionMarker = !pendingEntryId && !pendingBlockId && !pendingToggle && !pendingIsDbNode && !pendingIsChildPage;
+      if (isFirstHeading && rawDepth === 1 && rootId && noNotionMarker && cleanLabel(lbl) === nodeMap[rootId].label) {
+        const rn = nodeMap[rootId];
+        rn.titleHeading = true;
+        rn.desc = cleanDesc(descLines.join('\n').substring(0, 5000));
+        if (nDate) rn.date = nDate;
+        if (bodyBlocks.length) rn.bodyBlocks = bodyBlocks;
+        if (nextIdx > i + 1) i = nextIdx - 1;
+        continue;
+      }
       const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
       if (curId) {
         nodeMap[curId].headingDepth = rawDepth;
@@ -978,7 +995,7 @@ function syncPageIncremental(title, markdown, pageId) {
 
   // 내용만 덮어쓸 필드 (위치/속도/고정/표시 상태는 보존)
   const COPY = ['label', 'desc', 'date', 'color', '_rgb', 'level', 'headingDepth', 'bodyBlocks',
-    'notionToggle', 'notionBlockId', 'notionParentId', 'entryNotionId', 'isDbNode', 'isChildPage'];
+    'notionToggle', 'notionBlockId', 'notionParentId', 'entryNotionId', 'isDbNode', 'isChildPage', 'titleHeading'];
   const idMap = {};
   const seenOld = new Set();
 
