@@ -3,6 +3,8 @@ let canvas, ctx, W, H, DPR = 1;
 let WORLD_CX = 0, WORLD_CY = 0;
 let scale = 0.85, panX = 0, panY = 0;
 let nodes = [], edges = [], nodeMap = {};
+// 노드 id 접두사 일련번호 — 같은 밀리초에 여러 파일을 임포트해도(폴더 임포트 루프) id가 겹치지 않게
+let _idSeq = 0;
 let drag = null, hoveredNode = null;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panStartOffsetY = 0;
 let isStable = false;
@@ -914,7 +916,7 @@ function buildGraph() {
 function mergeGraph(title, markdown, pageId) {
   const result = parseMarkdown(markdown, title);
   const idMap = {};
-  const prefix = 'p' + Date.now() + '_';
+  const prefix = 'p' + Date.now() + '_' + (_idSeq++) + '_';
   const trackId = pageId || title;
   const existingNodes = nodes.filter(n => n.visible !== false);
   let newRootX, newRootY;
@@ -968,7 +970,7 @@ function syncPageIncremental(title, markdown, pageId) {
   if (!oldNodes.length) { mergeGraph(title, markdown, pageId); return new Set(); }
 
   const result = parseMarkdown(markdown, title);
-  const uniq = 'sp' + Date.now() + '_';
+  const uniq = 'sp' + Date.now() + '_' + (_idSeq++) + '_';
   const keyOf = n => n.level === 0 ? 'root'
     : n.notionBlockId ? 'blk:' + n.notionBlockId
     : n.entryNotionId ? 'entry:' + n.entryNotionId
