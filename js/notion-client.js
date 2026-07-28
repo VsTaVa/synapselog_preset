@@ -840,6 +840,7 @@ async function refreshSidebarPageList() {
 function renderSidebarPageList(pages) {
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return;
+  _wireSidebarDnd(listEl);
   if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
   const vis = _visibleRows(ordered);
@@ -1004,7 +1005,8 @@ function _pageItemHtml(p) {
           <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
         </div>`;
       return `<div class="page-list-item pli-group" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}">${folderIc} ${safeTitle}</span>
+        <span class="item-label" title="${safeTitle}">${safeTitle}</span>
+        ${folderIc}
         ${acts}
       </div>`;
     }
@@ -1015,7 +1017,7 @@ function _pageItemHtml(p) {
       </div>`;
     }
     if (p.isLocal) {
-      return `<div class="page-list-item active" data-page-id="${p.id}">
+      return `<div class="page-list-item active" data-page-id="${p.id}" draggable="true" title="MD 폴더로 드래그해 넣기">
         <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
         <div class="item-actions">
           ${starBtn}
@@ -1045,6 +1047,75 @@ function _pageItemHtml(p) {
 
 function refreshSidebarRender() {
   if (window._sidebarPageList) renderSidebarPageList(window._sidebarPageList);
+}
+
+// 임시(local_) 페이지를 MD 폴더로 드래그 → 드롭. 컨테이너에 한 번만 위임 배선(재렌더에도 유지)
+function _wireSidebarDnd(listEl) {
+  if (listEl._dndWired) return; listEl._dndWired = true;
+  let dragId = null;
+  const rowOf = e => e.target.closest('.page-list-item[data-page-id]');
+  const meta = id => (window._sidebarPageList || []).find(p => p.id === id);
+  const clearMarks = () => listEl.querySelectorAll('.drop-target').forEach(x => x.classList.remove('drop-target'));
+  listEl.addEventListener('dragstart', e => {
+    const row = rowOf(e); if (!row) return;
+    const p = meta(row.dataset.pageId);
+    if (!p || !p.isLocal) { e.preventDefault(); return; } // 임시 파일만 드래그 대상
+    dragId = row.dataset.pageId;
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragId); } catch (_) {} }
+    row.classList.add('dragging');
+  });
+  listEl.addEventListener('dragend', () => { clearMarks(); listEl.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); dragId = null; });
+  listEl.addEventListener('dragover', e => {
+    if (!dragId) return;
+    clearMarks();
+    const row = rowOf(e); const p = row && meta(row.dataset.pageId);
+    if (p && p.isFolder) { e.preventDefault(); row.classList.add('drop-target'); }
+  });
+  listEl.addEventListener('drop', e => {
+    if (!dragId) return;
+    const row = rowOf(e); const p = row && meta(row.dataset.pageId);
+    clearMarks();
+    if (p && p.isFolder) { e.preventDefault(); const src = dragId; dragId = null; moveLocalPageToFolder(src, p.folderBatchId, p.folderRel || ''); }
+  });
+}
+
+// 임시 페이지의 내용을 MD 폴더 안 새 .md로 저장하고, 임시→폴더 파일로 승격
+async function moveLocalPageToFolder(localPageId, folderBatchId, folderRel) {
+  const batch = window._folderBatches && window._folderBatches.get(folderBatchId);
+  if (!batch || !batch.handle) { toast('폴더 정보를 찾을 수 없음', { type: 'error' }); return; }
+  const root = nodes.find(n => n.sourcePageId === localPageId && n.level === 0);
+  if (!root) return;
+  let perm = await batch.handle.queryPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') { toast('폴더 쓰기 권한 필요', { type: 'error' }); return; }
+  try {
+    // 대상 하위 디렉터리 핸들
+    let dir = batch.handle;
+    if (folderRel) { for (const part of folderRel.split('/').filter(Boolean)) dir = await dir.getDirectoryHandle(part); }
+    // 파일명(충돌 시 -n)
+    const base = (root.label || 'note').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'note';
+    const existingNames = new Set([...batch.files.keys()].map(pth => pth.split('/').pop().toLowerCase()));
+    let name = base + '.md', i = 1;
+    while (existingNames.has(name.toLowerCase())) name = `${base}-${i++}.md`;
+    const relPath = folderRel ? `${folderRel}/${name}` : name;
+    // 내용 재구성 → 파일 생성/쓰기
+    const md = buildFileMarkdown(root);
+    const fh = await dir.getFileHandle(name, { create: true });
+    const w = await fh.createWritable(); await w.write(md); await w.close();
+    // 임시 페이지 제거 후 폴더 파일로 임포트(중복 방지 위해 제거를 먼저)
+    removePage(localPageId, document.querySelector(`[data-page-id="${localPageId}"]`));
+    const r = await _importFolderFile(relPath, fh, folderBatchId);
+    batch.files.set(relPath, r);
+    await _saveFolderBatchToIDB(folderBatchId);
+    _registerFolderRows(folderBatchId, batch);
+    if (typeof savePageList === 'function') savePageList();
+    refreshSidebarRender();
+    if (typeof renderMdFolderList === 'function') renderMdFolderList();
+    isStable = false;
+    toast(`'${root.label}' → ${batch.name || '폴더'} 이동`, { type: 'success' });
+  } catch (err) {
+    toast('폴더로 이동 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
+  }
 }
 
 function highlightSidebarPage(pageId) {

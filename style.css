@@ -279,6 +279,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-pick-item.pli-group { color:var(--text-dim); cursor:default; }
 .page-pick-item.pli-group:hover { background:rgba(var(--fg-rgb),0.04); }
 .page-list-item { display:flex; align-items:center; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.15s; min-height:30px; }
+.page-list-item.dragging { opacity:0.45; }
+.page-list-item.pli-group.drop-target { border-color:var(--accent); background:rgba(var(--accent-rgb),0.14); }
 .page-list-item.active { border-left:3px solid var(--accent); }
 .page-list-item.focused { border-color:rgba(var(--accent-rgb),0.6); background:rgba(var(--accent-rgb),0.1); }
 .page-list-item.focused .item-label { color:var(--accent); }
@@ -297,7 +299,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item .item-actions .btn-favorite:hover { color:var(--accent); }
 .page-list-item .item-actions .btn-favorite.active { color:var(--accent); }
 /* MD 폴더 행 — 페이지 목록 안에서 DB 그룹 머리글과 같은 규격, 아이콘만 폴더 */
-.md-folder-ic { vertical-align:-2px; color:var(--accent); flex-shrink:0; }
+.md-folder-ic { color:var(--accent); flex-shrink:0; margin:0 7px 0 4px; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
 #sidebar-logo { padding: 18px 18px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
