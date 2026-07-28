@@ -984,11 +984,10 @@ function _pageItemHtml(p) {
     let mdBadge = '';
     if (p.isMd || p.isLocal) {
       const rootN = (typeof nodes !== 'undefined' && Array.isArray(nodes)) ? nodes.find(nd => nd.level === 0 && nd.sourcePageId === p.id) : null;
-      const txt = p.isMd ? 'MD' : '임시';
+      const txt = 'MD';
       const style = (rootN && typeof _chipColorStyle === 'function')
         ? _chipColorStyle(rootN)
-        : (p.isMd ? 'background:rgba(237,112,0,0.14);border-color:rgba(237,112,0,0.4);color:#ed7000;'
-                  : 'background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);');
+        : 'background:rgba(237,112,0,0.14);border-color:rgba(237,112,0,0.4);color:#ed7000;';
       mdBadge = ` <span class="node-chip node-chip--badge" style="${style}">${txt}</span>`;
     }
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
@@ -1005,8 +1004,7 @@ function _pageItemHtml(p) {
           <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
         </div>`;
       return `<div class="page-list-item pli-group" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}">${safeTitle}</span>
-        ${folderIc}
+        <span class="item-label" title="${safeTitle}">${safeTitle} ${folderIc}</span>
         ${acts}
       </div>`;
     }
