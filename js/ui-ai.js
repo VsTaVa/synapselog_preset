@@ -677,9 +677,9 @@ async function geminiToolCall(prompt, systemText) {
   return { calls, text };
 }
 // 후보 노드 목록(@번호) — 질문과 겹치는 제목·선택 노드 우선, 최대 150개(토큰 절약)
-function _agentNodeIndex(q) {
+function _agentNodeIndex(q, selNodes) {
   const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && n.local && !n._aiSummary && n.label && n.label.trim());
-  const sel = new Set((_multiSelected || []).map(n => n.id));
+  const sel = new Set((selNodes || _multiSelected || []).map(n => n.id));
   if (typeof _activeNode !== 'undefined' && _activeNode) sel.add(_activeNode.id);
   let qtok = []; try { qtok = (q.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); } catch (e) { qtok = (q.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
   const score = n => { const t = n.label.toLowerCase(); let s = sel.has(n.id) ? 100 : 0; qtok.forEach(w => { if (w.length >= 2 && t.includes(w)) s += 3; }); return s; };
@@ -691,7 +691,7 @@ function _agentNodeIndex(q) {
 function _resolveAgentTarget(ref, idxMap) {
   if (!ref) return null;
   ref = String(ref).trim();
-  if (/^SELECTED$/i.test(ref)) return (_multiSelected && _multiSelected[0]) || (typeof _activeNode !== 'undefined' ? _activeNode : null) || null;
+  if (/^SELECTED$/i.test(ref)) return (_agentSelCtx && _agentSelCtx[0]) || (_multiSelected && _multiSelected[0]) || (typeof _activeNode !== 'undefined' ? _activeNode : null) || null;
   if (idxMap.has(ref)) return nodeMap[idxMap.get(ref)];
   const norm = s => (s || '').trim().toLowerCase();
   const all = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.local && n.visible);
@@ -758,18 +758,23 @@ function _aiChatSetActions(id, text, actions) {
   if (m) { m.text = text; m.refs = []; m.suggestions = null; m.actions = (actions && actions.length) ? actions : null; }
   _renderAiChat(); _saveAiChat();
 }
+let _agentSelCtx = null;
 // 자연어 편집 요청 → 도구 호출 제안(확인 후 실행)
 async function aiAgentCommand(q) {
   if (!requireAiKey()) return;
-  _aiChatPush('user', q);
-  const idx = _agentNodeIndex(q);
+  const sel = (_multiSelected || []).slice();       // 입력란의 노드칩(=선택 노드) 캡처
+  _agentSelCtx = sel;                                // SELECTED 해석용
+  _aiChatPush('user', q, null, null, sel.length ? sel : null); // 메시지에 노드칩 같이 표시
+  if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
+  const idx = _agentNodeIndex(q, sel);
   const hist = _aiChat.filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|요청 해석/.test(m.text)).slice(-8).map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
+  const selLine = sel.length ? `[현재 선택된 노드] ${sel.map(n => nodeTitle(n)).join(', ')} — 대상을 명시하지 않으면 이 노드를 대상으로.\n` : '';
   const sys = `너는 지식 그래프 편집 조수다. 사용자의 요청이 그래프 수정(하위 노드 추가/본문 수정/제목 변경/노드 연결)이면 알맞은 함수를 호출해라.
-- 대상 노드는 아래 [노드 목록]의 @번호로 지정. "이 노드/여기/선택한"이면 target을 "SELECTED"로.
+- 대상 노드는 아래 [노드 목록]의 @번호로 지정. "이 노드/여기/선택한"이거나 대상이 안 적혀 있으면 target을 "SELECTED"로.
 - 목록에서 어느 노드인지 확신이 안 서면 함수를 호출하지 말고 한국어로 되물어라(추측 금지).
 - 추가·수정할 내용은 markdown으로. 헤딩 구조가 필요하면 #, ##를 써라. 직전 대화 내용을 넣으라면 그 내용을 markdown에 채워라.
 - 수정 요청이 아니면 그냥 한국어로 답해라.
-[노드 목록]
+${selLine}[노드 목록]
 ${idx.text || '(없음)'}`;
   const prompt = `${hist ? '[대화]\n' + hist + '\n\n' : ''}[사용자 요청]\n${q}`;
   const estTok = Math.round((sys.length + prompt.length) / 4);
