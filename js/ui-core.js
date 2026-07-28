@@ -117,7 +117,6 @@ function showLoading(text='불러오는 중...') {
   if (el) el.classList.add('visible');
   if (txt) txt.textContent = text;
 }
-function setLoadingText(text) { const txt = document.getElementById('loading-text'); if (txt) txt.textContent = text; }
 function hideLoading() { const el = document.getElementById('loading-overlay'); if (el) el.classList.remove('visible'); }
 
 // ── 제목 표시 토글 ────────────────────────────────────────────────────

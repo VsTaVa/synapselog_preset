@@ -1139,26 +1139,6 @@ function _clearEntryDescendantsOf(entryNode) {
   return desc;
 }
 
-function _clearEntryDescendants(pageId) {
-  const entryDesc = new Set();
-  const q = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId).map(n => n.id);
-  const seen = new Set(q);
-  while (q.length) {
-    const id = q.shift();
-    edges.forEach(e => {
-      if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) {
-        seen.add(e.to); entryDesc.add(e.to); q.push(e.to);
-      }
-    });
-  }
-  if (entryDesc.size) {
-    nodes = nodes.filter(n => !entryDesc.has(n.id));
-    edges = edges.filter(e => !entryDesc.has(e.from) && !entryDesc.has(e.to));
-    entryDesc.forEach(id => delete nodeMap[id]);
-  }
-  return entryDesc;
-}
-
 async function syncPage(pageId, opts) {
   opts = opts || {};
   const item = document.querySelector(`[data-page-id="${pageId}"]`);

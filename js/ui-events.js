@@ -637,7 +637,6 @@ const LANG = {
     'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
     'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
     'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 & 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space & 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그','sc-zoom':'화면 확대 / 축소','sc-zoom-sub':'마우스 휠 (모바일: 두 손가락)','sc-zoom-key':'마우스 휠',
-    's-local-warn':'API 토큰이 이 기기 브라우저에 저장됨. 공용 컴퓨터 사용 비권장.',
     's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
     's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
     's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
@@ -666,7 +665,6 @@ const LANG = {
     'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
     'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a keyword to chat with AI',
     'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar & double-click empty space / double-tap','sc-dblclick2':'Space & Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag','sc-zoom':'Zoom In / Out','sc-zoom-sub':'Mouse wheel (mobile: pinch)','sc-zoom-key':'Mouse wheel',
-    's-local-warn':'API token is stored in this browser. Not recommended on shared computers.',
     's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'API token is stored in this device\'s browser. Not recommended on shared devices.',
     's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
     's-connect-cache':'Connect Cache','s-connect-cache-sub':'Manual edge connections',
@@ -779,8 +777,6 @@ function openSettings() {
 
   const localToggle = document.getElementById('s-local-toggle');
   if (localToggle) localToggle.checked = _useLocalStorage;
-  const warn = document.getElementById('s-local-warn');
-  if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
 
   ['pages'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
@@ -808,8 +804,6 @@ function closeSettings() {
 function onStorageToggle(el) {
   _useLocalStorage = el.checked;
   localStorage.setItem('snlog_use_local', _useLocalStorage);
-  const warn = document.getElementById('s-local-warn');
-  if (warn) warn.style.display = _useLocalStorage ? 'block' : 'none';
   if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }

@@ -389,8 +389,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #confirm-ok:hover { background: rgba(var(--accent-rgb),0.25); }
 .detail-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 16px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .detail-header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-.pane-collapse-btn, .pane-x { background: none; border: none; cursor: pointer; color: var(--icon); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-.pane-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.pane-x { background: none; border: none; cursor: pointer; color: var(--icon); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
 .pane-x { color: var(--accent); font-size: 16px; line-height: 1; }
 .pane-x:hover { color: #fff; background: rgba(var(--accent-rgb),0.25); }
 #detail-panel { display: flex; flex-direction: column; }
