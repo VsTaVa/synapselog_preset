@@ -883,8 +883,9 @@ function resolveWikiLinks() {
     edges.push({ from: src.id, to: target.id, weakLink: true, wikiLink: true });
   };
   nodes.forEach(src => {
-    const text = (src.bodyBlocks && src.bodyBlocks.length) ? src.bodyBlocks.map(b => b.text).join('\n') : (src.desc || '');
-    if (!text) return;
+    // 블록과 desc 둘 다 훑는다 — 한쪽에만 링크가 들어가도 엣지가 생기게(중복은 seen이 거름)
+    const text = [(src.bodyBlocks && src.bodyBlocks.length) ? src.bodyBlocks.map(b => b.text).join('\n') : '', src.desc || ''].join('\n');
+    if (!text.trim()) return;
     if (text.indexOf('](') >= 0) {                 // 표준/노션식 [텍스트](url)
       _LINK_RE.lastIndex = 0; let m;
       while ((m = _LINK_RE.exec(text))) addWiki(src, _nodeFromLinkUrl(m[2]));

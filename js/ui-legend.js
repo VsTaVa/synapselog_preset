@@ -174,7 +174,8 @@ function _wikiLinkTextLocal(b) {
 }
 function _linkResolvesTo(url, b) { const t = _nodeFromLinkUrl(url); return !!(t && t.id === b.id); }
 function _hasWikiLinkTo(a, b) {
-  const text = (a.bodyBlocks && a.bodyBlocks.length) ? a.bodyBlocks.map(x => x.text).join('\n') : (a.desc || '');
+  // 본문 블록과 desc 둘 다 훑는다 — 한쪽에만 링크가 있어도 이미 연결로 판정되게(토글이 어긋나던 문제)
+  const text = [(a.bodyBlocks && a.bodyBlocks.length) ? a.bodyBlocks.map(x => x.text).join('\n') : '', a.desc || ''].join('\n');
   const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m;
   while ((m = re.exec(text))) { if (_linkResolvesTo(m[2], b)) return true; }
   // 로컬은 [[ ]] 형식도 검사
@@ -188,10 +189,15 @@ function _wikiReflect() { if (typeof resolveWikiLinks === 'function') resolveWik
 // A→B 위키 연결: 그래프 즉시 반영 + 노션 저장은 백그라운드(실패 시 롤백)
 function _wikiConnect(a, b) {
   // 로컬 노드는 옵시디언식 [[ ]]로, 노션 노드는 [텍스트](url)로
-  const localA = (typeof _isLocalSource === 'function') ? _isLocalSource(a) : a.local;
+  // 표기 판정과 저장 경로 판정이 어긋나면(.local만 보면) MD 노드가 노션 append로 새서 실패·롤백되므로 같은 값을 쓴다
+  const localA = (typeof _isLocalSource === 'function') ? _isLocalSource(a) : !!a.local;
   const text = localA ? _wikiLinkTextLocal(b) : _wikiLinkText(b);
-  if (a.local) {
+  if (localA) {
     a.desc = (a.desc && a.desc.trim()) ? (a.desc + '\n' + text) : text;
+    // 본문이 블록으로 쪼개져 있으면 그쪽이 우선 읽히므로(resolveWikiLinks) 같이 넣어줘야 엣지가 생김
+    if (a.bodyBlocks && a.bodyBlocks.length) {
+      a.bodyBlocks = a.bodyBlocks.concat([{ id: '_loc_' + Date.now() + Math.random().toString(36).slice(2), text }]);
+    }
     _wikiReflect(); saveLocalPages();
     // 링크를 원본 .md에도 반영(핸들 있을 때). 비차단
     if (typeof writeBackMdFile === 'function' && String(a.sourcePageId || '').startsWith('md_')) {
@@ -215,13 +221,29 @@ function _wikiConnect(a, b) {
   });
 }
 function _wikiDisconnect(a, b) {
-  const stripLine = line => line.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => _linkResolvesTo(url, b) ? '' : mm);
+  const localA = (typeof _isLocalSource === 'function') ? _isLocalSource(a) : !!a.local;
+  const stripMd = line => line.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => _linkResolvesTo(url, b) ? '' : mm);
+  // 로컬은 [[ ]]로 저장되므로 그 형태도 지워야 함 — 안 지우면 resolveWikiLinks가 곧바로 다시 이어 붙여 해제가 안 되는 것처럼 보임
+  const stripWiki = line => line.replace(/\[\[([^\]\n]+?)\]\]/g, (mm, ref) => {
+    const t = (typeof _nodeFromWikiRef === 'function') ? _nodeFromWikiRef(ref, a) : null;
+    return (t && t.id === b.id) ? '' : mm;
+  });
+  const stripLine = line => localA ? stripWiki(stripMd(line)) : stripMd(line);
   const stripDesc = () => {
     const out = [];
     (a.desc || '').split('\n').forEach(line => { const st = stripLine(line); if (st.trim() === '' && st !== line) return; out.push(st); });
     a.desc = out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   };
-  if (a.local) { stripDesc(); _wikiReflect(); saveLocalPages(); return; }
+  if (localA) {
+    if (a.bodyBlocks && a.bodyBlocks.length) {
+      a.bodyBlocks = a.bodyBlocks.map(x => ({ ...x, text: stripLine(x.text || '') })).filter(x => (x.text || '').trim() !== '');
+    }
+    stripDesc(); _wikiReflect(); saveLocalPages();
+    if (typeof writeBackMdFile === 'function' && String(a.sourcePageId || '').startsWith('md_')) {
+      writeBackMdFile(a.sourcePageId).catch(() => {});
+    }
+    return;
+  }
   const blk = (a.bodyBlocks || []).find(x => { const re = /\[([^\]]*)\]\(([^)\s]+)\)/g; let m; while ((m = re.exec(x.text || ''))) { if (_linkResolvesTo(m[2], b)) return true; } return false; });
   if (!blk) {
     // 최상위/페이지 노드처럼 링크가 desc에만 있는 경우 → desc에서 제거해 그래프 즉시 반영
