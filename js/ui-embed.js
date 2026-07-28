@@ -95,7 +95,19 @@ function _aiAnswerRAG(q) {
   });
 }
 
-// 대화한 글(가장 최근 AI 답변)을 선택/열린 노드의 하위 노드로 넣기 → 편집창에서 확인 후 저장
+// AI 답변에서 실제 마크다운만 추출 — ```펜스``` 안을 우선, 없으면 첫 헤딩부터
+function _extractMdFromAi(text) {
+  const t = (text || '').trim();
+  const fence = t.match(/```(?:[\w-]*)\n([\s\S]*?)```/);
+  if (fence && /^#{1,6}\s+/m.test(fence[1])) return fence[1].trim();
+  const lines = t.split('\n');
+  const firstH = lines.findIndex(l => /^#{1,6}\s+/.test(l.trim()));
+  if (firstH >= 0) return lines.slice(firstH).join('\n').trim();
+  return t;
+}
+
+// 대화한 글(가장 최근 AI 답변)을 선택/열린 노드의 하위 노드로 넣기
+// 헤딩이 여러 개면 그 계층 구조 그대로 하위 노드들로 반영, 하나면 단일 노드+본문(편집창)
 function aiSaveToChild(q) {
   const parent = (_multiSelected.length === 1 ? _multiSelected[0] : null) || (typeof _activeNode !== 'undefined' ? _activeNode : null);
   _aiChatPush('user', q);
@@ -103,11 +115,35 @@ function aiSaveToChild(q) {
   if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '이 노드 아래에는 하위 노드 생성 불가.'); return; }
   const lastAi = [..._aiChat].reverse().find(m => m.role === 'ai' && m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|어느 노드|넣을 내용|하위 노드로|하위 노드 생성/.test(m.text));
   if (!lastAi) { _aiChatPush('ai', '넣을 내용 없음. 먼저 AI와 대화해서 글 만들기.'); return; }
-  const text = lastAi.text.trim();
-  const lines = text.split('\n');
+  const md = _extractMdFromAi(lastAi.text);
+  const headingCount = (md.match(/^#{1,6}\s+/gm) || []).length;
+  if (typeof clearMultiSelect === 'function') clearMultiSelect();
+
+  // 헤딩 2개 이상 = 구조 → 계층 하위 노드로 반영 (로컬/MD 노드 대상)
+  if (headingCount >= 2 && parent.local) {
+    const waitId = _aiChatPush('ai', '하위 구조로 넣는 중… ⏳');
+    try {
+      const newIds = _addEntryChildNodes(parent, md);
+      newIds.forEach(id => {
+        const c = nodeMap[id];
+        if (c) { c.visible = true; c.local = true; c.headingDepth = (parent.headingDepth || 0) + Math.max(1, c.level - parent.level); }
+      });
+      if (typeof saveLocalPages === 'function') saveLocalPages();
+      nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
+      isStable = false;
+      // MD 파일이면 원본 파일에도 반영
+      if (typeof writeBackMdFile === 'function' && String(parent.sourcePageId || '').startsWith('md_')) writeBackMdFile(parent.sourcePageId).catch(() => {});
+      if (typeof highlightAiNodes === 'function') highlightAiNodes([parent].concat([...newIds].map(id => nodeMap[id]).filter(Boolean)));
+      if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
+      _aiChatReplace(waitId, `"${(parent.label || '').trim() || '노드'}" 아래에 ${newIds.size}개 노드로 구조 반영.`, []);
+    } catch (e) { _aiChatReplace(waitId, '하위 구조 생성 실패: ' + (e.message || e), []); }
+    return;
+  }
+
+  // 단일: 첫 헤딩=제목, 나머지=본문 → 한 노드(편집창에서 확인 후 저장)
+  const lines = md.split('\n');
   const title = (lines[0] || '').replace(/^#+\s*/, '').replace(/[*_`]/g, '').slice(0, 60).trim() || '새 노드';
   const body = lines.slice(1).join('\n').trim();
-  if (typeof clearMultiSelect === 'function') clearMultiSelect();
   const waitId = _aiChatPush('ai', `"${title}" 하위 노드로 넣는 중… ⏳`);
   createChildNode(parent, title).then(ids => {
     if (ids && ids.length && nodeMap[ids[0]]) {
