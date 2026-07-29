@@ -163,7 +163,8 @@ function insightFocusBranch(nid) {
   if (!n) return;
   const ids = [nid, ..._descendantIds(nid)];
   if (typeof applyGraphHighlight === 'function') {
-    applyGraphHighlight(ids, '', { max: 20, fit: true, fitDelay: 320 }); // 마커=본문에 없는 문자
+    // 글로우는 고른 중심 노드에만 — 하위 트리는 활성 범위(also)에만 넣어 전부 하얘지지 않게
+    applyGraphHighlight([nid], '', { max: 20, fit: true, fitDelay: 320, also: ids.slice(1) }); // 마커=본문에 없는 문자
   }
 }
 

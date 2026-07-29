@@ -100,6 +100,8 @@ function applyGraphHighlight(directIds, keyword, opts) {
     searchDirect.add(id); searchMatches.add(id);
     getAncestorIds(id, opts.max || 12, false).forEach(a => searchMatches.add(a)); // 수동링크 통과(검색과 동일)
   });
+  // opts.also: 활성 범위엔 넣되 흰색 글로우는 안 붙일 노드(예: 허브의 하위 트리)
+  (opts.also || []).forEach(id => { if (id) searchMatches.add(id); });
   const cb = (typeof clearBtn !== 'undefined' && clearBtn) ? clearBtn : document.getElementById('clear-btn');
   if (cb) cb.style.display = 'block';
   isStable = false;
