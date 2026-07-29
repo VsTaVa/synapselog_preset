@@ -55,16 +55,10 @@ canvas { display: block; }
 .lg-tool { align-items: flex-start; }
 
 /* ── 북마크 레일 섹션 ── */
-#bookmark-list { display: flex; flex-direction: column; gap: 2px; max-height: 64vh; overflow-y: auto; }
-.bm-item { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px; cursor: pointer; transition: background 0.13s; }
-.bm-item:hover { background: rgba(255,255,255,0.06); }
-.bm-ic { flex-shrink: 0; display: inline-flex; align-items: center; }
-.bm-label { flex: 1; min-width: 0; font-size: 12.5px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 최근 본 노드 개별 제거 — 평소엔 흐리게, 행에 올리면 드러남 */
-/* 자주 본 노드 — 시계 아이콘 자리에 조회 횟수 */
+#bookmark-list { display: flex; flex-direction: column; gap: 4px; max-height: 64vh; overflow-y: auto; }
+/* 최근 본 노드 개별 제거 — 평소엔 흐리게, 칩에 올리면 드러남 */
 .bm-x { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; border-radius: 4px; color: var(--icon); opacity: 0; cursor: pointer; transition: opacity 0.13s, color 0.13s, background 0.13s; }
-.bm-item:hover .bm-x { opacity: 1; }
-/* 자주·최근 본 노드 — 중심 노드와 동일한 칩 규격 */
+/* 북마크·자주·최근 본 노드 — 중심 노드와 동일한 칩 규격 */
 .bm-chip { cursor: pointer; }
 .bm-chip:hover .bm-x { opacity: 1; }
 .bm-chip .bm-x { width: 16px; height: 16px; margin-left: 1px; }
@@ -729,7 +723,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 150px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
 .node-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-chip:hover { filter: brightness(1.18); }
-.node-chip-bm { flex-shrink: 0; }
+/* 북마크된 노드칩: 앞 아이콘을 체인 → 북마크로, 색은 그래프의 주황 제목과 맞춤 */
+.node-chip--bm::before { background-color: var(--accent); -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); }
 .node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
 .node-chip-x:hover { opacity: 1; }
 .node-chip--badge { padding: 1px 6px; font-size: 9px; font-weight: 700; max-width: none; vertical-align: 1px; }

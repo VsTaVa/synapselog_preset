@@ -53,38 +53,26 @@ let _recentNodes = [];
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
-  const bmIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#ed7000" stroke="#ed7000" stroke-width="1.5" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
   const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  const rowHtml = (n, ic) => {
-    const t = escapeHtml(nodeTitle(n));
-    return `<div class="bm-item" data-nid="${n.id}" title="${t}"><span class="bm-ic">${ic}</span><span class="bm-label">${t}</span></div>`;
-  };
-  // 자주·최근 본 노드는 중심 노드와 같은 칩 — 아이콘 없이 노드 색으로 구분, 부가정보는 오른쪽에
+  // 북마크·자주·최근 모두 중심 노드와 같은 칩 — 노드 색으로 구분, 부가정보는 오른쪽에
   const chipItem = (n, tail) =>
     `<span class="insight-chipwrap bm-chip" data-nid="${n.id}">${createNodeChip(n)}${tail || ''}</span>`;
+  const chipList = (arr, fn) => `<div class="insight-chips">${arr.map(fn).join('')}</div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
   let html = railSecHead('bm', '북마크');
-  html += railSecBody('bm', bms.length ? bms.map(n => rowHtml(n, bmIcon)).join('')
+  html += railSecBody('bm', bms.length ? chipList(bms, n => chipItem(n))
     : `<div class="rail-empty">북마크 노드 모음</div>`);
   const freq = _frequentNodes(8);
   html += railSecHead('freq', '자주 본 노드', 'mt');
   html += railSecBody('freq', freq.length
-    ? `<div class="insight-chips">${freq.map(f => chipItem(f.n, `<span class="insight-badge">${f.c}</span>`)).join('')}</div>`
+    ? chipList(freq, f => chipItem(f.n, `<span class="insight-badge">${f.c}</span>`))
     : `<div class="rail-empty">2번 이상 선택된 노드</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
   html += railSecBody('recent', recents.length
-    ? `<div class="insight-chips">${recents.map(n => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`)).join('')}</div>`
+    ? chipList(recents, n => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`))
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
-  el.querySelectorAll('.bm-item').forEach(row => {
-    row.onclick = () => {
-      const n = nodeMap[row.dataset.nid];
-      if (!n) return;
-      openPanel(n);
-      if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
-    };
-  });
   // 칩은 전역 핸들러가 패널을 열어주므로 여기선 카메라 이동만
   el.querySelectorAll('.bm-chip').forEach(w => {
     w.onclick = () => {
