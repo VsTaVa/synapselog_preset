@@ -74,8 +74,11 @@ function openAiChat() {
   openAiChat();
 }
 
-async function geminiSummarize(text) {
-  const prompt = `다음은 지식 그래프에서 선택한 노드들의 제목과 내용이야. 핵심만 한국어로 간결하게 요약해줘.\n- 불릿 몇 개로 정리\n- 노드 간 관계나 공통 주제가 보이면 짚어줘\n- 원문에 없는 내용은 지어내지 마\n\n---\n${text}`;
+async function geminiSummarize(text, userText) {
+  const req = (userText || '').trim();
+  // 사용자가 구체 지시를 함께 넣었으면(예: "3문장으로", "표로", "핵심만") 그걸 우선 반영
+  const reqLine = req ? `[사용자 지시] ${req}\n위 지시를 우선 반영해서 요약해줘.\n\n` : '';
+  const prompt = `다음은 지식 그래프에서 선택한 노드들의 제목과 내용이야. 핵심만 한국어로 간결하게 요약해줘.\n- 불릿 몇 개로 정리\n- 노드 간 관계나 공통 주제가 보이면 짚어줘\n- 원문에 없는 내용은 지어내지 마\n\n${reqLine}---\n${text}`;
   return geminiGenerate(prompt);
 }
 
@@ -111,7 +114,7 @@ async function aiSummarizeNodes(nodeList, userText) {
   _aiChatPush('user', (userText && userText.trim()) || '/Node Summary', null, null, base);
   const waitId = _aiChatPush('ai', _AI_WAIT);
   _aiRun(waitId, _AI_WAIT, async () => {
-    const summary = await geminiSummarize(combined);
+    const summary = await geminiSummarize(combined, userText);
     _aiChatReplace(waitId, summary, list);
     if (typeof highlightAiNodes === 'function') highlightAiNodes(list);
   });
@@ -132,7 +135,9 @@ async function aiSuggestLinks(node, userText) {
   const waitId = _aiChatPush('ai', _AI_WAIT);
   const baseText = `${nodeTitle(node)}\n${nodeBody(node, 400)}`;
   const candText = cands.map((c, i) => `[${i + 1}] ${nodeTitle(c)}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
-  const prompt = `기준 노드와 의미상 연결하면 좋은 후보를 골라줘. 억지로 다 고르지 말고 관련 있는 것만. 출력은 각 줄 "[번호] 이유(한 줄)" 형식으로만, 관련된 게 없으면 "없음"이라고만 해.\n\n[기준 노드]\n${baseText}\n\n[후보]\n${candText}`;
+  const req = (userText || '').trim();
+  const reqLine = req ? `[사용자 지시] ${req} (이 관점을 고려해 고르기)\n\n` : '';
+  const prompt = `기준 노드와 의미상 연결하면 좋은 후보를 골라줘. 억지로 다 고르지 말고 관련 있는 것만. 출력은 각 줄 "[번호] 이유(한 줄)" 형식으로만, 관련된 게 없으면 "없음"이라고만 해.\n\n${reqLine}[기준 노드]\n${baseText}\n\n[후보]\n${candText}`;
   _aiRun(waitId, _AI_WAIT, async () => {
     const ans = await geminiGenerate(prompt);
     const suggestions = [];
@@ -171,7 +176,9 @@ async function aiRefineNode(node, userText) {
   openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Edit', null, null, [node]);
   const waitId = _aiChatPush('ai', _AI_WAIT);
-  const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
+  const req = (userText || '').trim();
+  const reqLine = req ? `[사용자 지시] ${req}\n위 지시를 우선 반영해 다듬어줘.\n\n` : '';
+  const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n${reqLine}[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
   _aiRun(waitId, _AI_WAIT, async () => {
     const refined = (await geminiGenerate(prompt)).trim();
     _aiChatReplace(waitId, refined, [], null, { nodeId: node.id, text: refined, done: false });
