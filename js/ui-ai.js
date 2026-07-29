@@ -69,9 +69,10 @@ function requireAiKey() {
   return false;
 }
 
-// AI 대화 레일 열기 (이미 열려 있으면 그대로)
+// AI 대화 레일 열기 (이미 열려 있으면 그대로 — openRailSection은 토글이라 중복 호출 방지)
 function openAiChat() {
-  openAiChat();
+  if (typeof _activeRailSection !== 'undefined' && _activeRailSection === 'aichat') return;
+  if (typeof openRailSection === 'function') openRailSection('aichat');
 }
 
 async function geminiSummarize(text, userText) {
