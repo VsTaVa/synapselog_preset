@@ -863,11 +863,20 @@ function _nodeFromLinkUrl(url) {
     const pid = idx >= 0 ? rest.slice(0, idx) : '', label = idx >= 0 ? decodeURIComponent(rest.slice(idx + 1)) : '';
     return nodes.find(n => String(n.sourcePageId || '') === pid && n.label === label) || nodes.find(n => n.label === label) || null;
   }
-  const ids = (url.replace(/-/g, '').match(/[0-9a-f]{32}/gi) || []).map(s => s.toLowerCase());
-  if (!ids.length) return null;
   const norm = v => String(v || '').replace(/-/g, '').toLowerCase();
-  for (const id of ids) { const n = nodes.find(x => x.notionBlockId && norm(x.notionBlockId) === id); if (n) return n; }
-  for (const id of ids) { const n = nodes.find(x => (x.entryNotionId && norm(x.entryNotionId) === id) || (x.sourcePageId && norm(x.sourcePageId) === id)); if (n) return n; }
+  const hex = s => (String(s).replace(/-/g, '').match(/[0-9a-f]{32}/gi) || []).map(x => x.toLowerCase());
+  const all = hex(url);
+  if (!all.length) return null;
+  // notion.so/<페이지>?pvs=4#<블록> — # 뒤 조각이 링크의 진짜 대상. 페이지 id보다 먼저 본다
+  const hi = url.indexOf('#');
+  const frag = hi >= 0 ? hex(url.slice(hi + 1))[0] : null;
+  const ids = frag ? [frag, ...all.filter(x => x !== frag)] : all;
+  for (const id of ids) { const n = nodes.find(x => norm(x.notionBlockId) === id); if (n) return n; }
+  for (const id of ids) { const n = nodes.find(x => norm(x.entryNotionId) === id); if (n) return n; }
+  // 블록을 지정한 링크인데 그 노드를 못 찾으면 연결하지 않는다.
+  // 예전엔 sourcePageId로도 매칭해서, 그 페이지의 '아무 노드'(배열 순서상 보통 루트)에 엉뚱하게 이어졌다
+  if (frag) return null;
+  for (const id of ids) { const n = nodes.find(x => x.level === 0 && norm(x.sourcePageId) === id); if (n) return n; }
   return null;
 }
 // ── 옵시디언식 위키링크 [[노트]] / [[노트#헤딩]] / [[#헤딩]] (별칭 [[..|별칭]]) ──
