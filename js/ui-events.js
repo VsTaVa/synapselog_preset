@@ -726,9 +726,10 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape') {
+    // 설정창이 떠 있으면 그것만 닫고, 그 외엔 좌측 플라이아웃·우측 패널을 한 번에 닫는다
     if (document.getElementById('settings-modal').classList.contains('open')) { closeSettings(); return; }
-    if (_activeRailSection) { closeRailFlyout(); return; }
-    if (detailPanel.classList.contains('open')) { hidePanel(); return; }
+    if (_activeRailSection) closeRailFlyout();
+    if (detailPanel.classList.contains('open')) hidePanel();
     return;
   }
   const tag = document.activeElement?.tagName;
