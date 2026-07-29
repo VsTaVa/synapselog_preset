@@ -592,8 +592,11 @@ function saveDetailWidth() {
     active = false;
     document.body.classList.remove('resizing-panel'); dH.classList.remove('dragging', 'will-collapse');
     const _p = document.getElementById('detail-panel'); if (_p) _p.classList.remove('pre-collapse');
-    if (!moved) return; // 탭은 무시 — 접기는 좁게 드래그로만
     const panel = document.getElementById('detail-panel');
+    if (!moved) { // 탭 → 패널 접기
+      if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) { saveDetailWidth(); toggleDetailPanel(); }
+      return;
+    }
     if (willCollapse) { // 너무 좁게 끌면 아예 접힘
       willCollapse = false;
       saveDetailWidth(); // 접히기 직전 폭도 저장 — 다시 열 때 그 폭 그대로

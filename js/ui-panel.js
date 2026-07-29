@@ -106,7 +106,7 @@ function _startPaneDrag(e, dv) {
     document.removeEventListener('touchend', up);
     document.body.classList.remove('resizing-panes');
     dv.classList.remove('dragging');
-    if (!moved) { _paneMenuOpen ? _closePaneMenu() : _openPaneMenu(); } // 탭 → 팝업 토글
+    if (!moved) swapPanes(); // 탭 → 위·아래 바로 전환
   };
   document.addEventListener('mousemove', move);
   document.addEventListener('touchmove', move, { passive: false });
@@ -115,45 +115,10 @@ function _startPaneDrag(e, dv) {
   if (e.cancelable) e.preventDefault();
 }
 
-// 경계선 탭 → 갤럭시식 팝업(현재 액션: 위·아래 전환). 패널 밖으로 나가도 안 잘리게 #detail-panel에 붙임
-let _paneMenuOpen = false, _paneMenuDocHandler = null;
-function _closePaneMenu() {
-  const m = document.getElementById('pane-divider-menu');
-  if (m) m.remove();
-  if (_paneMenuDocHandler) {
-    document.removeEventListener('mousedown', _paneMenuDocHandler);
-    document.removeEventListener('touchstart', _paneMenuDocHandler);
-    _paneMenuDocHandler = null;
-  }
-  _paneMenuOpen = false;
-}
-function _openPaneMenu() {
-  _closePaneMenu();
-  const panel = document.getElementById('detail-panel');
-  if (!panel || _stack.length < 2) return;
-  const m = document.createElement('div');
-  m.id = 'pane-divider-menu';
-  m.className = 'pane-divider-menu';
-  m.style.top = (_paneRatio * 100) + '%';
-  m.innerHTML = `<button type="button" class="pdm-item" title="위&아래 전환" aria-label="위&아래 전환"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21V5M7 5 4 8M7 5l3 3"/><path d="M17 3v16M17 19l3-3M17 19l-3-3"/></svg></button>`;
-  m.querySelector('.pdm-item').onclick = (e) => { e.stopPropagation(); _closePaneMenu(); swapPanes(); };
-  panel.appendChild(m);
-  _paneMenuOpen = true;
-  // 바깥 클릭 닫기 (다음 틱에 등록해 이번 탭이 곧바로 닫지 않게). 그립 재탭은 up()의 토글이 처리
-  setTimeout(() => {
-    _paneMenuDocHandler = (ev) => {
-      if (!ev.target.closest('#pane-divider-menu') && !ev.target.closest('.pane-divider-grip')) _closePaneMenu();
-    };
-    document.addEventListener('mousedown', _paneMenuDocHandler);
-    document.addEventListener('touchstart', _paneMenuDocHandler);
-  }, 0);
-}
-
 // 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
 function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
-  if (typeof _closePaneMenu === 'function') _closePaneMenu(); // 재렌더 시 떠 있던 경계 팝업 정리
   wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
   _stack.forEach((node, i) => {
