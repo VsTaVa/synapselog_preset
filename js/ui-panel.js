@@ -1051,7 +1051,7 @@ function openPanel(n) {
   if (n && n.id && typeof _recentNodes !== 'undefined') {
     _recentNodes = _recentNodes.filter(id => id !== n.id);
     _recentNodes.unshift(n.id);
-    if (_recentNodes.length > 12) _recentNodes.length = 12;
+    if (_recentNodes.length > 10) _recentNodes.length = 10;
     if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
     if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }

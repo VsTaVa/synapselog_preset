@@ -55,8 +55,8 @@ function renderBookmarkList() {
   if (!el) return;
   const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   // 북마크·자주·최근 모두 중심 노드와 같은 칩 — 노드 색으로 구분, 부가정보는 오른쪽에
-  const chipItem = (n, tail) =>
-    `<span class="insight-chipwrap bm-chip" data-nid="${n.id}">${createNodeChip(n)}${tail || ''}</span>`;
+  const chipItem = (n, tail, rank) =>
+    `<span class="insight-chipwrap bm-chip" data-nid="${n.id}">${rank ? `<span class="chip-rank">${rank}.</span>` : ''}${createNodeChip(n)}${tail || ''}</span>`;
   const chipList = (arr, fn) => `<div class="insight-chips">${arr.map(fn).join('')}</div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
@@ -66,11 +66,11 @@ function renderBookmarkList() {
   const freq = _frequentNodes(8);
   html += railSecHead('freq', '자주 본 노드', 'mt');
   html += railSecBody('freq', freq.length
-    ? chipList(freq, f => chipItem(f.n, `<span class="insight-badge">${f.c}</span>`))
+    ? chipList(freq, (f, i) => chipItem(f.n, `<span class="insight-badge">${f.c}</span>`, i + 1))
     : `<div class="rail-empty">2번 이상 선택된 노드</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
   html += railSecBody('recent', recents.length
-    ? chipList(recents, n => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`))
+    ? chipList(recents, (n, i) => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`, i + 1))
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
   // 칩은 전역 핸들러가 패널을 열어주므로 여기선 카메라 이동만
@@ -212,7 +212,7 @@ function renderInsights() {
   let html = '';
   // 중심 노드 (연결 3개 초과, 최대 10)
   html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
-  const hubChip = h => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화">${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`;
+  const hubChip = (h, i) => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화"><span class="chip-rank">${i + 1}.</span>${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`;
   html += railSecBody('hubs', hubs.length
     ? `<div class="insight-chips">${hubs.map(hubChip).join('')}</div>`
     : `<div class="rail-empty">페이지 없음</div>`);

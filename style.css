@@ -96,6 +96,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
 /* 노드 모음(중심·북마크·자주·최근)은 한 줄에 하나씩 — 여러 개가 한 줄에 끼면 어디까지가 한 노드인지 안 읽힘 */
 .insight-chips { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .insight-chipwrap { position: relative; display: inline-flex; align-items: center; }
+/* 순위 번호 — 오른쪽 정렬로 두 자리(10.)까지 자릿수가 맞음 */
+.chip-rank { flex-shrink: 0; min-width: 17px; margin-right: 3px; font-size: 10px; font-weight: 700; color: var(--text-mute); text-align: right; font-variant-numeric: tabular-nums; }
 /* 중심 노드 항목 — 누르면 하위 전체 활성화 */
 .hub-item { cursor: pointer; border-radius: 12px; padding: 1px 2px; transition: background 0.13s; }
 .hub-item:hover { background: rgba(var(--accent-rgb),0.12); }
