@@ -102,7 +102,13 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .hub-item { cursor: pointer; border-radius: 12px; padding: 1px 2px; transition: background 0.13s; }
 .hub-item:hover { background: rgba(var(--accent-rgb),0.12); }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
-.insight-pair { padding: 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
+/* 오른쪽 위 ✕ 자리를 비워두고 카드 자체가 '그래프에서 보기' 트리거 */
+.insight-pair { position: relative; padding: 8px 26px 8px 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
+.insight-pair:hover { background: rgba(var(--fg-rgb),0.06); }
+.insight-x { position: absolute; top: 5px; right: 5px; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; color: var(--icon); opacity: 0; cursor: pointer; transition: opacity 0.13s, color 0.13s; }
+.insight-pair:hover .insight-x { opacity: 1; }
+.insight-x:hover { color: var(--danger); }
+@media (pointer: coarse) { .insight-x { opacity: 1; } }
 /* 두 노드를 상하로 — 가로로 나눠 쓸 때보다 제목이 훨씬 많이 보인다 */
 .insight-pair-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; }
 .insight-pair-line { display: flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; }
@@ -110,9 +116,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 /* 방향 화살표 — "이 노드로 연결". 아이콘만(박스 없음) */
 .insight-dir { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; color: var(--icon); cursor: pointer; transition: color 0.15s; }
 .insight-dir:hover { color: var(--accent); }
-.insight-acts { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-.insight-ic-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 22px; background: none; border: 1px solid var(--border); color: var(--icon); cursor: pointer; border-radius: var(--radius-sm); transition: color 0.15s, background 0.15s, border-color 0.15s; }
-.insight-ic-btn:hover { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); background: var(--hover); }
 /* 제안 이유(공통 키워드)는 노드 쌍 바로 아래 붙여 근거로 읽히게, 동작 버튼은 그 아래 */
 .insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
 #login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }

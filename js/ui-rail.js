@@ -229,25 +229,23 @@ function renderInsights() {
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
-  const zoomIc =`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`;
   const closeIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  const arrowIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>`;
+  const upIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>`;
+  const downIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
-    // 화살표는 각 칩 앞에 — "이 노드로 연결"이라는 뜻이라 대상 옆에 있어야 읽힌다
-    const dirBtn = (dir, from, to) =>
-      `<button class="insight-dir" onclick="insightConnectDir(${i},'${dir}')" title="${from} → ${to} (노드 연결)" aria-label="${from} → ${to} 연결">${arrowIc}</button>`;
-    return `<div class="insight-pair">
+    // 화살표는 각 칩 앞에 — 위 칩으로 올려붙이면 ↑, 아래 칩으로 내려붙이면 ↓
+    const dirBtn = (dir, ic, from, to) =>
+      `<button class="insight-dir" onclick="insightConnectDir(${i},'${dir}')" title="${from} → ${to} (노드 연결)" aria-label="${from} → ${to} 연결">${ic}</button>`;
+    // 카드에 마우스를 올리면 그래프에서 두 노드를 보여준다(돋보기 버튼 대체)
+    return `<div class="insight-pair" onmouseenter="insightHoverPair(${i})" onmouseleave="insightHoverCancel()">
+      <button class="insight-x" onclick="insightDismiss(${i})" title="다시 제안 안 함" aria-label="다시 제안 안 함">${closeIc}</button>
       <div class="insight-pair-row">
-        <span class="insight-pair-line">${dirBtn('ba', lb, la)}${createNodeChip(p.a, { maxLen: 26 })}</span>
-        <span class="insight-pair-line">${dirBtn('ab', la, lb)}${createNodeChip(p.b, { maxLen: 26 })}</span>
+        <span class="insight-pair-line">${dirBtn('ba', upIc, lb, la)}${createNodeChip(p.a, { maxLen: 26 })}</span>
+        <span class="insight-pair-line">${dirBtn('ab', downIc, la, lb)}${createNodeChip(p.b, { maxLen: 26 })}</span>
       </div>
       ${terms ? `<div class="insight-shared">제안 이유: ${escapeHtml(terms)}</div>` : ''}
-      <div class="insight-acts">
-        <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프 보기">${zoomIc}</button>
-        <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
-      </div>
     </div>`;
   }).join('');
 }
@@ -274,6 +272,14 @@ function insightShowPair(i) {
   if (!p) return;
   if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
 }
+// 카드 호버 → 그래프에서 보기. 스치듯 지나가는 건 무시하려고 살짝 늦춘다.
+// 벗어나도 하이라이트는 유지 — 그래프를 보는 동안 꺼지면 쓸모가 없다
+let _insightHoverTimer = null;
+function insightHoverPair(i) {
+  clearTimeout(_insightHoverTimer);
+  _insightHoverTimer = setTimeout(() => insightShowPair(i), 180);
+}
+function insightHoverCancel() { clearTimeout(_insightHoverTimer); }
 
 // 닫기 → 다시 제안 안 함 + 다음 후보로 즉시 교체
 function insightDismiss(i) {
