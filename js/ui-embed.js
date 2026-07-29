@@ -76,8 +76,8 @@ function _aiAnswerRAG(q) {
   const sel = (_multiSelected || []).slice();
   _aiChatPush('user', q, null, null, sel.length ? sel : null);
   if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
-  const waitId = _aiChatPush('ai', '검색 중… ⏳');
-  _aiRun(waitId, '검색 중… ⏳', async () => {
+  const waitId = _aiChatPush('ai', _AI_WAIT);
+  _aiRun(waitId, _AI_WAIT, async () => {
       // 1순위: 임베딩 의미검색(제목 벡터 캐시). 실패/저유사도면 키워드+부분일치로 폴백
       let matched = await _semanticSearchNodes(q, 6);
       if (!matched) { const searchQuery = await _aiExtractKeywords(q); matched = _aiSearchNodes(searchQuery, 6); }
@@ -121,7 +121,7 @@ function aiSaveToChild(q) {
 
   // 헤딩 2개 이상 = 구조 → 계층 하위 노드로 반영 (로컬/MD 노드 대상)
   if (headingCount >= 2 && parent.local) {
-    const waitId = _aiChatPush('ai', '하위 구조로 넣는 중… ⏳');
+    const waitId = _aiChatPush('ai', _AI_WAIT);
     try {
       const newIds = _addEntryChildNodes(parent, md);
       newIds.forEach(id => {
@@ -144,7 +144,7 @@ function aiSaveToChild(q) {
   const lines = md.split('\n');
   const title = (lines[0] || '').replace(/^#+\s*/, '').replace(/[*_`]/g, '').slice(0, 60).trim() || '새 노드';
   const body = lines.slice(1).join('\n').trim();
-  const waitId = _aiChatPush('ai', `"${title}" 하위 노드로 넣는 중… ⏳`);
+  const waitId = _aiChatPush('ai', _AI_WAIT);
   createChildNode(parent, title).then(ids => {
     if (ids && ids.length && nodeMap[ids[0]]) {
       const child = nodeMap[ids[0]];

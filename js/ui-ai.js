@@ -1,6 +1,7 @@
 // ── AI (제미나이) 호출 ────────────────────────────────────────────────
 // 키는 설정에서 사용자가 직접 입력(_savedAiKey). 브라우저에서 직접 호출.
 const _GEMINI_MODEL = 'gemini-2.5-flash';
+const _AI_WAIT = '생각하는 중… ⏳'; // 모든 진행중 표시 통일
 // AI 대화가 도구 사용법 질문에도 답할 수 있게 하는 안내
 const _SYNAPSE_GUIDE = `SynapseLog는 노션 페이지·마크다운(.md)을 신경망 그래프로 시각화하는 도구다.
 - 노드: 페이지/헤딩이 노드가 된다. 노드를 클릭하면 우측 패널에서 제목·본문을 보고 수정할 수 있다.
@@ -108,8 +109,8 @@ async function aiSummarizeNodes(nodeList, userText) {
   }).join('\n\n');
   openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Summary', null, null, base);
-  const waitId = _aiChatPush('ai', '요약하는 중… ⏳');
-  _aiRun(waitId, '요약하는 중… ⏳', async () => {
+  const waitId = _aiChatPush('ai', _AI_WAIT);
+  _aiRun(waitId, _AI_WAIT, async () => {
     const summary = await geminiSummarize(combined);
     _aiChatReplace(waitId, summary, list);
     if (typeof highlightAiNodes === 'function') highlightAiNodes(list);
@@ -128,11 +129,11 @@ async function aiSuggestLinks(node, userText) {
   openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Link', null, null, [node]);
   if (!cands.length) { _aiChatPush('ai', '연결할 만한 관련 노드 없음.'); return; }
-  const waitId = _aiChatPush('ai', '연결 후보 분석 중… ⏳');
+  const waitId = _aiChatPush('ai', _AI_WAIT);
   const baseText = `${nodeTitle(node)}\n${nodeBody(node, 400)}`;
   const candText = cands.map((c, i) => `[${i + 1}] ${nodeTitle(c)}${c.desc ? ' — ' + c.desc.trim().slice(0, 120) : ''}`).join('\n');
   const prompt = `기준 노드와 의미상 연결하면 좋은 후보를 골라줘. 억지로 다 고르지 말고 관련 있는 것만. 출력은 각 줄 "[번호] 이유(한 줄)" 형식으로만, 관련된 게 없으면 "없음"이라고만 해.\n\n[기준 노드]\n${baseText}\n\n[후보]\n${candText}`;
-  _aiRun(waitId, '연결 후보 분석 중… ⏳', async () => {
+  _aiRun(waitId, _AI_WAIT, async () => {
     const ans = await geminiGenerate(prompt);
     const suggestions = [];
     const seen = new Set();
@@ -169,9 +170,9 @@ async function aiRefineNode(node, userText) {
   if (!body) { toast('다듬을 본문 없음', { type: 'error' }); return; }
   openAiChat();
   _aiChatPush('user', (userText && userText.trim()) || '/Node Edit', null, null, [node]);
-  const waitId = _aiChatPush('ai', '다듬는 중… ⏳');
+  const waitId = _aiChatPush('ai', _AI_WAIT);
   const prompt = `다음 노드 본문을 다듬어줘. 의미는 그대로 유지하되 문법·맞춤법·문장 구조를 자연스럽고 명확하게 정리해줘. 내용을 새로 지어내거나 삭제하지 말고, 마크다운(불릿/번호) 형식은 살려줘. 다듬은 본문만 출력해(설명·머리말 없이).\n\n[제목] ${(node.label || '').trim()}\n[본문]\n${body.slice(0, 2000)}`;
-  _aiRun(waitId, '다듬는 중… ⏳', async () => {
+  _aiRun(waitId, _AI_WAIT, async () => {
     const refined = (await geminiGenerate(prompt)).trim();
     _aiChatReplace(waitId, refined, [], null, { nodeId: node.id, text: refined, done: false });
   });
@@ -186,8 +187,8 @@ async function aiImportUrl(url) {
   openAiChat();
   const isYt = /(?:youtube\.com|youtu\.be)/i.test(url);
   _aiChatPush('user', `/Import ${url}`);
-  const waitId = _aiChatPush('ai', '링크 내용 가져오는 중… ⏳');
-  _aiRun(waitId, '링크 내용 가져오는 중… ⏳', async () => {
+  const waitId = _aiChatPush('ai', _AI_WAIT);
+  _aiRun(waitId, _AI_WAIT, async () => {
     const res = await fetch('/api/extract?url=' + encodeURIComponent(url));
     let data = {};
     try { data = await res.json(); } catch (e) {}
@@ -195,7 +196,7 @@ async function aiImportUrl(url) {
     const srcTitle = (data.title || '').trim() || (isYt ? '유튜브 영상' : '가져온 문서');
     const bodyText = (data.text || '').trim();
     if (!bodyText) throw new Error('내용 추출 실패 (자막 없음 / 접근 차단)');
-    _aiChatReplace(waitId, '요약&마크다운 작성 중… ⏳', []);
+    _aiChatReplace(waitId, _AI_WAIT, []);
     const prompt = `아래 ${isYt ? '유튜브 자막' : '웹 문서'} 내용을 한국어 마크다운으로 구조화해줘.\n[규칙]\n- 첫 줄은 "# 제목" 하나 (문서 전체 제목)\n- 주요 주제는 "## 소제목", 세부 내용은 "- 불릿"으로\n- 핵심만 간결히, 원문에 없는 내용은 지어내지 마\n- 코드블록·설명·머리말 없이 마크다운 본문만 출력\n\n[출처 제목] ${srcTitle}\n[내용]\n${bodyText.slice(0, 8000)}`;
     let md = (await geminiGenerate(prompt)).trim();
     md = md.replace(/^```(?:markdown|md)?\s*/i, '').replace(/```\s*$/i, '').trim();
@@ -769,18 +770,12 @@ async function aiAgentCommand(q) {
   if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
   const idx = _agentNodeIndex(q, sel);
   const hist = _aiChat.filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|요청 해석/.test(m.text)).slice(-8).map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
-  const selLine = sel.length ? `[현재 선택된 노드] ${sel.map(n => nodeTitle(n)).join(', ')} — 대상을 명시하지 않으면 이 노드를 대상으로.\n` : '';
-  const sys = `너는 SynapseLog(로컬 지식 그래프 앱)의 편집 도구다. 아래 함수를 호출하면 사용자의 **실제 로컬 그래프와 MD 파일이 즉시 수정된다**(사용자 확인 버튼 후 반영). 너는 그럴 능력이 있다.
-- 절대 "할 수 없다/접근 못 한다/노션에 못 쓴다"고 답하지 마라. 이건 노션이 아니라 로컬 노드다. 요청이 수정이면 무조건 알맞은 함수를 호출해라.
-- 대상 노드는 아래 [노드 목록]의 @번호로 지정. "이 노드/여기/선택한"이거나 대상이 안 적혀 있으면 target을 "SELECTED"로 하라.
-- 추가·수정할 내용(markdown)은 **네가 직접 생성**해라. 사용자가 요청한 새 내용을 만들어 채워라(헤딩 구조가 필요하면 #, ##). "직전에 얘기한 걸 넣어줘"면 그 내용을 markdown에 옮겨라.
-- 대상 이름이 [노드 목록]에 없으면 그 이름을 target에 그대로 넣어라(우리가 못 찾으면 사용자에게 되묻는다). 엉뚱한 노드를 고르지 마라.
-${selLine}[노드 목록]
-${idx.text || '(없음)'}`;
+  const selLine = sel.length ? `[선택된 노드] ${sel.map(n => nodeTitle(n)).join(', ')} (target 미지정 시 이 노드)\n` : '';
+  const sys = `${selLine}[노드 목록]\n${idx.text || '(없음)'}`;
   const prompt = `${hist ? '[대화]\n' + hist + '\n\n' : ''}[사용자 요청]\n${q}`;
   const estTok = Math.round((sys.length + prompt.length) / 4);
-  const waitId = _aiChatPush('ai', '요청 해석 중… ⏳');
-  _aiRun(waitId, '요청 해석 중… ⏳', async () => {
+  const waitId = _aiChatPush('ai', _AI_WAIT);
+  _aiRun(waitId, _AI_WAIT, async () => {
     const { calls, text } = await geminiToolCall(prompt, sys);
     if (!calls.length) { _aiChatReplace(waitId, (text || '(응답 없음)') + `\n\n· 추정 ~${estTok}토큰`, []); return; }
     const actions = [], notes = [];
@@ -851,8 +846,8 @@ function _aiConverse(q) {
   const nodeCtx = sel.map(n => `## ${nodeTitle(n)}\n${nodeBody(n, 600)}`).join('\n\n');
   _aiChatPush('user', q, null, null, sel.length ? sel : null);
   if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
-  const waitId = _aiChatPush('ai', '생각하는 중… ⏳');
-  _aiRun(waitId, '생각하는 중… ⏳', async () => {
+  const waitId = _aiChatPush('ai', _AI_WAIT);
+  _aiRun(waitId, _AI_WAIT, async () => {
     const prompt = `너는 사용자와 대화하며 생각·글을 함께 다듬는 조수야. 한국어로 자연스럽게 이어서 대화하고, 필요하면 글을 발전시켜 제안해줘.\n(지식 그래프 노드 "검색"은 사용자가 검색을 요청할 때만 한다. 지금은 일반 대화다.)${nodeCtx ? '\n\n[사용자가 첨부한 노드]\n' + nodeCtx : ''}${hist ? '\n\n[이전 대화]\n' + hist : ''}\n\n[사용자]\n${q}`;
     const ans = await geminiGenerate(prompt);
     _aiChatReplace(waitId, ans, []);
