@@ -62,9 +62,12 @@ canvas { display: block; }
 .bm-label { flex: 1; min-width: 0; font-size: 12.5px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 최근 본 노드 개별 제거 — 평소엔 흐리게, 행에 올리면 드러남 */
 /* 자주 본 노드 — 시계 아이콘 자리에 조회 횟수 */
-.bm-count { flex-shrink: 0; min-width: 15px; text-align: center; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.14); border-radius: 4px; padding: 1px 3px; }
 .bm-x { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; border-radius: 4px; color: var(--icon); opacity: 0; cursor: pointer; transition: opacity 0.13s, color 0.13s, background 0.13s; }
 .bm-item:hover .bm-x { opacity: 1; }
+/* 자주·최근 본 노드 — 중심 노드와 동일한 칩 규격 */
+.bm-chip { cursor: pointer; }
+.bm-chip:hover .bm-x { opacity: 1; }
+.bm-chip .bm-x { width: 16px; height: 16px; margin-left: 1px; }
 .bm-x:hover { color: var(--danger); background: rgba(255,90,90,0.14); }
 @media (pointer: coarse) { .bm-x { opacity: 1; } }
 /* ── 레일 타이포 통일 모듈 : 모든 레일 패널의 제목·소제목·보조텍스트 공통 규격 ── */
