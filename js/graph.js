@@ -433,8 +433,9 @@ function draw() {
     else if(n.isDbNode) drawStar4(ctx, n.x, n.y, r);
     else if(n.isChildPage || n.entryNotionId) drawStarX(ctx, n.x, n.y, r);
     else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); }
-    if(isMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
-    else if(n.level===0) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
+    // 활성(검색·AI·통찰) 노드도 자기 색 그대로 둔다 — 예전엔 흰색으로 칠해 조상까지 전부 하얘졌다.
+    // 직접 히트 표시는 위의 흰 글로우 링, 비활성 구분은 isDim(옅게)이 담당
+    if(n.level===0) { ctx.fillStyle=isDim?'rgba(245,247,250,0.15)':'#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
     else {
       // 깊이별 명도는 HSL 단계에서 처리 — 여기선 배경 혼합 없이 원색 그대로(쨍하게)
       ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
