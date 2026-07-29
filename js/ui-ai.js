@@ -372,17 +372,6 @@ function _renderAiChat() {
     if (m.refine) {
       html += `<div class="aichat-refine-actions"><button class="aichat-apply-btn${m.refine.done ? ' done' : ''}" data-mid="${m.id}"${m.refine.done ? ' disabled' : ''}>${m.refine.done ? '적용됨 (편집에서 저장)' : '적용 (편집 열기)'}</button></div>`;
     }
-    if (m.actions && m.actions.length) {
-      html += `<div class="aichat-actions">` + m.actions.map((a, ai) =>
-        `<div class="aichat-action${a.done ? ' done' : ''}">` +
-          `<div class="aichat-action-sum">${escapeHtml(a.summary)}</div>` +
-          (a.preview ? `<div class="aichat-action-preview">${escapeHtml(a.preview.slice(0, 240))}${a.preview.length > 240 ? '…' : ''}</div>` : '') +
-          `<div class="aichat-action-btns">` +
-            `<button class="aichat-act-apply${a.done ? ' done' : ''}" data-mid="${m.id}" data-ai="${ai}"${a.done ? ' disabled' : ''}>${a.done ? '적용됨' : '적용'}</button>` +
-            (a.done ? '' : `<button class="aichat-act-skip" data-mid="${m.id}" data-ai="${ai}">취소</button>`) +
-          `</div>` +
-        `</div>`).join('') + `</div>`;
-    }
     if (m.retry) {
       html += `<div class="aichat-refine-actions"><button class="aichat-retry-btn" data-mid="${m.id}">↻ 다시 시도</button></div>`;
     }
@@ -397,20 +386,7 @@ function _renderAiChat() {
   box.querySelectorAll('.aichat-retry-btn').forEach(el => {
     el.onclick = () => { const mm = _aiChat.find(x => x.id === el.dataset.mid); if (mm && typeof mm.retry === 'function') mm.retry(); };
   });
-  box.querySelectorAll('.aichat-act-apply:not(.done)').forEach(el => { el.onclick = () => _runAgentAction(el.dataset.mid, +el.dataset.ai); });
-  box.querySelectorAll('.aichat-act-skip').forEach(el => { el.onclick = () => _skipAgentAction(el.dataset.mid, +el.dataset.ai); });
   box.scrollTop = box.scrollHeight;
-}
-// 확인 카드의 [적용]/[취소]
-function _runAgentAction(mid, ai) {
-  const m = _aiChat.find(x => x.id === mid); if (!m || !m.actions || !m.actions[ai]) return;
-  const a = m.actions[ai];
-  try { a.run(); a.done = true; _renderAiChat(); }
-  catch (e) { toast('적용 실패: ' + (e.message || e), { type: 'error', duration: 5000 }); }
-}
-function _skipAgentAction(mid, ai) {
-  const m = _aiChat.find(x => x.id === mid); if (!m || !m.actions) return;
-  m.actions.splice(ai, 1); if (!m.actions.length) m.actions = null; _renderAiChat();
 }
 
 function _aiChatPush(role, text, refs, suggestions, chips) {
@@ -658,147 +634,6 @@ async function _aiExtractKeywords(query) {
   }
 }
 
-// ── AI 편집 에이전트 (제미나이 function calling → 확인 후 실행) ──────────
-// 4개 도구: 하위 노드 추가 / 본문 수정 / 제목 변경 / 노드 연결. 대상은 로컬·MD 노드.
-const _AI_TOOLS = [{
-  functionDeclarations: [
-    { name: 'add_child_nodes', description: '대상 노드 아래에 마크다운(헤딩 # ## 포함 가능)을 하위 노드로 추가',
-      parameters: { type: 'OBJECT', properties: { target: { type: 'STRING', description: '대상 노드 참조(@번호) 또는 SELECTED' }, markdown: { type: 'STRING', description: '추가할 마크다운' } }, required: ['target', 'markdown'] } },
-    { name: 'edit_node_body', description: '대상 노드의 본문을 새 마크다운으로 교체',
-      parameters: { type: 'OBJECT', properties: { target: { type: 'STRING' }, markdown: { type: 'STRING', description: '새 본문(마크다운)' } }, required: ['target', 'markdown'] } },
-    { name: 'rename_node', description: '대상 노드의 제목 변경',
-      parameters: { type: 'OBJECT', properties: { target: { type: 'STRING' }, new_title: { type: 'STRING' } }, required: ['target', 'new_title'] } },
-    { name: 'connect_nodes', description: '두 노드를 연결(from → to)',
-      parameters: { type: 'OBJECT', properties: { from: { type: 'STRING', description: '@번호 또는 SELECTED' }, to: { type: 'STRING', description: '@번호' } }, required: ['from', 'to'] } },
-  ]
-}];
-async function geminiToolCall(prompt, systemText) {
-  if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${_GEMINI_MODEL}:generateContent?key=${encodeURIComponent(_savedAiKey)}`;
-  const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], tools: _AI_TOOLS, toolConfig: { functionCallingConfig: { mode: 'ANY' } } };
-  if (systemText) body.systemInstruction = { parts: [{ text: systemText }] };
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) { let msg = 'HTTP ' + res.status; try { const j = await res.json(); if (j.error && j.error.message) msg = j.error.message; } catch (e) {} const err = new Error(msg); err.status = res.status; throw err; }
-  const data = await res.json();
-  const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
-  const calls = parts.filter(p => p.functionCall).map(p => p.functionCall);
-  const text = parts.filter(p => p.text).map(p => p.text).join('').trim();
-  return { calls, text };
-}
-// 후보 노드 목록(@번호) — 질문과 겹치는 제목·선택 노드 우선, 최대 150개(토큰 절약)
-function _agentNodeIndex(q, selNodes) {
-  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && n.local && !n._aiSummary && n.label && n.label.trim());
-  const sel = new Set((selNodes || _multiSelected || []).map(n => n.id));
-  if (typeof _activeNode !== 'undefined' && _activeNode) sel.add(_activeNode.id);
-  let qtok = []; try { qtok = (q.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []); } catch (e) { qtok = (q.toLowerCase().match(/[a-z0-9가-힣]+/g) || []); }
-  const score = n => { const t = n.label.toLowerCase(); let s = sel.has(n.id) ? 100 : 0; qtok.forEach(w => { if (w.length >= 2 && t.includes(w)) s += 3; }); return s; };
-  const ranked = vis.slice().sort((a, b) => score(b) - score(a)).slice(0, 150);
-  const map = new Map(); let i = 1; const lines = [];
-  ranked.forEach(n => { const ref = '@' + (i++); map.set(ref, n.id); lines.push(`${ref} ${n.label}${sel.has(n.id) ? ' (선택됨)' : ''}`); });
-  return { text: lines.join('\n'), map };
-}
-function _resolveAgentTarget(ref, idxMap) {
-  if (!ref) return null;
-  ref = String(ref).trim();
-  if (/^SELECTED$/i.test(ref)) return (_agentSelCtx && _agentSelCtx[0]) || (_multiSelected && _multiSelected[0]) || (typeof _activeNode !== 'undefined' ? _activeNode : null) || null;
-  if (idxMap.has(ref)) return nodeMap[idxMap.get(ref)];
-  const norm = s => (s || '').trim().toLowerCase();
-  const all = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.local && n.visible);
-  const exact = all.filter(n => norm(n.label) === norm(ref));
-  if (exact.length === 1) return exact[0];
-  const part = all.filter(n => norm(n.label).includes(norm(ref)));
-  if (part.length === 1) return part[0];
-  return null; // 애매/없음 → 되물음
-}
-function _applyAddChildren(parent, md) {
-  const newIds = _addEntryChildNodes(parent, md);
-  newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.local = true; c.headingDepth = (parent.headingDepth || 0) + Math.max(1, c.level - parent.level); } });
-  if (typeof saveLocalPages === 'function') saveLocalPages();
-  (typeof nodes !== 'undefined' ? nodes : []).forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; }); isStable = false;
-  if (typeof writeBackMdFile === 'function' && String(parent.sourcePageId || '').startsWith('md_')) writeBackMdFile(parent.sourcePageId).catch(() => {});
-  if (typeof highlightAiNodes === 'function') highlightAiNodes([parent].concat([...newIds].map(id => nodeMap[id]).filter(Boolean)));
-  if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-  toast(`${newIds.size}개 노드 추가됨`, { type: 'success' });
-}
-function _applyEditBody(node, md) {
-  node.desc = md; node.bodyBlocks = undefined;
-  if (typeof saveLocalPages === 'function') saveLocalPages();
-  if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); isStable = false;
-  if (typeof writeBackMdFile === 'function' && String(node.sourcePageId || '').startsWith('md_')) writeBackMdFile(node.sourcePageId).catch(() => {});
-  if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-  toast('본문 수정됨', { type: 'success' });
-}
-function _applyRename(node, title) {
-  node.label = title;
-  if (node.level === 0 && window._sidebarPageList) { const it = window._sidebarPageList.find(p => p.id === node.sourcePageId); if (it) { it.title = title; if (typeof refreshSidebarRender === 'function') refreshSidebarRender(); } }
-  if (typeof saveLocalPages === 'function') saveLocalPages(); isStable = false;
-  if (typeof writeBackMdFile === 'function' && String(node.sourcePageId || '').startsWith('md_')) writeBackMdFile(node.sourcePageId).catch(() => {});
-  if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
-  toast('제목 변경됨', { type: 'success' });
-}
-// function call → 확인 카드용 action 또는 되물음 note
-function _buildAgentAction(call, idxMap) {
-  const args = call.args || {}, name = call.name;
-  if (name === 'connect_nodes') {
-    const a = _resolveAgentTarget(args.from, idxMap), b = _resolveAgentTarget(args.to, idxMap);
-    if (!a || !b) return { note: `연결 대상(${args.from || '?'} → ${args.to || '?'})을 못 찾았어. 노드 이름을 다시 알려줄래?` };
-    if (a.id === b.id) return { note: '같은 노드끼리는 연결 못 해.' };
-    return { action: { summary: `연결: ${nodeTitle(a)} → ${nodeTitle(b)}`, run: () => { _wikiConnect(a, b); if (typeof highlightAiNodes === 'function') highlightAiNodes([a, b]); } } };
-  }
-  const target = _resolveAgentTarget(args.target, idxMap);
-  if (!target) return { note: `대상 노드(${args.target || '?'})를 못 찾았어. 어떤 노드인지 알려줄래?` };
-  const isLocal = (typeof _isLocalSource === 'function') ? _isLocalSource(target) : target.local;
-  if (!isLocal) return { note: `'${nodeTitle(target)}'는 노션 노드라 지금은 수정 못 해(노션 지원은 준비 중).` };
-  if (name === 'add_child_nodes') {
-    const md = String(args.markdown || '').trim(); if (!md) return { note: '추가할 내용이 비었어.' };
-    return { action: { summary: `'${nodeTitle(target)}' 아래에 하위 노드 추가`, preview: md, run: () => _applyAddChildren(target, md) } };
-  }
-  if (name === 'edit_node_body') {
-    const md = String(args.markdown || '').trim();
-    return { action: { summary: `'${nodeTitle(target)}' 본문 수정`, preview: md, run: () => _applyEditBody(target, md) } };
-  }
-  if (name === 'rename_node') {
-    const nt = String(args.new_title || '').trim(); if (!nt) return { note: '새 제목이 비었어.' };
-    return { action: { summary: `제목 변경: '${nodeTitle(target)}' → '${nt}'`, run: () => _applyRename(target, nt) } };
-  }
-  return { note: '알 수 없는 작업.' };
-}
-function _aiChatSetActions(id, text, actions) {
-  const m = _aiChat.find(x => x.id === id);
-  if (m) { m.text = text; m.refs = []; m.suggestions = null; m.actions = (actions && actions.length) ? actions : null; }
-  _renderAiChat(); _saveAiChat();
-}
-let _agentSelCtx = null;
-// 자연어 편집 요청 → 도구 호출 제안(확인 후 실행)
-async function aiAgentCommand(q) {
-  if (!requireAiKey()) return;
-  const sel = (_multiSelected || []).slice();       // 입력란의 노드칩(=선택 노드) 캡처
-  _agentSelCtx = sel;                                // SELECTED 해석용
-  _aiChatPush('user', q, null, null, sel.length ? sel : null); // 메시지에 노드칩 같이 표시
-  if (sel.length && typeof clearMultiSelect === 'function') clearMultiSelect();
-  const idx = _agentNodeIndex(q, sel);
-  const hist = _aiChat.filter(m => m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|요청 해석/.test(m.text)).slice(-8).map(m => (m.role === 'user' ? '사용자' : '조수') + ': ' + m.text).join('\n');
-  const selLine = sel.length ? `[선택된 노드] ${sel.map(n => nodeTitle(n)).join(', ')} (target 미지정 시 이 노드)\n` : '';
-  const sys = `${selLine}[노드 목록]\n${idx.text || '(없음)'}`;
-  const prompt = `${hist ? '[대화]\n' + hist + '\n\n' : ''}[사용자 요청]\n${q}`;
-  const estTok = Math.round((sys.length + prompt.length) / 4);
-  const waitId = _aiChatPush('ai', _AI_WAIT);
-  _aiRun(waitId, _AI_WAIT, async () => {
-    const { calls, text } = await geminiToolCall(prompt, sys);
-    if (!calls.length) { _aiChatReplace(waitId, (text || '(응답 없음)') + `\n\n· 추정 ~${estTok}토큰`, []); return; }
-    const actions = [], notes = [];
-    calls.forEach(call => { const r = _buildAgentAction(call, idx.map); if (r.action) actions.push(r.action); else if (r.note) notes.push(r.note); });
-    let msg = actions.length ? '아래 작업을 제안해. 확인하고 적용해줘:' : (notes.join('\n') || '적용할 작업을 못 만들었어.');
-    if (actions.length && notes.length) msg += '\n' + notes.join('\n');
-    msg += `\n\n· 추정 ~${estTok}토큰`;
-    _aiChatSetActions(waitId, msg, actions);
-  });
-}
-// 편집 의도(수정성 발화) 감지 — 맞으면 에이전트로 (아니면 일반 대화). 오탐은 토큰만 조금 더 쓸 뿐 대화로 답함
-function _agentMutation(q) {
-  return /(하위|자식)[^]*?(노드|넣|추가|만들)|노드[^]*?(추가|생성|만들|넣)|넣어|추가해|만들어\s*줘|생성해|연결(해|시켜|하)|이어\s*줘|링크\s*(걸|만들|해)|이름[^]*?(바꾸|변경|고쳐)|제목[^]*?(바꾸|변경|수정|고쳐)|(본문|내용|글)[^]*?(바꾸|수정|고쳐|교체|정리|채우|채워|작성|써|추가)|수정해\s*줘|편집해|작성해\s*줘|써\s*줘|채워\s*줘/.test(q);
-}
-
 async function sendAiChat() {
   const input = document.getElementById('aichat-input');
   // pill 모드(노드 명령어)면 선택 노드로 실행
@@ -836,8 +671,8 @@ async function sendAiChat() {
   }
   if (!requireAiKey()) return;
   if (input) { input.value = ''; _autoGrowAiInput(input); }
-  // 편집 의도(추가/수정/이름/연결) → AI 편집 에이전트가 함수 호출로 제안 → 확인 후 실행
-  if (_agentMutation(q)) { aiAgentCommand(q); return; }
+  // 저장: 대화하며 만든 글을 하위 노드로 넣기 ("하위노드에 넣어줘")
+  if (/하위\s*노드|자식\s*노드|노드에?\s*넣|노드로\s*(넣|만들|저장)|하위로\s*넣/.test(q)) { aiSaveToChild(q); return; }
   // 검색: 명시적으로 요청할 때만 그래프 RAG ("검색해줘")
   if (/검색|관련\s*노드|그래프에서|노드\s*(찾|검색)/.test(q)) { _aiAnswerRAG(q); return; }
   // 기본: 일반 대화 (이전 맥락 이어서 글을 함께 발전)
