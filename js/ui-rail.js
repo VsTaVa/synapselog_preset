@@ -219,7 +219,7 @@ function renderInsights() {
   html += `</div>`;
 
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
-  _linkSuggestCache = _computeLinkSuggestions(5);
+  _linkSuggestCache = _computeLinkSuggestions(3);
   html += `<div class="insight-sec">` + railSecHead('suggest', '연결 제안', 'mt');
   html += railSecBody('suggest', `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div>`) + `</div>`;
 
@@ -229,18 +229,17 @@ function renderInsights() {
 function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
-  const biIc = `<svg width="17" height="12" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><polyline points="7.5 4 3.5 8 7.5 12"/><polyline points="16.5 4 20.5 8 16.5 12"/></svg>`;
-  const zoomIc = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`;
+  const zoomIc =`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`;
   const closeIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
     return `<div class="insight-pair">
-      <div class="insight-pair-row">${createNodeChip(p.a)}<span class="insight-bi" aria-hidden="true">${biIc}</span>${createNodeChip(p.b)}</div>
+      <div class="insight-pair-row">${createNodeChip(p.a, { maxLen: 26 })}${createNodeChip(p.b, { maxLen: 26 })}</div>
       ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
       <div class="insight-acts">
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노드 연결)">←</button>
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노드 연결)">→</button>
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노드 연결)">↑</button>
+        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노드 연결)">↓</button>
         <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프 보기">${zoomIc}</button>
         <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
       </div>
@@ -248,7 +247,7 @@ function _renderSuggestHtml(list) {
   }).join('');
 }
 
-// 방향 연결(단방향) — 노션 본문에 링크 기록(위키링크). dir: 'ab'=왼→오, 'ba'=오→왼
+// 방향 연결(단방향) — 본문에 링크 기록(위키링크). 칩이 상하 배치라 dir: 'ab'=위→아래, 'ba'=아래→위
 function insightConnectDir(i, dir) {
   const p = _linkSuggestCache && _linkSuggestCache[i];
   if (!p || !nodeMap[p.a.id] || !nodeMap[p.b.id]) return;
@@ -280,7 +279,7 @@ function insightDismiss(i) {
 }
 
 function _refreshSuggest() {
-  _linkSuggestCache = _computeLinkSuggestions(5);
+  _linkSuggestCache = _computeLinkSuggestions(3);
   const body = document.getElementById('insight-suggest-body');
   if (body) body.innerHTML = _renderSuggestHtml(_linkSuggestCache);
 }

@@ -103,8 +103,9 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .hub-item:hover { background: rgba(var(--accent-rgb),0.12); }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
 .insight-pair { padding: 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
-.insight-pair-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.insight-bi { display: inline-flex; align-items: center; color: var(--icon-dim); flex-shrink: 0; }
+/* 두 노드를 상하로 — 가로로 나눠 쓸 때보다 제목이 훨씬 많이 보인다 */
+.insight-pair-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.insight-pair-row .node-chip { max-width: 100%; }
 .insight-acts { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .insight-arrow { width: 26px; height: 22px; display: inline-flex; align-items: center; justify-content: center; background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); font-size: 12px; font-weight: 700; font-family: inherit; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
 .insight-arrow:hover { background: rgba(var(--accent-rgb),0.3); }
