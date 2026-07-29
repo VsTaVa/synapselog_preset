@@ -259,7 +259,7 @@ function draw() {
   ctx.scale(scale, scale);
   if (_viewRotation) ctx.rotate(_viewRotation);
   ctx.translate(-W/2, -H/2);
-  const labelQueue = [];
+  const labelQueue = [], glowQueue = []; // 활성 글로우는 모든 노드를 그린 뒤 맨 앞 레이어로
   const hasSearch = searchKeyword.length > 0;
   const childCountMap = new Map(), manualLinkedSet = new Set();
   edges.forEach(e => {
@@ -414,16 +414,8 @@ function draw() {
         ctx.fillStyle = gH; ctx.fill();
       }
     }
-    if(isDirectMatch) {
-      ctx.beginPath(); ctx.arc(n.x,n.y,r+18,0,Math.PI*2);
-      const g1=ctx.createRadialGradient(n.x,n.y,r,n.x,n.y,r+18);
-      g1.addColorStop(0,'rgba(255,255,255,0.25)'); g1.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle=g1; ctx.fill();
-      ctx.beginPath(); ctx.arc(n.x,n.y,r+8,0,Math.PI*2);
-      const g2=ctx.createRadialGradient(n.x,n.y,r,n.x,n.y,r+8);
-      g2.addColorStop(0,'rgba(255,255,255,0.4)'); g2.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle=g2; ctx.fill();
-    } else if(isHov) {
+    if(isDirectMatch) glowQueue.push({ x: n.x, y: n.y, r }); // 그리기는 마지막 패스에서(다른 노드에 안 가리게)
+    else if(isHov) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+12,0,Math.PI*2);
       const g=ctx.createRadialGradient(n.x,n.y,r,n.x,n.y,r+12);
       g.addColorStop(0,rgbStr(ndRgb,0.3)); g.addColorStop(1,rgbStr(ndRgb,0));
@@ -513,6 +505,19 @@ function draw() {
     }
     ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
+  });
+  // 활성(직접 히트) 글로우 — 모든 노드 위에 마지막으로. 안쪽은 구멍을 내 노드 색을 덮지 않는다
+  glowQueue.forEach(({ x, y, r }) => {
+    const ring = (outer, a0) => {
+      const g = ctx.createRadialGradient(x, y, r, x, y, outer);
+      g.addColorStop(0, `rgba(255,255,255,${a0})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath();
+      ctx.arc(x, y, outer, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2, true); // 역방향 → 노드 자리는 비움
+      ctx.fillStyle = g; ctx.fill();
+    };
+    ring(r + 18, 0.25);
+    ring(r + 8, 0.45);
   });
   ctx.restore();
 
