@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     const t = raw || '';
     if (/^\s*[-*]\s+/.test(t)) return { type: 'bulleted_list_item', value: { rich_text: buildRichText(t.replace(/^\s*[-*]\s+/, '')) } };
     if (/^\s*\d+\.\s+/.test(t)) return { type: 'numbered_list_item', value: { rich_text: buildRichText(t.replace(/^\s*\d+\.\s+/, '')) } };
+    if (/^\s*>>\s+/.test(t)) return { type: 'callout', value: { rich_text: buildRichText(t.replace(/^\s*>>\s+/, '')) } }; // 인용보다 먼저 — '>' 하나로 잡히면 안 됨
     if (/^\s*>\s+/.test(t)) return { type: 'quote', value: { rich_text: buildRichText(t.replace(/^\s*>\s+/, '')) } };
     if (/^\s*(?:☑|\[[xX]\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☑|\[[xX]\])\s+/, '')), checked: true } };
     if (/^\s*(?:☐|\[ ?\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☐|\[ ?\])\s+/, '')), checked: false } };
@@ -457,7 +458,7 @@ export default async function handler(req, res) {
         } else if (type === 'callout') {
           listCounter = 0;
           const text = extractRichText(block.callout?.rich_text);
-          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '> ' + text + '\n';
+          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '>> ' + text + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;
@@ -592,7 +593,8 @@ export default async function handler(req, res) {
         const pageDbResults = await Promise.all(pageBlocks.map(b => _checkIsDb(b.id)));
         n += pageDbResults.filter(Boolean).length;
         for (const b of blocks) {
-          if (b.has_children && /^heading_\d|^toggle$/.test(b.type)) n += await _countDbs(b.id, depth + 1);
+          // 콜아웃 안에 DB를 넣는 경우가 있어 콜아웃도 파고든다 — 안 세면 globalUseDb가 어긋나 DB 노드가 안 생김
+          if (b.has_children && /^(heading_\d|toggle|callout)$/.test(b.type)) n += await _countDbs(b.id, depth + 1);
         }
         return n;
       }
@@ -663,9 +665,10 @@ export default async function handler(req, res) {
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n> ` + t + '\n';
             }
             else if (type === 'callout') {
+              // '>> ' = 콜아웃 마커(인용 '> '와 구분) — 패널에서 박스로 렌더하고 되쓰기 때 블록 타입 복원
               const t = extractRichText(block.callout?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t + '\n';
-              if (block.has_children) md += await fetchHeadings(block.id, depth + 1); // 콜아웃 내부 중첩 텍스트도 로드
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n>> ` + t + '\n';
+              if (block.has_children) md += await fetchHeadings(block.id, depth + 1); // 콜아웃 내부(중첩 텍스트·DB)도 로드
             }
           } catch(e) {}
         }

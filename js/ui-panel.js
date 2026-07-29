@@ -224,8 +224,13 @@ function renderPaneContent(i, n) {
     .replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>')
     .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
   // 목록 마커(줄머리만) — "- "/"* "는 노션처럼 원(•)으로, 번호는 그대로. 편집기의 _listMark와 동일한 표기
+  // 콜아웃/인용보다 먼저 — 그쪽이 줄 끝 개행을 먹으면 다음 줄의 ^ 앵커가 깨진다
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|[-*])(\s)/gm,
     (m, sp, mk, tail) => `${sp}<span class="md-mark">${/^\d/.test(mk) ? mk : '•'}</span>${tail}`);
+  // 콜아웃(>>)·인용(>) 줄을 블록으로 — 줄 끝 개행까지 먹어야 pre-wrap에서 빈 줄이 안 생긴다.
+  // 한 번의 replace로 둘 다 처리(두 번 돌리면 마찬가지로 앵커가 깨짐)
+  rawDesc = rawDesc.replace(/^[ \t]*&gt;(&gt;)?[ \t]+(.*)\n?/gm,
+    (m, dbl, txt) => `<span class="${dbl ? 'md-callout' : 'md-quote'}">${txt}</span>`);
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
   rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)

@@ -162,7 +162,7 @@ function cleanDesc(str) {
 
 // 본문 블록 마커 다음 줄에서 노션 rich_text 원문 추출(목록/인용 접두·들여쓰기만 제거, **·~~ 서식 마커는 보존)
 function bodyBlockText(line) {
-  return (line || '').replace(/^\s+/, '').replace(/^(?:[-*]\s+|\d+\.\s+|>\s+)/, '').trim();
+  return (line || '').replace(/^\s+/, '').replace(/^(?:[-*]\s+|\d+\.\s+|>>\s+|>\s+)/, '').trim();
 }
 
 // 본문 줄머리 목록 마커를 편집기 표시용 기호로 반환 (저장 텍스트엔 안 들어감, 시각 표시 전용)
@@ -173,6 +173,7 @@ function _listMark(line) {
   if (/^[-*]\s+/.test(t)) return '•';
   if (/^(?:☑|\[[xX]\])\s+/.test(t)) return '☑';
   if (/^(?:☐|\[ ?\])\s+/.test(t)) return '☐';
+  if (/^>>\s+/.test(t)) return '▍'; // 콜아웃
   if (/^>\s+/.test(t)) return '❝';
   return '';
 }
