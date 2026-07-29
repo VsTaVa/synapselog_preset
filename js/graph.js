@@ -575,6 +575,21 @@ function visibleCentroid() {
   for (const nd of pool) { sx += nd.x; sy += nd.y; }
   return { x: sx / pool.length, y: sy / pool.length };
 }
+// 회전 피벗용 기하학적 중심(바운딩박스 가운데). 무게중심과 달리 노드 밀도에 안 쏠림 —
+// 페이지별(cluster) 배치에서 링의 정중앙을 축으로 잡으려고 사용
+function visibleBBoxCenter() {
+  let pool = null;
+  if (searchKeyword.length > 0 && searchMatches.size > 0) {
+    pool = nodes.filter(n => n.visible && searchMatches.has(n.id));
+  } else if (_focusMode || _isolateActive) {
+    pool = nodes.filter(n => n.visible && !n.dimmed);
+  }
+  if (!pool || !pool.length) pool = nodes.filter(n => n.visible);
+  if (!pool.length) return null;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const nd of pool) { if (nd.x < x0) x0 = nd.x; if (nd.x > x1) x1 = nd.x; if (nd.y < y0) y0 = nd.y; if (nd.y > y1) y1 = nd.y; }
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+}
 // 검색/포커스/경로(격리) 모드에서 비활성(흐려진) 노드는 클릭 대상에서 제외 → 빈 곳처럼 동작
 function isNodeInteractable(n) {
   if (searchKeyword.length > 0 && !searchMatches.has(n.id)) return false;
