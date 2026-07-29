@@ -1018,7 +1018,8 @@ function _pageItemHtml(p) {
       </div>`;
     }
     if (isActive) {
-      return `<div class="page-list-item active" data-page-id="${p.id}">
+      const dragAttr = (p.isMd && p.folderBatchId) ? ' draggable="true" title="폴더 안에서 드래그해 이동"' : '';
+      return `<div class="page-list-item active" data-page-id="${p.id}"${dragAttr}>
         <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
         <div class="item-actions">
           ${starBtn}
@@ -1047,10 +1048,22 @@ function _wireSidebarDnd(listEl) {
   const rowOf = e => e.target.closest('.page-list-item[data-page-id]');
   const meta = id => (window._sidebarPageList || []).find(p => p.id === id);
   const clearMarks = () => listEl.querySelectorAll('.drop-target').forEach(x => x.classList.remove('drop-target'));
+  // 드래그 가능: 임시(local_) 또는 폴더 안 파일(md_ + folderBatchId)
+  const canDrag = p => !!p && (p.isLocal || (p.isMd && p.folderBatchId));
+  // 드롭 가능한 폴더: 임시→아무 폴더, 폴더파일→같은 배치 폴더만. 현재 위치와 같으면 제외
+  const canDrop = (p, dragged) => {
+    if (!p || !p.isFolder || !dragged) return false;
+    if (dragged.isLocal) return true;
+    if (dragged.isMd && dragged.folderBatchId) {
+      if (p.folderBatchId !== dragged.folderBatchId) return false; // 같은 폴더(볼트) 안에서만
+      return (p.folderRel || '') !== (dragged.folderRel || ''); // 이미 그 폴더면 제외
+    }
+    return false;
+  };
   listEl.addEventListener('dragstart', e => {
     const row = rowOf(e); if (!row) return;
     const p = meta(row.dataset.pageId);
-    if (!p || !p.isLocal) { e.preventDefault(); return; } // 임시 파일만 드래그 대상
+    if (!canDrag(p)) { e.preventDefault(); return; }
     dragId = row.dataset.pageId;
     if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragId); } catch (_) {} }
     row.classList.add('dragging');
@@ -1060,14 +1073,54 @@ function _wireSidebarDnd(listEl) {
     if (!dragId) return;
     clearMarks();
     const row = rowOf(e); const p = row && meta(row.dataset.pageId);
-    if (p && p.isFolder) { e.preventDefault(); row.classList.add('drop-target'); }
+    if (canDrop(p, meta(dragId))) { e.preventDefault(); row.classList.add('drop-target'); }
   });
   listEl.addEventListener('drop', e => {
     if (!dragId) return;
     const row = rowOf(e); const p = row && meta(row.dataset.pageId);
+    const dragged = meta(dragId);
     clearMarks();
-    if (p && p.isFolder) { e.preventDefault(); const src = dragId; dragId = null; moveLocalPageToFolder(src, p.folderBatchId, p.folderRel || ''); }
+    if (!canDrop(p, dragged)) return;
+    e.preventDefault(); const src = dragId; dragId = null;
+    if (dragged.isLocal) moveLocalPageToFolder(src, p.folderBatchId, p.folderRel || '');
+    else moveFolderFileWithin(src, p.folderRel || ''); // 같은 배치 내 하위폴더/루트로 이동
   });
+}
+// 폴더 안 파일을 같은 배치의 다른 하위폴더(또는 루트)로 이동 — 실제 파일도 옮김(handle.move)
+async function moveFolderFileWithin(pageId, targetRel) {
+  const meta = _mdPageMeta(pageId);
+  if (!meta || !meta.folderBatchId || meta.relPath == null) { toast('파일 정보를 찾을 수 없음', { type: 'error' }); return; }
+  const batch = window._folderBatches && window._folderBatches.get(meta.folderBatchId);
+  if (!batch || !batch.handle) { toast('폴더 정보를 찾을 수 없음', { type: 'error' }); return; }
+  const oldRel = String(meta.relPath);
+  const name = oldRel.split('/').pop();
+  const curDir = oldRel.includes('/') ? oldRel.slice(0, oldRel.lastIndexOf('/')) : '';
+  if (curDir === (targetRel || '')) return; // 같은 폴더면 무시
+  let perm = await batch.handle.queryPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') perm = await batch.handle.requestPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') { toast('폴더 쓰기 권한 필요', { type: 'error' }); return; }
+  try {
+    const srcHandle = await _fileHandleFromDir(batch.handle, oldRel);
+    if (!srcHandle || typeof srcHandle.move !== 'function') { toast('이 브라우저에선 파일 이동 미지원', { type: 'error' }); return; }
+    let destDir = batch.handle;
+    if (targetRel) { for (const part of targetRel.split('/').filter(Boolean)) destDir = await destDir.getDirectoryHandle(part); }
+    // 대상 폴더 내 이름 충돌 회피
+    const ext = (name.match(/\.(md|txt)$/i) || ['.md'])[0], base = name.replace(/\.(md|txt)$/i, '');
+    const sib = new Set([...batch.files.keys()].filter(p => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '') === (targetRel || '')).map(p => p.split('/').pop().toLowerCase()));
+    let finalName = name, i = 1;
+    while (sib.has(finalName.toLowerCase())) finalName = `${base}-${i++}${ext}`;
+    await srcHandle.move(destDir, finalName);
+    const newRel = targetRel ? `${targetRel}/${finalName}` : finalName;
+    const rec = batch.files.get(oldRel); batch.files.delete(oldRel); if (rec) batch.files.set(newRel, rec);
+    try { const m2 = _mdPageMeta(pageId) || {}; m2.relPath = newRel; sessionStorage.setItem('snlog_' + pageId, JSON.stringify(m2)); } catch (e) {}
+    if (typeof _saveFolderBatchToIDB === 'function') await _saveFolderBatchToIDB(meta.folderBatchId);
+    _registerFolderRows(meta.folderBatchId, batch);
+    if (typeof _pruneEmptyFolderRows === 'function') _pruneEmptyFolderRows();
+    if (typeof savePageList === 'function') savePageList();
+    refreshSidebarRender();
+    isStable = false;
+    toast('파일 이동됨', { type: 'success' });
+  } catch (err) { toast('파일 이동 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); }
 }
 
 // 임시 페이지의 내용을 MD 폴더 안 새 .md로 저장하고, 임시→폴더 파일로 승격
