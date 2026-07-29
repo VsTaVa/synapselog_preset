@@ -721,7 +721,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 #aichat-panel.active { flex: none; min-height: 0; max-height: none; }
 #aichat-messages { flex: none; min-height: 300px; max-height: 62vh; overflow-y: auto; }
 /* ── 통합 노드칩 (createNodeChip) ── */
-.node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 150px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
+.node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 240px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
 .node-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-chip:hover { filter: brightness(1.18); }
 .node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
@@ -729,7 +729,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .node-chip--badge { padding: 1px 6px; font-size: 9px; font-weight: 700; max-width: none; vertical-align: 1px; }
 /* 우측 패널 제목용 큰 노드칩 — 글자 더 넓게, 살짝 크게 */
 .node-chip--lg { font-size: 13px; padding: 4px 11px; gap: 4px; max-width: 100%; }
-.node-chip--badge::before { display: none; }
 /* 근거·검색결과: 라벨은 한 줄 차지, 칩은 유동 너비로 줄바꿈 */
 .aichat-refs { flex-direction: row; flex-wrap: wrap; align-items: center; }
 .aichat-refs-label { flex-basis: 100%; }
@@ -737,4 +736,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .search-results { display: none; flex-wrap: wrap; gap: 5px; margin-top: 8px; max-height: 42vh; overflow-y: auto; }
 .wl-chip::before, .node-chip::before { content: ''; display: inline-block; width: 0.85em; height: 0.85em; flex-shrink: 0; opacity: 1; font-size: 1em; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71'/%3E%3Cpath%20d='M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71'/%3E%3C/svg%3E") center/contain no-repeat; }
 /* 북마크된 노드칩: 앞 아이콘을 체인 → 북마크로, 색은 그래프의 주황 제목과 맞춤 */
-.node-chip--bm::before { background-color: var(--accent); -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); }
+.node-chip--bm::before { background-color: var(--accent); -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); }
+/* 뱃지형 칩은 아이콘 없이 글자만 — 기본 마스크보다 뒤에 와야 display:none이 먹는다 */
+.node-chip--badge::before { display: none; }
