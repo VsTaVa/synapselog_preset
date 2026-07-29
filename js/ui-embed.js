@@ -291,6 +291,7 @@ function multiSelectPath() {
   if (allPathIds.size === 0) { clearMultiSelect(); return; }
   _focusMode = false; _focusNodeId = null;
   _isolateActive = true;
+  _activeGlowIds = new Set(_multiSelected.map(n => n.id)); // 경로의 출발/도착 노드에 활성 글로우
   nodes.forEach(n => { n.dimmed = !allPathIds.has(n.id); });
   isStable = false;
   clearMultiSelect();

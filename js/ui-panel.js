@@ -1016,6 +1016,8 @@ function focusPage(pageId) {
   _focusMode = false; _focusNodeId = null;
   _isolateActive = true; _pathConnectors = [];
   const norm = String(pageId).replace(/-/g, '');
+  const pageRoot = nodes.find(nd => nd.level === 0 && String(nd.sourcePageId || '').replace(/-/g, '') === norm);
+  _activeGlowIds = new Set(pageRoot ? [pageRoot.id] : []); // 이전 모드의 글로우가 남지 않게 여기서 갱신
   nodes.forEach(nd => { nd.dimmed = !(nd.visible && String(nd.sourcePageId || '').replace(/-/g, '') === norm); });
   isStable = false;
   setTimeout(fitGraph, 60);

@@ -171,6 +171,7 @@ function nodeHasChildren(node) { return !!node && edges.some(e => e.from === nod
 function applyFocusMode(nodeId, shallow = false) {
   if (!_focusMode) return;
   _focusNodeId = nodeId;
+  _activeGlowIds = new Set([nodeId]); // 포커스 대상에 활성 글로우
   const connectedIds = new Set([nodeId]);
   if (shallow) {
     edges.forEach(e => {
@@ -199,7 +200,7 @@ function applyFocusMode(nodeId, shallow = false) {
 function toggleFocusMode() {
   const cb = document.getElementById('focus-toggle-input');
   _focusMode = cb ? cb.checked : !_focusMode;
-  if (!_focusMode) { _focusNodeId = null; nodes.forEach(n => { n.dimmed = false; }); }
+  if (!_focusMode) { _focusNodeId = null; _activeGlowIds = new Set(); nodes.forEach(n => { n.dimmed = false; }); }
   else if (_focusNodeId) applyFocusMode(_focusNodeId);
   isStable = false;
 }

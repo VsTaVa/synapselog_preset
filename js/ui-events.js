@@ -386,8 +386,8 @@ function clearAllModes() {
     doSearch(''); // 검색/AI 하이라이트 해제 (배경 클릭 시)
   }
   if (_multiSelected.length) clearMultiSelect();
-  if (_focusMode) { _focusMode = false; _focusNodeId = null; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-  if (_isolateActive) { _isolateActive = false; _pathConnectors = []; nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_focusMode) { _focusMode = false; _focusNodeId = null; _activeGlowIds = new Set(); nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_isolateActive) { _isolateActive = false; _pathConnectors = []; _activeGlowIds = new Set(); nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_connectMode) {
     _connectMode = false;
     if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }

@@ -28,6 +28,8 @@ let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false;
 let _pathConnectors = [];
+// 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
+let _activeGlowIds = new Set();
 let _satelliteRemovedEdges = [];
 
 // 위성 모드 아이콘 (노드 위에 띄움) — 점선 링 대체
@@ -280,13 +282,14 @@ function draw() {
     if(e.wikiLink) {
       // 노드연결: 흰색 점선 한 줄 + A→B 화살표 (글로우 제거 → 한 줄로)
       if(!_showConnections) return; // 노드 연결 표시 끔
-      if(hasSearch && !eitherMatch) return;
-      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
+      // 양쪽이 다 활성일 때만 그린다 — 한쪽만 활성인데 선이 남으면 상대 노드까지 활성처럼 보임
+      if(hasSearch && !bothMatch) return;
+      if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.manualLink) {
-      if(hasSearch && !bothMatch) return;
-      if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
+      if(hasSearch && !bothMatch) return; // 수동 연결도 노드연결과 같은 규칙
+      if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
       ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
@@ -388,7 +391,7 @@ function draw() {
   nodes.forEach(n => {
     if(!n.visible) return;
     const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
-    const isDirectMatch=searchDirect.has(n.id);
+    const isDirectMatch=searchDirect.has(n.id)||_activeGlowIds.has(n.id);
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const ndRgb = nodeRgb(n);
