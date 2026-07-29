@@ -231,15 +231,20 @@ function _renderSuggestHtml(list) {
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
   const zoomIc =`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>`;
   const closeIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  const arrowIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());
+    // 화살표는 각 칩 앞에 — "이 노드로 연결"이라는 뜻이라 대상 옆에 있어야 읽힌다
+    const dirBtn = (dir, from, to) =>
+      `<button class="insight-dir" onclick="insightConnectDir(${i},'${dir}')" title="${from} → ${to} (노드 연결)" aria-label="${from} → ${to} 연결">${arrowIc}</button>`;
     return `<div class="insight-pair">
-      <div class="insight-pair-row">${createNodeChip(p.a, { maxLen: 26 })}${createNodeChip(p.b, { maxLen: 26 })}</div>
-      ${terms ? `<div class="insight-shared">공통 (${escapeHtml(terms)})</div>` : ''}
+      <div class="insight-pair-row">
+        <span class="insight-pair-line">${dirBtn('ba', lb, la)}${createNodeChip(p.a, { maxLen: 26 })}</span>
+        <span class="insight-pair-line">${dirBtn('ab', la, lb)}${createNodeChip(p.b, { maxLen: 26 })}</span>
+      </div>
+      ${terms ? `<div class="insight-shared">제안 이유: ${escapeHtml(terms)}</div>` : ''}
       <div class="insight-acts">
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ba')" title="${lb} → ${la} (노드 연결)">↑</button>
-        <button class="insight-arrow" onclick="insightConnectDir(${i},'ab')" title="${la} → ${lb} (노드 연결)">↓</button>
         <button class="insight-ic-btn" onclick="insightShowPair(${i})" title="그래프 보기">${zoomIc}</button>
         <button class="insight-ic-btn" onclick="insightDismiss(${i})" title="닫기">${closeIc}</button>
       </div>
