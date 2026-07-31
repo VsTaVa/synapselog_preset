@@ -319,12 +319,26 @@ export default async function handler(req, res) {
         return null;
       };
       const body = [];
+      // 본문 블록 + 그 자식(콜아웃 안·중첩 문단 등)까지 재귀로 모두 수집 — 편집 모드에서 텍스트 유실 방지.
+      // (들여쓰기 시각은 생략하고 텍스트만. 헤딩·토글·하위페이지·DB는 별도 노드라 재귀에서 제외)
+      const STRUCT = b => /^heading_\d$/.test(b.type) || b.type === 'toggle' || b.type === 'child_page' || b.type === 'child_database';
+      const pushBlockAndKids = async (b, depth = 0) => {
+        if (BODY_TYPES.includes(b.type)) {
+          const line = lineOf(b);
+          if (line != null && line.trim()) body.push({ id: b.id.replace(/-/g, ''), line });
+        }
+        if (b.has_children && depth < 8 && b.type !== 'child_page' && b.type !== 'child_database') {
+          for (const k of await listChildren(b.id)) {
+            if (STRUCT(k)) continue;
+            await pushBlockAndKids(k, depth + 1);
+          }
+        }
+      };
       if (toggleable || isToggleBlock) {
         // 토글 헤딩/블록: 자식들이 본문
         for (const k of await listChildren(blockId)) {
-          if (!BODY_TYPES.includes(k.type)) continue;
-          const line = lineOf(k);
-          if (line != null && line.trim()) body.push({ id: k.id.replace(/-/g, ''), line });
+          if (STRUCT(k)) continue;
+          await pushBlockAndKids(k);
         }
       } else if (parentId) {
         // 일반 헤딩: 부모의 children에서 이 헤딩 다음 ~ 다음 헤딩/경계 전까지
@@ -334,10 +348,8 @@ export default async function handler(req, res) {
         if (idx >= 0) {
           for (let j = idx + 1; j < sibs.length; j++) {
             const b = sibs[j];
-            if (/^heading_\d$/.test(b.type) || b.type === 'toggle' || b.type === 'child_page' || b.type === 'child_database') break;
-            if (!BODY_TYPES.includes(b.type)) continue;
-            const line = lineOf(b);
-            if (line != null && line.trim()) body.push({ id: b.id.replace(/-/g, ''), line });
+            if (STRUCT(b)) break;
+            await pushBlockAndKids(b);
           }
         }
       }
