@@ -143,7 +143,8 @@ function parseMarkdown(text, rootTitle) {
         if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
         const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
-        if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
+        // (제거) 홀로 있는 볼드 줄에서 본문 수집을 끊던 휴리스틱 — 그 뒤 내용을 노드로 만들지도 않고
+        // 그냥 버려서, 볼드 소제목이 여러 개인 콜아웃/본문의 뒷부분이 desc·bodyBlocks에서 통째로 사라졌음.
         if (descLines.join('\n').length > 20000) { nextIdx++; continue; }
         descLines.push(rawLine);
         if (curBlk) { if (!curBlk.lines.length) curBlk.mark = _listMark(rawLine); curBlk.lines.push(bodyBlockText(rawLine)); } // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄 목록 마커 캡처
