@@ -530,6 +530,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-content .md-mark { color: var(--accent); }
 /* 노션 콜아웃 — 네모 박스. 인용(왼쪽 선)과 시각적으로 구분 */
 .detail-content .md-callout { display: block; margin: 7px 0; padding: 8px 11px; border: 1px solid rgba(var(--accent-rgb),0.3); border-radius: var(--radius); background: rgba(var(--accent-rgb),0.07); }
+/* 여러 줄 콜아웃 — 연속된 줄은 경계·모서리·간격을 없애 하나의 박스로 보이게 */
+.detail-content .md-callout + .md-callout { margin-top: 0; padding-top: 0; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; }
+.detail-content .md-callout:has(+ .md-callout) { padding-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .detail-content .md-quote { display: block; margin: 5px 0; padding: 1px 0 1px 10px; border-left: 2px solid var(--divider); color: var(--text-dim); }
 .detail-content .md-table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12px; line-height: 1.5; white-space: normal; }
 .detail-content .md-table th, .detail-content .md-table td { border: 1px solid rgba(255,255,255,0.15); padding: 5px 8px; text-align: left; vertical-align: top; }

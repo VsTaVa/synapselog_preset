@@ -458,7 +458,8 @@ export default async function handler(req, res) {
         } else if (type === 'callout') {
           listCounter = 0;
           const text = extractRichText(block.callout?.rich_text);
-          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '>> ' + text + '\n';
+          // 콜아웃 본문이 여러 줄이면 각 줄에 '>>' 마커 — 첫 줄만 박스로 잡히던 문제
+          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + text.split('\n').map(l => IND + '>> ' + l).join('\n') + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;
@@ -665,9 +666,9 @@ export default async function handler(req, res) {
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n> ` + t + '\n';
             }
             else if (type === 'callout') {
-              // '>> ' = 콜아웃 마커(인용 '> '와 구분) — 패널에서 박스로 렌더하고 되쓰기 때 블록 타입 복원
+              // '>> ' = 콜아웃 마커(인용 '> '와 구분). 여러 줄이면 각 줄에 마커 — 첫 줄만 박스로 잡히던 문제
               const t = extractRichText(block.callout?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n>> ` + t + '\n';
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t.split('\n').map(l => '>> ' + l).join('\n') + '\n';
               if (block.has_children) md += await fetchHeadings(block.id, depth + 1); // 콜아웃 내부(중첩 텍스트·DB)도 로드
             }
           } catch(e) {}
