@@ -399,6 +399,21 @@ export default async function handler(req, res) {
     return '(제목 없음)';
   }
 
+  // 콜아웃 자식 서브트리를 콜아웃 줄로 감싸기 — 본문 콘텐츠 줄 앞에 '>>' 마커를 붙여
+  // 패널에서 하나의 박스로 렌더되게 한다. 구조 마커([BB:]/[BLOCK:]/[TGL]/[NOTION_ENTRY:]/
+  // [DB_NODE]/[CHILD_PAGE])·헤딩(#)·표(|)는 그대로 둔다(헤딩은 노드로 분리되고 표·마커는
+  // 형식이 깨지므로 콜아웃 밖으로 자연히 빠진다).
+  function _calloutWrapChildren(md) {
+    return md.split('\n').map(line => {
+      if (!line.trim()) return line;
+      if (/^\s*\[(?:BB|BLOCK|TGL|NOTION_ENTRY|DB_NODE|CHILD_PAGE)/.test(line)) return line;
+      if (/^\s*#{1,5}\s/.test(line)) return line;
+      if (/^\s*\|/.test(line)) return line;
+      const m = line.match(/^(\s*)(.*)$/);
+      return `${m[1]}>> ${m[2].replace(/^>+\s*/, '')}`; // 기존 인용/콜아웃 마커는 콜아웃으로 통일
+    }).join('\n');
+  }
+
   // 재귀 블록 읽기 (skipDb=true면 child_database 스킵, indent=본문 중첩 깊이)
   async function fetchBlocks(blockId, depth = 0, skipDb = false, indent = 0) {
     if (depth > 8) return '';
@@ -460,7 +475,8 @@ export default async function handler(req, res) {
           const text = extractRichText(block.callout?.rich_text);
           // 콜아웃 본문이 여러 줄이면 각 줄에 '>>' 마커 — 첫 줄만 박스로 잡히던 문제
           if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + text.split('\n').map(l => IND + '>> ' + l).join('\n') + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
+          // 콜아웃 안에 감싼 자식 블록들도 같은 박스에 담기게 콜아웃 줄로 승격
+          if (block.has_children) markdown += _calloutWrapChildren(await fetchBlocks(block.id, depth + 1, skipDb, indent + 1));
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingText(block.toggle?.rich_text);
@@ -669,7 +685,7 @@ export default async function handler(req, res) {
               // '>> ' = 콜아웃 마커(인용 '> '와 구분). 여러 줄이면 각 줄에 마커 — 첫 줄만 박스로 잡히던 문제
               const t = extractRichText(block.callout?.rich_text);
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t.split('\n').map(l => '>> ' + l).join('\n') + '\n';
-              if (block.has_children) md += await fetchHeadings(block.id, depth + 1); // 콜아웃 내부(중첩 텍스트·DB)도 로드
+              if (block.has_children) md += _calloutWrapChildren(await fetchHeadings(block.id, depth + 1)); // 콜아웃 내부(중첩 텍스트·DB)도 같은 박스로
             }
           } catch(e) {}
         }
