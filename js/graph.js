@@ -144,7 +144,7 @@ function parseMarkdown(text, rootTitle) {
         const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
         if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
         if (/^\*\*[^*]{3,60}\*\*$/.test(nextLine) && descLines.length > 0) break;
-        if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
+        if (descLines.join('\n').length > 20000) { nextIdx++; continue; }
         descLines.push(rawLine);
         if (curBlk) { if (!curBlk.lines.length) curBlk.mark = _listMark(rawLine); curBlk.lines.push(bodyBlockText(rawLine)); } // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄 목록 마커 캡처
         nextIdx++;
@@ -157,13 +157,13 @@ function parseMarkdown(text, rootTitle) {
       if (isFirstHeading && rawDepth === 1 && rootId && noNotionMarker && cleanLabel(lbl) === nodeMap[rootId].label) {
         const rn = nodeMap[rootId];
         rn.titleHeading = true;
-        rn.desc = cleanDesc(descLines.join('\n').substring(0, 5000));
+        rn.desc = cleanDesc(descLines.join('\n').substring(0, 20000));
         if (nDate) rn.date = nDate;
         if (bodyBlocks.length) rn.bodyBlocks = bodyBlocks;
         if (nextIdx > i + 1) i = nextIdx - 1;
         continue;
       }
-      const curId = addNode(lbl, descLines.join('\n').substring(0, 5000), parentId, nDate, depth);
+      const curId = addNode(lbl, descLines.join('\n').substring(0, 20000), parentId, nDate, depth);
       if (curId) {
         nodeMap[curId].headingDepth = rawDepth;
         if (bodyBlocks.length) nodeMap[curId].bodyBlocks = bodyBlocks;
