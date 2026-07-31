@@ -1361,7 +1361,7 @@ function closeConfirm() { document.getElementById('confirm-modal').classList.rem
 let _pageEdited = (() => { try { return JSON.parse(localStorage.getItem('snlog_page_edited') || '{}'); } catch (e) { return {}; } })();
 function _savePageEdited() { try { localStorage.setItem('snlog_page_edited', JSON.stringify(_pageEdited)); } catch (e) {} }
 
-function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지를 노션에서 통째로 다시 불러오기.\n(개별 페이지 ↻은 바뀐 부분만 받음)', bulkSync); }
+function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지 다시 불러오기.\n(개별 페이지 ↻은 바뀐 부분만 받음)', bulkSync); }
 
 // 전체 동기화: 모든 추가 페이지를 강제로 통째로 재요청. 증분은 페이지별 ↻이 담당.
 async function bulkSync(opts) {
