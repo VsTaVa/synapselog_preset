@@ -227,13 +227,8 @@ function renderPaneContent(i, n) {
   // 콜아웃/인용보다 먼저 — 그쪽이 줄 끝 개행을 먹으면 다음 줄의 ^ 앵커가 깨진다
   rawDesc = rawDesc.replace(/^(\s*)(\d+\.|[-*])(\s)/gm,
     (m, sp, mk, tail) => `${sp}<span class="md-mark">${/^\d/.test(mk) ? mk : '•'}</span>${tail}`);
-  // 콜아웃(>>): 연속된 줄들을 하나의 박스(.md-callout)로 묶고 각 줄은 .md-callout-line.
-  // 인접 형제 CSS에 기대지 않고 한 요소로 감싸 여러 줄 콜아웃이 확실히 한 박스가 되게 한다.
-  rawDesc = rawDesc.replace(/(?:^[ \t]*&gt;&gt;[ \t]+.*\n?)+/gm, (blk) => {
-    const lines = blk.replace(/^[ \t]*&gt;&gt;[ \t]+(.*?)[ \t]*\n?$/gm,
-      (m, txt) => `<span class="md-callout-line">${txt}</span>`);
-    return `<span class="md-callout">${lines}</span>`;
-  });
+  // 콜아웃(>>)은 박스 없이 그냥 텍스트로 — 남은 마커만 떼고 평범하게 표시(잔여 데이터 대비)
+  rawDesc = rawDesc.replace(/^([ \t]*)&gt;&gt;[ \t]+/gm, '$1');
   // 인용(>) 줄 — 줄 끝 개행까지 먹어야 pre-wrap에서 빈 줄이 안 생긴다
   rawDesc = rawDesc.replace(/^[ \t]*&gt;[ \t]+(.*)\n?/gm,
     (m, txt) => `<span class="md-quote">${txt}</span>`);
