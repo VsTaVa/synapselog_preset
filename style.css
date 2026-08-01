@@ -541,6 +541,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-content strong { color: var(--accent); font-weight: 700; }
 .detail-content .md-mark { color: var(--accent); }
 .detail-content .md-quote { display: block; margin: 5px 0; padding: 1px 0 1px 10px; border-left: 2px solid var(--divider); color: var(--text-dim); }
+/* 콜아웃 — 인용과 같은 세로선 스타일, 구분 위해 accent 색 + 옅은 배경 */
+.detail-content .md-callout { display: block; margin: 5px 0; padding: 4px 0 4px 11px; border-left: 3px solid var(--accent); background: rgba(var(--accent-rgb),0.05); color: var(--text-dim); }
 .detail-content .md-table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12px; line-height: 1.5; white-space: normal; }
 .detail-content .md-table th, .detail-content .md-table td { border: 1px solid rgba(255,255,255,0.15); padding: 5px 8px; text-align: left; vertical-align: top; }
 .detail-content .md-table th { background: rgba(var(--accent-rgb),0.12); color: var(--accent); font-weight: 700; }

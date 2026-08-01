@@ -234,6 +234,7 @@ function _bodyDescLine(b) {
   if (t === 'numbered_list_item') return (/^\d+\.$/.test(b.mark || '') ? b.mark : '1.') + ' ' + tx;
   if (t === 'to_do') return (b.checked ? '☑ ' : '☐ ') + tx;
   if (t === 'quote') return '> ' + tx;
+  if (t === 'callout') return '>> ' + tx;
   return tx;
 }
 

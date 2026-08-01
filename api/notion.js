@@ -42,6 +42,8 @@ export default async function handler(req, res) {
   // 첫 줄에만 붙이면 둘째 줄부터는 인용 밖 평범한 텍스트로 보였음(노션에선 한 인용 안인데).
   // 목록·체크박스는 반대로 첫 줄에만 — 줄마다 붙이면 글머리 기호가 여러 개로 보인다.
   const quoteLines = (text, ind) => (text || '').split('\n').map(l => (ind || '') + '> ' + l).join('\n');
+  // 콜아웃도 인용과 동일하게 — 모든 줄에 '>>' 마커(패널에서 인용처럼 세로선 스타일로 렌더)
+  const calloutLines = (text, ind) => (text || '').split('\n').map(l => (ind || '') + '>> ' + l).join('\n');
 
   // 본문 한 줄의 줄머리 마크다운(- , 1. , > , 체크박스)을 노션 블록 타입으로 변환
   // (마커는 첫 줄 머리만 제거하고 나머지(소프트 줄바꿈 포함)는 보존)
@@ -381,7 +383,7 @@ export default async function handler(req, res) {
         if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
         if (t === 'to_do') return (b.to_do?.checked ? '☑ ' : '☐ ') + extractRichText(b.to_do?.rich_text);
         if (t === 'quote') return quoteLines(extractRichText(b.quote?.rich_text));
-        if (t === 'callout') return extractRichText(b.callout?.rich_text);
+        if (t === 'callout') return calloutLines(extractRichText(b.callout?.rich_text));
         return null;
       };
       const body = [];
@@ -554,8 +556,8 @@ export default async function handler(req, res) {
         } else if (type === 'callout') {
           listCounter = 0;
           const text = extractRichText(block.callout?.rich_text);
-          // 콜아웃도 그냥 일반 텍스트로 — 박스로 안 가둠. 자식은 깊이 있게 전부 캡처(중첩 텍스트 유실 방지)
-          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + text + '\n';
+          // 콜아웃 자기 텍스트는 인용처럼 '>>' 마커로 스타일. 자식은 깊이 있게 전부 캡처(중첩 텍스트 유실 방지)
+          if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + calloutLines(text, IND) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;
@@ -762,9 +764,9 @@ export default async function handler(req, res) {
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(t) + '\n';
             }
             else if (type === 'callout') {
-              // 콜아웃도 그냥 일반 텍스트로 — 박스 안 씌움.
+              // 콜아웃 자기 텍스트는 인용처럼 '>>' 마커로 스타일
               const t = extractRichText(block.callout?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + t + '\n';
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + calloutLines(t) + '\n';
               // fetchHeadings는 문단/리스트 자식을 재귀하지 않아 콜아웃 안 중첩 텍스트가 유실됨 →
               // fetchBlocks로 서브트리 전체를 깊이 있게 캡처(모든 텍스트 확보). skipDb는 헤딩 경로와 동일하게.
               if (block.has_children) md += await fetchBlocks(block.id, depth + 1, false, 0);
