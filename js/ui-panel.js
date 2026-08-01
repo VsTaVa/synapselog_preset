@@ -229,9 +229,13 @@ function renderPaneContent(i, n) {
     (m, sp, mk, tail) => `${sp}<span class="md-mark">${/^\d/.test(mk) ? mk : '•'}</span>${tail}`);
   // 콜아웃(>>)은 박스 없이 그냥 텍스트로 — 남은 마커만 떼고 평범하게 표시(잔여 데이터 대비)
   rawDesc = rawDesc.replace(/^([ \t]*)&gt;&gt;[ \t]+/gm, '$1');
-  // 인용(>) 줄 — 줄 끝 개행까지 먹어야 pre-wrap에서 빈 줄이 안 생긴다
-  rawDesc = rawDesc.replace(/^[ \t]*&gt;[ \t]+(.*)\n?/gm,
-    (m, txt) => `<span class="md-quote">${txt}</span>`);
+  // 인용(>) — 붙어 있는 여러 줄을 인용 하나로 묶는다. 줄마다 따로 감싸면 소프트 줄바꿈이 있는
+  // 인용의 둘째 줄이 세로선 밖으로 떨어져 나갔음. 줄 끝 개행까지 먹어야 pre-wrap에서 빈 줄이 안 생긴다
+  rawDesc = rawDesc.replace(/(?:^[ \t]*&gt;[ \t]+.*(?:\n|$))+/gm, (block) => {
+    const txt = block.replace(/\n$/, '').split('\n')
+      .map(l => l.replace(/^[ \t]*&gt;[ \t]+/, '')).join('\n');
+    return `<span class="md-quote">${txt}</span>`;
+  });
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
   rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)

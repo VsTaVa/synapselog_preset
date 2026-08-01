@@ -38,6 +38,11 @@ export default async function handler(req, res) {
     return out.length ? out : [{ type: 'text', text: { content: '' } }];
   }
 
+  // 인용은 블록 안에 소프트 줄바꿈이 있으면 '모든' 줄에 마커를 붙인다.
+  // 첫 줄에만 붙이면 둘째 줄부터는 인용 밖 평범한 텍스트로 보였음(노션에선 한 인용 안인데).
+  // 목록·체크박스는 반대로 첫 줄에만 — 줄마다 붙이면 글머리 기호가 여러 개로 보인다.
+  const quoteLines = (text, ind) => (text || '').split('\n').map(l => (ind || '') + '> ' + l).join('\n');
+
   // 본문 한 줄의 줄머리 마크다운(- , 1. , > , 체크박스)을 노션 블록 타입으로 변환
   // (마커는 첫 줄 머리만 제거하고 나머지(소프트 줄바꿈 포함)는 보존)
   function lineToBlock(raw) {
@@ -326,7 +331,7 @@ export default async function handler(req, res) {
         if (t === 'bulleted_list_item') return '- ' + extractRichText(b.bulleted_list_item?.rich_text);
         if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
         if (t === 'to_do') return (b.to_do?.checked ? '☑ ' : '☐ ') + extractRichText(b.to_do?.rich_text);
-        if (t === 'quote') return '> ' + extractRichText(b.quote?.rich_text);
+        if (t === 'quote') return quoteLines(extractRichText(b.quote?.rich_text));
         if (t === 'callout') return extractRichText(b.callout?.rich_text);
         return null;
       };
@@ -487,7 +492,7 @@ export default async function handler(req, res) {
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'quote') {
           listCounter = 0;
-          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + '> ' + extractRichText(block.quote?.rich_text) + '\n';
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(extractRichText(block.quote?.rich_text), IND) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'callout') {
           listCounter = 0;
@@ -697,7 +702,7 @@ export default async function handler(req, res) {
             }
             else if (type === 'quote') {
               const t = extractRichText(block.quote?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n> ` + t + '\n';
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(t) + '\n';
             }
             else if (type === 'callout') {
               // 콜아웃도 그냥 일반 텍스트로 — 박스 안 씌움.
