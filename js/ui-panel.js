@@ -243,8 +243,8 @@ function renderPaneContent(i, n) {
     return `<a class="wl-ref wl-chip wl-ext" href="${url}" target="_blank" rel="noopener">${txt}</a>`;
   });
   if (searchKeyword && searchKeyword.trim() && searchMatches.has(n.id)) {
-    const re = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
+    const re = _kwRegex(searchKeyword); // 띄어쓰기 무시 매칭
+    if (re) rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
     contentEl.innerHTML = mdTableToHtml(rawDesc);
@@ -404,24 +404,27 @@ function htmlFromMarkdown(t) {
 // 편집기 안에서도 검색 키워드를 강조 — 텍스트 노드만 감싸므로 태그·href가 깨지지 않고,
 // markdownFromHtml이 모르는 태그(<mark>)는 텍스트만 남기고 벗겨내므로 저장에 영향 없음
 function markKeywordInEl(el, kw) {
-  const needle = (kw || '').trim().toLowerCase();
-  if (!el || !needle) return;
+  const re = _kwRegex(kw); // 띄어쓰기 무시 매칭
+  if (!el || !re) return;
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
   const targets = [];
   let tn;
   while ((tn = walker.nextNode())) {
-    if (tn.nodeValue && tn.nodeValue.toLowerCase().includes(needle)) targets.push(tn);
+    re.lastIndex = 0;
+    if (tn.nodeValue && re.test(tn.nodeValue)) targets.push(tn);
   }
   targets.forEach(t => {
-    const val = t.nodeValue, lower = val.toLowerCase();
+    const val = t.nodeValue;
     const frag = document.createDocumentFragment();
-    let idx = 0, at;
-    while ((at = lower.indexOf(needle, idx)) !== -1) {
-      if (at > idx) frag.appendChild(document.createTextNode(val.slice(idx, at)));
-      const m = document.createElement('mark');
-      m.textContent = val.slice(at, at + needle.length);
-      frag.appendChild(m);
-      idx = at + needle.length;
+    let idx = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(val)) !== null) {
+      if (!m[0].length) { re.lastIndex++; continue; } // 빈 매치 방지
+      if (m.index > idx) frag.appendChild(document.createTextNode(val.slice(idx, m.index)));
+      const mk = document.createElement('mark');
+      mk.textContent = m[0];
+      frag.appendChild(mk);
+      idx = m.index + m[0].length;
     }
     if (idx < val.length) frag.appendChild(document.createTextNode(val.slice(idx)));
     t.parentNode.replaceChild(frag, t);

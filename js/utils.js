@@ -178,6 +178,15 @@ function _listMark(line) {
   return '';
 }
 
+// 띄어쓰기 무시 검색용 정규식 — 키워드의 공백을 없애고 각 글자 사이에 \s* 허용.
+// "시장경제흐름" / "시장 경제 흐름" 어느 쪽으로 검색해도 "시장 경제 흐름" 텍스트를 매칭·강조.
+function _kwRegex(kw, flags) {
+  const chars = (kw || '').trim().replace(/\s+/g, '').split('');
+  if (!chars.length) return null;
+  const src = chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');
+  return new RegExp('(' + src + ')', flags || 'gi');
+}
+
 // 노드 표시용 텍스트 헬퍼 — 제목 없으면 '(제목 없음)', 본문은 trim(+선택적 길이 제한)
 function nodeTitle(n) { return ((n && n.label) || '(제목 없음)').trim(); }
 function nodeBody(n, len) { const b = ((n && n.desc) || '').trim(); return len ? b.slice(0, len) : b; }
