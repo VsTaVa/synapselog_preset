@@ -683,28 +683,9 @@ const _SAMPLE_MD = `# 노트 샘플
 
 - 선택한 노드의 위치를 캔버스 상에 고정`;
 
-// ── 시작 화면 배경 그래프 ────────────────────────────────────────────
-// 시작 화면이 검은 여백 위에 홀로 뜨지 않도록 샘플 그래프를 '장식'으로만 띄운다.
-// 사이드바·세션엔 등록하지 않으므로, 노션/MD로 시작하면 buildGraph()가 그냥 덮어쓴다.
-let _sampleBackdropId = null;
-function startSampleBackdrop() {
-  if (typeof nodes !== 'undefined' && nodes.length) return; // 이미 그래프가 있으면 건드리지 않음
-  const pageId = 'md_sample_' + Date.now();
-  _sampleBackdropId = pageId;
-  buildGraph(); loop();
-  setTimeout(() => {
-    if (_sampleBackdropId !== pageId) return; // 그 사이 사용자가 다른 걸 시작했으면 취소
-    mergeGraph('샘플 노트', _SAMPLE_MD, pageId);
-    setTimeout(() => { if (_sampleBackdropId === pageId) { try { fitGraph(true); } catch (e) {} } }, 700);
-  }, 100);
-}
-
 function startWithSample() {
   document.getElementById('login-screen').style.display = 'none';
-  // 배경으로 이미 떠 있으면 그대로 승격 — 다시 만들면 화면이 한 번 튄다
-  const promoting = !!_sampleBackdropId;
-  const title = '샘플 노트', pageId = _sampleBackdropId || ('md_sample_' + Date.now());
-  _sampleBackdropId = null;
+  const title = '샘플 노트', pageId = 'md_sample_' + Date.now();
   const register = () => {
     _addedPageIds.add(pageId);
     sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ title, markdown: _SAMPLE_MD, isMd: true, _cachedAt: Date.now() }));
@@ -715,7 +696,6 @@ function startWithSample() {
     refreshSidebarRender();
     updateBulkActionsVisibility(); savePageList();
   };
-  if (promoting) { register(); return; }
   buildGraph(); loop();
   setTimeout(() => {
     mergeGraph(title, _SAMPLE_MD, pageId);
@@ -730,7 +710,6 @@ function startWithMd(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('login-screen').style.display = 'none';
-    _sampleBackdropId = null; // 배경 샘플 폐기
     buildGraph(); loop();
     const markdown = e.target.result;
     const title = file.name.replace(/\.md$|\.txt$/i, '');
@@ -853,7 +832,6 @@ async function startWithSelected() {
     return;
   }
   document.getElementById('login-screen').style.display = 'none';
-  _sampleBackdropId = null; // 배경 샘플 폐기 — buildGraph()가 비우고 새로 만든다
   buildGraph(); loop();
   setTimeout(restoreLocalPages, 200);
   setTimeout(initSidebarPageList, 300); setTimeout(loadProfile, 500);
@@ -862,7 +840,6 @@ async function startWithSelected() {
 
 function skipToGraph() {
   document.getElementById('login-screen').style.display = 'none';
-  _sampleBackdropId = null; // 배경 샘플 폐기
   buildGraph(); loop();
   setTimeout(restoreLocalPages, 200);
   setTimeout(initSidebarPageList, 300); setTimeout(loadProfile, 500);

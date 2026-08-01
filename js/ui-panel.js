@@ -676,9 +676,20 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   const hasTitle = isLocal || !!node.notionBlockId;
   const hasBody = isLocal || !!(node.bodyBlocks && node.bodyBlocks.length);
   const canAdd = isLocal || !!(node.notionBlockId && node.notionParentId);
-  // 중첩(콜아웃/들여쓰기 안) 블록이 있으면 순서 이동을 막는다 — 이동 시 노션에서 부모 밖으로 튀어나가 구조가 깨짐.
-  // 텍스트 수정·삭제·끝에 줄 추가는 id 기반이라 안전.
-  const hasNested = !isLocal && !!(node.bodyBlocks || []).some(b => b.nested);
+  // 이동 금지 대상은 '노드 전체'가 아니라 '해당 줄'만 — 예전엔 콜아웃이 하나라도 있으면
+  // 그 노드의 평범한 문단·불릿까지 전부 못 옮겼다.
+  //  · 중첩 블록(콜아웃 안): 옮기면 최상위로 재생성돼 콜아웃 밖으로 튀어나감
+  //  · 콜아웃 본체: 재생성+삭제하면 자식이 함께 보관돼 사라짐
+  // 단, 앵커가 없는 부모(토글 헤딩·페이지 직속)는 정밀 이동이 안 돼 '전부 재생성' 폴백을 타는데
+  // 그 폴백은 중첩 구조를 부수므로, 그 조합에서만 예전처럼 전면 금지.
+  const _bb = (!isLocal && node.bodyBlocks) || [];
+  const _tgtPre = (!isLocal && node.notionBlockId) ? _appendTarget(node) : null;
+  const lockAllRows = !isLocal && _bb.some(b => b.nested) && !(_tgtPre && _tgtPre.afterId);
+  const lockedIds = new Set();
+  _bb.forEach((b, i) => {
+    if (b.nested) lockedIds.add(b.id);
+    else if (_bb[i + 1] && _bb[i + 1].nested) lockedIds.add(b.id); // 자식을 가진 콜아웃 본체
+  });
   if (!hasTitle && !hasBody && !canAdd) return;
   if (!contentEl) return;
 
@@ -717,16 +728,15 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     ce.innerHTML = htmlFromMarkdown(text);
     if (typeof searchKeyword !== 'undefined') markKeywordInEl(ce, searchKeyword); // 검색 중이면 편집기에서도 키워드 강조
     if (!blk) ce.dataset.placeholder = '본문 내용…';
-    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || '', checked: !!(blk && blk.checked) };
-    // 드래그 핸들 (로컬 단일 본문은 순서 불필요 / 중첩 블록 있는 노드는 이동 시 구조 깨져 금지)
-    if (!isLocal && !hasNested) {
+    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || '', checked: !!(blk && blk.checked), nested: !!(blk && blk.nested) };
+    // 이 줄이 이동 금지인가 (중첩 블록 / 자식 가진 콜아웃 본체 / 앵커 없는 부모의 중첩 노드)
+    rowObj.locked = lockAllRows || !!(blk && blk.id && lockedIds.has(blk.id));
+    // 드래그 핸들 — 이동 금지 줄에는 안 붙인다(로컬 단일 본문은 순서 개념 자체가 없음)
+    if (!isLocal && !rowObj.locked) {
       const handle = document.createElement('span'); handle.className = 'body-edit-handle'; handle.textContent = '⠿'; handle.draggable = true;
       handle.addEventListener('dragstart', e => { _bodyDrag = rowObj; item.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
       handle.addEventListener('dragend', () => { item.classList.remove('dragging'); _bodyDrag = null; list.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over')); });
       item.appendChild(handle);
-      item.addEventListener('dragover', e => { if (_bodyDrag && _bodyDrag !== rowObj) { e.preventDefault(); item.classList.add('drag-over'); } });
-      item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
-      item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
       // 모바일: HTML5 드래그앤드롭은 터치에서 동작하지 않아 터치 이벤트로 같은 동작을 구현
       const _touchClear = () => {
         item.classList.remove('dragging');
@@ -745,18 +755,27 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         const under = document.elementFromPoint(t.clientX, t.clientY);
         const over = under && under.closest ? under.closest('.body-edit-item') : null;
         if (_bodyTouchOver && _bodyTouchOver !== over) _bodyTouchOver.classList.remove('drag-over');
-        if (over && over !== item) { over.classList.add('drag-over'); _bodyTouchOver = over; }
+        const overRow = over ? rows.find(r => r.item === over) : null;
+        if (over && over !== item && overRow && !overRow.nested) { over.classList.add('drag-over'); _bodyTouchOver = over; }
         else _bodyTouchOver = null;
       }, { passive: false });
       handle.addEventListener('touchend', e => {
         e.preventDefault();
         if (_bodyDrag && _bodyTouchOver) {
           const target = rows.find(r => r.item === _bodyTouchOver);
-          if (target) reorderBodyRow(_bodyDrag, target);
+          if (target && !target.nested) reorderBodyRow(_bodyDrag, target);
         }
         _touchClear();
       }, { passive: false });
       handle.addEventListener('touchcancel', _touchClear);
+    }
+    // 놓을 자리(드롭 대상)는 핸들과 별개 — 콜아웃 본체는 못 옮겨도 '그 앞에 놓기'는 돼야 한다.
+    // 반면 중첩 줄은 대상에서 뺀다: 콜아웃 자식 사이에 끼워 넣어도 노션에선 콜아웃 '뒤'에 붙어
+    // 화면과 실제가 어긋나기 때문.
+    if (!isLocal && !rowObj.nested) {
+      item.addEventListener('dragover', e => { if (_bodyDrag && _bodyDrag !== rowObj) { e.preventDefault(); item.classList.add('drag-over'); } });
+      item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
+      item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
     }
     if (blk && blk.mark) {
       const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.innerHTML = _markHtml(blk.mark);
@@ -862,7 +881,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const titleChanged = !!(titleInput && newTitle && newTitle !== titleMd());
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
-    const reordered = !isLocal && node.notionBlockId && hasBody && !hasNested && (() => {
+    const reordered = !isLocal && node.notionBlockId && hasBody && !lockAllRows && (() => {
       const cur = rows.filter(r => !r.isNew).map(r => r.blk.id);
       const orig = (node.bodyBlocks || []).map(b => b.id);
       const existingReordered = cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
@@ -889,7 +908,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const origBody = (node.bodyBlocks || []).slice();
     const oldBodyIds = origBody.map(b => b.id);
     const finalRows = rows
-      .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim(), type: r.type || '', checked: !!r.checked }))
+      .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim(), type: r.type || '', checked: !!r.checked, nested: !!r.nested, locked: !!r.locked }))
       .filter(r => r.text.length); // 내용 비운 기존 블록은 삭제로 처리(빈 블록 유지 X)
 
     // 라벨용 평문 제목 — cleanLabel이 남기는 인라인 코드 백틱까지 떼어, 동기화 때 서버가 주는
@@ -1009,7 +1028,8 @@ function _savedBodyBlock(id, r) {
   const text = isNew ? bodyBlockText(r.text) : r.text;
   const checked = type === 'to_do' ? (isNew ? _blockChecked(r.text) : !!r.checked) : false;
   const mark = type === 'to_do' ? (checked ? '☑' : '☐') : ((r.blk && r.blk.mark) || _listMark(r.text));
-  return { id, text, type, checked, mark };
+  // nested를 잃으면 다음 편집에서 콜아웃 자식이 이동 가능해져 구조가 깨진다
+  return { id, text, type, checked, mark, ...(r.nested || (r.blk && r.blk.nested) ? { nested: true } : {}) };
 }
 
 // 최장 증가 부분수열(LIS)의 인덱스 목록 — 순서 유지되는 블록(제자리)을 고르는 데 사용
@@ -1044,12 +1064,17 @@ async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
   finalRows.forEach((r, pos) => { if (r.blk && oldIndex[r.blk.id] != null) keptSeq.push({ pos, oldIdx: oldIndex[r.blk.id] }); });
   const lis = _lisIndices(keptSeq.map(k => k.oldIdx));
   const stayPos = new Set(lis.map(i => keptSeq[i].pos)); // 제자리 유지할 finalRows 위치(ID 보존)
+  // 이동 금지 줄(중첩 블록·콜아웃 본체)은 LIS가 '이동'으로 골랐더라도 강제로 제자리 유지.
+  // 재생성하면 콜아웃 밖으로 튀어나가거나(자식) 자식이 통째로 사라진다(본체).
+  finalRows.forEach((r, pos) => { if (r.blk && r.locked) stayPos.add(pos); });
 
   // 삽입 런 구성: 유지 블록(안정 앵커) 사이에 낀 이동/신규 블록 묶음 (모두 안정 앵커라 병렬 삽입 가능)
   const START = tgt.afterId || null; // 본문 첫 위치 앵커(일반 헤딩=헤딩ID / 토글·페이지=null)
   const runs = []; let cur = null, anchor = START;
   for (let pos = 0; pos < finalRows.length; pos++) {
-    if (stayPos.has(pos)) { if (cur) { runs.push(cur); cur = null; } anchor = finalRows[pos].blk.id; }
+    // 중첩 블록 id는 콜아웃 '안'이라 최상위 삽입 앵커로 쓸 수 없다(노션이 거부) → 앵커 갱신은 건너뛴다.
+    // 콜아웃 본체가 직전 앵커로 남으므로, 그 뒤에 넣으면 화면상 콜아웃 다음 자리와 일치한다.
+    if (stayPos.has(pos)) { if (cur) { runs.push(cur); cur = null; } if (!finalRows[pos].nested) anchor = finalRows[pos].blk.id; }
     else { if (!cur) cur = { anchorId: anchor, rows: [] }; cur.rows.push({ pos, r: finalRows[pos] }); }
   }
   if (cur) runs.push(cur);

@@ -1012,9 +1012,6 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     setTimeout(loadProfile, 400);
     restoreSearchHistory(); // 저장해둔 검색 기록 복원
   });
-} else {
-  // 복원할 세션이 없으면 시작 화면 뒤로 샘플 그래프를 띄운다 — 빈 검정 화면 대신
-  document.addEventListener('DOMContentLoaded', () => { startSampleBackdrop(); });
 }
 
 // ── 모바일 롱프레스 툴팁 — 터치 기기에선 title 호버가 안 뜨므로 길게 누르면 표시 ──

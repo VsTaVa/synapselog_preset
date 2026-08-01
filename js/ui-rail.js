@@ -333,8 +333,6 @@ function backToLoginScreen() {
     if (tokenIn && _savedToken) tokenIn.value = _savedToken;
     const err = document.getElementById('login-error');
     if (err) err.style.display = 'none';
-    // 그래프를 비웠으니 시작 화면 뒤도 다시 샘플로 채운다
-    if (typeof startSampleBackdrop === 'function') startSampleBackdrop();
   }, true);
 }
 
