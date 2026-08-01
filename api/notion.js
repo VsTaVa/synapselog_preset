@@ -390,9 +390,12 @@ export default async function handler(req, res) {
       // 본문 블록 + 그 자식(콜아웃 안·중첩 문단 등)까지 재귀로 모두 수집 — 편집 모드에서 텍스트 유실 방지.
       // (들여쓰기 시각은 생략하고 텍스트만. 헤딩·토글·하위페이지·DB는 별도 노드라 재귀에서 제외)
       const STRUCT = b => /^heading_\d$/.test(b.type) || b.type === 'toggle' || b.type === 'child_page' || b.type === 'child_database';
-      const pushBlockAndKids = async (b, depth = 0) => {
+      const pushBlockAndKids = async (b, depth = 0, inCallout = false) => {
         if (BODY_TYPES.includes(b.type)) {
-          const line = lineOf(b);
+          let line = lineOf(b);
+          // 콜아웃 안의 자식은 '>>' 마커를 붙여 콜아웃(세로선)으로 표시 — view/편집 일관.
+          // 실제 블록 유형(type)은 그대로 보내 저장 시 id 기반으로 원형 유지(문단→콜아웃 변환 아님).
+          if (line != null && line.trim() && inCallout && b.type !== 'callout') line = line.split('\n').map(l => '>> ' + l.replace(/^>+\s*/, '')).join('\n');
           // type/checked를 같이 보냄 — 콜아웃은 줄머리 마커가 없어 클라이언트가 유형을 추정할 수 없고,
           // 체크 상태는 텍스트로 왕복시키면 글리프가 겹쳐 쌓인다
           if (line != null && line.trim()) body.push({
@@ -402,9 +405,10 @@ export default async function handler(req, res) {
           });
         }
         if (b.has_children && depth < 8 && b.type !== 'child_page' && b.type !== 'child_database') {
+          const childInCallout = inCallout || b.type === 'callout';
           for (const k of await listChildren(b.id)) {
             if (STRUCT(k)) continue;
-            await pushBlockAndKids(k, depth + 1);
+            await pushBlockAndKids(k, depth + 1, childInCallout);
           }
         }
       };
@@ -492,6 +496,19 @@ export default async function handler(req, res) {
     return '(제목 없음)';
   }
 
+  // 콜아웃 자식 서브트리의 본문 줄에 '>>' 마커를 붙여 콜아웃(세로선)으로 표시.
+  // 구조 마커([BB:]/[BLOCK:]/…)·헤딩(#)·표(|)는 그대로. 표시용이며 저장 시 실제 유형은 id로 보존됨.
+  function _calloutWrapChildren(md) {
+    return md.split('\n').map(line => {
+      if (!line.trim()) return line;
+      if (/^\s*\[(?:BB|BLOCK|TGL|NOTION_ENTRY|DB_NODE|CHILD_PAGE)/.test(line)) return line;
+      if (/^\s*#{1,5}\s/.test(line)) return line;
+      if (/^\s*\|/.test(line)) return line;
+      const m = line.match(/^(\s*)(.*)$/);
+      return `${m[1]}>> ${m[2].replace(/^>+\s*/, '')}`;
+    }).join('\n');
+  }
+
   // 재귀 블록 읽기 (skipDb=true면 child_database 스킵, indent=본문 중첩 깊이)
   async function fetchBlocks(blockId, depth = 0, skipDb = false, indent = 0) {
     if (depth > 8) return '';
@@ -558,7 +575,7 @@ export default async function handler(req, res) {
           const text = extractRichText(block.callout?.rich_text);
           // 콜아웃 자기 텍스트는 인용처럼 '>>' 마커로 스타일. 자식은 깊이 있게 전부 캡처(중첩 텍스트 유실 방지)
           if (text.trim()) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + calloutLines(text, IND) + '\n';
-          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
+          if (block.has_children) markdown += _calloutWrapChildren(await fetchBlocks(block.id, depth + 1, skipDb, indent + 1));
         } else if (type === 'toggle') {
           listCounter = 0;
           const title = extractHeadingMd(block.toggle?.rich_text);
@@ -768,8 +785,8 @@ export default async function handler(req, res) {
               const t = extractRichText(block.callout?.rich_text);
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + calloutLines(t) + '\n';
               // fetchHeadings는 문단/리스트 자식을 재귀하지 않아 콜아웃 안 중첩 텍스트가 유실됨 →
-              // fetchBlocks로 서브트리 전체를 깊이 있게 캡처(모든 텍스트 확보). skipDb는 헤딩 경로와 동일하게.
-              if (block.has_children) md += await fetchBlocks(block.id, depth + 1, false, 0);
+              // fetchBlocks로 서브트리 전체를 깊이 캡처 + 자식도 '>>'로 감싸 콜아웃 스타일 통일.
+              if (block.has_children) md += _calloutWrapChildren(await fetchBlocks(block.id, depth + 1, false, 0));
             }
           } catch(e) {}
         }
