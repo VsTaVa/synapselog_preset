@@ -1431,7 +1431,8 @@ function _addEntryChildNodes(entryNode, markdown) {
 
     const mdDepth = Math.min(headerMatch[1].length, 5);
     const graphLevel = Math.min(entryNode.level + mdDepth, 5);
-    let lbl = headerMatch[2].trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*\*/g, '');
+    // 서식 마커는 그대로 둠 — 아래에서 평문 라벨(plainLabel)과 원문(labelMd)을 갈라 담는다
+    let lbl = headerMatch[2].trim();
 
     let parentId = entryNode.id;
     for (let d = mdDepth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
@@ -1470,7 +1471,7 @@ function _addEntryChildNodes(entryNode, markdown) {
 
     const id = prefix + (nid++);
     const n = {
-      id, label: cleanLabel(lbl), desc: cleanDesc(descLines.join('\n').substring(0, 5000)), date: '',
+      id, label: plainLabel(lbl), desc: cleanDesc(descLines.join('\n').substring(0, 5000)), date: '',
       x: entryNode.x + (Math.random()-0.5)*50, y: entryNode.y + (Math.random()-0.5)*50,
       vx: 0, vy: 0, level: graphLevel, fixed: false, color,
       _rgb: hexToRgb(color || '#74b9ff'),
@@ -1480,6 +1481,7 @@ function _addEntryChildNodes(entryNode, markdown) {
     if (pendingBlockId) { n.notionBlockId = pendingBlockId; n.notionParentId = pendingParentId; pendingBlockId = null; pendingParentId = null; }
     if (pendingToggle) { n.notionToggle = true; pendingToggle = false; }
     n.headingDepth = headerMatch[1].length;
+    if (lbl && lbl !== n.label) n.labelMd = lbl; // 서식 있는 제목만 원문 보관(칩 표시용)
     if (bodyBlocks.length) n.bodyBlocks = bodyBlocks;
     if (pendingIsChildPage) { n.isChildPage = true; pendingIsChildPage = false; }
     nodes.push(n); nodeMap[id] = n;

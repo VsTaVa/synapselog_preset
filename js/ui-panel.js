@@ -885,7 +885,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
 
     // 라벨용 평문 제목 — cleanLabel이 남기는 인라인 코드 백틱까지 떼어, 동기화 때 서버가 주는
     // 평문 title과 같은 모양이 되게(안 그러면 저장 직후에만 `백틱`이 보였다 사라짐)
-    const plainTitle = newTitle ? (cleanLabel(newTitle).replace(/`([^`]+)`/g, '$1').trim() || newTitle) : newTitle;
+    const plainTitle = newTitle ? (plainLabel(newTitle) || newTitle) : newTitle;
 
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     let localWroteFile = false;

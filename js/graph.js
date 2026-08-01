@@ -56,8 +56,10 @@ function parseMarkdown(text, rootTitle) {
   let nid = 0;
 
   function addNode(rawLabel, desc='', parentId=null, date='', level=0) {
-    const label = cleanLabel(rawLabel);
+    // 라벨은 항상 평문(검색·매칭·색·안정키). 서식 원문은 아래 labelMd에 따로 보관
+    const label = plainLabel(rawLabel);
     if (!label || label.length < 1) return null;
+    const rawMd = String(rawLabel || '').trim();
     const parentNode = nodeMap[parentId];
     let color = null;
     if (level === 0) { color = '#ffffff'; }
@@ -87,6 +89,7 @@ function parseMarkdown(text, rootTitle) {
       vx: 0, vy: 0, level, fixed: false, color,
       _rgb: hexToRgb(level === 0 ? '#ffffff' : (color || '#74b9ff'))
     };
+    if (rawMd && rawMd !== label) n.labelMd = rawMd; // 서식이 있을 때만 — 칩이 볼드·기울임을 그대로 표시
     nodes.push(n); nodeMap[id] = n;
     if (parentId) edges.push({ from: parentId, to: id });
     return id;
@@ -120,7 +123,8 @@ function parseMarkdown(text, rootTitle) {
       const depth = Math.min(rawDepth, 5);
       const isFirstHeading = !sawHeading;
       sawHeading = true;
-      let lbl = headerMatch[2].trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*\*/g, '');
+      // 서식 마커는 여기서 떼지 않는다 — addNode가 평문 라벨을 뽑고 원문은 labelMd로 보관
+      let lbl = headerMatch[2].trim();
       let nDate = '';
       const inlineDateMatch = lbl.match(/-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-/);
       if (inlineDateMatch) { nDate = inlineDateMatch[1]; lbl = lbl.replace(/-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-/, ''); }
@@ -156,7 +160,7 @@ function parseMarkdown(text, rootTitle) {
       // 같은 이름 노드가 둘로 갈라지던 문제. 원본 파일 복원용으로 titleHeading 표시.
       // 노션 본문(BLOCK/ENTRY 마커 동반)은 블록 ID를 잃으면 편집이 깨지므로 제외.
       const noNotionMarker = !pendingEntryId && !pendingBlockId && !pendingToggle && !pendingIsDbNode && !pendingIsChildPage;
-      if (isFirstHeading && rawDepth === 1 && rootId && noNotionMarker && cleanLabel(lbl) === nodeMap[rootId].label) {
+      if (isFirstHeading && rawDepth === 1 && rootId && noNotionMarker && plainLabel(lbl) === nodeMap[rootId].label) {
         const rn = nodeMap[rootId];
         rn.titleHeading = true;
         rn.desc = cleanDesc(descLines.join('\n').substring(0, 20000));
@@ -1027,7 +1031,7 @@ function syncPageIncremental(title, markdown, pageId) {
   result.edges.forEach(e => { if (!e.weakLink) tempParentOf[e.to] = e.from; });
 
   // 내용만 덮어쓸 필드 (위치/속도/고정/표시 상태는 보존)
-  const COPY = ['label', 'desc', 'date', 'color', '_rgb', 'level', 'headingDepth', 'bodyBlocks',
+  const COPY = ['label', 'labelMd', 'desc', 'date', 'color', '_rgb', 'level', 'headingDepth', 'bodyBlocks',
     'notionToggle', 'notionBlockId', 'notionParentId', 'entryNotionId', 'isDbNode', 'isChildPage', 'titleHeading'];
   const idMap = {};
   const seenOld = new Set();

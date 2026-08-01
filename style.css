@@ -744,6 +744,11 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* ── 통합 노드칩 (createNodeChip) ── */
 .node-chip { display: inline-flex; align-items: center; gap: 3px; max-width: 240px; padding: 2px 7px; border-radius: 6px; border: 1px solid; font-size: 11px; line-height: 1.45; cursor: pointer; vertical-align: middle; user-select: none; transition: filter 0.15s; }
 .node-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 제목에 넣은 서식 — 칩은 글자가 작아 색·굵기 차이가 확실해야 보인다 */
+.node-chip-label strong, .node-chip-label b { font-weight: 800; }
+.node-chip-label em, .node-chip-label i { font-style: italic; }
+.node-chip-label del, .node-chip-label s { text-decoration: line-through; opacity: 0.6; }
+.node-chip-label code { font-family: monospace; font-size: 0.92em; background: rgba(255,255,255,0.14); border-radius: 3px; padding: 0 2px; }
 .node-chip:hover { filter: brightness(1.18); }
 .node-chip-x { cursor: pointer; opacity: 0.6; font-weight: 700; flex-shrink: 0; }
 .node-chip-x:hover { opacity: 1; }

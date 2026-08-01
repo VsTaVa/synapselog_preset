@@ -314,12 +314,14 @@ function createNodeChip(node, opts) {
   if (!n) return '';
   const full = (n.label || '').trim() || '(제목 없음)';
   const maxLen = opts.maxLen || 20; // 기본 20자(칩이 한 줄에 하나씩 놓이므로), 필요하면 opts.maxLen로 조절
-  const short = full.length > maxLen ? full.slice(0, maxLen) + '…' : full;
+  // 제목에 넣은 볼드·기울임·취소선·코드를 칩에서도 보여준다(라벨은 평문이라 labelMd가 원문).
+  // 문자열을 잘라 쓰면 '**' 한가운데가 잘려 깨지므로 labelMdToHtml이 파싱하며 세어 자른다
+  const short = labelMdToHtml((n.labelMd || '').trim() || full, maxLen);
   const x = opts.removable ? `<span class="node-chip-x" data-x="${n.id}">×</span>` : '';
   // 북마크된 노드는 앞 아이콘을 체인 대신 주황 북마크로 교체(그래프의 주황 제목과 동일 의미)
   const isBm = (typeof isBookmarked === 'function') && isBookmarked(n);
   const cls = 'node-chip' + (isBm ? ' node-chip--bm' : '') + (opts.className ? ' ' + opts.className : '');
-  return `<span class="${cls}" data-nid="${n.id}" title="${escapeHtml(full)}" style="${_chipColorStyle(n)}"><span class="node-chip-label">${escapeHtml(short)}</span>${x}</span>`;
+  return `<span class="${cls}" data-nid="${n.id}" title="${escapeHtml(full)}" style="${_chipColorStyle(n)}"><span class="node-chip-label">${short}</span>${x}</span>`;
 }
 
 // 노드칩 클릭(위임): 칩 → 상세 패널 열기, × → 선택 해제. 어디에 렌더돼도 동작.

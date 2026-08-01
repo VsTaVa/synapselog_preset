@@ -447,6 +447,13 @@ export default async function handler(req, res) {
   }
 
   // 헤딩 텍스트 추출 — 볼드 무시
+  // 헤딩 제목을 서식(볼드·기울임·취소선·코드·링크) 살린 마크다운으로 — 노드 칩이 이걸 그대로 보여준다.
+  // 클라이언트는 plainLabel()로 평문 라벨을 따로 뽑아 쓰므로 검색·매칭은 영향 없음.
+  // 줄바꿈은 공백으로 — 헤딩이 여러 줄이 되면 마크다운 줄 파싱에서 본문으로 샌다.
+  function extractHeadingMd(richTextArr) {
+    return extractRichText(richTextArr).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function extractHeadingText(richTextArr) {
     if (!richTextArr) return '';
     // 헤딩 내부 줄바꿈(Shift+Enter)을 공백으로 합쳐 한 줄로 — 마크다운 줄 파싱에서 본문으로 새지 않게
@@ -512,16 +519,16 @@ export default async function handler(req, res) {
         const type = block.type;
 
         if (type === 'heading_1') {
-          markdown += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n';
+          markdown += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_2') {
-          markdown += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n';
+          markdown += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_3') {
-          markdown += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n';
+          markdown += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'heading_4') {
-          markdown += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n';
+          markdown += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, 0);
         } else if (type === 'paragraph') {
           const text = extractRichText(block.paragraph?.rich_text);
@@ -552,7 +559,7 @@ export default async function handler(req, res) {
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'toggle') {
           listCounter = 0;
-          const title = extractHeadingText(block.toggle?.rich_text);
+          const title = extractHeadingMd(block.toggle?.rich_text);
           if (title.trim()) markdown += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + title + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb);
           continue;
@@ -700,11 +707,11 @@ export default async function handler(req, res) {
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingText(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingText(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingText(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingText(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'toggle') { const t = extractHeadingText(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            else if (type === 'toggle') { const t = extractHeadingMd(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call

@@ -149,6 +149,47 @@ function cleanLabel(str) {
     .replace(/\{([^}]*)\}/g, '$1').trim(); // 리터럴 [ ] # ` 는 보존
 }
 
+// 마크다운 서식을 전부 벗긴 순수 표시용 제목.
+// 라벨(node.label)은 반드시 이 값이어야 한다 — 검색·위키링크 매칭·_stableNodeKey(북마크/임베딩
+// 영속 키)·노드 색(getH1Color)이 전부 라벨을 쓰므로, 여기에 '~~'나 백틱이 새면 조용히 다 어긋난다.
+// cleanLabel은 리터럴 보존 목적으로 '~~'와 백틱을 남기므로 그 둘을 먼저 떼고 넘긴다.
+function plainLabel(md) {
+  return cleanLabel(String(md || '').replace(/~~([^~]+)~~/g, '$1').replace(/`([^`]+)`/g, '$1'));
+}
+
+// 마크다운 제목 → HTML (보이는 글자 수 기준으로 자름).
+// 문자열을 먼저 자르면 '**' 한가운데가 잘려 서식이 깨지므로, 파싱하면서 세어 자른다.
+// 토글 규칙은 api/notion.js의 buildRichText와 동일. 링크는 칩에선 텍스트만 남긴다.
+function labelMdToHtml(md, maxLen) {
+  const t = String(md || '');
+  let i = 0, out = '', buf = '', shown = 0, cut = false;
+  let bold = false, italic = false, strike = false, code = false;
+  const open = () => (bold ? '<strong>' : '') + (italic ? '<em>' : '') + (strike ? '<del>' : '') + (code ? '<code>' : '');
+  const close = () => (code ? '</code>' : '') + (strike ? '</del>' : '') + (italic ? '</em>' : '') + (bold ? '</strong>' : '');
+  const flush = () => { if (buf) { out += open() + escapeHtml(buf) + close(); buf = ''; } };
+  const push = (s) => {
+    for (const ch of s) { // 코드포인트 단위 — 한글·이모지가 반 글자로 안 잘리게
+      if (maxLen && shown >= maxLen) { cut = true; return; }
+      buf += ch; shown++;
+    }
+  };
+  const linkRe = /^\[([^\]]*)\]\(([^)\s]+)\)/;
+  while (i < t.length && !cut) {
+    if (t.startsWith('**', i)) { flush(); bold = !bold; i += 2; }
+    else if (t.startsWith('~~', i)) { flush(); strike = !strike; i += 2; }
+    else if (t[i] === '`') { flush(); code = !code; i += 1; }
+    else if (t[i] === '*' && t[i + 1] !== '*') { flush(); italic = !italic; i += 1; }
+    else if (t[i] === '[') {
+      const m = linkRe.exec(t.slice(i));
+      if (m) { push(m[1]); i += m[0].length; }
+      else { push(t[i]); i++; }
+    }
+    else { push(t[i]); i++; }
+  }
+  flush();
+  return out + (cut ? '…' : '');
+}
+
 function cleanDesc(str) {
   if (!str) return '';
   // [텍스트](url) 링크는 보존. 링크 아닌 구간에서만 대괄호/# 제거(기울임*·코드`·화살표→는 보존)
