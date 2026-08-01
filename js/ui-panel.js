@@ -287,6 +287,8 @@ async function _applyNodeSync(node) {
     node.label = newTitle;
     refreshOpenPanes();
   }
+  // 서식 살린 제목은 편집·저장용으로 따로 보관(라벨은 평문 유지 — 검색·노드 매칭이 이걸 씀)
+  node.labelMd = (data.titleMd || '').trim() || newTitle;
   if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) node.notionToggle = !!data.toggleable;
   const lines = Array.isArray(data.body) ? data.body : [];
   // type/checked는 서버가 준 노션 블록 실제 값 우선 — 콜아웃은 줄머리 마커가 없어 추정이 불가능하다
@@ -668,12 +670,19 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   if (!contentEl) return;
 
   let titleInput = null;
+  // 제목도 본문 행과 같은 마크다운 편집기 — 예전엔 평문 <input>이라 저장할 때마다
+  // 헤딩의 볼드·링크가 통째로 날아갔다. 원본 서식은 labelMd(동기화 때 서버가 준 값)에 있음
+  const titleMd = () => (!isLocal && node.labelMd) ? node.labelMd : node.label;
   if (hasTitle && titleEl) {
     titleEl.innerHTML = '';
-    titleInput = document.createElement('input');
-    titleInput.className = 'detail-title-input'; titleInput.value = node.label;
+    titleInput = document.createElement('div');
+    titleInput.className = 'detail-title-input detail-title-ce';
+    titleInput.contentEditable = 'true';
+    titleInput.innerHTML = htmlFromMarkdown(titleMd());
+    attachFormatting(titleInput); // Ctrl+B/I/U(취소선)/E + 선택 시 서식 툴바
     titleEl.appendChild(titleInput);
   }
+  const titleValue = () => titleInput ? markdownFromHtml(titleInput).replace(/\s*\n\s*/g, ' ').trim() : null;
 
   const rows = [];
   contentEl.innerHTML = '';
@@ -820,15 +829,24 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
   contentEl.appendChild(actions);
 
-  if (titleInput) { titleInput.focus(); titleInput.select(); }
+  if (titleInput) {
+    // contenteditable이라 input.select()가 없음 — 예전처럼 전체 선택해서 바로 덮어쓸 수 있게
+    titleInput.focus();
+    const tr = document.createRange(); tr.selectNodeContents(titleInput);
+    const ts = window.getSelection(); ts.removeAllRanges(); ts.addRange(tr);
+  }
   else if (rows[0]) rows[0].el.focus();
 
   const finish = () => renderPaneContent(paneIdx, node);
   cancelBtn.onclick = finish;
-  if (titleInput) titleInput.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(); } });
+  if (titleInput) titleInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); finish(); return; }
+    // 제목은 한 줄 — Enter로 줄바꿈 대신 첫 본문으로 이동(본문이 없으면 그대로)
+    if (e.key === 'Enter') { e.preventDefault(); if (rows[0]) _focusEditRow(rows[0], true); }
+  });
   saveBtn.onclick = async () => {
-    const newTitle = titleInput ? titleInput.value.trim() : null;
-    const titleChanged = !!(titleInput && newTitle && newTitle !== node.label);
+    const newTitle = titleValue();
+    const titleChanged = !!(titleInput && newTitle && newTitle !== titleMd());
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
     const reordered = !isLocal && node.notionBlockId && hasBody && (() => {
@@ -861,11 +879,15 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim(), type: r.type || '', checked: !!r.checked }))
       .filter(r => r.text.length); // 내용 비운 기존 블록은 삭제로 처리(빈 블록 유지 X)
 
+    // 라벨용 평문 제목 — cleanLabel이 남기는 인라인 코드 백틱까지 떼어, 동기화 때 서버가 주는
+    // 평문 title과 같은 모양이 되게(안 그러면 저장 직후에만 `백틱`이 보였다 사라짐)
+    const plainTitle = newTitle ? (cleanLabel(newTitle).replace(/`([^`]+)`/g, '$1').trim() || newTitle) : newTitle;
+
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
     let localWroteFile = false;
     try {
       if (isLocal) {
-        if (titleChanged) node.label = newTitle;
+        if (titleChanged) node.label = plainTitle; // 로컬(.md)은 서식 없는 평문 제목
         node.desc = localBody();
         node.bodyBlocks = []; // 로컬 본문은 desc가 원본 — 남아 있던 블록이 우선 읽혀 삭제가 되돌아 보이던 문제
         saveLocalPages();
@@ -916,11 +938,13 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         invalidateNodeCache(node);
       }
       if (titleChanged) {
-        node.label = newTitle;
+        // 라벨은 항상 평문(검색·노드 매칭·그래프 표시가 이걸 씀), 서식 원문은 labelMd에
+        node.label = plainTitle;
+        if (!isLocal) node.labelMd = newTitle;
         refreshOpenPanes();
         if (isLocal && node.level === 0 && window._sidebarPageList) {
           const it = window._sidebarPageList.find(p => p.id === node.sourcePageId);
-          if (it) { it.title = newTitle; refreshSidebarRender(); }
+          if (it) { it.title = node.label; refreshSidebarRender(); }
         }
       }
       if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); // 본문 변경 → 위키링크 재해석

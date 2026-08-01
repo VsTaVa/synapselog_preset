@@ -356,6 +356,9 @@ export default async function handler(req, res) {
       if (!hm && !isToggleBlock) return res.status(400).json({ error: '헤딩/토글 노드 아님' });
       const headObj = block[type] || {};
       const title = extractHeadingText(headObj.rich_text);
+      // 서식(볼드·기울임·취소선·코드·링크)을 살린 마크다운 제목 — 제목 수정 시 이걸 편집·저장해야
+      // 서식이 안 날아간다. title(평문)은 라벨·검색·노드 매칭용으로 그대로 둠
+      const titleMd = extractRichText(headObj.rich_text).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
       const toggleable = isToggleBlock ? true : !!headObj.is_toggleable;
       const headingDepth = hm ? parseInt(hm[1], 10) : 2;
 
@@ -421,7 +424,7 @@ export default async function handler(req, res) {
           }
         }
       }
-      return res.status(200).json({ title, toggleable, headingDepth, body });
+      return res.status(200).json({ title, titleMd, toggleable, headingDepth, body });
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 

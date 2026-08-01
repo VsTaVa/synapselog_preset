@@ -471,6 +471,11 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .export-size-menu .esm-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); }
 .detail-settings-menu button svg { flex-shrink: 0; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(var(--accent-rgb),0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
+/* 제목 편집기(contenteditable) — 볼드·링크 등 서식을 그대로 보여주며 고칠 수 있게 */
+.detail-title-ce { word-break: break-word; white-space: pre-wrap; min-height: 1.4em; line-height: 1.4; }
+.detail-title-ce strong, .detail-title-ce b { color: inherit; font-weight: 900; }
+.detail-title-ce a { color: var(--accent); text-decoration: underline; }
+.detail-title-ce code { font-family: monospace; font-size: 0.9em; background: rgba(255,255,255,0.1); border-radius: 3px; padding: 0 3px; }
 .detail-edit-actions { position: sticky; bottom: 0; display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding: 12px 0; background: #0e0f16; border-top: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 0 #0e0f16; z-index: 5; }
 .detail-edit-spacer { flex: 1; }
 .detail-edit-actions button { font-family: inherit; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 5px 12px; cursor: pointer; border: 1px solid; transition: background 0.15s, opacity 0.15s; }
