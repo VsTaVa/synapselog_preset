@@ -118,7 +118,9 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .insight-dir:hover { color: var(--accent); }
 /* 제안 이유(공통 키워드)는 노드 쌍 바로 아래 붙여 근거로 읽히게, 동작 버튼은 그 아래 */
 .insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
-#login-screen { position: fixed; inset: 0; background: #0c0d12; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+/* 뒤에 샘플 그래프가 도는 위로 얹힌다 — 불투명 배경이면 그래프가 안 보이므로 반투명 + 블러.
+   가장자리를 살짝 어둡게 해 중앙 박스 쪽 대비를 유지 */
+#login-screen { position: fixed; inset: 0; background: radial-gradient(ellipse at center, rgba(12,13,18,0.62) 0%, rgba(12,13,18,0.86) 100%); backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 #login-box { background: rgba(var(--surface-rgb),0.95); border: 1px solid rgba(var(--fg-rgb),0.09); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 14px; padding: 32px 28px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
 #login-box .login-title { font-size: 20px; font-weight: 700; color: var(--fg); text-align: center; margin-bottom: 4px; }
 #login-box .login-title span { color: var(--accent); }

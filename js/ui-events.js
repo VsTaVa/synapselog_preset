@@ -962,7 +962,15 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 renderPanes();
 applyLegendState();
 
-function loop() { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(loop); }
+// 여러 시작 경로(시작 화면 배경 → 노션/MD 시작)에서 loop()가 두 번 불릴 수 있다.
+// 가드가 없으면 rAF 체인이 둘 생겨 물리가 프레임당 두 번 돌고 그리기도 두 번 된다.
+let _loopRunning = false;
+function loop() {
+  if (_loopRunning) return;
+  _loopRunning = true;
+  const tick = () => { simulate(); draw(); repositionMultiSelectMenu(); requestAnimationFrame(tick); };
+  tick();
+}
 
 // ── 최초 사용 온보딩 (1회) ────────────────────────────────────────────
 function dismissOnboarding() {
@@ -1004,6 +1012,9 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     setTimeout(loadProfile, 400);
     restoreSearchHistory(); // 저장해둔 검색 기록 복원
   });
+} else {
+  // 복원할 세션이 없으면 시작 화면 뒤로 샘플 그래프를 띄운다 — 빈 검정 화면 대신
+  document.addEventListener('DOMContentLoaded', () => { startSampleBackdrop(); });
 }
 
 // ── 모바일 롱프레스 툴팁 — 터치 기기에선 title 호버가 안 뜨므로 길게 누르면 표시 ──
