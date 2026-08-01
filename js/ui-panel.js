@@ -295,7 +295,8 @@ async function _applyNodeSync(node) {
   node.bodyBlocks = lines.map(b => ({
     id: b.id, text: bodyBlockText(b.line), mark: _listMark(b.line),
     type: b.type || _blockTypeOf(b.line),
-    checked: typeof b.checked === 'boolean' ? b.checked : _blockChecked(b.line)
+    checked: typeof b.checked === 'boolean' ? b.checked : _blockChecked(b.line),
+    nested: !!b.nested // 중첩 블록 — 편집에서 이동(재정렬/중간삽입) 금지, 텍스트 수정만
   }));
   node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
 }
@@ -666,6 +667,9 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   const hasTitle = isLocal || !!node.notionBlockId;
   const hasBody = isLocal || !!(node.bodyBlocks && node.bodyBlocks.length);
   const canAdd = isLocal || !!(node.notionBlockId && node.notionParentId);
+  // 중첩(콜아웃/들여쓰기 안) 블록이 있으면 순서 이동을 막는다 — 이동 시 노션에서 부모 밖으로 튀어나가 구조가 깨짐.
+  // 텍스트 수정·삭제·끝에 줄 추가는 id 기반이라 안전.
+  const hasNested = !isLocal && !!(node.bodyBlocks || []).some(b => b.nested);
   if (!hasTitle && !hasBody && !canAdd) return;
   if (!contentEl) return;
 
@@ -705,8 +709,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     if (typeof searchKeyword !== 'undefined') markKeywordInEl(ce, searchKeyword); // 검색 중이면 편집기에서도 키워드 강조
     if (!blk) ce.dataset.placeholder = '본문 내용…';
     const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || '', checked: !!(blk && blk.checked) };
-    // 드래그 핸들 (로컬 단일 본문은 순서 불필요)
-    if (!isLocal) {
+    // 드래그 핸들 (로컬 단일 본문은 순서 불필요 / 중첩 블록 있는 노드는 이동 시 구조 깨져 금지)
+    if (!isLocal && !hasNested) {
       const handle = document.createElement('span'); handle.className = 'body-edit-handle'; handle.textContent = '⠿'; handle.draggable = true;
       handle.addEventListener('dragstart', e => { _bodyDrag = rowObj; item.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
       handle.addEventListener('dragend', () => { item.classList.remove('dragging'); _bodyDrag = null; list.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over')); });
@@ -849,7 +853,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const titleChanged = !!(titleInput && newTitle && newTitle !== titleMd());
     const valOf = r => markdownFromHtml(r.el);
     const dirty = rows.filter(r => r.isNew ? valOf(r).trim() : valOf(r) !== r.orig);
-    const reordered = !isLocal && node.notionBlockId && hasBody && (() => {
+    const reordered = !isLocal && node.notionBlockId && hasBody && !hasNested && (() => {
       const cur = rows.filter(r => !r.isNew).map(r => r.blk.id);
       const orig = (node.bodyBlocks || []).map(b => b.id);
       const existingReordered = cur.length === orig.length && cur.some((id, i) => id !== orig[i]);
@@ -919,19 +923,24 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
           const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph') : [];
           let qi = 0;
           finalBlocks = finalRows.map(r => _savedBodyBlock(r.blk ? r.blk.id : newIds[qi++], r));
-          // desc는 본문 외 내용(표 등) 보존 위해 부분 치환. 단 치환 실패(orig 불일치) 시 보기 미반영 버그 → 본문 전체 재구성으로 폴백
-          let d = node.desc || '', allMatched = true;
-          finalRows.forEach(r => {
-            if (r.blk) {
-              // 체크 상태가 바뀌면 desc의 글리프(☐/☑)까지 같이 갈아줘야 보기 화면에 반영된다
-              const om = (r.blk.mark === '☑' || r.blk.mark === '☐') ? r.blk.mark + ' ' : '';
-              const nm = r.type === 'to_do' ? (r.checked ? '☑ ' : '☐ ') : om;
-              if ((r.text !== r.orig || nm !== om) && r.orig) { const nd = d.replace(om + r.orig, nm + r.text); if (nd === d) allMatched = false; d = nd; }
-            }
-            else d = d ? d + '\n' + r.text : r.text;
-          });
-          const keptIds2 = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
-          origBody.filter(b => !keptIds2.has(b.id) && b.text).forEach(b => { d = d.replace(b.text, ''); });
+          // desc는 본문 외 내용(표 등) 보존 위해 원본 desc를 블록 단위로 갈아끼운다.
+          // 원본 순서(origBody)대로 '위치 커서'를 이동하며 치환 → 같은 텍스트 줄이 여러 개여도
+          // 올바른 줄을 갱신(String.replace 첫-일치로 엉뚱한 줄이 바뀌던 중복 버그 방지).
+          const rowByBlkId = new Map(finalRows.filter(r => r.blk).map(r => [r.blk.id, r]));
+          let d = node.desc || '', from = 0, allMatched = true;
+          for (const b of origBody) {
+            if (!b.text) continue;
+            const om = (b.mark === '☑' || b.mark === '☐') ? b.mark + ' ' : '';
+            const needle = om + b.text;
+            const at = d.indexOf(needle, from);
+            if (at < 0) { allMatched = false; continue; }
+            const r = rowByBlkId.get(b.id);
+            if (!r) { d = d.slice(0, at) + d.slice(at + needle.length); continue; } // 삭제된 블록 제거(커서 유지)
+            const nm = r.type === 'to_do' ? (r.checked ? '☑ ' : '☐ ') : om;
+            if (r.text !== b.text || nm !== om) { const repl = nm + r.text; d = d.slice(0, at) + repl + d.slice(at + needle.length); from = at + repl.length; }
+            else from = at + needle.length;
+          }
+          finalRows.filter(r => !r.blk).forEach(r => { d = d ? d + '\n' + r.text : r.text; }); // 새 블록은 끝에
           node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(_bodyDescLine).join('\n');
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);

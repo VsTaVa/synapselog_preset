@@ -395,7 +395,8 @@ export default async function handler(req, res) {
           // 체크 상태는 텍스트로 왕복시키면 글리프가 겹쳐 쌓인다
           if (line != null && line.trim()) body.push({
             id: b.id.replace(/-/g, ''), line, type: b.type,
-            ...(b.type === 'to_do' ? { checked: !!b.to_do?.checked } : {})
+            ...(b.type === 'to_do' ? { checked: !!b.to_do?.checked } : {}),
+            ...(depth > 0 ? { nested: true } : {}) // 중첩(콜아웃/들여쓰기 안) 블록 표시 — 저장 시 이동 금지
           });
         }
         if (b.has_children && depth < 8 && b.type !== 'child_page' && b.type !== 'child_database') {
