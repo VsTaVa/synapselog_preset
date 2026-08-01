@@ -119,12 +119,15 @@ function doSearch(kw) {
   const resultEl = document.getElementById('search-result-count');
   const resultsEl = document.getElementById('search-results');
   const keyword = kw.trim().toLowerCase();
+  const kwns = keyword.replace(/\s+/g, ''); // 띄어쓰기 무시 매칭용 (공백 제거)
   if (keyword) {
     const directMatches = new Set();
     nodes.forEach(n => {
       if (!n.visible) return;
       const lt = n.label.toLowerCase(), dt = n.desc.toLowerCase();
-      if (lt.includes(keyword) || dt.includes(keyword)) directMatches.add(n.id);
+      // 1차: 그대로 매칭 → 실패 시 2차: 양쪽 공백 제거 후 매칭("시장 경제 흐름" ↔ "시장경제흐름")
+      if (lt.includes(keyword) || dt.includes(keyword) ||
+          (kwns.length && (lt.replace(/\s+/g, '').includes(kwns) || dt.replace(/\s+/g, '').includes(kwns)))) directMatches.add(n.id);
     });
     applyGraphHighlight([...directMatches], keyword, { max: 10, fit: directMatches.size > 0, fitDelay: 450 });
     if (resultsEl) {
