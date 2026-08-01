@@ -504,6 +504,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-item.dragging { opacity: 0.45; }
 .body-edit-item.drag-over { box-shadow: 0 -2px 0 var(--accent); }
 .body-edit-mark { flex-shrink: 0; min-width: 15px; text-align: right; padding-top: 9px; color: rgba(255,255,255,0.45); font-size: 13px; line-height: 1.6; user-select: none; }
+/* 콜아웃 전구 아이콘 — 글자 마커와 세로 정렬을 맞춘다 */
+.body-edit-mark-ic { vertical-align: -2px; }
 /* 체크박스 마커는 눌러서 상태를 바꾸는 버튼 */
 .body-edit-mark.body-edit-check { cursor: pointer; transition: color 0.12s; }
 .body-edit-mark.body-edit-check:hover { color: var(--accent); }

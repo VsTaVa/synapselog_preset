@@ -231,7 +231,11 @@ function renderPaneContent(i, n) {
   // 인용(>)보다 먼저 처리('>>'가 '>'로 잘못 잡히지 않게)
   rawDesc = rawDesc.replace(/(?:^[ \t]*&gt;&gt;[ \t]+.*(?:\n|$))+/gm, (block) => {
     const txt = block.replace(/\n$/, '').split('\n')
-      .map(l => l.replace(/^[ \t]*&gt;&gt;[ \t]+/, '')).join('\n');
+      // '>>'를 뗀 뒤 남는 목록 마커도 바깥 본문과 같이 •/숫자로 — 위 목록 치환은 줄머리가
+      // '>>'라 그냥 지나쳐서, 콜아웃 안 불릿만 '-'가 날것으로 보였다
+      .map(l => l.replace(/^[ \t]*&gt;&gt;[ \t]+/, '')
+                 .replace(/^(\s*)(\d+\.|[-*])(\s)/, (m, sp, mk, tail) => `${sp}<span class="md-mark">${/^\d/.test(mk) ? mk : '•'}</span>${tail}`))
+      .join('\n');
     return `<span class="md-callout">${txt}</span>`;
   });
   // 인용(>) — 붙어 있는 여러 줄을 인용 하나로 묶는다. 줄마다 따로 감싸면 소프트 줄바꿈이 있는
@@ -755,7 +759,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       handle.addEventListener('touchcancel', _touchClear);
     }
     if (blk && blk.mark) {
-      const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.textContent = blk.mark;
+      const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.innerHTML = _markHtml(blk.mark);
       // 체크박스는 눌러서 켜고 끌 수 있게 — 저장 시 to_do.checked로 노션에 반영
       if (rowObj.type === 'to_do') {
         mk.classList.add('body-edit-check'); mk.setAttribute('role', 'button'); mk.title = '체크 전환';
