@@ -178,6 +178,23 @@ function _subtreeIds(rootId) {
   return ids;
 }
 function canDeleteNode(n) { return !!(n && (n.local || n.notionBlockId)); }
+
+// 노드 하나의 노션 블록 삭제 → 지운 블록 ID 배열(실행 취소용)
+// 헤딩 노드는 서버가 실제 children을 훑어 섹션 통째로 지운다 — 예전처럼 아는 본문 블록만 지우면
+// 코드·이미지·구분선·표처럼 앱이 못 읽는 블록이 앞 헤딩 밑에 고아로 남았다
+async function _deleteNodeBlocks(nd) {
+  const known = [];
+  if (nd.notionBlockId) known.push(nd.notionBlockId);
+  (nd.bodyBlocks || []).forEach(b => { if (b.id) known.push(b.id); });
+  if (nd.notionBlockId) {
+    try {
+      const ids = await notionDeleteSection(nd.notionBlockId, nd.notionParentId);
+      if (ids.length) return ids;
+    } catch (e) { /* 아래 예전 방식으로 폴백 */ }
+  }
+  for (const bid of known) { try { await notionDeleteBlock(bid); } catch (e) {} }
+  return known;
+}
 async function deleteNodeSubtree(node) {
   const idArr = _subtreeIds(node.id);
   const ids = new Set(idArr);
@@ -189,18 +206,13 @@ async function deleteNodeSubtree(node) {
     blockIds: []
   };
   if (!node.local) {
-    // 서브트리의 모든 노션 블록(헤딩 + 본문 블록)을 삭제 — 본문은 헤딩의 형제라 따로 지워야 함
+    // 서브트리의 모든 노션 블록(헤딩 + 그 섹션)을 삭제 — 본문은 헤딩의 형제라 따로 지워야 함
     const blockIds = [];
-    idArr.forEach(id => {
-      const nd = nodeMap[id]; if (!nd) return;
-      if (nd.notionBlockId) blockIds.push(nd.notionBlockId);
-      if (nd.bodyBlocks) nd.bodyBlocks.forEach(b => blockIds.push(b.id));
-    });
-    undoEntry.blockIds = blockIds;
-    if (blockIds.length) {
-      try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
-      catch (err) { toast('노션 삭제 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); return; }
+    for (const id of idArr) {
+      const nd = nodeMap[id]; if (!nd) continue;
+      blockIds.push(...await _deleteNodeBlocks(nd));
     }
+    undoEntry.blockIds = blockIds;
     invalidateNodeCache(node);
   }
   if (_undoDelete) _undoDelete.entries.push(undoEntry);
@@ -235,14 +247,8 @@ async function deleteNodeOnly(node) {
     nodes: [node], edges: origTouching, addedEdges, blockIds: []
   };
   if (!node.local) {
-    const blockIds = [];
-    if (node.notionBlockId) blockIds.push(node.notionBlockId);
-    if (node.bodyBlocks) node.bodyBlocks.forEach(b => blockIds.push(b.id));
-    undoEntry.blockIds = blockIds;
-    if (blockIds.length) {
-      try { for (const bid of blockIds) { try { await notionDeleteBlock(bid); } catch (e) {} } }
-      catch (err) { toast('노션 삭제 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); return; }
-    }
+    // 이 노드의 섹션만 삭제 — 다음 헤딩(=하위 노드) 앞에서 멈추므로 하위는 노션에 그대로 남는다
+    undoEntry.blockIds = await _deleteNodeBlocks(node);
     invalidateNodeCache(node);
   }
   if (_undoDelete) _undoDelete.entries.push(undoEntry);

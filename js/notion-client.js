@@ -324,6 +324,13 @@ async function notionDeleteBlock(blockId) {
   return notionFetch({ action: 'deleteBlock', blockId });
 }
 
+// 헤딩 + 그 섹션 전체 삭제 — 앱이 못 읽는 블록(코드·이미지·표 등)까지 서버가 children 기준으로 지운다
+// → 지워진 블록 ID 배열(문서 순서)
+async function notionDeleteSection(blockId, parentId) {
+  const res = await notionFetch({ action: 'deleteSection', blockId, parentId });
+  return (res && res.ids) || [];
+}
+
 async function notionRestoreBlock(blockId) {
   return notionFetch({ action: 'restoreBlock', blockId });
 }

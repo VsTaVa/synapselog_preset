@@ -271,13 +271,59 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'deleteSection' — 헤딩 + 그 섹션 전체 삭제(다음 헤딩 직전까지) ──
+  // 클라이언트가 아는 본문 블록만 지우면, 앱이 읽지 못하는 블록(코드·이미지·구분선·표·컬럼)이
+  // 삭제되지 않고 앞 헤딩 밑에 고아로 남는다. 실제 노션 children을 훑어서 지워야 함.
+  // 지운 블록 ID를 문서 순서대로 돌려줌 → 실행 취소(un-archive)에 그대로 씀
+  if (action === 'deleteSection') {
+    const { blockId, parentId } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
+    try {
+      const norm = id => (id || '').replace(/-/g, '');
+      let sectionIds = [];
+      if (parentId) {
+        const children = []; let cur;
+        do {
+          const r = await fetch(`https://api.notion.com/v1/blocks/${parentId}/children${cur ? `?start_cursor=${cur}` : ''}`, { headers });
+          if (!r.ok) break;
+          const d = await r.json();
+          children.push(...d.results.filter(b => b?.type));
+          cur = d.has_more ? d.next_cursor : undefined;
+        } while (cur);
+        const idx = children.findIndex(b => norm(b.id) === norm(blockId));
+        if (idx >= 0) {
+          const self = children[idx];
+          sectionIds.push(self.id);
+          // 토글(헤딩)은 본문이 '자식'이라 블록 하나만 보관하면 하위까지 같이 보관됨 → 뒤 형제는 남의 것
+          const toggleable = self.type === 'toggle' || !!(self[self.type] || {}).is_toggleable;
+          if (!toggleable) {
+            const BREAK = ['heading_1', 'heading_2', 'heading_3', 'heading_4', 'toggle', 'child_page', 'child_database'];
+            for (let j = idx + 1; j < children.length; j++) {
+              if (BREAK.includes(children[j].type)) break;
+              sectionIds.push(children[j].id);
+            }
+          }
+        }
+      }
+      if (!sectionIds.length) sectionIds = [blockId]; // 부모를 못 찾으면 최소한 헤딩만이라도
+      const ids = [];
+      for (const bid of sectionIds) {
+        const r = await fetch(`https://api.notion.com/v1/blocks/${bid}`, { method: 'DELETE', headers });
+        if (r.ok) ids.push(norm(bid));
+      }
+      if (!ids.length) return res.status(500).json({ error: '삭제 실패' });
+      return res.status(200).json({ ok: true, ids });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   // ── action: 'restoreBlock' — 삭제(보관)된 블록 복원(un-archive) ──────
   if (action === 'restoreBlock') {
     const { blockId } = req.body;
     if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
+      // Content-Type이 빠져 있으면 노션이 본문을 못 읽어 복원이 통째로 실패했음(다른 쓰기 호출엔 다 있음)
       const r = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
-        method: 'PATCH', headers, body: JSON.stringify({ archived: false })
+        method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false })
       });
       if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '복원 실패' }); }
       return res.status(200).json({ ok: true });
