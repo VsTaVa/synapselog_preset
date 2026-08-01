@@ -356,7 +356,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
   const addItem = canAdd ? `<button data-act="add"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2.4"/><circle cx="5" cy="18" r="2.4"/><path d="M11 7.4V13a3 3 0 0 1-3 3H7.4"/><path d="M16 18h6M19 15v6"/></svg> 하위 노드 추가</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
-  const aiActItem = `<button data-act="aiact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg> AI 작업</button>`;
+  const aiActItem = `<button data-act="aiact"><span class="menu-ic-txt">AI</span> AI 노드 선택</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem;
   const midGroup = notionItem + aiActItem + bmItem;
@@ -779,6 +779,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     }
     if (blk && blk.mark) {
       const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.innerHTML = _markHtml(blk.mark);
+      // 인용·콜아웃 마커는 문단 세로 중앙에 (여러 줄짜리 블록이라 첫 줄 정렬이 어중간함)
+      if (blk.mark === '💡' || blk.mark === '❝') mk.classList.add('body-edit-mark--mid');
       // 체크박스는 눌러서 켜고 끌 수 있게 — 저장 시 to_do.checked로 노션에 반영
       if (rowObj.type === 'to_do') {
         mk.classList.add('body-edit-check'); mk.setAttribute('role', 'button'); mk.title = '체크 전환';

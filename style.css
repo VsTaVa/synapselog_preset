@@ -472,6 +472,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .export-size-menu .esm-btn:hover { background: rgba(var(--accent-rgb),0.15); color: #fff; }
 .export-size-menu .esm-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); }
 .detail-settings-menu button svg { flex-shrink: 0; }
+/* 아이콘 자리에 글자를 쓰는 항목(AI) — 옆 SVG 아이콘들과 같은 15px 폭·정렬을 맞춘다 */
+.menu-ic-txt { flex-shrink: 0; width: 15px; text-align: center; font-size: 10px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
 .detail-title-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(var(--accent-rgb),0.5); border-radius: 6px; padding: 6px 8px; font-size: 17px; font-weight: 700; font-family: inherit; color: #fff; outline: none; }
 /* 제목 편집기(contenteditable) — 볼드·링크 등 서식을 그대로 보여주며 고칠 수 있게 */
 .detail-title-ce { word-break: break-word; white-space: pre-wrap; min-height: 1.4em; line-height: 1.4; }
@@ -506,6 +508,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-mark { flex-shrink: 0; min-width: 15px; text-align: right; padding-top: 9px; color: rgba(255,255,255,0.45); font-size: 13px; line-height: 1.6; user-select: none; }
 /* 콜아웃 전구 아이콘 — 글자 마커와 세로 정렬을 맞춘다 */
 .body-edit-mark-ic { vertical-align: -2px; }
+/* 인용·콜아웃은 블록 하나가 여러 줄이라 첫 줄에 붙으면 어중간하다 → 문단 세로 중앙에.
+   목록·번호·체크박스는 항목마다 하나씩이라 노션처럼 첫 줄 정렬을 유지 */
+.body-edit-mark.body-edit-mark--mid { padding-top: 0; display: flex; align-items: center; justify-content: flex-end; }
 /* 체크박스 마커는 눌러서 상태를 바꾸는 버튼 */
 .body-edit-mark.body-edit-check { cursor: pointer; transition: color 0.12s; }
 .body-edit-mark.body-edit-check:hover { color: var(--accent); }

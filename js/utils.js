@@ -255,7 +255,7 @@ function _listMark(line) {
   return '';
 }
 
-// 콜아웃 마커는 글리프(▍) 대신 AI 작업 메뉴와 같은 전구 아이콘으로 — 노션의 콜아웃 느낌에 가깝고
+// 콜아웃 마커는 글리프(▍) 대신 전구 아이콘으로 — 노션의 콜아웃 느낌에 가깝고
 // 다른 줄머리 기호(•/숫자/☑/❝)와 한눈에 구분된다. 나머지는 글자 그대로.
 function _markHtml(mark) {
   if (mark === '💡') return `<svg class="body-edit-mark-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>`;
