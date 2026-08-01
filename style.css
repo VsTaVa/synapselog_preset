@@ -494,6 +494,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-item.dragging { opacity: 0.45; }
 .body-edit-item.drag-over { box-shadow: 0 -2px 0 var(--accent); }
 .body-edit-mark { flex-shrink: 0; min-width: 15px; text-align: right; padding-top: 9px; color: rgba(255,255,255,0.45); font-size: 13px; line-height: 1.6; user-select: none; }
+/* 체크박스 마커는 눌러서 상태를 바꾸는 버튼 */
+.body-edit-mark.body-edit-check { cursor: pointer; transition: color 0.12s; }
+.body-edit-mark.body-edit-check:hover { color: var(--accent); }
+.body-edit-mark.body-edit-check.on { color: var(--accent); }
 /* 읽기 화면 본문 드래그 순서 변경 */
 .detail-body-droplist { display: flex; flex-direction: column; gap: 2px; }
 .detail-body-block { display: flex; align-items: flex-start; gap: 4px; border-radius: 6px; padding: 1px 2px; transition: background 0.12s; }

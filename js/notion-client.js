@@ -303,8 +303,9 @@ async function notionFetch(body) {
 
 // ── 노션 쓰기: 블록 텍스트 수정 ──────────────────────────────────────
 
-async function notionUpdateBlock(blockId, text) {
-  return notionFetch({ action: 'updateBlock', blockId, text });
+// checked를 넘기면 to_do 블록의 체크 상태까지 함께 반영(안 넘기면 노션의 기존 상태 유지)
+async function notionUpdateBlock(blockId, text, checked) {
+  return notionFetch({ action: 'updateBlock', blockId, text, ...(typeof checked === 'boolean' ? { checked } : {}) });
 }
 
 async function notionAppendBlock(parentId, afterId, text, blockType) {
@@ -313,8 +314,9 @@ async function notionAppendBlock(parentId, afterId, text, blockType) {
 
 // 여러 블록을 한 번의 호출로 추가 → ['id', ...] 배열 반환 (순서 보존)
 // exact=true면 afterId 블록 '바로 뒤'에 정밀 삽입(섹션 끝으로 안 밀림) — 최소 이동용
-async function notionAppendBlocks(parentId, afterId, texts, blockType, exact) {
-  const res = await notionFetch({ action: 'appendBlocks', parentId, afterId, texts, blockType, exact: !!exact });
+// types/checks는 texts와 같은 길이의 배열 — 옮겨지는 블록의 원래 유형·체크 상태를 그대로 재생성할 때 씀
+async function notionAppendBlocks(parentId, afterId, texts, blockType, exact, types, checks) {
+  const res = await notionFetch({ action: 'appendBlocks', parentId, afterId, texts, blockType, exact: !!exact, types, checks });
   return (res && res.ids) || [];
 }
 
@@ -1428,7 +1430,7 @@ function _addEntryChildNodes(entryNode, markdown) {
     for (let d = mdDepth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
 
     let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
-    const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n') }); curBlk = null; } };
+    const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '', type: curBlk.type || 'paragraph', checked: !!curBlk.checked }); curBlk = null; } };
     while (nextIdx < lines.length) {
       const rawNl = lines[nextIdx].replace(/\s+$/, '');
       const nl = rawNl.trim();
@@ -1438,7 +1440,7 @@ function _addEntryChildNodes(entryNode, markdown) {
       if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
       if (descLines.join('\n').length > 3000) { nextIdx++; continue; }
       descLines.push(rawNl);
-      if (curBlk) curBlk.lines.push(bodyBlockText(rawNl));
+      if (curBlk) { if (!curBlk.lines.length) { curBlk.mark = _listMark(rawNl); curBlk.type = _blockTypeOf(rawNl); curBlk.checked = _blockChecked(rawNl); } curBlk.lines.push(bodyBlockText(rawNl)); }
       nextIdx++;
     }
     flushBlk();
@@ -1515,7 +1517,7 @@ async function _loadEntryNode(node, pageId) {
     // 헤딩 없는 엔트리: 본문 블록 마커를 파싱해 desc + bodyBlocks 구성
     const bb = [], descArr = [];
     let cur = null;
-    const flush = () => { if (cur) { bb.push({ id: cur.id, text: cur.lines.join('\n') }); cur = null; } };
+    const flush = () => { if (cur) { bb.push({ id: cur.id, text: cur.lines.join('\n'), mark: cur.mark || '', type: cur.type || 'paragraph', checked: !!cur.checked }); cur = null; } };
     for (const raw of md.split('\n')) {
       const t = raw.trim();
       if (!t) continue;
@@ -1523,7 +1525,7 @@ async function _loadEntryNode(node, pageId) {
       if (m) { flush(); cur = { id: m[1], lines: [] }; continue; }
       if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { flush(); continue; }
       descArr.push(raw.replace(/^#{1,5}\s+/, ''));
-      if (cur) cur.lines.push(bodyBlockText(raw));
+      if (cur) { if (!cur.lines.length) { cur.mark = _listMark(raw); cur.type = _blockTypeOf(raw); cur.checked = _blockChecked(raw); } cur.lines.push(bodyBlockText(raw)); }
     }
     flush();
     node.desc = cleanDesc(descArr.join('\n').substring(0, 5000).trim());

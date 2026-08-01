@@ -160,9 +160,36 @@ function cleanDesc(str) {
   return out.trim();
 }
 
-// 본문 블록 마커 다음 줄에서 노션 rich_text 원문 추출(목록/인용 접두·들여쓰기만 제거, **·~~ 서식 마커는 보존)
+// 본문 블록 마커 다음 줄에서 노션 rich_text 원문 추출(목록/인용/체크박스 접두·들여쓰기만 제거, **·~~ 서식 마커는 보존)
+// 체크박스 글리프(☑/☐)도 반드시 떼야 함 — 남겨두면 저장할 때마다 rich_text에 다시 들어가 '☑ ☑ ☑ …'로 불어난다
 function bodyBlockText(line) {
-  return (line || '').replace(/^\s+/, '').replace(/^(?:[-*]\s+|\d+\.\s+|>>\s+|>\s+)/, '').trim();
+  return (line || '').replace(/^\s+/, '')
+    .replace(/^(?:[-*]\s+|\d+\.\s+|>>\s+|>\s+|(?:☑|☐|\[[xX]\]|\[ ?\])\s+)/, '').trim();
+}
+
+// 본문 줄머리 마커 → 노션 블록 유형. 블록을 다시 만들 때(재정렬 등) 원래 유형을 되살리는 데 씀.
+// 콜아웃은 마커 없이 오므로 여기선 못 가려냄 → 서버(headingNode)가 준 type을 우선 쓴다.
+function _blockTypeOf(line) {
+  const t = (line || '').replace(/^\s+/, '');
+  if (/^\d+\.\s+/.test(t)) return 'numbered_list_item';
+  if (/^[-*]\s+/.test(t)) return 'bulleted_list_item';
+  if (/^(?:☑|☐|\[[xX]\]|\[ ?\])\s+/.test(t)) return 'to_do';
+  if (/^>>\s+/.test(t)) return 'callout';
+  if (/^>\s+/.test(t)) return 'quote';
+  return 'paragraph';
+}
+
+function _blockChecked(line) { return /^\s*(?:☑|\[[xX]\])\s+/.test(line || ''); }
+
+// bodyBlocks 항목 → 보기(desc)용 한 줄. 저장 후 desc를 다시 만들 때 줄머리 표식이 사라지지 않게 복원
+function _bodyDescLine(b) {
+  const t = (b && b.type) || 'paragraph';
+  const tx = (b && b.text) || '';
+  if (t === 'bulleted_list_item') return '- ' + tx;
+  if (t === 'numbered_list_item') return (/^\d+\.$/.test(b.mark || '') ? b.mark : '1.') + ' ' + tx;
+  if (t === 'to_do') return (b.checked ? '☑ ' : '☐ ') + tx;
+  if (t === 'quote') return '> ' + tx;
+  return tx;
 }
 
 // 본문 줄머리 목록 마커를 편집기 표시용 기호로 반환 (저장 텍스트엔 안 들어감, 시각 표시 전용)

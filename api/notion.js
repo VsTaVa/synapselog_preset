@@ -115,7 +115,7 @@ export default async function handler(req, res) {
 
   // ── action: 'updateBlock' — 기존 블록(헤딩/문단 등) 텍스트 수정 ──────
   if (action === 'updateBlock') {
-    const { blockId, text } = req.body;
+    const { blockId, text, checked } = req.body;
     if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
     try {
       // 블록 유형을 먼저 조회해 올바른 키로 PATCH (레벨 시프트와 무관하게 정확)
@@ -123,10 +123,13 @@ export default async function handler(req, res) {
       if (!g.ok) { const e = await g.json(); return res.status(g.status).json({ error: e.message || '블록 조회 실패' }); }
       const block = await g.json();
       const type = block.type;
-      const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
+      // heading_4는 읽기·생성 양쪽에서 다루므로 수정도 허용 (빠져 있어서 #### 노드 제목 변경이 실패했음)
+      const EDITABLE = ['heading_1', 'heading_2', 'heading_3', 'heading_4', 'paragraph', 'toggle', 'callout', 'quote', 'bulleted_list_item', 'numbered_list_item', 'to_do'];
       if (!EDITABLE.includes(type)) return res.status(400).json({ error: `이 블록 유형(${type})은 수정 불가` });
 
       const patchBody = { [type]: { rich_text: buildRichText(text || '') } };
+      // 체크 상태는 텍스트와 별개 — 값이 올 때만 반영(안 오면 노션의 기존 상태 유지)
+      if (type === 'to_do' && typeof checked === 'boolean') patchBody.to_do.checked = checked;
       const p = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
         method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(patchBody)
       });
@@ -203,7 +206,7 @@ export default async function handler(req, res) {
 
   // ── action: 'appendBlocks' — 여러 본문 블록을 한 번의 호출로 추가 ──────
   if (action === 'appendBlocks') {
-    const { parentId, afterId, texts, blockType, exact } = req.body;
+    const { parentId, afterId, texts, blockType, exact, types, checks } = req.body;
     if (!parentId || !Array.isArray(texts)) return res.status(400).json({ error: 'parentId/texts 필요' });
     if (!texts.length) return res.status(200).json({ ok: true, ids: [] });
     const type = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'heading_4'].includes(blockType) ? blockType : 'paragraph';
@@ -228,7 +231,16 @@ export default async function handler(req, res) {
           afterTarget = last.id;
         }
       }
-      const childrenBody = texts.map(t => {
+      // types[i]가 오면 그 유형 그대로 재생성 — 재정렬로 옮겨진 목록/인용/콜아웃/체크박스가
+      // 문단으로 납작해지던 문제(저장 텍스트엔 줄머리 마커가 없어 lineToBlock이 못 알아봄) 해결
+      const KEEP = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'heading_1', 'heading_2', 'heading_3'];
+      const childrenBody = texts.map((t, i) => {
+        const kt = Array.isArray(types) && KEEP.includes(types[i]) ? types[i] : null;
+        if (kt) {
+          const val = { rich_text: buildRichText(t || '') };
+          if (kt === 'to_do') val.checked = !!(Array.isArray(checks) && checks[i]);
+          return { object: 'block', type: kt, [kt]: val };
+        }
         if (type === 'paragraph') { const lb = lineToBlock(t || ''); return { object: 'block', type: lb.type, [lb.type]: lb.value }; }
         return { object: 'block', type, [type]: { rich_text: buildRichText(t || '') } };
       });
@@ -325,7 +337,12 @@ export default async function handler(req, res) {
       const pushBlockAndKids = async (b, depth = 0) => {
         if (BODY_TYPES.includes(b.type)) {
           const line = lineOf(b);
-          if (line != null && line.trim()) body.push({ id: b.id.replace(/-/g, ''), line });
+          // type/checked를 같이 보냄 — 콜아웃은 줄머리 마커가 없어 클라이언트가 유형을 추정할 수 없고,
+          // 체크 상태는 텍스트로 왕복시키면 글리프가 겹쳐 쌓인다
+          if (line != null && line.trim()) body.push({
+            id: b.id.replace(/-/g, ''), line, type: b.type,
+            ...(b.type === 'to_do' ? { checked: !!b.to_do?.checked } : {})
+          });
         }
         if (b.has_children && depth < 8 && b.type !== 'child_page' && b.type !== 'child_database') {
           for (const k of await listChildren(b.id)) {
@@ -462,6 +479,11 @@ export default async function handler(req, res) {
         } else if (type === 'numbered_list_item') {
           listCounter++;
           markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + `${listCounter}. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
+        } else if (type === 'to_do') {
+          // fetchHeadings엔 있는데 여기만 빠져 있어서 하위 페이지·DB 항목의 체크박스가 통째로 사라졌음
+          listCounter = 0;
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + (block.to_do?.checked ? '☑ ' : '☐ ') + extractRichText(block.to_do?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
         } else if (type === 'quote') {
           listCounter = 0;

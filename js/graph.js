@@ -128,7 +128,7 @@ function parseMarkdown(text, rootTitle) {
       for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
       if (!parentId) parentId = rootId;
       let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
-      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '' }); curBlk = null; } };
+      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '', type: curBlk.type || 'paragraph', checked: !!curBlk.checked }); curBlk = null; } };
       while (nextIdx < lines.length) {
         const rawLine = lines[nextIdx].replace(/\s+$/, '');
         let nextLine = rawLine.trim();
@@ -147,7 +147,8 @@ function parseMarkdown(text, rootTitle) {
         // 그냥 버려서, 볼드 소제목이 여러 개인 콜아웃/본문의 뒷부분이 desc·bodyBlocks에서 통째로 사라졌음.
         if (descLines.join('\n').length > 20000) { nextIdx++; continue; }
         descLines.push(rawLine);
-        if (curBlk) { if (!curBlk.lines.length) curBlk.mark = _listMark(rawLine); curBlk.lines.push(bodyBlockText(rawLine)); } // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄 목록 마커 캡처
+        // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄에서 목록 마커·블록 유형·체크 상태 캡처
+        if (curBlk) { if (!curBlk.lines.length) { curBlk.mark = _listMark(rawLine); curBlk.type = _blockTypeOf(rawLine); curBlk.checked = _blockChecked(rawLine); } curBlk.lines.push(bodyBlockText(rawLine)); }
         nextIdx++;
       }
       flushBlk();

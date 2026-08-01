@@ -285,7 +285,12 @@ async function _applyNodeSync(node) {
   }
   if (typeof data.toggleable === 'boolean' && !!data.toggleable !== !!node.notionToggle) node.notionToggle = !!data.toggleable;
   const lines = Array.isArray(data.body) ? data.body : [];
-  node.bodyBlocks = lines.map(b => ({ id: b.id, text: bodyBlockText(b.line), mark: _listMark(b.line) }));
+  // type/checked는 서버가 준 노션 블록 실제 값 우선 — 콜아웃은 줄머리 마커가 없어 추정이 불가능하다
+  node.bodyBlocks = lines.map(b => ({
+    id: b.id, text: bodyBlockText(b.line), mark: _listMark(b.line),
+    type: b.type || _blockTypeOf(b.line),
+    checked: typeof b.checked === 'boolean' ? b.checked : _blockChecked(b.line)
+  }));
   node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
 }
 
@@ -686,7 +691,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     ce.innerHTML = htmlFromMarkdown(text);
     if (typeof searchKeyword !== 'undefined') markKeywordInEl(ce, searchKeyword); // 검색 중이면 편집기에서도 키워드 강조
     if (!blk) ce.dataset.placeholder = '본문 내용…';
-    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk };
+    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || '', checked: !!(blk && blk.checked) };
     // 드래그 핸들 (로컬 단일 본문은 순서 불필요)
     if (!isLocal) {
       const handle = document.createElement('span'); handle.className = 'body-edit-handle'; handle.textContent = '⠿'; handle.draggable = true;
@@ -727,7 +732,17 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       }, { passive: false });
       handle.addEventListener('touchcancel', _touchClear);
     }
-    if (blk && blk.mark) { const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.textContent = blk.mark; item.appendChild(mk); }
+    if (blk && blk.mark) {
+      const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.textContent = blk.mark;
+      // 체크박스는 눌러서 켜고 끌 수 있게 — 저장 시 to_do.checked로 노션에 반영
+      if (rowObj.type === 'to_do') {
+        mk.classList.add('body-edit-check'); mk.setAttribute('role', 'button'); mk.title = '체크 전환';
+        const paint = () => { mk.textContent = rowObj.checked ? '☑' : '☐'; mk.classList.toggle('on', rowObj.checked); };
+        mk.addEventListener('click', () => { rowObj.checked = !rowObj.checked; paint(); });
+        paint();
+      }
+      item.appendChild(mk);
+    }
     item.appendChild(ce);
     list.appendChild(item);
     attachFormatting(ce);
@@ -832,12 +847,14 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const normBody = s => String(s || '').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '');
     const localBody = () => normBody(rows.map(valOf).join('\n'));
     const localChanged = isLocal && localBody() !== normBody(node.desc);
-    if (!titleChanged && !dirty.length && !reordered && !deleted && !localChanged) { finish(); return; }
+    // 체크박스만 껐다 켠 경우 — 텍스트는 그대로라 dirty엔 안 잡힘
+    const checksChanged = !isLocal && rows.some(r => r.blk && r.type === 'to_do' && !!r.checked !== !!r.blk.checked);
+    if (!titleChanged && !dirty.length && !reordered && !deleted && !localChanged && !checksChanged) { finish(); return; }
 
     const origBody = (node.bodyBlocks || []).slice();
     const oldBodyIds = origBody.map(b => b.id);
     const finalRows = rows
-      .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim() }))
+      .map(r => ({ blk: r.blk, isNew: r.isNew, orig: r.orig, text: valOf(r).trim(), type: r.type || '', checked: !!r.checked }))
       .filter(r => r.text.length); // 내용 비운 기존 블록은 삭제로 처리(빈 블록 유지 X)
 
     saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.textContent = '저장중…';
@@ -862,10 +879,11 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         if (reordered) {
           // A안: 자리 바뀐 블록만 옮김(최소 이동) + create-before-delete → 대량 블록도 안 어지럽혀짐
           finalBlocks = await _applyReorder(node, tgt, finalRows, origBody, oldBodyIds);
-          node.desc = finalRows.map(r => r.text).join('\n');
+          node.desc = finalBlocks.map(_bodyDescLine).join('\n'); // 줄머리 표식 복원(안 그러면 재정렬 후 목록·인용 표시가 사라짐)
         } else {
           const pre = [];
-          finalRows.filter(r => r.blk && r.text !== r.orig).forEach(r => pre.push(notionUpdateBlock(r.blk.id, r.text)));
+          finalRows.filter(r => r.blk && (r.text !== r.orig || _checkFlipped(r)))
+            .forEach(r => pre.push(notionUpdateBlock(r.blk.id, r.text, r.type === 'to_do' ? !!r.checked : undefined)));
           // 편집 중 삭제된 기존 본문 블록은 노션에서도 삭제
           const keptIds = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
           oldBodyIds.filter(id => !keptIds.has(id)).forEach(id => pre.push(notionDeleteBlock(id).catch(() => {})));
@@ -874,16 +892,21 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
           const newRows = finalRows.filter(r => !r.blk);
           const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph') : [];
           let qi = 0;
-          finalBlocks = finalRows.map(r => ({ id: r.blk ? r.blk.id : newIds[qi++], text: r.text }));
+          finalBlocks = finalRows.map(r => _savedBodyBlock(r.blk ? r.blk.id : newIds[qi++], r));
           // desc는 본문 외 내용(표 등) 보존 위해 부분 치환. 단 치환 실패(orig 불일치) 시 보기 미반영 버그 → 본문 전체 재구성으로 폴백
           let d = node.desc || '', allMatched = true;
           finalRows.forEach(r => {
-            if (r.blk && r.text !== r.orig && r.orig) { const nd = d.replace(r.orig, r.text); if (nd === d) allMatched = false; d = nd; }
-            else if (!r.blk) d = d ? d + '\n' + r.text : r.text;
+            if (r.blk) {
+              // 체크 상태가 바뀌면 desc의 글리프(☐/☑)까지 같이 갈아줘야 보기 화면에 반영된다
+              const om = (r.blk.mark === '☑' || r.blk.mark === '☐') ? r.blk.mark + ' ' : '';
+              const nm = r.type === 'to_do' ? (r.checked ? '☑ ' : '☐ ') : om;
+              if ((r.text !== r.orig || nm !== om) && r.orig) { const nd = d.replace(om + r.orig, nm + r.text); if (nd === d) allMatched = false; d = nd; }
+            }
+            else d = d ? d + '\n' + r.text : r.text;
           });
           const keptIds2 = new Set(finalRows.filter(r => r.blk).map(r => r.blk.id));
           origBody.filter(b => !keptIds2.has(b.id) && b.text).forEach(b => { d = d.replace(b.text, ''); });
-          node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(b => b.text).join('\n');
+          node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(_bodyDescLine).join('\n');
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
         invalidateNodeCache(node);
@@ -927,6 +950,22 @@ function _appendTarget(node) {
   return { parentId: String(pageLikeId).replace(/-/g, ''), afterId: null };
 }
 
+// 편집 행의 체크 상태가 노션의 기존 값과 달라졌는가 (to_do만 해당)
+function _checkFlipped(r) { return r.type === 'to_do' && r.blk && !!r.checked !== !!r.blk.checked; }
+
+// 저장 결과를 bodyBlocks 항목으로 — 유형·마커·체크 상태까지 들고 있어야
+// 다음 재정렬에서 목록/인용/콜아웃이 문단으로 납작해지지 않는다
+// 새로 입력한 줄은 타이핑한 줄머리 마커('- ', '[x] ' …)가 아직 텍스트에 붙어 있다(서버가 그걸 보고 유형을 정함).
+// 저장 결과에는 유형·체크로 옮기고 텍스트에선 떼야 함 — 안 그러면 다음 재정렬에서 '- - 항목'처럼 겹친다.
+function _savedBodyBlock(id, r) {
+  const isNew = !r.blk;
+  const type = (isNew ? '' : r.type) || (r.blk && r.blk.type) || _blockTypeOf(r.text);
+  const text = isNew ? bodyBlockText(r.text) : r.text;
+  const checked = type === 'to_do' ? (isNew ? _blockChecked(r.text) : !!r.checked) : false;
+  const mark = type === 'to_do' ? (checked ? '☑' : '☐') : ((r.blk && r.blk.mark) || _listMark(r.text));
+  return { id, text, type, checked, mark };
+}
+
 // 최장 증가 부분수열(LIS)의 인덱스 목록 — 순서 유지되는 블록(제자리)을 고르는 데 사용
 function _lisIndices(arr) {
   const n = arr.length; if (!n) return [];
@@ -946,8 +985,13 @@ function _lisIndices(arr) {
 //  - 상대 순서 유지되는 최대 집합(LIS)은 그대로 둠(노션 블록 ID 보존)
 //  - 나머지만 앵커(바로 앞 유지 블록) '바로 뒤'에 새로 만들고(create) 옛 복사본 삭제(delete)
 //  - create-before-delete → 도중에 끊겨도 데이터 손실 없음(최악: 중복). 호출 수 최소화 → 대량 블록 안전
-// 반환: 새 순서의 [{ id, text }] (bodyBlocks 용)
+// 옮겨지는 블록은 types/checks로 원래 유형을 그대로 재생성 — 문단으로 납작해지지 않게
+// 반환: 새 순서의 [{ id, text, type, checked, mark }] (bodyBlocks 용)
 async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
+  // 기존 블록만 유형을 지정해 그대로 재생성. 새로 입력한 줄은 마커가 텍스트에 남아 있으므로
+  // null로 넘겨 서버의 lineToBlock이 마커를 떼면서 유형을 정하게 둔다(마커 중복 방지)
+  const typesOf = rs => rs.map(r => r.blk ? (r.type || _blockTypeOf(r.text)) : null);
+  const checksOf = rs => rs.map(r => !!r.checked);
   const oldIndex = {}; origBody.forEach((b, i) => { oldIndex[b.id] = i; });
   // 유지되는(기존) 행을 새 순서로 나열 → 옛 인덱스 수열
   const keptSeq = [];
@@ -966,19 +1010,22 @@ async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
 
   // 맨 앞 삽입인데 앵커가 없으면(토글/페이지 직속) 정밀 이동 불가 → 안전 폴백(전부 새로 만든 뒤 옛것 삭제)
   if (runs.length && runs[0].anchorId == null) {
-    const ids = finalRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, finalRows.map(r => r.text), 'paragraph') : [];
+    const ids = finalRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, finalRows.map(r => r.text), 'paragraph', false, typesOf(finalRows), checksOf(finalRows)) : [];
     await Promise.all(oldBodyIds.map(id => notionDeleteBlock(id).catch(() => {})));
-    return finalRows.map((r, i) => ({ id: ids[i] || (r.blk && r.blk.id), text: r.text }));
+    return finalRows.map((r, i) => _savedBodyBlock(ids[i] || (r.blk && r.blk.id), r));
   }
 
   // 1) 제자리 유지 블록의 텍스트 변경은 병렬 갱신(블록 내용 PATCH — 부모 children과 별개)
   const stayUpdates = [];
-  finalRows.forEach((r, pos) => { if (stayPos.has(pos) && r.text !== r.orig) stayUpdates.push(notionUpdateBlock(r.blk.id, r.text)); });
+  finalRows.forEach((r, pos) => {
+    if (stayPos.has(pos) && (r.text !== r.orig || _checkFlipped(r))) stayUpdates.push(notionUpdateBlock(r.blk.id, r.text, r.type === 'to_do' ? !!r.checked : undefined));
+  });
   const updatesP = Promise.all(stayUpdates);
   // 런은 같은 부모 children 동시 쓰기 충돌을 피하려 순차 삽입(보통 1~2개)
   const newIdByPos = {};
   for (const run of runs) {
-    const ids = await notionAppendBlocks(tgt.parentId, run.anchorId, run.rows.map(x => x.r.text), 'paragraph', true);
+    const rs = run.rows.map(x => x.r);
+    const ids = await notionAppendBlocks(tgt.parentId, run.anchorId, rs.map(r => r.text), 'paragraph', true, typesOf(rs), checksOf(rs));
     run.rows.forEach((x, k) => { newIdByPos[x.pos] = ids[k]; });
   }
   await updatesP;
@@ -988,9 +1035,7 @@ async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
   await Promise.all(oldBodyIds.filter(id => !stayedIds.has(id)).map(id => notionDeleteBlock(id).catch(() => {})));
 
   // 3) 새 순서 + 라이브 ID로 bodyBlocks 구성
-  return finalRows.map((r, pos) => stayPos.has(pos)
-    ? { id: r.blk.id, text: r.text }
-    : { id: newIdByPos[pos], text: r.text });
+  return finalRows.map((r, pos) => _savedBodyBlock(stayPos.has(pos) ? r.blk.id : newIdByPos[pos], r));
 }
 
 async function createChildNode(node, rawTitle) {
