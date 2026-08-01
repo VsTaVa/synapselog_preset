@@ -876,7 +876,7 @@ function renderSidebarPageList(pages) {
   if (!listEl) return;
   _wireSidebarDnd(listEl);
   if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
-  const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()));
+  const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()), { byAdded: true });
   const vis = _visibleRows(ordered);
   listEl.innerHTML = vis.map((row, i) => `<div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">${_pliGuides(vis, i)}${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
 }
@@ -946,7 +946,9 @@ function _pliRowClass(ordered, i) { return 'pli-row'; }
 function _pliGuides(ordered, i) { return ''; }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
-function _orderPagesByHierarchy(pages) {
+// opts.byAdded=true면 '그래프에 추가된 페이지'를 즐겨찾기 다음 순위로 올린다(사이드바 목록 전용).
+// 시작 화면 페이지 선택기는 이걸 끈다 — 거기서 체크할 때마다 행이 튀면 고르기 어렵다.
+function _orderPagesByHierarchy(pages, opts) {
   const byId = new Map(pages.map(p => [p.id, p]));
   const children = new Map();
   const roots = [];
@@ -955,10 +957,18 @@ function _orderPagesByHierarchy(pages) {
     if (par) { if (!children.has(par)) children.set(par, []); children.get(par).push(p); }
     else roots.push(p);
   });
+  // 순위: ① 즐겨찾기(별) ② 그래프에 추가된 페이지 ③ 나머지.
+  // 각 순위 안에서는 파일 탐색기처럼 폴더 먼저, 그다음 제목순.
+  // 형제끼리만 비교한다 — 트리(상위-하위)는 그대로 두고 같은 부모 아래에서만 재정렬.
+  const byAdded = !!(opts && opts.byAdded);
   const cmp = (a, b) => {
     const fa = _favoritePageIds.has(a.id) ? 0 : 1, fb = _favoritePageIds.has(b.id) ? 0 : 1;
     if (fa !== fb) return fa - fb;
-    const da = a.isFolder ? 0 : 1, db = b.isFolder ? 0 : 1; // 파일 탐색기처럼 폴더 먼저
+    if (byAdded) {
+      const aa = _addedPageIds.has(a.id) ? 0 : 1, ab = _addedPageIds.has(b.id) ? 0 : 1;
+      if (aa !== ab) return aa - ab;
+    }
+    const da = a.isFolder ? 0 : 1, db = b.isFolder ? 0 : 1;
     if (da !== db) return da - db;
     return (a.title || '').localeCompare(b.title || '', 'ko', { numeric: true });
   };
