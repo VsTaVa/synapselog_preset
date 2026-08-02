@@ -879,7 +879,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     };
     const _bulbSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
     // 체크박스: 노션은 문단 앞 클릭형 체크박스(유형 삽입), 로컬(.md)은 desc가 원본이라 마커 텍스트로
-    actions.appendChild(tbBtn('☑', '체크박스', () => isLocal ? insertTyped('☑ ') : insertTyped('', { type: 'to_do', checked: true })));
+    actions.appendChild(tbBtn('☐', '체크박스', () => isLocal ? insertTyped('☐ ') : insertTyped('', { type: 'to_do', checked: false })));
     actions.appendChild(tbBtn('❝', '인용', () => isLocal ? insertTyped('> ') : insertTyped('', { type: 'quote' })));
     actions.appendChild(tbBtn(_bulbSvg, '콜아웃', () => isLocal ? insertTyped('>> ') : insertTyped('', { type: 'callout' }), true));
   }
