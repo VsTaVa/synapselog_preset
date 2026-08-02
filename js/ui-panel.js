@@ -853,14 +853,12 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     else lines.forEach(line => addRow(line, { local: true }));
   }
   else if (hasBody) node.bodyBlocks.forEach(blk => addRow(blk.text, blk));
+  // 본문이 없거나 비어 있으면 항상 빈 텍스트 박스 하나 — '+ 본문 추가' 대신 바로 타이핑(저장 시 블록 ID 부여)
+  if (!rows.length && canAdd) addRow('', isLocal ? { local: true } : null);
 
-  // 편집 액션바(하단 고정): [+ 본문 추가] ... [취소] [저장]
+  // 편집 액션바(하단 고정): [툴박스] ... [취소] [저장]
   const actions = document.createElement('div'); actions.className = 'detail-edit-actions';
   if (canAdd) {
-    const addBody = document.createElement('button');
-    addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
-    addBody.onclick = () => { addRow('', isLocal ? { local: true } : null).focus(); };
-    actions.appendChild(addBody);
     // 툴박스: 유형별 줄 삽입(마커를 미리 채운 새 줄 → 저장 시 해당 블록으로 변환)
     const insertTyped = (prefill, newType) => {
       const after = rows.find(r => r.el === document.activeElement) || null;
