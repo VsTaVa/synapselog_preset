@@ -220,6 +220,7 @@ function bodyBlockText(line) {
 // 콜아웃은 마커 없이 오므로 여기선 못 가려냄 → 서버(headingNode)가 준 type을 우선 쓴다.
 function _blockTypeOf(line) {
   const t = (line || '').replace(/^\s+/, '');
+  if (/^---+\s*$/.test(t)) return 'divider';
   if (/^\d+\.\s+/.test(t)) return 'numbered_list_item';
   if (/^[-*]\s+/.test(t)) return 'bulleted_list_item';
   if (/^(?:☑|☐|\[[xX]\]|\[ ?\])\s+/.test(t)) return 'to_do';
@@ -239,6 +240,7 @@ function _bodyDescLine(b) {
   if (t === 'to_do') return (b.checked ? '☑ ' : '☐ ') + tx;
   if (t === 'quote') return '> ' + tx;
   if (t === 'callout') return '>> ' + tx;
+  if (t === 'divider') return '---';
   return tx;
 }
 

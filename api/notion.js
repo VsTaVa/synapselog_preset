@@ -49,6 +49,7 @@ export default async function handler(req, res) {
   // (마커는 첫 줄 머리만 제거하고 나머지(소프트 줄바꿈 포함)는 보존)
   function lineToBlock(raw) {
     const t = raw || '';
+    if (/^\s*---+\s*$/.test(t)) return { type: 'divider', value: {} }; // 구분선 — 목록('-')보다 먼저
     if (/^\s*[-*]\s+/.test(t)) return { type: 'bulleted_list_item', value: { rich_text: buildRichText(t.replace(/^\s*[-*]\s+/, '')) } };
     if (/^\s*\d+\.\s+/.test(t)) return { type: 'numbered_list_item', value: { rich_text: buildRichText(t.replace(/^\s*\d+\.\s+/, '')) } };
     if (/^\s*>>\s+/.test(t)) return { type: 'callout', value: { rich_text: buildRichText(t.replace(/^\s*>>\s+/, '')) } }; // 인용보다 먼저 — '>' 하나로 잡히면 안 됨
@@ -375,9 +376,10 @@ export default async function handler(req, res) {
         } while (cur);
         return out;
       };
-      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout'];
+      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'divider'];
       const lineOf = (b) => {
         const t = b.type;
+        if (t === 'divider') return '---';
         if (t === 'paragraph') return extractRichText(b.paragraph?.rich_text);
         if (t === 'bulleted_list_item') return '- ' + extractRichText(b.bulleted_list_item?.rich_text);
         if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
@@ -566,6 +568,9 @@ export default async function handler(req, res) {
           listCounter = 0;
           markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + (block.to_do?.checked ? '☑ ' : '☐ ') + extractRichText(block.to_do?.rich_text) + '\n';
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent + 1);
+        } else if (type === 'divider') {
+          listCounter = 0;
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n---\n`;
         } else if (type === 'quote') {
           listCounter = 0;
           markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(extractRichText(block.quote?.rich_text), IND) + '\n';
@@ -775,6 +780,9 @@ export default async function handler(req, res) {
             else if (type === 'to_do') {
               const t = extractRichText(block.to_do?.rich_text);
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + (block.to_do?.checked ? '☑ ' : '☐ ') + t + '\n';
+            }
+            else if (type === 'divider') {
+              md += `[BB:${block.id.replace(/-/g,'')}]\n---\n`;
             }
             else if (type === 'quote') {
               const t = extractRichText(block.quote?.rich_text);
