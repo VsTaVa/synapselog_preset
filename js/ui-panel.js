@@ -867,16 +867,18 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       const rng = document.createRange(); rng.selectNodeContents(ce); rng.collapse(false);
       const s = window.getSelection(); s.removeAllRanges(); s.addRange(rng);
     };
-    const tbBtn = (label, title, prefill) => {
+    const tbBtn = (label, title, prefill, isHtml) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.className = 'detail-tb-btn'; b.textContent = label; b.title = title;
+      b.type = 'button'; b.className = 'detail-tb-btn'; b.title = title;
+      if (isHtml) b.innerHTML = label; else b.textContent = label;
       b.addEventListener('mousedown', e => e.preventDefault()); // 편집 포커스 유지
       b.onclick = () => insertTyped(prefill);
       return b;
     };
-    actions.appendChild(tbBtn('☐', '체크박스', '[] '));
+    const _bulbSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
+    actions.appendChild(tbBtn('☑', '체크박스', '☑ '));
     actions.appendChild(tbBtn('❝', '인용', '> '));
-    actions.appendChild(tbBtn('▤', '콜아웃', '>> '));
+    actions.appendChild(tbBtn(_bulbSvg, '콜아웃', '>> ', true));
     actions.appendChild(tbBtn('—', '구분선', '---'));
   }
   const spacer = document.createElement('div'); spacer.className = 'detail-edit-spacer';

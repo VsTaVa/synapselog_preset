@@ -54,8 +54,8 @@ export default async function handler(req, res) {
     if (/^\s*\d+\.\s+/.test(t)) return { type: 'numbered_list_item', value: { rich_text: buildRichText(t.replace(/^\s*\d+\.\s+/, '')) } };
     if (/^\s*>>\s+/.test(t)) return { type: 'callout', value: { rich_text: buildRichText(t.replace(/^\s*>>\s+/, '')) } }; // 인용보다 먼저 — '>' 하나로 잡히면 안 됨
     if (/^\s*>\s+/.test(t)) return { type: 'quote', value: { rich_text: buildRichText(t.replace(/^\s*>\s+/, '')) } };
-    if (/^\s*(?:☑|\[[xX]\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☑|\[[xX]\])\s+/, '')), checked: true } };
-    if (/^\s*(?:☐|\[ ?\])\s+/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☐|\[ ?\])\s+/, '')), checked: false } };
+    if (/^\s*(?:☑|\[[xX]\])(?:\s|$)/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☑|\[[xX]\])\s*/, '')), checked: true } };
+    if (/^\s*(?:☐|\[ ?\])(?:\s|$)/.test(t)) return { type: 'to_do', value: { rich_text: buildRichText(t.replace(/^\s*(?:☐|\[ ?\])\s*/, '')), checked: false } };
     return { type: 'paragraph', value: { rich_text: buildRichText(t) } };
   }
 
