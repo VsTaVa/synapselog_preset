@@ -723,14 +723,14 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     const ti = rows.indexOf(targetRow); rows.splice(ti, 0, dragRow);
     list.insertBefore(dragRow.item, targetRow.item);
   };
-  const addRow = (text, blk, afterRow) => {
+  const addRow = (text, blk, afterRow, newType) => {
     const item = document.createElement('div'); item.className = 'body-edit-item';
     const ce = document.createElement('div');
     ce.className = 'body-edit-row'; ce.contentEditable = 'true';
     ce.innerHTML = htmlFromMarkdown(text);
     if (typeof searchKeyword !== 'undefined') markKeywordInEl(ce, searchKeyword); // 검색 중이면 편집기에서도 키워드 강조
     if (!blk) ce.dataset.placeholder = '본문 내용…';
-    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || '', checked: !!(blk && blk.checked), nested: !!(blk && blk.nested) };
+    const rowObj = { blk: blk || null, el: ce, item, orig: text || '', isNew: !blk, type: (blk && blk.type) || (newType && newType.type) || '', checked: blk ? !!blk.checked : !!(newType && newType.checked), nested: !!(blk && blk.nested) };
     // 이 줄이 이동 금지인가 (중첩 블록 / 자식 가진 콜아웃 본체 / 앵커 없는 부모의 중첩 노드)
     rowObj.locked = lockAllRows || !!(blk && blk.id && lockedIds.has(blk.id));
     // 드래그 핸들 — 이동 금지 줄에는 안 붙인다(로컬 단일 본문은 순서 개념 자체가 없음)
@@ -779,10 +779,12 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       item.addEventListener('dragleave', e => { if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
       item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); if (_bodyDrag) reorderBodyRow(_bodyDrag, rowObj); });
     }
-    if (blk && blk.mark) {
-      const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.innerHTML = _markHtml(blk.mark);
+    // 마크: 기존 블록은 blk.mark, 새로 삽입한 유형(툴박스)은 rowObj.type에서 유도 → 문단 앞 아이콘 즉시 표시
+    const _rowMark = (blk && blk.mark) || (rowObj.type === 'to_do' ? (rowObj.checked ? '☑' : '☐') : rowObj.type === 'callout' ? '💡' : rowObj.type === 'quote' ? '❝' : '');
+    if (_rowMark) {
+      const mk = document.createElement('span'); mk.className = 'body-edit-mark'; mk.contentEditable = 'false'; mk.innerHTML = _markHtml(_rowMark);
       // 인용·콜아웃 마커는 문단 세로 중앙에 (여러 줄짜리 블록이라 첫 줄 정렬이 어중간함)
-      if (blk.mark === '💡' || blk.mark === '❝') mk.classList.add('body-edit-mark--mid');
+      if (_rowMark === '💡' || _rowMark === '❝') mk.classList.add('body-edit-mark--mid');
       // 체크박스는 눌러서 켜고 끌 수 있게 — 저장 시 to_do.checked로 노션에 반영
       if (rowObj.type === 'to_do') {
         mk.classList.add('body-edit-check'); mk.setAttribute('role', 'button'); mk.title = '체크 전환';
@@ -860,26 +862,26 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     addBody.onclick = () => { addRow('', isLocal ? { local: true } : null).focus(); };
     actions.appendChild(addBody);
     // 툴박스: 유형별 줄 삽입(마커를 미리 채운 새 줄 → 저장 시 해당 블록으로 변환)
-    const insertTyped = (prefill) => {
+    const insertTyped = (prefill, newType) => {
       const after = rows.find(r => r.el === document.activeElement) || null;
-      const ce = addRow(prefill, isLocal ? { local: true } : null, after || undefined);
+      const ce = addRow(prefill || '', isLocal ? { local: true } : null, after || undefined, newType);
       ce.focus();
       const rng = document.createRange(); rng.selectNodeContents(ce); rng.collapse(false);
       const s = window.getSelection(); s.removeAllRanges(); s.addRange(rng);
     };
-    const tbBtn = (label, title, prefill, isHtml) => {
+    const tbBtn = (label, title, onClick, isHtml) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'detail-tb-btn'; b.title = title;
       if (isHtml) b.innerHTML = label; else b.textContent = label;
       b.addEventListener('mousedown', e => e.preventDefault()); // 편집 포커스 유지
-      b.onclick = () => insertTyped(prefill);
+      b.onclick = onClick;
       return b;
     };
     const _bulbSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
-    actions.appendChild(tbBtn('☑', '체크박스', '☑ '));
-    actions.appendChild(tbBtn('❝', '인용', '> '));
-    actions.appendChild(tbBtn(_bulbSvg, '콜아웃', '>> ', true));
-    actions.appendChild(tbBtn('—', '구분선', '---'));
+    // 체크박스: 노션은 문단 앞 클릭형 체크박스(유형 삽입), 로컬(.md)은 desc가 원본이라 마커 텍스트로
+    actions.appendChild(tbBtn('☑', '체크박스', () => isLocal ? insertTyped('☑ ') : insertTyped('', { type: 'to_do', checked: true })));
+    actions.appendChild(tbBtn('❝', '인용', () => isLocal ? insertTyped('> ') : insertTyped('', { type: 'quote' })));
+    actions.appendChild(tbBtn(_bulbSvg, '콜아웃', () => isLocal ? insertTyped('>> ') : insertTyped('', { type: 'callout' }), true));
   }
   const spacer = document.createElement('div'); spacer.className = 'detail-edit-spacer';
   actions.appendChild(spacer);
@@ -975,7 +977,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
           await Promise.all(pre);
           // 새 본문은 한 번의 호출로 일괄 추가
           const newRows = finalRows.filter(r => !r.blk);
-          const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph') : [];
+          // 툴박스로 삽입한 유형(체크박스 등)은 r.type로 그 블록 유형 생성, 나머지는 텍스트 마커로 lineToBlock 판정
+          const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph', false, newRows.map(r => r.type || null), newRows.map(r => !!r.checked)) : [];
           let qi = 0;
           finalBlocks = finalRows.map(r => _savedBodyBlock(r.blk ? r.blk.id : newIds[qi++], r));
           // desc는 본문 외 내용(표 등) 보존 위해 원본 desc를 블록 단위로 갈아끼운다.
@@ -995,7 +998,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
             if (r.text !== b.text || nm !== om) { const repl = nm + r.text; d = d.slice(0, at) + repl + d.slice(at + needle.length); from = at + repl.length; }
             else from = at + needle.length;
           }
-          finalRows.filter(r => !r.blk).forEach(r => { d = d ? d + '\n' + r.text : r.text; }); // 새 블록은 끝에
+          finalRows.filter(r => !r.blk).forEach(r => { const line = _bodyDescLine(r); d = d ? d + '\n' + line : line; }); // 새 블록은 끝에(유형 마커 포함)
           node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(_bodyDescLine).join('\n');
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
@@ -1051,9 +1054,10 @@ function _checkFlipped(r) { return r.type === 'to_do' && r.blk && !!r.checked !=
 // 저장 결과에는 유형·체크로 옮기고 텍스트에선 떼야 함 — 안 그러면 다음 재정렬에서 '- - 항목'처럼 겹친다.
 function _savedBodyBlock(id, r) {
   const isNew = !r.blk;
-  const type = (isNew ? '' : r.type) || (r.blk && r.blk.type) || _blockTypeOf(r.text);
+  // r.type가 있으면(툴박스 삽입·기존 블록) 그대로, 없으면(수기 마크다운 새 줄) 텍스트 마커로 판정
+  const type = r.type || (r.blk && r.blk.type) || _blockTypeOf(r.text);
   const text = isNew ? bodyBlockText(r.text) : r.text;
-  const checked = type === 'to_do' ? (isNew ? _blockChecked(r.text) : !!r.checked) : false;
+  const checked = type === 'to_do' ? (!!r.checked || _blockChecked(r.text)) : false;
   const mark = type === 'to_do' ? (checked ? '☑' : '☐') : ((r.blk && r.blk.mark) || _listMark(r.text));
   // nested를 잃으면 다음 편집에서 콜아웃 자식이 이동 가능해져 구조가 깨진다
   return { id, text, type, checked, mark, ...(r.nested || (r.blk && r.blk.nested) ? { nested: true } : {}) };
@@ -1083,7 +1087,7 @@ function _lisIndices(arr) {
 async function _applyReorder(node, tgt, finalRows, origBody, oldBodyIds) {
   // 기존 블록만 유형을 지정해 그대로 재생성. 새로 입력한 줄은 마커가 텍스트에 남아 있으므로
   // null로 넘겨 서버의 lineToBlock이 마커를 떼면서 유형을 정하게 둔다(마커 중복 방지)
-  const typesOf = rs => rs.map(r => r.blk ? (r.type || _blockTypeOf(r.text)) : null);
+  const typesOf = rs => rs.map(r => r.type || (r.blk ? _blockTypeOf(r.text) : null));
   const checksOf = rs => rs.map(r => !!r.checked);
   const oldIndex = {}; origBody.forEach((b, i) => { oldIndex[b.id] = i; });
   // 유지되는(기존) 행을 새 순서로 나열 → 옛 인덱스 수열
