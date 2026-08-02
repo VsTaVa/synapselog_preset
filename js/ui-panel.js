@@ -245,8 +245,8 @@ function renderPaneContent(i, n) {
       .map(l => l.replace(/^[ \t]*&gt;[ \t]+/, '')).join('\n');
     return `<span class="md-quote">${txt}</span>`;
   });
-  // 구분선(--- 만 있는 줄) → 가로줄
-  rawDesc = rawDesc.replace(/^[ \t]*---+[ \t]*$/gm, '<hr class="md-hr">');
+  // 구분선(--- 만 있는 줄) → 가로줄. 줄 끝 개행까지 먹어 아래에 빈 줄이 안 생기게(위아래 간격 = hr margin으로 대칭)
+  rawDesc = rawDesc.replace(/^[ \t]*---+[ \t]*\n?/gm, '<hr class="md-hr">');
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
   rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
