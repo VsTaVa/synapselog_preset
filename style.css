@@ -493,6 +493,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-edit-cancel:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 .detail-add-body-btn { background: rgba(var(--accent-rgb),0.08); border: 1px dashed rgba(var(--accent-rgb),0.4); border-radius: 6px; padding: 5px 11px; font-family: inherit; font-size: 12px; font-weight: 700; color: rgba(var(--accent-rgb),0.85); cursor: pointer; transition: background 0.15s; white-space: nowrap; }
 .detail-add-body-btn:hover { background: rgba(var(--accent-rgb),0.16); }
+/* 툴박스: 유형별(체크박스·인용·콜아웃·구분선) 삽입 버튼 */
+.detail-edit-actions .detail-tb-btn { background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.14); color: rgba(var(--fg-rgb),0.8); min-width: 30px; padding: 4px 8px; font-size: 14px; line-height: 1.1; font-weight: 400; }
+.detail-edit-actions .detail-tb-btn:hover { background: rgba(var(--fg-rgb),0.13); color: #fff; }
 .toggle-heading-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); cursor: pointer; user-select: none; }
 .toggle-heading-row input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }

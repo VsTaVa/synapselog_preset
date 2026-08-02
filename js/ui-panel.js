@@ -859,6 +859,25 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     addBody.className = 'detail-add-body-btn'; addBody.textContent = '+ 본문 추가';
     addBody.onclick = () => { addRow('', isLocal ? { local: true } : null).focus(); };
     actions.appendChild(addBody);
+    // 툴박스: 유형별 줄 삽입(마커를 미리 채운 새 줄 → 저장 시 해당 블록으로 변환)
+    const insertTyped = (prefill) => {
+      const after = rows.find(r => r.el === document.activeElement) || null;
+      const ce = addRow(prefill, isLocal ? { local: true } : null, after || undefined);
+      ce.focus();
+      const rng = document.createRange(); rng.selectNodeContents(ce); rng.collapse(false);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(rng);
+    };
+    const tbBtn = (label, title, prefill) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'detail-tb-btn'; b.textContent = label; b.title = title;
+      b.addEventListener('mousedown', e => e.preventDefault()); // 편집 포커스 유지
+      b.onclick = () => insertTyped(prefill);
+      return b;
+    };
+    actions.appendChild(tbBtn('☐', '체크박스', '[] '));
+    actions.appendChild(tbBtn('❝', '인용', '> '));
+    actions.appendChild(tbBtn('▤', '콜아웃', '>> '));
+    actions.appendChild(tbBtn('—', '구분선', '---'));
   }
   const spacer = document.createElement('div'); spacer.className = 'detail-edit-spacer';
   actions.appendChild(spacer);
