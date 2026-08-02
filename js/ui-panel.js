@@ -803,6 +803,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         e.preventDefault(); rows.splice(idx, 1); item.remove();
         _focusEditRow(rows[idx - 1] || rows[idx], true); return;
       }
+      // 콜아웃은 Enter로 새 블록 분리 금지 — 중간에 문단이 끼면 콜아웃 박스가 깨진다. 대신 소프트 줄바꿈.
+      if (e.key === 'Enter' && !e.shiftKey && rowObj.type === 'callout') { e.preventDefault(); document.execCommand('insertLineBreak'); return; }
       // Enter → 캐럿 뒤 내용을 새 블록으로 분리(아래에 추가)
       if (e.key === 'Enter' && !e.shiftKey) {
         if (menuOpen) return; // 자동완성 선택은 그쪽에서

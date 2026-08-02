@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ed7000">
-<link rel="stylesheet" href="style.css?v=20260802g">
+<link rel="stylesheet" href="style.css?v=20260802h">
 </head>
 <body>
 <div id="login-screen">
@@ -145,8 +145,8 @@
       <div class="rail-secbody" data-sec="nodemode">
       <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><span style="font-size:13px; color:#fff; display:flex; align-items:center; gap:5px; flex-wrap:nowrap; white-space:nowrap; min-width:0;"><span data-i18n="lbl-nodecolor">노드 색상</span><span id="depth-legend" style="display:none; align-items:center; gap:4px; font-size:9.5px; color:rgba(255,255,255,0.85);"><span style="opacity:0.5;">(</span><span><i style="background:#00cfff"></i>#</span><span><i style="background:#a855f7"></i>##</span><span><i style="background:#ff4db8"></i>###</span><span><i style="background:#ff8c42"></i>####</span><span style="opacity:0.5;">)</span></span></span><div class="seg-toggle"><button id="cs-node" class="active" onclick="setColorScheme('node')" data-i18n="cs-node-btn">노드별</button><button id="cs-depth" onclick="setColorScheme('depth')" data-i18n="cs-depth-btn">깊이별</button></div></div>
       <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;" data-i18n="lbl-layout">그래프 배치</span><div class="seg-toggle"><button id="lm-force" class="active" onclick="setLayoutMode('force')" data-i18n="lm-force-btn">힘기반</button><button id="lm-radial" onclick="setLayoutMode('radial')" data-i18n="lm-radial-btn">방사형</button><button id="lm-cluster" onclick="setLayoutMode('cluster')" data-i18n="lm-cluster-btn">페이지별</button></div></div>
-      <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;" data-i18n="lbl-showconn">노드 연결 표시</span><label class="ck-orange"><input type="checkbox" id="conn-toggle-input" checked onchange="toggleConnections()"><span class="ck-box"></span></label></div>
       <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff; display:flex; align-items:center; gap:6px;"><span data-i18n="lbl-showlabels">제목 표시</span><span class="shortcut-hint" id="hint-toggleLabels"></span></span><label class="ck-orange"><input type="checkbox" id="label-toggle-input" checked onchange="toggleLabels()"><span class="ck-box"></span></label></div>
+      <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;" data-i18n="lbl-showconn">노드 연결 표시</span><label class="ck-orange"><input type="checkbox" id="conn-toggle-input" checked onchange="toggleConnections()"><span class="ck-box"></span></label></div>
       </div>
       <button type="button" class="rail-subhead rail-sec-head mt" data-sec="graphset" onclick="toggleRailSec('graphset')"><svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg><span data-i18n="lbl-sliders">슬라이더</span></button>
       <div class="rail-secbody" data-sec="graphset">
@@ -250,7 +250,7 @@
 <script src="js/ui-ai.js?v=20260802a" defer></script>
 <script src="js/ui-embed.js?v=20260729c" defer></script>
 <script src="js/ui-rail.js?v=20260802c" defer></script>
-<script src="js/ui-panel.js?v=20260802e" defer></script>
+<script src="js/ui-panel.js?v=20260802f" defer></script>
 <script src="js/ui-events.js?v=20260802c" defer></script>
 </body>
 </html>
