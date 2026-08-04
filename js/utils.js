@@ -19,33 +19,19 @@ function _decKey(s) {
     return o;
   } catch (e) { return ''; }
 }
-// ── 화면 폭 레이아웃 ────────────────────────────────────────────────
-// 레일 56 + 사이드바 380 + 상세 패널 380 = 816px. 좁은 화면에서 셋이 다 뜨면
-// 그래프가 볼 수 없을 만큼 눌린다 → 아래 두 기준으로 동작을 나눈다.
-// 레일 56 + 사이드바 380 + 패널 380 = 816에 그래프 자리까지 하면 ~1100은 있어야 좌우로 나뉜다.
-// 그래서 '하나만 열기'와 '하단 시트' 기준을 같은 값으로 쓴다 — 세로형 모니터(1080x1920)도
-// 폭이 1100 이하라 시트로 들어온다(예전 900 기준으론 안 걸렸음).
-const NARROW_AT = 1100;
-const SHEET_MAX_W = NARROW_AT; // 세로 화면 + 이 폭 이하 → 하단 시트 (CSS 미디어쿼리와 같은 조건)
-function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
-// 세로 화면에서는 좌우로 나눌 폭이 없다 — 사이드바(좌)와 패널(우)이 둘 다 100vw-72px라 거의 겹친다.
-// 대신 세로 여유는 많으므로 패널을 아래로 내린다. 가로 화면은 반대(세로가 짧음)라 우측 패널 유지.
-// CSS의 @media (max-width:900px) and (orientation:portrait)와 반드시 같은 조건이어야 한다.
-// (CSS는 정사각형을 portrait로 치므로 >= 로 맞춘다)
-// 둘 중 하나만 맞아도 하단 시트:
-//  ① 세로이면서 폭이 좁다 — 폰·세로 태블릿처럼 좌우로 나눌 폭이 없는 경우
-//  ② 가로/세로 비가 4:5 이하 — '확실히 길쭉한' 화면. 세로형 모니터는 해상도가 높아
-//     폭이 1100을 넘어도(예: 1440x2560 = 0.56) 여기서 잡힌다. 폭만 보던 게 놓치던 부분.
-// 살짝 세로인 큰 창(예: 1200x1300 = 0.92)은 좌우로 나눌 폭이 충분하므로 우측 패널 유지.
-const SHEET_MAX_RATIO = 0.8; // 4/5 — CSS의 max-aspect-ratio: 4/5 와 같은 값
-function _isSheetLayout() {
-  const w = window.innerWidth, h = window.innerHeight;
-  if (!h) return false;
-  return (w <= SHEET_MAX_W && h >= w) || (w / h <= SHEET_MAX_RATIO);
-}
+// ── 화면 레이아웃 ──────────────────────────────────────────────────
+// 세로가 더 길면 패널을 우측이 아니라 아래(시트)로. CSS @media (orientation: portrait)와 같은 판정
+// — CSS는 정사각형도 portrait로 치므로 >= 를 쓴다.
+function _isSheetLayout() { return window.innerHeight >= window.innerWidth; }
 
-// 상세 패널이 그래프에서 잡아먹는 여백 — 폰에선 하단 시트라 가로가 아니라 세로를 차지한다.
-// (이걸 안 나누면 시트 폭이 화면 전체라 availW가 음수가 되어 화면맞춤이 망가진다)
+// 레일 56 + 사이드바 380 + 패널 380 = 816. 이보다 여유가 없으면 좌우로 다 못 편다
+const NARROW_AT = 1100;
+function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
+
+// 사이드바와 상세 패널을 같이 열면 안 되는 상황 — 좁거나, 시트가 사이드바 아래쪽을 덮거나
+function _panelsExclusive() { return _isNarrowLayout() || _isSheetLayout(); }
+
+// 패널이 그래프에서 차지하는 여백. 시트는 가로가 아니라 세로를 먹는다(안 나누면 availW가 음수가 됨)
 function _panelInsets() {
   const dp = document.getElementById('detail-panel');
   const open = dp && dp.classList.contains('open') && !dp.classList.contains('panel-collapsed');

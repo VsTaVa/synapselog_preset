@@ -556,7 +556,7 @@ window.addEventListener('resize', () => {
   canvas.width = W * DPR; canvas.height = H * DPR;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   // 창을 좁히다 임계폭을 넘어가면 둘 다 열려 있는 상태가 될 수 있다 → 여기서도 한쪽만 남긴다
-  if (_isNarrowLayout()) {
+  if (_panelsExclusive()) {
     const sb = document.getElementById('sidebar');
     if (sb && sb.classList.contains('open') && typeof collapseDetailPanel === 'function') collapseDetailPanel();
   }

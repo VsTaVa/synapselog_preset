@@ -58,7 +58,7 @@ function collapseDetailPanel() {
 }
 // 반대 방향 — 좁은 화면에서 패널을 열 땐 사이드바 플라이아웃을 닫는다
 function _yieldSidebarIfNarrow() {
-  if (_isNarrowLayout() && typeof closeRailFlyout === 'function') closeRailFlyout();
+  if (_panelsExclusive() && typeof closeRailFlyout === 'function') closeRailFlyout();
 }
 
 function toggleDetailPanel() {
