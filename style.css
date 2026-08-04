@@ -736,16 +736,24 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   }
 }
 
-/* ── 폰: 상세 패널을 우측 슬라이드 대신 하단 시트로 ────────────────────
-   가로 380px 패널은 폰 화면을 거의 다 덮는다. 아래에서 올라오는 시트로 바꾸면
-   그래프가 위쪽에 그대로 남는다. 열고 닫기를 right → transform으로 바꾸므로
-   right에 걸린 기본/접힘 규칙을 여기서 무력화한다(파일 뒤라 우선순위로 이김).
-   그래프 화면맞춤은 _panelInsets()가 폰일 때 세로 여백으로 계산한다. */
-@media (max-width: 640px) {
+/* 사이드바(좌)와 상세 패널(우)이 둘 다 z-index:200이라 겹칠 때 어느 쪽이 위로 갈지가
+   DOM 순서에 우연히 맡겨져 있었다. 상세 패널이 위로 오도록 명시한다. */
+#detail-panel { z-index: 210; }
+
+/* ── 세로 화면: 상세 패널을 우측 슬라이드 대신 하단 시트로 ──────────────
+   세로에선 좌우로 나눌 폭이 없다 — 사이드바와 패널이 둘 다 100vw-72px라 거의 포개진다.
+   대신 세로 여유는 많으니 패널을 아래로 내린다. 가로 화면은 반대(세로가 짧음)라 우측 유지.
+   폭이 아니라 방향으로 가르므로 세로 태블릿(768~900)도 여기 들어온다.
+   열고 닫기를 right → transform으로 바꾸므로 right에 걸린 기본/접힘 규칙을 여기서
+   무력화한다(파일 뒤라 우선순위로 이김).
+   그래프 화면맞춤은 _panelInsets()가 이 조건일 때 세로 여백으로 계산한다. */
+@media (max-width: 900px) and (orientation: portrait) {
   #detail-panel {
     top: auto; bottom: 0; right: 0; left: 0;
     width: auto; max-width: none;
-    height: 72vh; height: 72dvh;
+    /* 짧은 화면(가로로 눕혔다 세운 구형 폰 등)에서 시트가 그래프를 다 먹지 않게
+       위쪽에 최소 200px는 남긴다 — 긴 화면에선 72dvh가 그대로 적용됨 */
+    height: 72vh; height: min(72dvh, calc(100dvh - 200px));
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
   }

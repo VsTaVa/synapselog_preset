@@ -22,10 +22,14 @@ function _decKey(s) {
 // ── 화면 폭 레이아웃 ────────────────────────────────────────────────
 // 레일 56 + 사이드바 380 + 상세 패널 380 = 816px. 좁은 화면에서 셋이 다 뜨면
 // 그래프가 볼 수 없을 만큼 눌린다 → 아래 두 기준으로 동작을 나눈다.
-const NARROW_AT = 1100; // 이하: 사이드바와 상세 패널 중 하나만 열어둠
-const PHONE_AT = 640;   // 이하: 상세 패널을 우측 슬라이드 대신 하단 시트로(CSS)
+const NARROW_AT = 1100;   // 이하: 사이드바와 상세 패널 중 하나만 열어둠
+const SHEET_MAX_W = 900;  // 이하 + 세로 화면: 상세 패널을 우측이 아니라 하단 시트로(CSS와 같은 조건)
 function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
-function _isPhoneLayout() { return window.innerWidth <= PHONE_AT; }
+// 세로 화면에서는 좌우로 나눌 폭이 없다 — 사이드바(좌)와 패널(우)이 둘 다 100vw-72px라 거의 겹친다.
+// 대신 세로 여유는 많으므로 패널을 아래로 내린다. 가로 화면은 반대(세로가 짧음)라 우측 패널 유지.
+// CSS의 @media (max-width:900px) and (orientation:portrait)와 반드시 같은 조건이어야 한다.
+// (CSS는 정사각형을 portrait로 치므로 >= 로 맞춘다)
+function _isSheetLayout() { return window.innerWidth <= SHEET_MAX_W && window.innerHeight >= window.innerWidth; }
 
 // 상세 패널이 그래프에서 잡아먹는 여백 — 폰에선 하단 시트라 가로가 아니라 세로를 차지한다.
 // (이걸 안 나누면 시트 폭이 화면 전체라 availW가 음수가 되어 화면맞춤이 망가진다)
@@ -33,7 +37,7 @@ function _panelInsets() {
   const dp = document.getElementById('detail-panel');
   const open = dp && dp.classList.contains('open') && !dp.classList.contains('panel-collapsed');
   if (!open) return { right: 0, bottom: 0 };
-  return _isPhoneLayout()
+  return _isSheetLayout()
     ? { right: 0, bottom: dp.offsetHeight + 20 }
     : { right: dp.offsetWidth + 20, bottom: 0 };
 }
