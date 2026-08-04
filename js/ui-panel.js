@@ -1225,7 +1225,8 @@ function openPanel(n) {
     if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
     if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }
-  const _wasOpen = detailPanel.classList.contains('open');
+  // '자리를 차지하고 있었나' — 접힌 상태는 그래프를 안 가리므로 열림으로 치지 않는다
+  const _wasVisible = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
   let added = false;
   if (!_stack.some(x => x.id === n.id)) {
@@ -1253,8 +1254,9 @@ function openPanel(n) {
     highlightSidebarPage(n.sourcePageId || null);
     if (_activeRailSection !== 'pages') openRailSection('pages'); // 최상위 노드 → 페이지 목록 열기
   }
-  // 패널이 차지한 만큼 그래프 전체를 다시 맞춘다(다른 곳과 같은 방식). 패널 슬라이드 후 실행
-  setTimeout(() => { try { fitGraph(false); } catch (e) {} }, _wasOpen ? 40 : 320);
+  // 패널이 '새로' 열려 그래프 영역이 줄어들 때만 다시 맞춘다(슬라이드 0.28s 후).
+  // 이미 열려 있었다면 영역이 그대로라, 노드를 바꿀 때마다 카메라가 움직일 이유가 없다.
+  if (!_wasVisible) setTimeout(() => { try { fitGraph(false); } catch (e) {} }, 320);
 }
 
 // 노드 클릭 토글: 이미 패널에 열린 노드를 다시 클릭하면 그 패널을 닫음(선택 해제)
