@@ -1673,6 +1673,10 @@ function exportGraph(size) {
   const offsetX = (SIZE - graphW * exportScale) / 2 - minX * exportScale;
   const offsetY = (SIZE - graphH * exportScale) / 2 - minY * exportScale;
   const visibleIds = new Set(visibleNodes.map(n => n.id));
+  // 선 굵기 환산 — ctx2가 exportScale로 확대돼 있으므로 "원하는 출력 px"을 그 값으로 나눠 넣는다.
+  // 기준 화면 폭 1000px 대비 SIZE 비율만큼 키워야 4096으로 뽑아도 2048과 같은 인상이 된다.
+  // (예전엔 월드 단위 상수라 그래프가 클수록 선이 머리카락처럼 얇아졌다)
+  const LW = (SIZE / 1000) / exportScale;
   ctx2.save(); ctx2.translate(offsetX, offsetY); ctx2.scale(exportScale, exportScale);
   edges.forEach(e => {
     const a = nodeMap[e.from], b = nodeMap[e.to];
@@ -1684,10 +1688,10 @@ function exportGraph(size) {
       if (!eitherMatch) return;
       ctx2.setLineDash(bothMatch ? [] : [4,5]);
       ctx2.strokeStyle = rgbStr(edgeRgb, bothMatch ? 0.9 : 0.3);
-      ctx2.lineWidth = (bothMatch ? 1.0 : 0.5) * CONFIG.linkWidth;
-    } else if (e.manualLink) { ctx2.setLineDash([4,5]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.6); ctx2.lineWidth = 0.8 * CONFIG.linkWidth; }
-    else if (e.weakLink) { ctx2.setLineDash([4,4]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.2); ctx2.lineWidth = 0.6 * CONFIG.linkWidth; }
-    else { ctx2.setLineDash([]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.55); ctx2.lineWidth = 0.7 * CONFIG.linkWidth; }
+      ctx2.lineWidth = (bothMatch ? 1.6 : 0.8) * CONFIG.linkWidth * LW;
+    } else if (e.manualLink) { ctx2.setLineDash([4,5]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.6); ctx2.lineWidth = 1.8 * CONFIG.linkWidth * LW; }
+    else if (e.weakLink) { ctx2.setLineDash([4,4]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.2); ctx2.lineWidth = 1.2 * CONFIG.linkWidth * LW; }
+    else { ctx2.setLineDash([]); ctx2.strokeStyle = rgbStr(edgeRgb, 0.55); ctx2.lineWidth = 1.0 * edgeDepthScale(b.level) * CONFIG.linkWidth * LW; } // 화면(draw)과 같은 공식
     const pa = _px(a.id), pb = _px(b.id);
     ctx2.beginPath(); ctx2.moveTo(pa.x, pa.y); ctx2.lineTo(pb.x, pb.y); ctx2.stroke();
   });
