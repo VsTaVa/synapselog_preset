@@ -754,10 +754,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* ── 세로 화면: 상세 패널을 우측이 아니라 하단 시트로 ────────────────── */
 @media (orientation: portrait) {
   :root {
-    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단5=230, 패딩 26.
-       시트를 이만큼 남기고 멈춰야 레일 아이콘 10개가 그래프 영역 안에 다 들어간다.
+    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단3=136, 패딩 26.
+       시트를 이만큼 남기고 멈춰야 레일 아이콘이 그래프 영역 안에 다 들어간다.
        JS(패널 드래그 상한)도 이 값을 읽어 쓰므로 기준은 여기 하나뿐이다. */
-    --rail-min-h: 541px;
+    --rail-min-h: 447px;
     --sheet-eff: min(var(--sheet-h, 72dvh), calc(100dvh - var(--rail-min-h)));
   }
   #detail-panel {
