@@ -565,12 +565,18 @@ window.addEventListener('resize', () => {
 // ── 패널 너비 조절 (드래그) ───────────────────────────────────────────
 
 const DETAIL_W_MIN = 280, DETAIL_W_MAX = 720, DETAIL_W_KEEP = 360; // 폭 한계 + 그래프에 남겨둘 최소 가로
+const SHEET_H_MIN = 180, SHEET_H_KEEP = 160; // 하단 시트 높이 한계 + 위에 남겨둘 최소 그래프 세로
 
-// 마지막으로 쓰던 폭 기억 — 접거나 닫아도 다시 열 때 같은 폭으로 뜨게
+// 마지막으로 쓰던 크기 기억 — 접거나 닫아도 다시 열 때 그대로. 시트(높이)와 우측 패널(폭)은 따로 저장
 function saveDetailWidth() {
   const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--detail-w'));
   if (v) localStorage.setItem('snlog_detail_w', v);
 }
+function saveSheetHeight() {
+  const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sheet-h'));
+  if (v) localStorage.setItem('snlog_sheet_h', v);
+}
+function saveDetailSize() { if (_isSheetLayout()) saveSheetHeight(); else saveDetailWidth(); }
 
 (function restorePanelWidths() {
   const dw = parseInt(localStorage.getItem('snlog_detail_w') || '');
@@ -578,6 +584,12 @@ function saveDetailWidth() {
   // 넓은 화면에서 저장한 폭이 지금 화면을 다 덮지 않게 — 그래프 자리를 최소한 남기고 복원
   const max = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, window.innerWidth - DETAIL_W_KEEP));
   document.documentElement.style.setProperty('--detail-w', Math.min(dw, max) + 'px');
+})();
+
+(function restoreSheetHeight() {
+  const sh = parseInt(localStorage.getItem('snlog_sheet_h') || '');
+  if (sh) document.documentElement.style.setProperty('--sheet-h', sh + 'px');
+  // 화면이 짧아 저장값이 과하면 CSS의 min(..., 100dvh - 160px)이 알아서 잘라준다
 })();
 
 (function setupPanelResize() {
@@ -589,13 +601,20 @@ function saveDetailWidth() {
     if (!active) return;
     if (!moved && (Math.abs(clientX - sx) > 5 || Math.abs(clientY - sy) > 5)) moved = true;
     if (!moved) return;
-    const raw = window.innerWidth - clientX;
+    // 하단 시트일 땐 좌우 폭이 아니라 높이를 조절한다(세로 화면에선 폭 조절이 의미 없음)
+    const sheet = _isSheetLayout();
+    const raw = sheet ? (window.innerHeight - clientY) : (window.innerWidth - clientX);
     const panel = document.getElementById('detail-panel');
     if (raw < COLLAPSE_AT) { willCollapse = true; dH.classList.add('will-collapse'); if (panel) panel.classList.add('pre-collapse'); }
     else {
       willCollapse = false; dH.classList.remove('will-collapse'); if (panel) panel.classList.remove('pre-collapse');
-      const w = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, raw));
-      document.documentElement.style.setProperty('--detail-w', w + 'px');
+      if (sheet) {
+        const h = Math.max(SHEET_H_MIN, Math.min(window.innerHeight - SHEET_H_KEEP, raw));
+        document.documentElement.style.setProperty('--sheet-h', h + 'px');
+      } else {
+        const w = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, raw));
+        document.documentElement.style.setProperty('--detail-w', w + 'px');
+      }
     }
   }
   function start(e) {
@@ -610,17 +629,17 @@ function saveDetailWidth() {
     const _p = document.getElementById('detail-panel'); if (_p) _p.classList.remove('pre-collapse');
     const panel = document.getElementById('detail-panel');
     if (!moved) { // 탭 → 패널 접기
-      if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) { saveDetailWidth(); toggleDetailPanel(); }
+      if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) { saveDetailSize(); toggleDetailPanel(); }
       return;
     }
     if (willCollapse) { // 너무 좁게 끌면 아예 접힘
       willCollapse = false;
-      saveDetailWidth(); // 접히기 직전 폭도 저장 — 다시 열 때 그 폭 그대로
+      saveDetailSize(); // 접히기 직전 크기도 저장 — 다시 열 때 그대로
       if (typeof toggleDetailPanel === 'function' && panel && !panel.classList.contains('panel-collapsed')) toggleDetailPanel();
       return;
     }
-    saveDetailWidth();
-    try { fitGraph(); } catch (e) {} // 폭 바뀐 만큼 화면 맞춤
+    saveDetailSize();
+    try { fitGraph(); } catch (e) {} // 크기 바뀐 만큼 화면 맞춤
   }
   dH.addEventListener('mousedown', start);
   window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
