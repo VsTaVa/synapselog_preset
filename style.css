@@ -248,8 +248,11 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #detail-resize-handle { position: absolute; top: 0; left: -7px; width: 14px; height: 100%; cursor: ew-resize; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; touch-action: none; }
 #detail-resize-handle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-resize-handle:hover::before, #detail-resize-handle.dragging::before { background: var(--accent); height: 44px; }
-/* 접힌 패널엔 조절 손잡이가 필요 없다. 특히 하단 시트에선 손잡이가 패널 윗변 밖(top:-7px)에
-   걸쳐 있어, 시트가 내려가도 7px이 화면 아래에 남아 '재열기 손잡이'와 나란히 두 개로 보였다. */
+/* 조절 손잡이는 패널이 실제로 펼쳐져 있을 때만 보여야 한다.
+   하단 시트에선 손잡이가 패널 윗변 밖(top:-7px)에 걸쳐 있어, 시트가 내려가 있어도
+   7px이 화면 아래 가장자리에 그대로 남는다. 접힘(panel-collapsed)뿐 아니라
+   완전히 닫힌 상태(open 없음)도 패널이 같은 자리에 내려가 있으므로 둘 다 숨긴다. */
+#detail-panel:not(.open) #detail-resize-handle,
 #detail-panel.panel-collapsed #detail-resize-handle { display: none; }
 #sidebar-page-list::-webkit-scrollbar { width: 3px; }
 #sidebar-page-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
