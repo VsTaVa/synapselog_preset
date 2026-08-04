@@ -749,7 +749,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
    그래프 화면맞춤은 _panelInsets()가 이 조건일 때 세로 여백으로 계산한다. */
 @media (max-width: 900px) and (orientation: portrait) {
   #detail-panel {
-    top: auto; bottom: 0; right: 0; left: 0;
+    /* 레일(56px, z-index 260)이 항상 위에 떠 있어 left:0으로 두면 시트 왼쪽이 가려진다 */
+    top: auto; bottom: 0; right: 0; left: 56px;
     width: auto; max-width: none;
     /* 짧은 화면(가로로 눕혔다 세운 구형 폰 등)에서 시트가 그래프를 다 먹지 않게
        위쪽에 최소 200px는 남긴다 — 긴 화면에선 72dvh가 그대로 적용됨 */
