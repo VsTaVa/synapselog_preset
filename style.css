@@ -426,7 +426,7 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
 #detail-panel.open { right: 0; }
 /* 우측 패널 열기 — UI 박스 없이 손잡이 그립만(조절 그립과 동일 크기 4x36). 넓은 히트영역만 투명하게 확보 */
-#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
+#detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 6px; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
 #detail-panel-sidebar-toggle:hover::before { background: var(--accent); height: 44px; }
@@ -778,13 +778,20 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   body:has(#detail-panel.open:not(.panel-collapsed)) #legend {
     bottom: calc(var(--sheet-eff) + 14px);
   }
+  /* 확대·회전 표시(#status)와 재열기 손잡이는 둘 다 하단 가운데라 서로 겹친다.
+     손잡이(bottom 10~26) 위에 얹어 같은 세로줄에 나란히 놓는다. */
+  #status { bottom: 32px; }
+  /* 시트가 떠 있으면 손잡이는 숨으므로 시트 바로 위로 — 안 그러면 시트 뒤에 깔린다 */
+  body:has(#detail-panel.open:not(.panel-collapsed)) #status {
+    bottom: calc(var(--sheet-eff) + 16px);
+  }
   /* 시트는 가로를 다 쓴다. 바깥 규칙이 특정도(2,1,0)로 더 높아 여기서 같은 선택자로 눌러야 한다 */
   #detail-panel, #sidebar.open ~ #detail-panel { max-width: none; }
   #detail-panel.open { right: 0; transform: translateY(0); }
   #detail-panel.panel-collapsed { right: 0 !important; transform: translateY(100%) !important; }
   /* 재열기 손잡이도 아래로 — 레일을 뺀 나머지 폭의 가운데 */
   #detail-panel-sidebar-toggle {
-    top: auto; bottom: 0; right: auto; left: 50%;
+    top: auto; bottom: 10px; right: auto; left: 50%;
     transform: translateX(-50%); width: 60px; height: 16px;
   }
   #detail-panel-sidebar-toggle::before { width: 36px; height: 4px; }
