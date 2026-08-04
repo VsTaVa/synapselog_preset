@@ -74,13 +74,13 @@ function parseMarkdown(text, rootTitle) {
       } else { color = getH1Color(label); }
     } else if (level === 3) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), 90, 48);
+      if (parentColor) color = hslColor(extractHue(parentColor), 90, 52);
     } else if (level === 4) {
       const parentColor = parentNode?.color;
       if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 41);
     } else if (level === 5) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 38);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 30);
     }
     const id = 'n' + (nid++);
     const n = {
@@ -315,7 +315,9 @@ function draw() {
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       const alpha=isDimEdge?0.08:(isHov?0.85:0.55), width=isDimEdge?0.5:(isHov?2.2:0.8);
       const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
-      ctx.strokeStyle=rgbStr(eRgb,alpha); ctx.lineWidth=width*CONFIG.linkWidth/scale; ctx.setLineDash([]);
+      // 자식이 깊을수록 가늘게 — 굵은 쪽이 상위라, 선만 봐도 어느 방향이 위인지 읽힌다
+      ctx.strokeStyle=rgbStr(eRgb,alpha);
+      ctx.lineWidth=width*edgeDepthScale(nb.level)*CONFIG.linkWidth/scale; ctx.setLineDash([]);
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
@@ -443,6 +445,14 @@ function draw() {
       ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
       ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
+      // 깊이 표시 링 — 상위일수록 두껍게. 원 바깥(r ~ r+두께)에 그려 노드 크기는 안 건드린다.
+      // 흰색이라 어떤 색상 위에서도 같은 굵기로 읽히고, 깊은 노드는 얇아 자연히 잦아든다.
+      const rw = nodeRing(n.level);
+      if (rw && !isDirectMatch) {
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + rw/2, 0, Math.PI*2);
+        ctx.strokeStyle = isDim ? rgbStr(ndRgb,0.10) : 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = rw/scale; ctx.stroke();
+      }
     }
     if(n.fixed) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);

@@ -59,6 +59,14 @@ function nodeR(level) {
   return base * (typeof CONFIG !== 'undefined' ? CONFIG.nodeSize : 1);
 }
 
+// 깊이 신호로 쓰는 테두리 두께 — 상위일수록 두껍다.
+// 원 바깥에 덧그리므로 노드 크기(위 nodeR)는 그대로 두고 신호만 하나 더 얹는다.
+// 3단계 이후는 반지름이 5.2/3.8/2.8로 너무 작아 크기만으론 안 갈라져서 필요하다.
+function nodeRing(level) { return [0, 2.6, 1.9, 1.4, 1.0, 0.7][Math.min(level, 5)]; }
+
+// 구조 연결선 두께 배수 — 자식 깊이가 깊을수록 가늘어져 가지가 뻗어나가는 방향이 읽힌다
+function edgeDepthScale(level) { return [1, 1, 0.85, 0.7, 0.58, 0.48][Math.min(level, 5)]; }
+
 function drawStar8(ctx, cx, cy, r) {
   const outerLong = r * 2.0, outerShort = r * 1.3, inner = r * 0.52, round = r * 0.28;
   ctx.beginPath();
