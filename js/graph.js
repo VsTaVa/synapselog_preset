@@ -571,11 +571,11 @@ function worldToScreen(wx, wy) {
 }
 // 보이는 영역(레일·우측 패널 제외)의 화면 중심 — 회전 축·화면맞춤 기준점
 function viewportCenter() {
-  const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  const railEl = document.getElementById('activity-rail');
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = (dpEl && dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed')) ? dpEl.offsetWidth + 20 : 0;
-  const availW = W - sidebarWidth - detailWidth - 40;
-  return { x: sidebarWidth + 20 + availW/2, y: (H - 40)/2 + 20 };
+  const ins = _panelInsets(); // 폰(하단 시트)에선 가로가 아니라 세로를 차지
+  const availW = W - sidebarWidth - ins.right - 40;
+  return { x: sidebarWidth + 20 + availW/2, y: (H - 40 - ins.bottom)/2 + 20 };
 }
 // 회전 축 기준 무게중심(월드 좌표) — 검색/포커스/경로 활성 시엔 '활성 노드'만, 그 외엔 보이는 전체
 function visibleCentroid() {
@@ -682,11 +682,11 @@ function fitGraph(rotate = true) {
     const a = visibleNodes.filter(n => !n.dimmed);
     if (a.length) { visibleNodes = a; subsetActive = true; }
   }
-  const railEl = document.getElementById('activity-rail'), dpEl = document.getElementById('detail-panel');
+  const railEl = document.getElementById('activity-rail');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
   const sidebarWidth = railEl ? railEl.offsetWidth : 0;
-  const detailWidth = dpEl.classList.contains('open') && !dpEl.classList.contains('panel-collapsed') ? dpEl.offsetWidth + 20 : 0;
-  const availW = W - sidebarWidth - detailWidth - 40, availH = H - 40;
+  const ins = _panelInsets(); // 폰(하단 시트)에선 가로가 아니라 세로를 차지
+  const availW = W - sidebarWidth - ins.right - 40, availH = H - 40 - ins.bottom;
   const offsetLeft = sidebarWidth + 20;
   const startRot = _viewRotation;
   let targetRot = startRot;

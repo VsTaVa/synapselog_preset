@@ -47,8 +47,23 @@ function updateDetailReopenTab() {
   btn.classList.toggle('visible', !visuallyOpen && anyTabs());
 }
 
+// 좁은 화면에서 사이드바를 열 때 상세 패널을 접는다(레일에서 호출).
+// 둘 다 뜨면 레일 56 + 사이드바 380 + 패널 380 = 816px라 그래프가 안 남는다.
+function collapseDetailPanel() {
+  if (!detailPanel || !detailPanel.classList.contains('open') || _detailPanelCollapsed) return;
+  _detailPanelCollapsed = true;
+  detailPanel.classList.add('panel-collapsed');
+  updateDetailReopenTab();
+  _autoFitPanel();
+}
+// 반대 방향 — 좁은 화면에서 패널을 열 땐 사이드바 플라이아웃을 닫는다
+function _yieldSidebarIfNarrow() {
+  if (_isNarrowLayout() && typeof closeRailFlyout === 'function') closeRailFlyout();
+}
+
 function toggleDetailPanel() {
   _detailPanelCollapsed = !_detailPanelCollapsed;
+  if (!_detailPanelCollapsed) _yieldSidebarIfNarrow();
   detailPanel.classList.toggle('panel-collapsed', _detailPanelCollapsed);
   updateDetailReopenTab();
   _autoFitPanel();
@@ -56,7 +71,7 @@ function toggleDetailPanel() {
 
 function reopenDetailPanel() {
   if (!anyTabs()) return;
-  if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; detailPanel.classList.remove('panel-collapsed'); }
+  if (detailPanel.classList.contains('open')) { _detailPanelCollapsed = false; _yieldSidebarIfNarrow(); detailPanel.classList.remove('panel-collapsed'); }
   else { showPanel(); }
   updateDetailReopenTab();
   _autoFitPanel();
@@ -1192,6 +1207,7 @@ function isAncestorOf(potentialAncId, nodeId) {
 function showPanel() {
   if (!anyTabs()) return;
   _detailPanelCollapsed = false;
+  _yieldSidebarIfNarrow();
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
   renderPanes();
@@ -1224,6 +1240,7 @@ function openPanel(n) {
     updateDetailReopenTab();
     return;
   }
+  _yieldSidebarIfNarrow();
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
   renderPanes(added ? n.id : null);

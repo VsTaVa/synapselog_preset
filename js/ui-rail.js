@@ -12,6 +12,8 @@ function openRailSection(name) {
   document.querySelectorAll('#sidebar .rail-pane').forEach(el => el.classList.toggle('active', el.dataset.section === name));
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
+  // 좁은 화면에선 상세 패널을 접어 그래프 자리를 남긴다 (반대 방향은 ui-panel의 _yieldSidebarIfNarrow)
+  if (_isNarrowLayout() && typeof collapseDetailPanel === 'function') collapseDetailPanel();
   if (name === 'search') {
     setTimeout(() => document.getElementById('search-input')?.focus(), 60);
     if (typeof renderSearchHistory === 'function') renderSearchHistory();

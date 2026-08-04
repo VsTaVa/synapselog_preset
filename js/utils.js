@@ -19,6 +19,25 @@ function _decKey(s) {
     return o;
   } catch (e) { return ''; }
 }
+// ── 화면 폭 레이아웃 ────────────────────────────────────────────────
+// 레일 56 + 사이드바 380 + 상세 패널 380 = 816px. 좁은 화면에서 셋이 다 뜨면
+// 그래프가 볼 수 없을 만큼 눌린다 → 아래 두 기준으로 동작을 나눈다.
+const NARROW_AT = 1100; // 이하: 사이드바와 상세 패널 중 하나만 열어둠
+const PHONE_AT = 640;   // 이하: 상세 패널을 우측 슬라이드 대신 하단 시트로(CSS)
+function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
+function _isPhoneLayout() { return window.innerWidth <= PHONE_AT; }
+
+// 상세 패널이 그래프에서 잡아먹는 여백 — 폰에선 하단 시트라 가로가 아니라 세로를 차지한다.
+// (이걸 안 나누면 시트 폭이 화면 전체라 availW가 음수가 되어 화면맞춤이 망가진다)
+function _panelInsets() {
+  const dp = document.getElementById('detail-panel');
+  const open = dp && dp.classList.contains('open') && !dp.classList.contains('panel-collapsed');
+  if (!open) return { right: 0, bottom: 0 };
+  return _isPhoneLayout()
+    ? { right: 0, bottom: dp.offsetHeight + 20 }
+    : { right: dp.offsetWidth + 20, bottom: 0 };
+}
+
 // ── 색상/수치 헬퍼 ──────────────────────────────────────────────────
 
 let _hueIndex = 0;

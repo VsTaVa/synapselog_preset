@@ -413,7 +413,7 @@ body.resizing-panes .detail-pane { transition: none; }
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }
 .detail-body { flex: 1; overflow-y: auto; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
-#detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
+#detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }
 #detail-panel.open { right: 0; }
 /* 우측 패널 열기 — UI 박스 없이 손잡이 그립만(조절 그립과 동일 크기 4x36). 넓은 히트영역만 투명하게 확보 */
 #detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
@@ -734,4 +734,23 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── 폰: 상세 패널을 우측 슬라이드 대신 하단 시트로 ────────────────────
+   가로 380px 패널은 폰 화면을 거의 다 덮는다. 아래에서 올라오는 시트로 바꾸면
+   그래프가 위쪽에 그대로 남는다. 열고 닫기를 right → transform으로 바꾸므로
+   right에 걸린 기본/접힘 규칙을 여기서 무력화한다(파일 뒤라 우선순위로 이김).
+   그래프 화면맞춤은 _panelInsets()가 폰일 때 세로 여백으로 계산한다. */
+@media (max-width: 640px) {
+  #detail-panel {
+    top: auto; bottom: 0; right: 0; left: 0;
+    width: auto; max-width: none;
+    height: 72vh; height: 72dvh;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  }
+  #detail-panel.open { right: 0; transform: translateY(0); }
+  #detail-panel.panel-collapsed { right: 0 !important; transform: translateY(100%) !important; }
+  /* 가로 폭 드래그는 하단 시트에서 의미가 없다 */
+  #detail-resize-handle { display: none; }
 }
