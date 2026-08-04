@@ -550,6 +550,7 @@ canvas.addEventListener('touchend', e => {
   drag = null; isPanning = false; mouseDownNode = null; _touchMode = null;
 }, { passive: true });
 
+let _wasSheetLayout = _isSheetLayout();
 window.addEventListener('resize', () => {
   DPR = window.devicePixelRatio || 1;
   W = window.innerWidth; H = window.innerHeight;
@@ -559,6 +560,13 @@ window.addEventListener('resize', () => {
   if (_panelsExclusive()) {
     const sb = document.getElementById('sidebar');
     if (sb && sb.classList.contains('open') && typeof collapseDetailPanel === 'function') collapseDetailPanel();
+  }
+  // 세로↔가로가 뒤집히면 패널이 우측↔하단으로 옮겨가 그래프 영역이 통째로 달라진다 → 다시 맞춤.
+  // 창을 조금씩 끄는 동안에는 안 건드린다(계속 다시 맞추면 손과 싸운다). 전환(0.28s) 후 실행.
+  const nowSheet = _isSheetLayout();
+  if (nowSheet !== _wasSheetLayout) {
+    _wasSheetLayout = nowSheet;
+    setTimeout(() => { try { fitGraph(false); } catch (e) {} }, 320);
   }
 });
 
