@@ -5,7 +5,7 @@ function _autoFitPanel() { setTimeout(() => { try { fitGraph(false); } catch (e)
 
 // ── 좌측 액티비티 레일: 섹션 플라이아웃 ──────────────────────────────
 let _activeRailSection = null;
-const _railSections = ['pages', 'search', 'bookmarks', 'graphcfg', 'aichat'];
+const _railSections = ['pages', 'search', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
@@ -21,7 +21,7 @@ function openRailSection(name) {
     if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
   }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
-  if (name === 'bookmarks') { renderBookmarkList(); renderInsights(); }
+  if (name === 'pages') { renderBookmarkList(); renderInsights(); } // 노드 섹션이 페이지 목록에 합쳐짐
   applyRailSecState(); // 정적 마크업(노드 모드·그래프 설정)에 저장된 접힘 상태 반영
 }
 
@@ -130,42 +130,6 @@ function _saveDismissed() {
 })();
 
 
-// 중심 노드 = 문서의 뼈대 — 페이지(최상위) + 헤딩1. 연결 수가 아니라 구조로 뽑는다.
-// 각 항목의 하위 노드 개수를 함께 반환(뱃지 표시용).
-function _computeHubs(topN) {
-  const vis = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary);
-  // 단일 하위 페이지 + DB 내부 페이지만. (최상위 페이지·데이터베이스 제목은 제외)
-  // 둘 다 노션 페이지라 entryNotionId를 가짐 — 최상위(level 0)·DB 제목(isDbNode)은 안 가짐.
-  const scored = vis.filter(n => !!n.entryNotionId).map(n => ({ n, deg: _descendantIds(n.id).length }));
-  scored.sort((a, b) => b.deg - a.deg); // 하위 많은 순
-  return scored.slice(0, topN);
-}
-
-// 구조적 하위 노드 전체(손자 이하 포함) — 약한/수동 링크는 계층이 아니므로 제외
-function _descendantIds(rootId) {
-  const out = [], seen = new Set([rootId]), q = [rootId];
-  while (q.length) {
-    const id = q.shift();
-    edges.forEach(e => {
-      if (e.from === id && !e.weakLink && !e.manualLink && !seen.has(e.to)) {
-        seen.add(e.to); out.push(e.to); q.push(e.to);
-      }
-    });
-  }
-  return out;
-}
-
-// 중심 노드 클릭 → 자기 자신 + 모든 하위 노드를 그래프에서 활성화
-function insightFocusBranch(nid) {
-  const n = nodeMap[nid];
-  if (!n) return;
-  const ids = [nid, ..._descendantIds(nid)];
-  if (typeof applyGraphHighlight === 'function') {
-    // 글로우는 고른 중심 노드에만 — 하위 트리는 활성 범위(also)에만 넣어 전부 하얘지지 않게
-    applyGraphHighlight([nid], '', { max: 20, fit: true, fitDelay: 320, also: ids.slice(1) }); // 마커=본문에 없는 문자
-  }
-}
-
 // 제목 → 의미 토큰 집합(불용어·순수숫자 제외, 한글 어간 처리). _aiTerms 재활용.
 function _titleTokens(label) {
   const set = new Set();
@@ -209,17 +173,7 @@ function _computeLinkSuggestions(topN) {
 function renderInsights() {
   const el = document.getElementById('insight-body');
   if (!el) return;
-  const hubs = _computeHubs(10);
-
   let html = '';
-  // 중심 노드 (연결 3개 초과, 최대 10)
-  html += `<div class="insight-sec">` + railSecHead('hubs', '중심 노드', 'mt');
-  const hubChip = (h, i) => `<span class="insight-chipwrap hub-item" onclick="insightFocusBranch('${h.n.id}')" title="${escapeHtml((h.n.label || '').trim())} — 하위 ${h.deg}개 활성화"><span class="chip-rank">${i + 1}.</span>${createNodeChip(h.n)}<span class="insight-badge">${h.deg}</span></span>`;
-  html += railSecBody('hubs', hubs.length
-    ? `<div class="insight-chips">${hubs.map(hubChip).join('')}</div>`
-    : `<div class="rail-empty">페이지 없음</div>`);
-  html += `</div>`;
-
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
   _linkSuggestCache = _computeLinkSuggestions(3);
   html += `<div class="insight-sec">` + railSecHead('suggest', '연결 제안', 'mt');

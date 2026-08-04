@@ -104,8 +104,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 /* 순위 번호 — 오른쪽 정렬로 두 자리(10.)까지 자릿수가 맞음 */
 .chip-rank { flex-shrink: 0; min-width: 17px; margin-right: 3px; font-size: 10px; font-weight: 700; color: var(--text-mute); text-align: right; font-variant-numeric: tabular-nums; }
 /* 중심 노드 항목 — 누르면 하위 전체 활성화 */
-.hub-item { cursor: pointer; border-radius: 12px; padding: 1px 2px; transition: background 0.13s; }
-.hub-item:hover { background: rgba(var(--accent-rgb),0.12); }
 .insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
 /* 오른쪽 위 ✕ 자리를 비워두고 카드 자체가 '그래프에서 보기' 트리거 */
 .insight-pair { position: relative; padding: 8px 26px 8px 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
@@ -749,10 +747,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* ── 세로 화면: 상세 패널을 우측이 아니라 하단 시트로 ────────────────── */
 @media (orientation: portrait) {
   :root {
-    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단2=89, 패딩 26.
+    /* 레일이 필요로 하는 세로 — 로고+상단4=238, 하단2=89, 패딩 26 (상단은 로고+4).
        시트를 이만큼 남기고 멈춰야 레일 아이콘이 그래프 영역 안에 다 들어간다.
        JS(패널 드래그 상한)도 이 값을 읽어 쓰므로 기준은 여기 하나뿐이다. */
-    --rail-min-h: 400px;
+    --rail-min-h: 353px;
     --sheet-eff: min(var(--sheet-h, 72dvh), calc(100dvh - var(--rail-min-h)));
   }
   #detail-panel {

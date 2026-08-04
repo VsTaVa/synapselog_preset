@@ -1638,7 +1638,7 @@ function exportGraphAt(size) {
 }
 
 function exportGraph(size) {
-  const SIZE = size || _exportSize || 2048, PADDING = 60;
+  const SIZE = size || _exportSize || 2048, PADDING = Math.round(SIZE * 0.05); // 크기에 비례(고정 60은 큰 이미지에서 너무 좁았음)
   const hasSearch = searchKeyword.length > 0;
   const visibleNodes = nodes.filter(n => {
     if (!n.visible) return false;
@@ -1656,8 +1656,14 @@ function exportGraph(size) {
   visibleNodes.forEach(n => { const dx = n.x - _cx0, dy = n.y - _cy0; RP.set(n.id, { x: _cx0 + dx * _cos - dy * _sin, y: _cy0 + dx * _sin + dy * _cos }); });
   const _px = id => RP.get(id) || { x: 0, y: 0 };
   const rxv = visibleNodes.map(n => RP.get(n.id).x), ryv = visibleNodes.map(n => RP.get(n.id).y);
-  const minX = Math.min(...rxv), maxX = Math.max(...rxv);
-  const minY = Math.min(...ryv), maxY = Math.max(...ryv);
+  // 경계를 노드 '중심'으로만 잡으면 별 모양(반지름의 2배까지 뻗음)과 아래에 붙는 라벨이
+  // 그림 밖으로 잘린다. 노드마다 실제로 그려지는 범위를 더해 경계를 넓힌다.
+  const _ext = n => nodeR(n.level) * 2.2;                       // 별 최대 반경 2.0r + 링 여유
+  const _lblH = n => nodeR(n.level) + 4 + (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
+  const minX = Math.min(...visibleNodes.map(n => RP.get(n.id).x - _ext(n)));
+  const maxX = Math.max(...visibleNodes.map(n => RP.get(n.id).x + _ext(n)));
+  const minY = Math.min(...visibleNodes.map(n => RP.get(n.id).y - _ext(n)));
+  const maxY = Math.max(...visibleNodes.map(n => RP.get(n.id).y + _lblH(n))); // 라벨은 아래로만
   const graphW = maxX - minX || 1, graphH = maxY - minY || 1;
   const exportScale = (SIZE - PADDING * 2) / Math.max(graphW, graphH);
   const offscreen = document.createElement('canvas');

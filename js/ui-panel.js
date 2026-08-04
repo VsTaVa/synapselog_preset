@@ -1223,7 +1223,7 @@ function openPanel(n) {
     _recentNodes.unshift(n.id);
     if (_recentNodes.length > 10) _recentNodes.length = 10;
     if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
-    if (_activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList();
+    if (_activeRailSection === 'pages' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }
   // '자리를 차지하고 있었나' — 접힌 상태는 그래프를 안 가리므로 열림으로 치지 않는다
   const _wasVisible = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');

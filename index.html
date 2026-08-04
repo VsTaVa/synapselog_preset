@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#ed7000">
 <!-- CSS보다 먼저 읽혀 브라우저 자동 다크 필터를 애초에 막는다 (style.css의 color-scheme와 같은 목적) -->
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="style.css?v=20260804d">
+<link rel="stylesheet" href="style.css?v=20260804e">
 </head>
 <body>
 <div id="login-screen">
@@ -71,7 +71,6 @@
   <div class="rail-grp">
     <div class="rail-logo" onclick="backToLoginScreen()" title="시작 화면"><img src="icon.png" alt="SynapseLog"></div>
     <button class="rail-icon" id="rail-pages" onclick="openRailSection('pages')" title="페이지 목록" data-i18n-title="rail-pages"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 3 7l9 4.5L21 7l-9-4.5z"/><path d="m3 12 9 4.5L21 12"/><path d="m3 17 9 4.5L21 17"/></svg></button>
-    <button class="rail-icon" id="rail-bookmarks" onclick="openRailSection('bookmarks')" title="노드"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="18" r="3" fill="currentColor" stroke="none"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="3" fill="currentColor" stroke="none"/><line x1="10.9" y1="15.8" x2="7.1" y2="8.2"/><path d="M13.1 15.8 C 16 14, 14 10.5, 16.9 8.2"/></svg></button>
     <button class="rail-icon" id="rail-graphcfg" onclick="openRailSection('graphcfg')" title="그래프 설정" data-i18n-title="rail-graphcfg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.3" fill="currentColor"/><circle cx="15" cy="16" r="2.3" fill="currentColor"/></svg></button>
     <button class="rail-icon" id="rail-search" onclick="openRailSection('search')" title="검색" data-i18n-title="rail-search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></button>
     <button class="rail-icon rail-txt-btn" id="rail-aichat" onclick="openRailSection('aichat')" title="AI 대화" data-i18n-title="rail-aichat">AI</button>
@@ -120,7 +119,7 @@
       <div id="search-result-count"></div>
       <div id="search-results" class="search-results"></div>
     </div>
-    <div id="bookmarks-panel" class="panel-box rail-pane" data-section="bookmarks">
+    <div id="bookmarks-panel" class="panel-box rail-pane" data-section="pages">
       <div class="panel-title">노드</div>
       <div id="bookmark-list"></div>
       <div id="insight-body" class="insight-in-node"></div>
@@ -256,13 +255,13 @@
 
 <script src="js/utils.js?v=20260803t" defer></script>
 <script src="js/graph.js?v=20260803t" defer></script>
-<script src="js/notion-client.js?v=20260804a" defer></script>
+<script src="js/notion-client.js?v=20260804c" defer></script>
 <script src="js/ui-core.js?v=20260729c" defer></script>
 <script src="js/ui-legend.js?v=20260728k" defer></script>
 <script src="js/ui-ai.js?v=20260802a" defer></script>
 <script src="js/ui-embed.js?v=20260729c" defer></script>
-<script src="js/ui-rail.js?v=20260803m" defer></script>
-<script src="js/ui-panel.js?v=20260803q" defer></script>
+<script src="js/ui-rail.js?v=20260804c" defer></script>
+<script src="js/ui-panel.js?v=20260804c" defer></script>
 <script src="js/ui-events.js?v=20260804b" defer></script>
 </body>
 </html>
