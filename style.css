@@ -1,6 +1,21 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0c0d12; overflow: hidden; font-family: 'Noto Sans KR', sans-serif; }
 canvas { display: block; }
+
+/* ── 키보드 포커스 표시 ───────────────────────────────────────────────
+   :focus 규칙이 입력창 쪽에만 있어서, 아이콘 버튼(레일·패널·페이지 목록)을
+   탭으로 옮겨 다니면 지금 어디에 있는지 화면에 전혀 안 나타났다.
+   :focus-visible이라 마우스로 누를 땐 안 뜬다 — 기존 화면은 그대로.
+   슬라이더는 outline:none이 걸려 있어 명시적으로 다시 켠다(선택자 우선순위로 이김). */
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input[type=range]:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .shortcut-hint { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; }
 #toast-container { position: fixed; right: 18px; bottom: 18px; z-index: 9000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; max-width: 360px; background: rgba(20,22,30,0.97); border: 1px solid rgba(255,255,255,0.12); border-left: 3px solid rgba(255,255,255,0.4); border-radius: 9px; padding: 11px 14px; font-size: 12.5px; font-weight: 600; color: #eee; box-shadow: 0 8px 28px rgba(0,0,0,0.5); backdrop-filter: blur(10px); transform: translateX(20px); opacity: 0; transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.22s; }
@@ -778,3 +793,16 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .node-chip--bm::before { background-color: var(--accent); -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); }
 /* 뱃지형 칩은 아이콘 없이 글자만 — 기본 마스크보다 뒤에 와야 display:none이 먹는다 */
 .node-chip--badge::before { display: none; }
+
+/* ── 동작 줄이기(prefers-reduced-motion) 존중 ─────────────────────────
+   transition/animation이 80곳 넘는데 지금까지 이 설정을 전혀 보지 않았다.
+   transitionend/animationend에 걸린 로직이 없어 시간만 0으로 줄여도 안전하다.
+   (캔버스 그래프의 물리 움직임은 CSS가 아니라 여기서 안 멈춘다 — 그건 기능 자체) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
