@@ -469,11 +469,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-settings-menu button.danger:hover { background: rgba(255,90,90,0.16); color: #ff8a8a; }
 
 /* 레일 이미지 저장 → 사이즈 선택 플로팅 메뉴 */
-.export-size-menu { position: fixed; z-index: 9500; display: flex; flex-direction: column; gap: 3px; min-width: 122px; padding: 8px; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
-.export-size-menu .esm-title { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); padding: 2px 4px 5px; }
-.export-size-menu .esm-btn { font-size: 12.5px; font-family: inherit; text-align: left; padding: 8px 10px; border-radius: 6px; background: none; border: 1px solid transparent; color: var(--text); cursor: pointer; transition: background 0.15s, color 0.15s; }
-.export-size-menu .esm-btn:hover { background: rgba(var(--accent-rgb),0.15); color: #fff; }
-.export-size-menu .esm-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); }
 .detail-settings-menu button svg { flex-shrink: 0; }
 /* 아이콘 자리에 글자를 쓰는 항목(AI) — 옆 SVG 아이콘들과 같은 15px 폭·정렬을 맞춘다 */
 .menu-ic-txt { flex-shrink: 0; width: 15px; text-align: center; font-size: 10px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
@@ -754,10 +749,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* ── 세로 화면: 상세 패널을 우측이 아니라 하단 시트로 ────────────────── */
 @media (orientation: portrait) {
   :root {
-    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단3=136, 패딩 26.
+    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단2=89, 패딩 26.
        시트를 이만큼 남기고 멈춰야 레일 아이콘이 그래프 영역 안에 다 들어간다.
        JS(패널 드래그 상한)도 이 값을 읽어 쓰므로 기준은 여기 하나뿐이다. */
-    --rail-min-h: 447px;
+    --rail-min-h: 400px;
     --sheet-eff: min(var(--sheet-h, 72dvh), calc(100dvh - var(--rail-min-h)));
   }
   #detail-panel {

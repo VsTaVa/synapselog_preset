@@ -1628,38 +1628,13 @@ async function importMarkdownFolder(event) {
   event.target.value = '';
 }
 
-// 레일 이미지 저장 버튼 → 사이즈 선택 플로팅 메뉴 (설정에서 미리 고르지 않고 저장 시점에 선택)
-function _closeExportSizeMenu() {
-  const m = document.getElementById('export-size-menu');
-  if (m) m.remove();
-  document.removeEventListener('mousedown', _exportSizeOutside, true);
-}
-function _exportSizeOutside(e) {
-  const m = document.getElementById('export-size-menu');
-  if (m && !m.contains(e.target)) _closeExportSizeMenu();
-}
-function openExportSizeMenu(btn) {
-  if (document.getElementById('export-size-menu')) { _closeExportSizeMenu(); return; }
-  const menu = document.createElement('div');
-  menu.id = 'export-size-menu';
-  menu.className = 'export-size-menu';
-  const sizes = [1024, 2048, 4096];
-  menu.innerHTML = `<div class="esm-title">이미지 크기</div>`
-    + sizes.map(s => `<button class="esm-btn${s === _exportSize ? ' on' : ''}" data-size="${s}">${s}px</button>`).join('');
-  document.body.appendChild(menu);
-  const r = btn.getBoundingClientRect();
-  menu.style.left = (r.right + 8) + 'px';
-  menu.style.top = Math.max(8, Math.min(r.top, window.innerHeight - menu.offsetHeight - 12)) + 'px';
-  menu.querySelectorAll('.esm-btn').forEach(b => {
-    b.onclick = () => {
-      const size = parseInt(b.dataset.size);
-      _exportSize = size;
-      try { localStorage.setItem('snlog_export_size', String(size)); } catch (e) {}
-      _closeExportSizeMenu();
-      exportGraph(size);
-    };
-  });
-  setTimeout(() => document.addEventListener('mousedown', _exportSizeOutside, true), 0);
+
+// 설정 창의 이미지 내보내기 — 고른 크기를 기억하고, 저장 진행/결과가 보이도록 설정 창을 닫는다
+function exportGraphAt(size) {
+  _exportSize = size;
+  try { localStorage.setItem('snlog_export_size', String(size)); } catch (e) {}
+  if (typeof closeSettings === 'function') closeSettings();
+  exportGraph(size);
 }
 
 function exportGraph(size) {
