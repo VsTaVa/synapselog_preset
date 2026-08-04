@@ -432,11 +432,10 @@ function draw() {
       g.addColorStop(0,rgbStr(ndRgb,0.3)); g.addColorStop(1,rgbStr(ndRgb,0));
       ctx.fillStyle=g; ctx.fill();
     }
-    let isStarShape = true; // 별 모양(페이지·DB·하위페이지)엔 원형 링을 씌우면 안 된다
     if(n.level===0) drawStar8(ctx, n.x, n.y, r);
     else if(n.isDbNode) drawStar4(ctx, n.x, n.y, r);
     else if(n.isChildPage || n.entryNotionId) drawStarX(ctx, n.x, n.y, r);
-    else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); isStarShape = false; }
+    else { ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2); }
     // 직접 히트만 흰색 — 흰 글로우와 한 덩어리로 읽히게. 조상·관련 노드는 자기 색 유지
     // (예전엔 조상까지 포함하는 isMatch 기준이라 상위 계층이 전부 하얘졌다)
     if(isDirectMatch) { ctx.fillStyle='#ffffff'; ctx.strokeStyle='rgba(255,255,255,0)'; ctx.lineWidth=0; ctx.fill(); }
@@ -446,15 +445,6 @@ function draw() {
       ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
       ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
-      // 깊이 표시 링 — 상위일수록 두껍게. 원 바깥(r ~ r+두께)에 그려 노드 크기는 안 건드린다.
-      // 원형 노드에만. 별 모양(페이지·DB·하위페이지)은 모양 자체가 신호이고,
-      // 원형 링을 씌우면 별 주위에 흰 동그라미가 겉돈다.
-      const rw = isStarShape ? 0 : nodeRing(n.level);
-      if (rw && !isDirectMatch) {
-        ctx.beginPath(); ctx.arc(n.x, n.y, r + rw/2, 0, Math.PI*2);
-        ctx.strokeStyle = isDim ? rgbStr(ndRgb,0.10) : 'rgba(255,255,255,0.55)';
-        ctx.lineWidth = rw/scale; ctx.stroke();
-      }
     }
     if(n.fixed) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);
