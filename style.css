@@ -184,6 +184,10 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .icon-btn-sm { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(var(--accent-rgb),0.12); border: 1px solid rgba(var(--accent-rgb),0.35); color: var(--accent); transition: background 0.2s; }
 .icon-btn-sm:hover { background: rgba(var(--accent-rgb),0.22); }
 :root {
+  /* 이 앱은 다크 전용 — 선언이 없으면 모바일 브라우저(삼성 인터넷·크롬 안드로이드)가
+     "라이트 페이지"로 보고 자체 다크 필터를 덧씌워 색을 통째로 틀어버린다.
+     주황(#ed7000)이 붉은 갈색으로 보이던 원인. 이미 어둡다고 알려주면 건드리지 않는다. */
+  color-scheme: dark;
   --sidebar-w: 380px; --detail-w: 380px;
   /* ── 디자인 토큰 (색·텍스트·형태를 한 곳에서 관리) ── */
   --accent-rgb: 237,112,0;              /* 브랜드 주황 — 여기만 바꾸면 전체 재색 */
