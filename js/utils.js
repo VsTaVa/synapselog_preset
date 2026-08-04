@@ -32,7 +32,17 @@ function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
 // 대신 세로 여유는 많으므로 패널을 아래로 내린다. 가로 화면은 반대(세로가 짧음)라 우측 패널 유지.
 // CSS의 @media (max-width:900px) and (orientation:portrait)와 반드시 같은 조건이어야 한다.
 // (CSS는 정사각형을 portrait로 치므로 >= 로 맞춘다)
-function _isSheetLayout() { return window.innerWidth <= SHEET_MAX_W && window.innerHeight >= window.innerWidth; }
+// 둘 중 하나만 맞아도 하단 시트:
+//  ① 세로이면서 폭이 좁다 — 폰·세로 태블릿처럼 좌우로 나눌 폭이 없는 경우
+//  ② 가로/세로 비가 4:5 이하 — '확실히 길쭉한' 화면. 세로형 모니터는 해상도가 높아
+//     폭이 1100을 넘어도(예: 1440x2560 = 0.56) 여기서 잡힌다. 폭만 보던 게 놓치던 부분.
+// 살짝 세로인 큰 창(예: 1200x1300 = 0.92)은 좌우로 나눌 폭이 충분하므로 우측 패널 유지.
+const SHEET_MAX_RATIO = 0.8; // 4/5 — CSS의 max-aspect-ratio: 4/5 와 같은 값
+function _isSheetLayout() {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (!h) return false;
+  return (w <= SHEET_MAX_W && h >= w) || (w / h <= SHEET_MAX_RATIO);
+}
 
 // 상세 패널이 그래프에서 잡아먹는 여백 — 폰에선 하단 시트라 가로가 아니라 세로를 차지한다.
 // (이걸 안 나누면 시트 폭이 화면 전체라 availW가 음수가 되어 화면맞춤이 망가진다)

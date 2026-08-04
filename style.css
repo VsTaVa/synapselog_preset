@@ -760,7 +760,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
    열고 닫기를 right → transform으로 바꾸므로 right에 걸린 기본/접힘 규칙을 여기서
    무력화한다(파일 뒤라 우선순위로 이김).
    그래프 화면맞춤은 _panelInsets()가 이 조건일 때 세로 여백으로 계산한다. */
-@media (max-width: 1100px) and (orientation: portrait) {
+@media (max-width: 1100px) and (orientation: portrait), (max-aspect-ratio: 4/5) {
   #detail-panel {
     /* 레일(56px, z-index 260)이 항상 위에 떠 있어 left:0으로 두면 시트 왼쪽이 가려진다 */
     top: auto; bottom: 0; right: 0; left: 56px;
