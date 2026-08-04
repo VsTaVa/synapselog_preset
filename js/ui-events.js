@@ -573,7 +573,13 @@ window.addEventListener('resize', () => {
 // ── 패널 너비 조절 (드래그) ───────────────────────────────────────────
 
 const DETAIL_W_MIN = 280, DETAIL_W_MAX = 720, DETAIL_W_KEEP = 360; // 폭 한계 + 그래프에 남겨둘 최소 가로
-const SHEET_H_MIN = 180, SHEET_H_KEEP = 160; // 하단 시트 높이 한계 + 위에 남겨둘 최소 그래프 세로
+const SHEET_H_MIN = 180; // 하단 시트 최소 높이
+// 시트 위에 남겨둘 세로 — 레일 아이콘이 다 들어갈 높이라 CSS의 --rail-min-h가 기준.
+// 여기서 다시 적으면 둘이 어긋나므로 CSS에서 읽어온다(세로 화면일 때만 정의됨).
+function sheetTopKeep() {
+  const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rail-min-h'));
+  return v || 160;
+}
 
 // 마지막으로 쓰던 크기 기억 — 접거나 닫아도 다시 열 때 그대로. 시트(높이)와 우측 패널(폭)은 따로 저장
 function saveDetailWidth() {
@@ -617,7 +623,7 @@ function saveDetailSize() { if (_isSheetLayout()) saveSheetHeight(); else saveDe
     else {
       willCollapse = false; dH.classList.remove('will-collapse'); if (panel) panel.classList.remove('pre-collapse');
       if (sheet) {
-        const h = Math.max(SHEET_H_MIN, Math.min(window.innerHeight - SHEET_H_KEEP, raw));
+        const h = Math.max(SHEET_H_MIN, Math.min(window.innerHeight - sheetTopKeep(), raw));
         document.documentElement.style.setProperty('--sheet-h', h + 'px');
       } else {
         const w = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, raw));

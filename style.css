@@ -40,7 +40,7 @@ input[type=range]:focus-visible,
 #depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
-#legend { position: fixed; left: 64px; bottom: 14px; z-index: 200; }
+#legend { position: fixed; left: 64px; bottom: 14px; z-index: 220; } /* 하단 시트(210)보다 위 */
 #legend-body { display: none; width: 276px; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #legend.open #legend-body { display: flex; gap: 11px; }
 .lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
@@ -753,14 +753,30 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 
 /* ── 세로 화면: 상세 패널을 우측이 아니라 하단 시트로 ────────────────── */
 @media (orientation: portrait) {
+  :root {
+    /* 레일이 필요로 하는 세로 — 로고+상단5=285, 하단5=230, 패딩 26.
+       시트를 이만큼 남기고 멈춰야 레일 아이콘 10개가 그래프 영역 안에 다 들어간다.
+       JS(패널 드래그 상한)도 이 값을 읽어 쓰므로 기준은 여기 하나뿐이다. */
+    --rail-min-h: 541px;
+    --sheet-eff: min(var(--sheet-h, 72dvh), calc(100dvh - var(--rail-min-h)));
+  }
   #detail-panel {
-    /* 레일(56px)이 z-index 260으로 위에 떠 있어 left:0이면 시트 왼쪽이 가린다 */
-    top: auto; bottom: 0; right: 0; left: 56px;
+    /* 레일도 그래프 영역으로 물러나므로 시트는 가로를 끝까지 쓴다 */
+    top: auto; bottom: 0; right: 0; left: 0;
     width: auto;
-    /* 드래그값(--sheet-h)이 있으면 그 값. 어느 쪽이든 위에 그래프 160px는 남긴다 */
-    height: 72vh; height: min(var(--sheet-h, 72dvh), calc(100dvh - 160px));
+    height: 72vh; height: var(--sheet-eff);
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  }
+  /* 시트가 실제로 떠 있을 때만 레일을 그래프 영역 높이로 줄인다 —
+     아이콘이 시트 뒤로 들어가 안 보이던 문제(이미지 저장·화면 맞춤·범례) 해결.
+     레일이 detail-panel보다 DOM 앞에 있어 형제 선택자로는 못 잡으므로 :has() 사용. */
+  body:has(#detail-panel.open:not(.panel-collapsed)) #activity-rail {
+    height: calc(100dvh - var(--sheet-eff));
+  }
+  /* 범례는 화면 바닥 기준이라 시트에 가린다 → 시트 위로 띄운다 */
+  body:has(#detail-panel.open:not(.panel-collapsed)) #legend {
+    bottom: calc(var(--sheet-eff) + 14px);
   }
   /* 시트는 가로를 다 쓴다. 바깥 규칙이 특정도(2,1,0)로 더 높아 여기서 같은 선택자로 눌러야 한다 */
   #detail-panel, #sidebar.open ~ #detail-panel { max-width: none; }
@@ -768,7 +784,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   #detail-panel.panel-collapsed { right: 0 !important; transform: translateY(100%) !important; }
   /* 재열기 손잡이도 아래로 — 레일을 뺀 나머지 폭의 가운데 */
   #detail-panel-sidebar-toggle {
-    top: auto; bottom: 0; right: auto; left: calc(50% + 28px);
+    top: auto; bottom: 0; right: auto; left: 50%;
     transform: translateX(-50%); width: 60px; height: 16px;
   }
   #detail-panel-sidebar-toggle::before { width: 36px; height: 4px; }
