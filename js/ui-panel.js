@@ -1253,8 +1253,8 @@ function openPanel(n) {
     highlightSidebarPage(n.sourcePageId || null);
     if (_activeRailSection !== 'pages') openRailSection('pages'); // 최상위 노드 → 페이지 목록 열기
   }
-  // 선택한 노드를 보이는 영역 중심으로 맞춤(패널 폭 반영해서). 패널 슬라이드 후 실행
-  setTimeout(() => { try { focusViewOnNode(n); } catch (e) {} }, _wasOpen ? 40 : 320);
+  // 패널이 차지한 만큼 그래프 전체를 다시 맞춘다(다른 곳과 같은 방식). 패널 슬라이드 후 실행
+  setTimeout(() => { try { fitGraph(false); } catch (e) {} }, _wasOpen ? 40 : 320);
 }
 
 // 노드 클릭 토글: 이미 패널에 열린 노드를 다시 클릭하면 그 패널을 닫음(선택 해제)
