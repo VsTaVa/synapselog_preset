@@ -69,11 +69,6 @@ function renderBookmarkList() {
   let html = railSecHead('bm', '북마크');
   html += railSecBody('bm', bms.length ? chipList(bms, n => chipItem(n))
     : `<div class="rail-empty">북마크 노드 모음</div>`);
-  const freq = _frequentNodes(8);
-  html += railSecHead('freq', '자주 본 노드', 'mt');
-  html += railSecBody('freq', freq.length
-    ? chipList(freq, (f, i) => chipItem(f.n, `<span class="insight-badge">${f.c}</span>`, i + 1))
-    : `<div class="rail-empty">2번 이상 선택된 노드</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt');
   html += railSecBody('recent', recents.length
     ? chipList(recents, (n, i) => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`, i + 1))
@@ -86,24 +81,6 @@ function renderBookmarkList() {
       if (n && typeof focusViewOnNode === 'function') focusViewOnNode(n);
     };
   });
-}
-// ── 자주 본 노드 — 조회 횟수 누적 (노드 id는 재로드마다 바뀌므로 안정 키로 저장) ──
-let _nodeViews = (() => { try { return JSON.parse(localStorage.getItem('snlog_node_views') || '{}'); } catch (e) { return {}; } })();
-function bumpNodeView(n) {
-  const k = _stableNodeKey(n);
-  if (!k || k === '::') return;
-  _nodeViews[k] = (_nodeViews[k] || 0) + 1;
-  try { localStorage.setItem('snlog_node_views', JSON.stringify(_nodeViews)); } catch (e) {}
-}
-// 2회 이상 본 노드를 많이 본 순으로 (현재 그래프에 있는 것만)
-function _frequentNodes(topN) {
-  const out = [];
-  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => {
-    if (!n.visible || n._aiSummary) return;
-    const c = _nodeViews[_stableNodeKey(n)] || 0;
-    if (c >= 2) out.push({ n, c });
-  });
-  return out.sort((a, b) => b.c - a.c).slice(0, topN);
 }
 
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)

@@ -398,7 +398,7 @@ function clearAllModes() {
   }
   if (_multiSelected.length) clearMultiSelect();
   if (_focusMode) { _focusMode = false; _focusNodeId = null; _activeGlowIds = new Set(); nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
-  if (_isolateActive) { _isolateActive = false; _pathConnectors = []; _activeGlowIds = new Set(); nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
+  if (_isolateActive) { _isolateActive = false; _activeGlowIds = new Set(); nodes.forEach(nd => { nd.dimmed = false; }); isStable = false; }
   if (_connectMode) {
     _connectMode = false;
     if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
@@ -844,10 +844,10 @@ function clearCache(type) {
 }
 
 // AI 대화 기록 삭제 (세션 + 로컬 저장분)
-// 사용 기록만 삭제 — AI 대화 · 검색 기록/자주 검색 · 최근/자주 본 노드.
+// 사용 기록만 삭제 — AI 대화 · 검색 기록/자주 검색 · 최근 본 노드.
 // (수동연결·북마크·페이지·설정 등 실제 데이터는 건드리지 않음)
 function clearChatAndRecent() {
-  showConfirm('사용 기록 삭제', 'AI 대화&검색 기록&최근&자주 본 노드 기록 전체 삭제.', () => {
+  showConfirm('사용 기록 삭제', 'AI 대화&검색 기록&최근 본 노드 기록 전체 삭제.', () => {
     const drop = k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} };
     // AI 대화
     _aiChat = [];
@@ -859,10 +859,8 @@ function clearChatAndRecent() {
     drop('snlog_search_history'); drop('snlog_search_counts');
     if (typeof renderSearchHistory === 'function') renderSearchHistory();
     if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
-    // 최근 본 노드(메모리) + 자주 본 노드(누적 조회수)
+    // 최근 본 노드(메모리)
     if (typeof _recentNodes !== 'undefined') _recentNodes = [];
-    if (typeof _nodeViews !== 'undefined') _nodeViews = {};
-    drop('snlog_node_views');
     if (typeof renderBookmarkList === 'function') renderBookmarkList();
     toast('사용 기록 삭제됨', { type: 'success' });
   }, true);

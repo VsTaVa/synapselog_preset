@@ -27,7 +27,6 @@ let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false;
-let _pathConnectors = [];
 // 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
 let _activeGlowIds = new Set();
 let _satelliteRemovedEdges = [];
@@ -274,10 +273,22 @@ function draw() {
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
+  // 호버한 노드에서 최상위까지의 조상 사슬 — 그 경로의 연결선만 굵게(경로 찾기 대체).
+  // 예전엔 호버 노드에 닿는 선을 전부 굵게 해서 하위로도 번졌다.
+  const hoverChain = new Set();
+  if (hoveredNode) {
+    let cur = hoveredNode.id;
+    hoverChain.add(cur);
+    for (let g = 0; g < 50; g++) {
+      const pe = getParentEdge(cur);
+      if (!pe) break;
+      cur = pe.from; hoverChain.add(cur);
+    }
+  }
   [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
     if(!na||!nb||!na.visible||!nb.visible) return;
-    const isHov = hoveredNode&&(hoveredNode.id===e.from||hoveredNode.id===e.to);
+    const isHov = hoveredNode && hoverChain.has(e.from) && hoverChain.has(e.to);
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
@@ -331,17 +342,6 @@ function draw() {
       ctx.fillStyle = `rgba(255,255,255,${isHov?0.85:0.5})`; ctx.fill();
     }
   });
-
-  if(_isolateActive && _pathConnectors.length) {
-    _pathConnectors.forEach(c => {
-      const a = nodeMap[c.from], b = nodeMap[c.to];
-      if(!a || !b || !a.visible || !b.visible) return;
-      ctx.strokeStyle = 'rgba(237,112,0,0.9)';
-      ctx.lineWidth = 1.8*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]);
-      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-      ctx.setLineDash([]);
-    });
-  }
 
   if(hasSearch && searchMatches.size > 0) {
     const matchArr = [...searchMatches].map(id => nodeMap[id]).filter(n => n && n.visible);

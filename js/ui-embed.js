@@ -201,7 +201,7 @@ function multiSelectFocus() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
   clearMultiSelect();
-  _isolateActive = false; _pathConnectors = [];
+  _isolateActive = false;
   _focusMode = true;
   applyFocusMode(node.id);
   isStable = false;
@@ -227,76 +227,6 @@ function multiSelectChainConnect() {
   clearMultiSelect();
 }
 
-function _bfsRealPath(startId, endId) {
-  if (startId === endId) return [startId];
-  const visited = new Set([startId]);
-  const prev = {};
-  const queue = [startId];
-  while (queue.length) {
-    const cur = queue.shift();
-    if (cur === endId) break;
-    edges.forEach(e => {
-      let next = null;
-      if (e.from === cur) next = e.to;
-      else if (e.to === cur) next = e.from;
-      if (next && !visited.has(next)) { visited.add(next); prev[next] = cur; queue.push(next); }
-    });
-  }
-  if (!visited.has(endId)) return [];
-  const path = [endId];
-  let cur = endId;
-  while (cur !== startId) { cur = prev[cur]; path.unshift(cur); }
-  return path;
-}
-
-function _findRootId(id) {
-  let cur = id;
-  for (let i = 0; i < 30; i++) {
-    const n = nodeMap[cur];
-    if (!n) return null;
-    if (n.level === 0) return cur;
-    const pe = getParentEdge(cur);
-    if (!pe) return cur;
-    cur = pe.from;
-  }
-  return cur;
-}
-
-function _bfsPath(startId, endId) {
-  const direct = _bfsRealPath(startId, endId);
-  if (direct.length) return direct;
-  const startRoot = _findRootId(startId), endRoot = _findRootId(endId);
-  if (!startRoot || !endRoot || startRoot === endRoot) return [];
-  const upPath = _bfsRealPath(startId, startRoot);
-  const downPath = _bfsRealPath(endRoot, endId);
-  if (!upPath.length || !downPath.length) return [];
-  _pathConnectors.push({ from: startRoot, to: endRoot });
-  return [...upPath, ...downPath];
-}
-
-function multiSelectPath() {
-  if (_multiSelected.length < 1) return;
-  const allPathIds = new Set();
-  _pathConnectors = [];
-  if (_multiSelected.length === 1) {
-    const startId = _multiSelected[0].id, rootId = _findRootId(startId);
-    if (rootId) _bfsRealPath(startId, rootId).forEach(id => allPathIds.add(id));
-  } else {
-    for (let i = 0; i < _multiSelected.length; i++) {
-      for (let j = i + 1; j < _multiSelected.length; j++) {
-        _bfsPath(_multiSelected[i].id, _multiSelected[j].id).forEach(id => allPathIds.add(id));
-      }
-    }
-  }
-  if (allPathIds.size === 0) { clearMultiSelect(); return; }
-  _focusMode = false; _focusNodeId = null;
-  _isolateActive = true;
-  _activeGlowIds = new Set(_multiSelected.map(n => n.id)); // 경로의 출발/도착 노드에 활성 글로우
-  nodes.forEach(n => { n.dimmed = !allPathIds.has(n.id); });
-  isStable = false;
-  clearMultiSelect();
-  setTimeout(fitGraph, 50);
-}
 
 // 위성 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
 function recomputeSatelliteFlags() {

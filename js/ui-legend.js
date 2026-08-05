@@ -105,7 +105,6 @@ function _legendToolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
     + row('노드 연결', '노드 간 연결')
     + row('포커스 모드', '연결된 노드 포커스')
-    + row('경로 찾기', '최단 경로 표시')
     + row('위성 모드', '그래프 분리 (제목 노란색)')
     + row('노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
@@ -465,7 +464,6 @@ function _exploreToolsHtml() {
   } else {
     html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로 연결/해제">${chainIcon} 순서대로 연결</button>`;
   }
-  html += `<button onclick="multiSelectPath()" title="${n === 1 ? '최상위 노드까지의 경로를 표시' : '선택한 노드들 사이의 최단 경로만 표시'}">↔ 경로 찾기</button>`;
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   const satIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>`;
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${satIcon} 위성 모드${satOn ? ' 해제' : ''}</button>`;

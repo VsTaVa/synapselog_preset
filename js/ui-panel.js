@@ -1183,7 +1183,7 @@ async function createChildNode(node, rawTitle) {
 function focusPage(pageId) {
   if (!pageId) return;
   _focusMode = false; _focusNodeId = null;
-  _isolateActive = true; _pathConnectors = [];
+  _isolateActive = true;
   const norm = String(pageId).replace(/-/g, '');
   const pageRoot = nodes.find(nd => nd.level === 0 && String(nd.sourcePageId || '').replace(/-/g, '') === norm);
   _activeGlowIds = new Set(pageRoot ? [pageRoot.id] : []); // 이전 모드의 글로우가 남지 않게 여기서 갱신
@@ -1222,7 +1222,6 @@ function openPanel(n) {
     _recentNodes = _recentNodes.filter(id => id !== n.id);
     _recentNodes.unshift(n.id);
     if (_recentNodes.length > 10) _recentNodes.length = 10;
-    if (typeof bumpNodeView === 'function') bumpNodeView(n); // '자주 본 노드' 집계
     if (_activeRailSection === 'pages' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }
   // '자리를 차지하고 있었나' — 접힌 상태는 그래프를 안 가리므로 열림으로 치지 않는다
