@@ -27,6 +27,22 @@ let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false;
+
+// 호버 강조 사슬 — 조상(루트까지) + 하위 트리 전체. 구조 링크만 따라간다(약한·수동 링크 제외).
+let _hoverChainId = null, _hoverChain = new Set();
+function _computeHoverChain(n) {
+  const s = new Set();
+  if (!n) return s;
+  s.add(n.id);
+  let cur = n.id;
+  for (let g = 0; g < 50; g++) { const pe = getParentEdge(cur); if (!pe) break; cur = pe.from; s.add(cur); }
+  const q = [n.id]; // 아래로는 호버 노드에서만 뻗는다 — 조상의 다른 자식(형제)은 포함하지 않음
+  while (q.length) {
+    const id = q.shift();
+    edges.forEach(ed => { if (ed.from === id && !ed.weakLink && !ed.manualLink && !s.has(ed.to)) { s.add(ed.to); q.push(ed.to); } });
+  }
+  return s;
+}
 // 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
 let _activeGlowIds = new Set();
 let _satelliteRemovedEdges = [];
@@ -273,22 +289,14 @@ function draw() {
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
-  // 호버한 노드에서 최상위까지의 조상 사슬 — 그 경로의 연결선만 굵게(경로 찾기 대체).
-  // 예전엔 호버 노드에 닿는 선을 전부 굵게 해서 하위로도 번졌다.
-  const hoverChain = new Set();
-  if (hoveredNode) {
-    let cur = hoveredNode.id;
-    hoverChain.add(cur);
-    for (let g = 0; g < 50; g++) {
-      const pe = getParentEdge(cur);
-      if (!pe) break;
-      cur = pe.from; hoverChain.add(cur);
-    }
-  }
+  // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
+  // 호버 노드가 바뀔 때만 다시 계산 — 매 프레임 BFS는 비싸다.
+  if (!hoveredNode) { _hoverChainId = null; _hoverChain.clear(); }
+  else if (hoveredNode.id !== _hoverChainId) { _hoverChainId = hoveredNode.id; _hoverChain = _computeHoverChain(hoveredNode); }
   [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
     if(!na||!nb||!na.visible||!nb.visible) return;
-    const isHov = hoveredNode && hoverChain.has(e.from) && hoverChain.has(e.to);
+    const isHov = hoveredNode && _hoverChain.has(e.from) && _hoverChain.has(e.to);
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
