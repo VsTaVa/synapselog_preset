@@ -409,10 +409,12 @@ export default async function handler(req, res) {
         } while (cur);
         return out;
       };
-      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'divider'];
+      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'divider', 'image', 'code'];
       const lineOf = (b) => {
         const t = b.type;
         if (t === 'divider') return '---';
+        if (t === 'image') { const im = b.image || {}; const u = im.type === 'external' ? (im.external?.url || '') : (im.file?.url || ''); return u ? `![${extractRichText(im.caption).replace(/[\[\]]/g,'')}](${u})` : ''; }
+        if (t === 'code') return '```' + (b.code?.language || '') + '\n' + (b.code?.rich_text || []).map(x => x.plain_text || '').join('') + '\n```';
         if (t === 'paragraph') return extractRichText(b.paragraph?.rich_text);
         if (t === 'bulleted_list_item') return '- ' + extractRichText(b.bulleted_list_item?.rich_text);
         if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
@@ -604,6 +606,20 @@ export default async function handler(req, res) {
         } else if (type === 'divider') {
           listCounter = 0;
           markdown += `[BB:${block.id.replace(/-/g,'')}]\n---\n`;
+        } else if (type === 'image') {
+          listCounter = 0;
+          const img = block.image || {};
+          const url = img.type === 'external' ? (img.external?.url || '') : (img.file?.url || '');
+          const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
+          if (url) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + `![${cap}](${url})` + '\n';
+        } else if (type === 'code') {
+          listCounter = 0;
+          const lang = block.code?.language || '';
+          const codeText = (block.code?.rich_text || []).map(t => t.plain_text || '').join('');
+          markdown += `[BB:${block.id.replace(/-/g,'')}]\n\`\`\`${lang}\n${codeText}\n\`\`\`\n`;
+        } else if (type === 'column_list' || type === 'column') {
+          // 다단 레이아웃 — 내용을 위→아래로 펼쳐 담는다(안 그러면 컬럼 안 내용이 통째로 유실)
+          if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent);
         } else if (type === 'quote') {
           listCounter = 0;
           markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(extractRichText(block.quote?.rich_text), IND) + '\n';
@@ -824,6 +840,20 @@ export default async function handler(req, res) {
             }
             else if (type === 'divider') {
               md += `[BB:${block.id.replace(/-/g,'')}]\n---\n`;
+            }
+            else if (type === 'image') {
+              const img = block.image || {};
+              const url = img.type === 'external' ? (img.external?.url || '') : (img.file?.url || '');
+              const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
+              if (url) md += `[BB:${block.id.replace(/-/g,'')}]\n![${cap}](${url})\n`;
+            }
+            else if (type === 'code') {
+              const lang = block.code?.language || '';
+              const codeText = (block.code?.rich_text || []).map(t => t.plain_text || '').join('');
+              md += `[BB:${block.id.replace(/-/g,'')}]\n\`\`\`${lang}\n${codeText}\n\`\`\`\n`;
+            }
+            else if ((type === 'column_list' || type === 'column') && block.has_children) {
+              md += await fetchBlocks(block.id, depth + 1, false, 0); // 다단 → 위→아래로 펼침
             }
             else if (type === 'quote') {
               const t = extractRichText(block.quote?.rich_text);
