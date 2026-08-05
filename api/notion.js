@@ -705,11 +705,19 @@ export default async function handler(req, res) {
   // ── action: 'headings' — DB 엔트리 제목만, 본문 없이 빠르게 ────────
   if (action === 'headings') {
     try {
+      // 페이지가 아니라 데이터베이스 id일 수 있다 — 그때는 DB를 루트로 삼아 항목들을 하위로 편다.
+      // (예전엔 /v1/pages 가 404라 DB는 아예 열 수 없었다)
       const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers });
-      if (!pageRes.ok) { const e = await pageRes.json(); return res.status(pageRes.status).json({ error: e.message }); }
-      const pageObj = await pageRes.json();
-      const pageTitle = extractPageTitle(pageObj);
-      const lastEdited = pageObj.last_edited_time || null;
+      let pageObj = null, dbObj = null;
+      if (pageRes.ok) pageObj = await pageRes.json();
+      else {
+        const dbRes = await fetch(`https://api.notion.com/v1/databases/${pageId}`, { headers });
+        if (!dbRes.ok) { const e = await pageRes.json().catch(() => ({})); return res.status(pageRes.status).json({ error: e.message || '페이지/DB를 찾을 수 없음' }); }
+        dbObj = await dbRes.json();
+      }
+      const pageTitle = dbObj ? ((dbObj.title || []).map(t => t.plain_text || '').join('').trim() || '데이터베이스')
+                              : extractPageTitle(pageObj);
+      const lastEdited = (dbObj || pageObj).last_edited_time || null;
       // Block children cache + DB-type check cache (avoids double API calls)
       const _hCache = new Map();
       const _dbCache = new Map(); // id → db object | null
@@ -834,7 +842,13 @@ export default async function handler(req, res) {
         return md;
       }
 
-      const markdown = await fetchHeadings(pageId);
+      // DB를 루트로 연 경우: 블록이 없으므로 DB 항목들을 바로 하위 노드로 편다
+      const markdown = dbObj
+        ? (await fetchDatabaseChildren(pageId))
+            .map(row => `[NOTION_ENTRY:${row.id.replace(/-/g,'')}]
+# ${extractPageTitle(row)}
+`).join('')
+        : await fetchHeadings(pageId);
       return res.status(200).json({ title: pageTitle, markdown, useDbNodes: globalUseDb, lastEdited });
     } catch(e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }

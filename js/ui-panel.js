@@ -77,6 +77,35 @@ function reopenDetailPanel() {
   _autoFitPanel();
 }
 
+// 재열기 손잡이를 끌어서도 열 수 있게 — 화살표 방향(가로=왼쪽, 세로 시트=위)으로
+// 일정 거리 이상 끌면 연다. 짧게 놓으면 클릭으로 처리되므로 onclick과 겹치지 않는다.
+(function setupReopenDrag() {
+  const btn = document.getElementById('detail-panel-sidebar-toggle');
+  if (!btn) return;
+  const OPEN_AT = 24; // 이만큼 끌면 열림
+  let sx = 0, sy = 0, active = false, opened = false;
+  const start = (e) => {
+    const t = e.touches ? e.touches[0] : e;
+    sx = t.clientX; sy = t.clientY; active = true; opened = false;
+    if (e.cancelable) e.preventDefault(); // 터치 스크롤·텍스트 선택 방지
+  };
+  const move = (cx, cy) => {
+    if (!active || opened) return;
+    // 시트(세로)는 위로, 우측 패널(가로)은 왼쪽으로 끌어야 여는 방향과 맞는다
+    const dist = _isSheetLayout() ? (sy - cy) : (sx - cx);
+    if (dist >= OPEN_AT) { opened = true; active = false; reopenDetailPanel(); }
+  };
+  const end = () => { active = false; };
+  btn.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
+  window.addEventListener('mouseup', end);
+  btn.addEventListener('touchstart', start, { passive: false });
+  window.addEventListener('touchmove', (e) => { if (active) { const t = e.touches[0]; if (t) move(t.clientX, t.clientY); } }, { passive: true });
+  window.addEventListener('touchend', end);
+  // 드래그로 이미 열었으면 뒤따르는 click은 무시(다시 토글되지 않게)
+  btn.addEventListener('click', (e) => { if (opened) { e.stopImmediatePropagation(); e.preventDefault(); opened = false; } }, true);
+})();
+
 // 상하 분할 시 위 패널이 차지하는 비율(0~1). 갤럭시 화면분할처럼 경계선 드래그로 조절
 let _paneRatio = 0.5;
 function _applyPaneRatio() {

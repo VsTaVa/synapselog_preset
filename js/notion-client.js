@@ -1028,10 +1028,16 @@ function _pageItemHtml(p) {
         ${acts}
       </div>`;
     }
-    // 데이터베이스는 하위 항목을 묶어주는 상위 행으로만 표시 (추가 대상 아님)
+    // 데이터베이스도 페이지처럼 그래프로 열 수 있다 — 항목들이 하위 노드가 된다.
+    // 하위를 묶는 상위 행이기도 하므로 pli-group 모양은 유지한다.
     if (p.isDatabase) {
-      return `<div class="page-list-item pli-group" data-page-id="${p.id}">
-        <span class="item-label" title="${safeTitle}">${safeTitle}</span>
+      const dbActs = isActive ? `<div class="item-actions">
+          <button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
+          <button class="btn-remove" onclick="event.stopPropagation();removePage('${p.id}', document.querySelector('[data-page-id=&quot;${p.id}&quot;]'))">${removeSvg}</button>
+        </div>` : '';
+      return `<div class="page-list-item pli-group${isActive ? ' active' : ''}" data-page-id="${p.id}">
+        <span class="item-label" title="${safeTitle}" onclick="${isActive ? `focusPage('${p.id}')` : `addPageById('${p.id}')`}">${safeTitle}</span>
+        ${dbActs}
       </div>`;
     }
     if (p.isLocal) {
@@ -1537,6 +1543,8 @@ async function _loadEntryNode(node, pageId) {
     if (!ok) return; // 3번 다 실패
   }
   if (!md) return; // 성공했지만 내용 없음
+  // 요청이 오가는 동안 페이지를 닫았을 수 있다 — 시작부 검사만으론 이미 날아간 요청을 못 막는다
+  if (!_addedPageIds.has(pageId)) return;
   const newIds = _addEntryChildNodes(node, md);
   if (newIds.size > 0) {
     // 새로 추가된 자식 + 이 엔트리만 물리 해제 — 이미 자리 잡은 다른 노드는 그대로 둠(재배치 방지)
@@ -1586,6 +1594,7 @@ async function _loadEntriesBackground(pageId) {
   const worker = async () => {
     while (_i < entryNodes.length) {
       const node = entryNodes[_i++];
+      if (!_addedPageIds.has(pageId)) break; // 닫혔으면 남은 항목은 요청조차 하지 않는다
       await _loadEntryNode(node, pageId);
       loaded++; setTag(`로딩 ${loaded}/${total}`);
     }
