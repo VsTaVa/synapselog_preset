@@ -218,8 +218,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 /* 좌측 액티비티 레일 + 플라이아웃 */
 #activity-rail { position: fixed; top: 0; left: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 260; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 14px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .rail-grp { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.rail-logo { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 8px; }
-.rail-logo img { width: 27px; height: 27px; }
 .rail-icon { position: relative; width: 42px; height: 42px; border-radius: 10px; background: none; border: none; color: #909093; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.14s, color 0.14s; }
 .rail-icon:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .rail-icon.active { background: rgba(var(--accent-rgb),0.16); color: var(--accent); }
@@ -747,10 +745,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* ── 세로 화면: 상세 패널을 우측이 아니라 하단 시트로 ────────────────── */
 @media (orientation: portrait) {
   :root {
-    /* 레일이 필요로 하는 세로 — 로고+상단4=238, 하단2=89, 패딩 26 (상단은 로고+4).
+    /* 레일이 필요로 하는 세로 — 아이콘 6개(42px) + 간격 5개(5px) = 277, 패딩 26.
        시트를 이만큼 남기고 멈춰야 레일 아이콘이 그래프 영역 안에 다 들어간다.
        JS(패널 드래그 상한)도 이 값을 읽어 쓰므로 기준은 여기 하나뿐이다. */
-    --rail-min-h: 353px;
+    --rail-min-h: 303px;
     --sheet-eff: min(var(--sheet-h, 72dvh), calc(100dvh - var(--rail-min-h)));
   }
   #detail-panel {
