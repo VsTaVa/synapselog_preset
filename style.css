@@ -529,27 +529,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-content strong { color: var(--accent); font-weight: 700; }
 .detail-content .md-mark { color: var(--accent); }
 .detail-content .md-hr { border: none; border-top: 1px solid rgba(var(--fg-rgb),0.18); margin: 10px 0; }
-/* 코드블록(펜스) — 통짜 모노스페이스 박스, 가로 스크롤 */
-.detail-content .md-code { margin: 8px 0; padding: 9px 11px; background: rgba(var(--fg-rgb),0.06); border: 1px solid rgba(var(--fg-rgb),0.12); border-radius: var(--radius); overflow-x: auto; }
-.detail-content .md-code code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; color: #e3e4e8; white-space: pre; background: none; border: none; padding: 0; }
 /* 이미지 — 패널 폭에 맞춤 */
 .detail-content .md-img { display: block; max-width: 100%; height: auto; border-radius: var(--radius); margin: 8px 0; }
-/* 댓글 섹션 */
-.detail-comments { margin-top: 14px; border-top: 1px solid rgba(var(--fg-rgb),0.1); padding-top: 8px; }
-.detail-comments-toggle { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 3px 0; }
-.detail-comments-toggle:hover { color: var(--text); }
-.detail-comments-list { margin-top: 6px; display: none; flex-direction: column; gap: 7px; }
-.detail-comments.open .detail-comments-list { display: flex; }
-.detail-comments .dc-item { background: rgba(var(--fg-rgb),0.05); border-radius: 8px; padding: 6px 9px; }
-.detail-comments .dc-text { font-size: 12.5px; color: var(--text); white-space: pre-wrap; word-break: keep-all; }
-.detail-comments .dc-time { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
-.detail-comments .dc-empty { font-size: 12px; color: var(--text-dim); }
-.detail-comments .dc-input-row { display: none; gap: 6px; margin-top: 8px; }
-.detail-comments.open .dc-input-row { display: flex; }
-.detail-comments .dc-input { flex: 1; resize: none; background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.14); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 12.5px; padding: 6px 9px; }
-.detail-comments .dc-send { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 700; padding: 0 12px; cursor: pointer; white-space: nowrap; }
-.detail-comments .dc-send:hover { background: rgba(var(--accent-rgb),0.25); }
-.detail-comments .dc-send:disabled { opacity: 0.5; cursor: default; }
 .detail-content .md-quote { display: block; margin: 5px 0; padding: 1px 0 1px 10px; border-left: 2.5px solid rgba(var(--fg-rgb),0.4); color: var(--text); }
 /* 콜아웃 — 인용과 같은 세로선 스타일, 구분 위해 accent 색 + 옅은 배경 */
 .detail-content .md-callout { display: block; margin: 7px 0; padding: 8px 11px; border: 1.5px solid rgba(var(--accent-rgb),0.45); border-radius: var(--radius); background: rgba(var(--accent-rgb),0.06); color: var(--text); }

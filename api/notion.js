@@ -49,6 +49,8 @@ export default async function handler(req, res) {
   // (마커는 첫 줄 머리만 제거하고 나머지(소프트 줄바꿈 포함)는 보존)
   function lineToBlock(raw) {
     const t = raw || '';
+    const imgM = /^\s*!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)\s*$/.exec(t); // ![](url) → 외부 이미지
+    if (imgM) return { type: 'image', value: { type: 'external', external: { url: imgM[1] } } };
     if (/^\s*---+\s*$/.test(t)) return { type: 'divider', value: {} }; // 구분선 — 목록('-')보다 먼저
     if (/^\s*[-*]\s+/.test(t)) return { type: 'bulleted_list_item', value: { rich_text: buildRichText(t.replace(/^\s*[-*]\s+/, '')) } };
     if (/^\s*\d+\.\s+/.test(t)) return { type: 'numbered_list_item', value: { rich_text: buildRichText(t.replace(/^\s*\d+\.\s+/, '')) } };
@@ -378,38 +380,6 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
-  // ── action: 'comments' — 블록/페이지의 미해결 댓글 조회 ──────────────
-  if (action === 'comments') {
-    const { blockId } = req.body;
-    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
-    try {
-      const items = []; let cursor;
-      do {
-        const r = await fetch(`https://api.notion.com/v1/comments?block_id=${blockId}${cursor ? `&start_cursor=${cursor}` : ''}`, { headers });
-        if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '댓글 조회 실패' }); }
-        const d = await r.json();
-        for (const c of (d.results || [])) items.push({ id: (c.id || '').replace(/-/g, ''), text: (c.rich_text || []).map(t => t.plain_text || '').join(''), created: c.created_time || '' });
-        cursor = d.has_more ? d.next_cursor : undefined;
-      } while (cursor);
-      return res.status(200).json({ comments: items });
-    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
-  }
-
-  // ── action: 'addComment' — 페이지에 댓글 달기 (노션 API는 블록 단위 신규 댓글 미지원) ─
-  if (action === 'addComment') {
-    const { pageId: pid, text } = req.body;
-    if (!pid || !(text || '').trim()) return res.status(400).json({ error: 'pageId/text 필요' });
-    try {
-      const r = await fetch('https://api.notion.com/v1/comments', {
-        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parent: { page_id: pid }, rich_text: buildRichText(text) })
-      });
-      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '댓글 추가 실패' }); }
-      const c = await r.json();
-      return res.status(200).json({ ok: true, id: (c.id || '').replace(/-/g, ''), created: c.created_time || '' });
-    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
-  }
-
   // ── action: 'headingNode' — 헤딩 노드 1개만 동기화 (제목 + 본문 블록) ─
   if (action === 'headingNode') {
     const { blockId, parentId } = req.body;
@@ -441,12 +411,11 @@ export default async function handler(req, res) {
         } while (cur);
         return out;
       };
-      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'divider', 'image', 'code'];
+      const BODY_TYPES = ['paragraph', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'callout', 'divider', 'image'];
       const lineOf = (b) => {
         const t = b.type;
         if (t === 'divider') return '---';
         if (t === 'image') { const im = b.image || {}; const u = im.type === 'external' ? (im.external?.url || '') : (im.file?.url || ''); return u ? `![${extractRichText(im.caption).replace(/[\[\]]/g,'')}](${u})` : ''; }
-        if (t === 'code') return '```' + (b.code?.language || '') + '\n' + (b.code?.rich_text || []).map(x => x.plain_text || '').join('') + '\n```';
         if (t === 'paragraph') return extractRichText(b.paragraph?.rich_text);
         if (t === 'bulleted_list_item') return '- ' + extractRichText(b.bulleted_list_item?.rich_text);
         if (t === 'numbered_list_item') return '1. ' + extractRichText(b.numbered_list_item?.rich_text);
@@ -644,11 +613,6 @@ export default async function handler(req, res) {
           const url = img.type === 'external' ? (img.external?.url || '') : (img.file?.url || '');
           const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
           if (url) markdown += `[BB:${block.id.replace(/-/g,'')}]\n` + IND + `![${cap}](${url})` + '\n';
-        } else if (type === 'code') {
-          listCounter = 0;
-          const lang = block.code?.language || '';
-          const codeText = (block.code?.rich_text || []).map(t => t.plain_text || '').join('');
-          markdown += `[BB:${block.id.replace(/-/g,'')}]\n\`\`\`${lang}\n${codeText}\n\`\`\`\n`;
         } else if (type === 'column_list' || type === 'column') {
           // 다단 레이아웃 — 내용을 위→아래로 펼쳐 담는다(안 그러면 컬럼 안 내용이 통째로 유실)
           if (block.has_children) markdown += await fetchBlocks(block.id, depth + 1, skipDb, indent);
@@ -878,11 +842,6 @@ export default async function handler(req, res) {
               const url = img.type === 'external' ? (img.external?.url || '') : (img.file?.url || '');
               const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
               if (url) md += `[BB:${block.id.replace(/-/g,'')}]\n![${cap}](${url})\n`;
-            }
-            else if (type === 'code') {
-              const lang = block.code?.language || '';
-              const codeText = (block.code?.rich_text || []).map(t => t.plain_text || '').join('');
-              md += `[BB:${block.id.replace(/-/g,'')}]\n\`\`\`${lang}\n${codeText}\n\`\`\`\n`;
             }
             else if ((type === 'column_list' || type === 'column') && block.has_children) {
               md += await fetchBlocks(block.id, depth + 1, false, 0); // 다단 → 위→아래로 펼침

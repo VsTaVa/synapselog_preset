@@ -234,14 +234,7 @@ function renderPaneContent(i, n) {
   setBtn.onclick = (e) => { e.stopPropagation(); toggleDetailSettings(setBtn, i, n, notionHref); };
   }
 
-  let rawDesc = escapeHtml(n.desc || '(내용 없음)');
-  // 코드블록(```lang … ```)은 먼저 빼두고(내부엔 볼드·목록 등 서식 적용 안 함) 맨 끝에 복원
-  const _codeBlocks = [];
-  rawDesc = rawDesc.replace(/```([a-z0-9+#.-]*)\n([\s\S]*?)\n```/gi, (m, lang, code) => {
-    _codeBlocks.push(`<pre class="md-code"><code>${code}</code></pre>`);
-    return `@@CODE${_codeBlocks.length - 1}@@`;
-  });
-  rawDesc = rawDesc
+  let rawDesc = escapeHtml(n.desc || '(내용 없음)')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
     .replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>')
     .replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
@@ -287,9 +280,7 @@ function renderPaneContent(i, n) {
     if (re) rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
-    let _html = mdTableToHtml(rawDesc);
-    if (_codeBlocks.length) _html = _html.replace(/@@CODE(\d+)@@/g, (m, i) => _codeBlocks[+i] || ''); // 코드블록 복원
-    contentEl.innerHTML = _html;
+    contentEl.innerHTML = mdTableToHtml(rawDesc);
     // 위키링크 클릭 → 해당 노드 열기
     contentEl.querySelectorAll('.wl-ref[data-nid]').forEach(el => {
       el.addEventListener('click', () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); });
@@ -297,51 +288,8 @@ function renderPaneContent(i, n) {
     if (searchKeyword && searchMatches.has(n.id)) {
       setTimeout(() => { const mark = contentEl.querySelector('mark'); if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
-    if (typeof _appendCommentsSection === 'function') _appendCommentsSection(contentEl, n);
   }
 
-}
-
-// 노션 노드 댓글 — 비용 아끼려 '댓글' 클릭 시 로드(읽기: 블록/페이지, 추가: 페이지 단위)
-function _appendCommentsSection(container, node) {
-  if (!node || node.local) return;
-  const readId = node.notionBlockId || node.entryNotionId || node.sourcePageId;
-  const pageId = node.entryNotionId || node.sourcePageId;
-  if (!readId || /^(md_|local_)/.test(String(node.sourcePageId || ''))) return;
-  const wrap = document.createElement('div'); wrap.className = 'detail-comments';
-  const trigger = document.createElement('button'); trigger.className = 'detail-comments-toggle'; trigger.textContent = '댓글';
-  wrap.appendChild(trigger); container.appendChild(wrap);
-  const timeOf = t => { if (!t) return ''; try { const d = new Date(t); return `${d.getMonth() + 1}.${d.getDate()}`; } catch (e) { return ''; } };
-  const itemHtml = (c, when) => `<div class="dc-item"><div class="dc-text">${escapeHtml(c.text || '')}</div><div class="dc-time">${when != null ? when : timeOf(c.created)}</div></div>`;
-  let loaded = false;
-  trigger.onclick = async () => {
-    if (loaded) { wrap.classList.toggle('open'); return; }
-    loaded = true; trigger.textContent = '댓글 불러오는 중…';
-    let comments;
-    try { comments = await notionComments(readId); }
-    catch (e) { loaded = false; trigger.textContent = '댓글'; toast('댓글 조회 실패(통합에 댓글 권한 필요): ' + (e.message || e), { type: 'error', duration: 5000 }); return; }
-    trigger.textContent = `댓글 ${comments.length}`; wrap.classList.add('open');
-    const list = document.createElement('div'); list.className = 'detail-comments-list';
-    list.innerHTML = comments.length ? comments.map(c => itemHtml(c)).join('') : '<div class="dc-empty">댓글 없음</div>';
-    wrap.appendChild(list);
-    if (pageId && !/^(md_|local_)/.test(String(pageId))) {
-      const row = document.createElement('div'); row.className = 'dc-input-row';
-      const ta = document.createElement('textarea'); ta.className = 'dc-input'; ta.rows = 1; ta.placeholder = '댓글 추가 (페이지에 게시)';
-      const btn = document.createElement('button'); btn.className = 'dc-send'; btn.textContent = '게시';
-      btn.onclick = async () => {
-        const t = ta.value.trim(); if (!t) return;
-        btn.disabled = true; btn.textContent = '게시중…';
-        try {
-          await notionAddComment(pageId, t);
-          list.querySelector('.dc-empty')?.remove();
-          list.insertAdjacentHTML('beforeend', itemHtml({ text: t }, '방금'));
-          ta.value = ''; trigger.textContent = `댓글 ${list.querySelectorAll('.dc-item').length}`;
-        } catch (e) { toast('댓글 추가 실패: ' + (e.message || e), { type: 'error', duration: 5000 }); }
-        finally { btn.disabled = false; btn.textContent = '게시'; }
-      };
-      row.appendChild(ta); row.appendChild(btn); wrap.appendChild(row);
-    }
-  };
 }
 
 
