@@ -328,7 +328,9 @@ function draw() {
     } else {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
-      const alpha=isDimEdge?0.08:(isHov?0.85:0.55), width=isDimEdge?0.5:(isHov?2.2:1.0);
+      // 호버 강조가 사슬 전체(조상+하위)로 넓어져 굵은 선이 한꺼번에 많아진다 →
+      // 두께 배수는 낮추고(2.2→1.5) 밝기로 존재감을 채운다(0.85→0.95)
+      const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:(isHov?1.5:1.0);
       const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
       // 자식이 깊을수록 가늘게 — 굵은 쪽이 상위라, 선만 봐도 어느 방향이 위인지 읽힌다
       ctx.strokeStyle=rgbStr(eRgb,alpha);
