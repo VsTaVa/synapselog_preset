@@ -81,6 +81,9 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }
+// 페이지 목록의 동기화 버튼과 같은 아이콘 — 화살표 1개(페이지) / 2개(전체)
+const SYNC_ONE = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+const SYNC_ALL = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
 function _legendToolsHtml() {
   const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
   return `<div class="lg-note lg-note-top">노드 우클릭 시 도구 툴바 표시</div>`
@@ -97,6 +100,12 @@ function _legendToolsHtml() {
     + row('경로 찾기', '최단 경로 표시')
     + row('위성 모드', '그래프 분리 (제목 노란색)')
     + row('노드 고정', '노드 고정 및 위치 이동')
+    + `</div>`
+    // 동기화 두 가지가 같은 자리에 있어 헷갈리기 쉬움 — 무엇이 다른지 여기서 설명
+    + `<div class="lg-sec"><div class="lg-sec-title">동기화</div>`
+    + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
+    + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
+    + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`
     + `</div>`;
 }
 function _legendAiHtml() {
