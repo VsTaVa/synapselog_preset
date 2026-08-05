@@ -40,7 +40,8 @@ input[type=range]:focus-visible,
 #depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
-#legend { position: fixed; left: 64px; bottom: 14px; z-index: 220; } /* 하단 시트(210)보다 위 */
+/* 도움말 버튼이 레일 위쪽(AI 아래)으로 옮겨져 범례도 상단에서 뜬다. 하단 시트(210)보다 위 */
+#legend { position: fixed; left: 64px; top: 14px; z-index: 220; }
 #legend-body { display: none; width: 276px; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #legend.open #legend-body { display: flex; gap: 11px; }
 .lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
@@ -764,10 +765,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
      레일이 detail-panel보다 DOM 앞에 있어 형제 선택자로는 못 잡으므로 :has() 사용. */
   body:has(#detail-panel.open:not(.panel-collapsed)) #activity-rail {
     height: calc(100dvh - var(--sheet-eff));
-  }
-  /* 범례는 화면 바닥 기준이라 시트에 가린다 → 시트 위로 띄운다 */
-  body:has(#detail-panel.open:not(.panel-collapsed)) #legend {
-    bottom: calc(var(--sheet-eff) + 14px);
   }
   /* 확대·회전 표시(#status)와 재열기 손잡이는 둘 다 하단 가운데라 서로 겹친다.
      손잡이(bottom 10~26) 위에 얹어 같은 세로줄에 나란히 놓는다. */
