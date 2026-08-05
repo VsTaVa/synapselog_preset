@@ -115,6 +115,39 @@ export default async function handler(req, res) {
         }
         cursor = data.has_more ? data.next_cursor : undefined;
       } while (cursor);
+      // 콜아웃·토글·컬럼 안에 있는 페이지/DB는 parent.type이 'block_id'이고
+      // parent.block_id가 그 '블록' id라 페이지 목록에 없다 → 트리에서 부모를 못 찾아 최상위로 떠버린다.
+      // 블록을 거슬러 올라가 실제 페이지/DB 조상을 찾아 parentId를 바꿔 끼운다.
+      const blockOwner = new Map(); // 블록id → 조상 페이지id (같은 콜아웃 안 여러 개면 재사용)
+      const resolveOwner = async (blockId) => {
+        let cur = blockId;
+        const chain = [];
+        for (let depth = 0; depth < 6 && cur; depth++) {
+          if (blockOwner.has(cur)) { const hit = blockOwner.get(cur); chain.forEach(b => blockOwner.set(b, hit)); return hit; }
+          chain.push(cur);
+          let b;
+          try {
+            const r = await fetch(`https://api.notion.com/v1/blocks/${cur}`, { headers });
+            if (!r.ok) break;
+            b = await r.json();
+          } catch (e) { break; }
+          const bp = b.parent || {};
+          if (bp.type === 'page_id' || bp.type === 'database_id') {
+            const owner = (bp.page_id || bp.database_id || '').replace(/-/g, '');
+            chain.forEach(x => blockOwner.set(x, owner));
+            return owner;
+          }
+          if (bp.type !== 'block_id') break;
+          cur = bp.block_id;
+        }
+        chain.forEach(x => blockOwner.set(x, ''));
+        return '';
+      };
+      for (const row of pages) {
+        if (row.parentType !== 'block_id' || !row.parentId) continue;
+        const owner = await resolveOwner(row.parentId);
+        if (owner) { row.parentId = owner; row.parentType = 'page_id'; }
+      }
       return res.status(200).json({ pages });
     } catch(e) {
       return res.status(500).json({ error: e.message });
