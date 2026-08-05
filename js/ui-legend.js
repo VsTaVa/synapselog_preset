@@ -458,7 +458,9 @@ function _exploreToolsHtml() {
   let html = '';
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="해당 노드를 다른 노드들과 연결/해제">${chainIcon} 노드 다중 연결</button>`;
-    html += `<button onclick="multiSelectFocus()" title="해당 노드의 상/하위 노드만 표시">${focusIcon} 포커스 모드</button>`;
+    // 고정·위성 버튼과 같은 방식 — 켜져 있으면 해제 버튼으로 보인다
+    const focusOn = _focusMode && _focusNodeId === _multiSelected[0].id;
+    html += `<button onclick="multiSelectFocus()" title="${focusOn ? '포커스 모드 해제' : '해당 노드의 상/하위 노드만 표시'}">${focusIcon} ${focusOn ? '포커스 해제' : '포커스 모드'}</button>`;
   } else if (n === 2) {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   } else {

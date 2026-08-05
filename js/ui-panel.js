@@ -1245,10 +1245,9 @@ function openPanel(n) {
   statusEl.classList.add('panel-open');
   renderPanes(added ? n.id : null);
   updateDetailReopenTab();
-  if (_focusMode) {
-    const shallow = _focusNodeId !== null && !n.dimmed && !isAncestorOf(n.id, _focusNodeId);
-    applyFocusMode(n.id, shallow);
-  }
+  // 포커스 모드 중에는 노드를 눌러도 대상이 바뀌지 않는다 —
+  // 매번 옮겨가면 '이 가지만 남기고 작업'이라는 목적 자체가 없어진다.
+  // 해제는 우클릭 툴바의 포커스 모드(토글) 또는 빈 공간 클릭.
   if (n.level === 0) {
     highlightSidebarPage(n.sourcePageId || null);
     if (_activeRailSection !== 'pages') openRailSection('pages'); // 최상위 노드 → 페이지 목록 열기

@@ -201,6 +201,15 @@ function multiSelectFocus() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
   clearMultiSelect();
+  // 이미 그 노드에 포커스가 걸려 있으면 해제(토글) — 켜는 버튼이 곧 끄는 버튼
+  if (_focusMode && _focusNodeId === node.id) {
+    _focusMode = false; _focusNodeId = null;
+    _activeGlowIds = new Set();
+    nodes.forEach(nd => { nd.dimmed = false; });
+    isStable = false;
+    setTimeout(fitGraph, 50);
+    return;
+  }
   _isolateActive = false;
   _focusMode = true;
   applyFocusMode(node.id);
