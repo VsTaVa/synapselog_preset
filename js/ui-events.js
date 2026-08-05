@@ -663,78 +663,6 @@ function saveDetailSize() { if (_isSheetLayout()) saveSheetHeight(); else saveDe
   window.addEventListener('touchend', end);
 })();
 
-// ── 언어 시스템 ────────────────────────────────────────────────────────
-
-const LANG = {
-  ko: {
-    'pg-add':'페이지 추가','kw-search':'키워드 검색','graph-cfg':'그래프 설정',
-    'lbl-title':'제목 표시','lbl-focus':'포커스 모드','lbl-connect':'연결 모드','lbl-multiselect':'노드 선택 모드','lbl-fit':'화면 맞춤',
-    'lbl-export':'이미지 내보내기','lbl-fit-short':'화면 맞춤','lbl-export-short':'이미지 저장','lbl-settings':'설정','lbl-repulsion':'노드 반발력','lbl-tension':'링크 장력','lbl-gravity':'중력','lbl-node-size':'노드 크기','lbl-link-width':'링크 두께',
-    'ph-add':'노션 링크 or .MD파일(폴더) 임포트','ph-search':'키워드 입력',
-    'btn-sync-all':'전체 동기화 (새 페이지·MD·폴더 포함)','btn-close-all':'전체 닫기',
-    's-lang':'언어 / Language','s-lang-label':'언어','s-lang-sub':'앱 UI 언어 변경',
-    's-export':'이미지 저장','s-export-label':'PNG 저장',
-    's-api':'Notion API','sc-save':'저장','sc-placeholder-token':'새 API 입력...',
-    's-aikey':'AI API','s-aikey-sub':'Google AI Studio 제미나이 키','s-aikey-ph':'AIza...',
-    's-imgsize':'이미지 저장 크기',
-    's-shortcuts':'키보드 단축키','s-shortcuts-hint':'버튼 클릭 후 원하는 키 입력',
-    'sc-lbl':'제목 표시','sc-lbl-sub':'제목 표시 / 그래프',
-    'sc-focus':'포커스 모드','sc-focus-sub':'선택 노드만 표시',
-    'sc-connect':'연결 모드','sc-connect-sub':'노드 수동 연결',
-    'sc-multiselectmode':'노드 선택 모드','sc-multiselectmode-sub':'노드 클릭하여 편집&탐색 메뉴 열기',
-    'sc-fit':'화면 맞춤','sc-fit-sub':'전체 화면 맞춤',
-    'sc-hide':'패널 숨기기','sc-hide-sub':'Esc (고정)',
-    'sc-pin':'노드 고정 / 해제','sc-pin-sub':'Ctrl+클릭으로 고정','sc-dblclick':'Ctrl+클릭',
-    'sc-multiselect':'노드 선택','sc-multiselect-sub':'연결 / 경로찾기 / 위성 / 고정','sc-shiftclick':'더블클릭',
-    'lbl-collapse-all':'토글 전체 접기','lbl-nodecolor':'노드 색상','cs-node-btn':'노드별','cs-depth-btn':'깊이별','lbl-nodemode':'노드 모드','lbl-graphset':'그래프 설정','lbl-sliders':'슬라이더','lbl-showconn':'노드 연결 표시','lbl-showlabels':'제목 표시','lbl-layout':'그래프 배치','lm-force-btn':'힘기반','lm-radial-btn':'방사형','lm-cluster-btn':'페이지별','lbl-page':'페이지','lbl-title-size':'제목 크기','lbl-rotation':'화면 회전',
-    'rail-pages':'페이지 목록','rail-search':'검색','rail-nodemode':'노드 모드','rail-graphcfg':'그래프 설정','rail-aichat':'AI 대화',
-    'ai-chat':'AI 대화','ai-chat-hint':'노드 기반 AI 대화','ai-chat-ph':'키워드 입력하여 AI와 대화 시작',
-    'sc-sel-sub':'노드 우클릭 (모바일: 더블탭)','sc-rightclick':'우클릭','sc-fit-sub2':'스페이스바 & 빈 공간 더블클릭 / 더블탭','sc-dblclick2':'Space & 더블클릭','sc-rotate':'화면 회전','sc-rotate-sub':'빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)','sc-rotate-key':'우클릭 드래그','sc-zoom':'화면 확대 / 축소','sc-zoom-sub':'마우스 휠 (모바일: 두 손가락)','sc-zoom-key':'마우스 휠',
-    's-storage':'저장 & 캐시','s-local':'로컬 저장 사용','s-local-sub':'로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.',
-    's-page-cache':'페이지 캐시','s-page-cache-sub':'불러온 노션 페이지 내용',
-    's-connect-cache':'연결 모드 캐시','s-connect-cache-sub':'수동 연결 엣지',
-    's-all-cache':'전체 캐시','s-all-cache-sub':'전체 초기화','s-aihist':'AI 대화 기록','s-clear-hist':'사용 기록','s-clear-hist-sub':'검색 & 대화 기록 삭제','s-del':'삭제','s-del-all':'전체 삭제','s-close-btn':'닫기',
-  },
-  en: {
-    'pg-add':'Add Page','kw-search':'Search','graph-cfg':'Graph Settings',
-    'lbl-title':'Title Mark','lbl-focus':'Focus Mode','lbl-connect':'Connect Mode','lbl-multiselect':'Node Select Mode','lbl-fit':'Fit to View',
-    'lbl-export':'Export PNG','lbl-fit-short':'Fit','lbl-export-short':'Export','lbl-settings':'Settings','lbl-repulsion':'Repulsion','lbl-tension':'Link Tension','lbl-gravity':'Gravity','lbl-node-size':'Node Size','lbl-link-width':'Link Width',
-    'ph-add':'Notion link or .MD file/folder import','ph-search':'Enter a keyword...',
-    'btn-sync-all':'Sync All (incl. new pages, MD, folders)','btn-close-all':'Close All',
-    's-lang':'Language','s-lang-label':'Language','s-lang-sub':'Change app UI language',
-    's-export':'Save Image','s-export-label':'Save PNG',
-    's-api':'Notion API Token','sc-save':'Save','sc-placeholder-token':'Enter new token...',
-    's-aikey':'AI API Key','s-aikey-sub':'Google AI Studio Gemini key. Used for summarizing selected nodes & writing markdown.','s-aikey-ph':'AIza...',
-    's-imgsize':'Export Image Size',
-    's-shortcuts':'Keyboard Shortcuts','s-shortcuts-hint':'Click a button, then press a key',
-    'sc-lbl':'Toggle Labels','sc-lbl-sub':'Show/hide node labels',
-    'sc-focus':'Focus Mode','sc-focus-sub':'Show selected node only',
-    'sc-connect':'Connect Mode','sc-connect-sub':'Connect nodes manually',
-    'sc-multiselectmode':'Node Select Mode','sc-multiselectmode-sub':'Click nodes to open edit/explore menu',
-    'sc-fit':'Fit to View','sc-fit-sub':'Fit graph to screen',
-    'sc-hide':'Hide Panel','sc-hide-sub':'Esc (fixed)',
-    'sc-pin':'Pin / Unpin Node','sc-pin-sub':'Ctrl+Click to pin','sc-dblclick':'Ctrl+Click',
-    'sc-multiselect':'Select Node','sc-multiselect-sub':'Connect / Path / Satellite / Pin','sc-shiftclick':'Double-click',
-    'lbl-collapse-all':'Collapse All Toggles','lbl-nodecolor':'Node Color','cs-node-btn':'Per-node','cs-depth-btn':'By depth','lbl-nodemode':'Node Mode','lbl-graphset':'Graph Settings','lbl-sliders':'Sliders','lbl-showconn':'Show Connections','lbl-showlabels':'Show Titles','lbl-layout':'Layout','lm-force-btn':'Force','lm-radial-btn':'Radial','lm-cluster-btn':'By page','lbl-page':'Page','lbl-title-size':'Title Size','lbl-rotation':'View Rotation',
-    'rail-pages':'Page List','rail-search':'Search','rail-nodemode':'Node Mode','rail-graphcfg':'Graph Settings','rail-aichat':'AI Chat',
-    'ai-chat':'AI Chat','ai-chat-hint':'Node-based AI chat','ai-chat-ph':'Type a keyword to chat with AI',
-    'sc-sel-sub':'Right-click node (mobile: double-tap)','sc-rightclick':'Right-click','sc-fit-sub2':'Spacebar & double-click empty space / double-tap','sc-dblclick2':'Space & Double-click','sc-rotate':'View Rotation','sc-rotate-sub':'Right-drag empty space up/down (mobile: two fingers)','sc-rotate-key':'Right-drag','sc-zoom':'Zoom In / Out','sc-zoom-sub':'Mouse wheel (mobile: pinch)','sc-zoom-key':'Mouse wheel',
-    's-storage':'Storage & Cache','s-local':'Use Local Storage','s-local-sub':'API token is stored in this device\'s browser. Not recommended on shared devices.',
-    's-page-cache':'Page Cache','s-page-cache-sub':'Loaded Notion page content',
-    's-connect-cache':'Connect Cache','s-connect-cache-sub':'Manual edge connections',
-    's-all-cache':'All Cache','s-all-cache-sub':'Resets everything incl. node mode & graph settings (stays logged in)','s-aihist':'AI Chat History','s-clear-hist':'Usage History','s-clear-hist-sub':'AI chat, search history, recent/frequent nodes','s-del':'Delete','s-del-all':'Delete All','s-close-btn':'Close',
-  }
-};
-
-let _lang = localStorage.getItem('snlog_lang') || 'ko';
-function t(key) { return (LANG[_lang] || LANG.ko)[key] || (LANG.ko[key] || key); }
-function setLang(lang) { _lang = lang; localStorage.setItem('snlog_lang', lang); applyLang(); }
-function applyLang() {
-  document.querySelectorAll('[data-i18n]').forEach(el => { const v = t(el.dataset.i18n); if (v) el.textContent = v; });
-  document.querySelectorAll('[data-i18n-ph]').forEach(el => { const v = t(el.dataset.i18nPh); if (v) el.placeholder = v; });
-  document.querySelectorAll('[data-i18n-title]').forEach(el => { const v = t(el.dataset.i18nTitle); if (v) el.title = v; });
-  ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
-}
 function toggleSection(id) {
   const body = document.getElementById('section-' + id), arrow = document.getElementById('arrow-' + id);
   if (!body) return;
@@ -826,7 +754,7 @@ function openSettings() {
 
   // 저장된 키 표시(마스킹) — 넣었는지 눈으로 확인 가능하게
   const tIn = document.getElementById('settings-token-input');
-  if (tIn) { tIn.value = ''; tIn.placeholder = _savedToken ? 'Notion API 저장됨' : (t('sc-placeholder-token') || '새 토큰 입력...'); }
+  if (tIn) { tIn.value = ''; tIn.placeholder = _savedToken ? 'Notion API 저장됨' : '새 토큰 입력...'; }
   const aIn = document.getElementById('settings-aikey-input');
   if (aIn) { aIn.value = ''; aIn.placeholder = _savedAiKey ? 'AI API 저장됨' : 'AIza...'; }
 
@@ -836,7 +764,6 @@ function openSettings() {
   ['pages'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
   ['toggleLabels'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
-  ['ko','en'].forEach(l => { document.getElementById('lang-btn-' + l)?.classList.toggle('active', _lang === l); });
 
   ['shortcuts', 'storage'].forEach(id => {
     const saved = localStorage.getItem('snlog_sec_' + id), body = document.getElementById('section-' + id), arrow = document.getElementById('arrow-' + id);
@@ -948,7 +875,7 @@ function clearToken() {
     _savedToken = '';
     try { sessionStorage.removeItem('snlog_token'); localStorage.removeItem('snlog_token'); } catch (e) {}
     const input = document.getElementById('settings-token-input');
-    if (input) { input.value = ''; input.placeholder = t('sc-placeholder-token') || '새 토큰 입력...'; }
+    if (input) { input.value = ''; input.placeholder = '새 토큰 입력...'; }
     const m = document.getElementById('settings-token-msg');
     if (m) { m.textContent = '삭제됨'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
     if (typeof loadProfile === 'function') loadProfile();
@@ -991,7 +918,6 @@ function restoreSearchHistory() {
 
 restoreSlider(); // 저장된 슬라이더 값을 인풋에 먼저 넣고 → updateConfig가 기본값으로 덮어쓰지 않게
 updateConfig();
-applyLang();
 updateShortcutHints();
 setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화

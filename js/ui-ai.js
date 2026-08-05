@@ -516,7 +516,7 @@ function _enterCmdMode(cmd) {
 function _exitCmdMode() {
   _aiActiveCmd = null;
   const input = document.getElementById('aichat-input');
-  if (input) input.placeholder = (typeof t === 'function' ? t('ai-chat-ph') : '') || '키워드 입력하여 AI와 대화 시작';
+  if (input) input.placeholder = '키워드 입력하여 AI와 대화 시작';
   _renderAiTokens();
 }
 function _renderAiTokens() {
@@ -526,7 +526,7 @@ function _renderAiTokens() {
   const nodes = _multiSelected || [];
   if (!_aiActiveCmd && !nodes.length) {
     box.innerHTML = ''; box.style.display = 'none';
-    if (input && !_aiActiveCmd) input.placeholder = (typeof t === 'function' ? t('ai-chat-ph') : '') || '키워드 입력하여 AI와 대화 시작';
+    if (input && !_aiActiveCmd) input.placeholder = '키워드 입력하여 AI와 대화 시작';
     return;
   }
   let html = _aiActiveCmd ? `<span class="aichat-cmd-pill">${escapeHtml(_aiActiveCmd.name)}</span>` : '';
