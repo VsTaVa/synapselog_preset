@@ -239,7 +239,7 @@ function renderPaneContent(i, n) {
   const _codeBlocks = [];
   rawDesc = rawDesc.replace(/```([a-z0-9+#.-]*)\n([\s\S]*?)\n```/gi, (m, lang, code) => {
     _codeBlocks.push(`<pre class="md-code"><code>${code}</code></pre>`);
-    return ` C${_codeBlocks.length - 1} `;
+    return `@@CODE${_codeBlocks.length - 1}@@`;
   });
   rawDesc = rawDesc
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/~~([^~]+)~~/g, '<del>$1</del>')
@@ -271,6 +271,9 @@ function renderPaneContent(i, n) {
   rawDesc = rawDesc.replace(/^[ \t]*---+[ \t]*\n?/gm, '<hr class="md-hr">');
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
   rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
+  // 이미지 ![캡션](url) → <img> (링크 치환보다 먼저 — '!'가 붙은 링크가 텍스트 링크로 안 잡히게)
+  rawDesc = rawDesc.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) =>
+    `<img class="md-img" src="${url.replace(/&amp;/g, '&')}" alt="${alt}" loading="lazy">`);
   // [텍스트](url) → 링크. 노드로 해석되면 내부 이동, 아니면 외부 링크. (원문 이스케이프됨: & 는 &amp;)
   rawDesc = rawDesc.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (mm, txt, url) => {
     const decUrl = url.replace(/&amp;/g, '&');
@@ -284,7 +287,9 @@ function renderPaneContent(i, n) {
     if (re) rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
-    contentEl.innerHTML = mdTableToHtml(rawDesc);
+    let _html = mdTableToHtml(rawDesc);
+    if (_codeBlocks.length) _html = _html.replace(/@@CODE(\d+)@@/g, (m, i) => _codeBlocks[+i] || ''); // 코드블록 복원
+    contentEl.innerHTML = _html;
     // 위키링크 클릭 → 해당 노드 열기
     contentEl.querySelectorAll('.wl-ref[data-nid]').forEach(el => {
       el.addEventListener('click', () => { const tn = nodeMap[el.dataset.nid]; if (tn) openPanel(tn); });
