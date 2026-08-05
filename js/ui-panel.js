@@ -77,12 +77,12 @@ function reopenDetailPanel() {
   _autoFitPanel();
 }
 
-// 재열기 손잡이를 끌어서도 열 수 있게 — 화살표 방향(가로=왼쪽, 세로 시트=위)으로
-// 일정 거리 이상 끌면 연다. 짧게 놓으면 클릭으로 처리되므로 onclick과 겹치지 않는다.
+// 재열기 손잡이를 끌면 열리면서 '크기까지' 잡힌다 — 포인터 위치가 곧 패널 크기.
+// 여는 방향(가로=왼쪽, 세로 시트=위)으로 OPEN_AT 이상 끌면 열리고, 그 뒤로는 계속 따라온다.
 (function setupReopenDrag() {
   const btn = document.getElementById('detail-panel-sidebar-toggle');
   if (!btn) return;
-  const OPEN_AT = 24; // 이만큼 끌면 열림
+  const OPEN_AT = 24; // 이만큼 끌면 열림 (그 아래는 클릭으로 처리)
   let sx = 0, sy = 0, active = false, opened = false;
   const start = (e) => {
     const t = e.touches ? e.touches[0] : e;
@@ -90,19 +90,43 @@ function reopenDetailPanel() {
     if (e.cancelable) e.preventDefault(); // 터치 스크롤·텍스트 선택 방지
   };
   const move = (cx, cy) => {
-    if (!active || opened) return;
-    // 시트(세로)는 위로, 우측 패널(가로)은 왼쪽으로 끌어야 여는 방향과 맞는다
-    const dist = _isSheetLayout() ? (sy - cy) : (sx - cx);
-    if (dist >= OPEN_AT) { opened = true; active = false; reopenDetailPanel(); }
+    if (!active) return;
+    const sheet = _isSheetLayout();
+    if (!opened) {
+      if ((sheet ? sy - cy : sx - cx) < OPEN_AT) return;
+      opened = true;
+      // 전환 애니메이션을 꺼야 포인터를 그대로 따라온다(resizing-panel이 transition:none)
+      document.body.classList.add('resizing-panel');
+      reopenDetailPanel();
+    }
+    if (sheet) {
+      const h = Math.max(SHEET_H_MIN, Math.min(window.innerHeight - sheetTopKeep(), window.innerHeight - cy));
+      document.documentElement.style.setProperty('--sheet-h', h + 'px');
+    } else {
+      const w = Math.max(DETAIL_W_MIN, Math.min(DETAIL_W_MAX, window.innerWidth - cx));
+      document.documentElement.style.setProperty('--detail-w', w + 'px');
+    }
   };
-  const end = () => { active = false; };
+  const end = () => {
+    if (!active) return;
+    active = false;
+    if (!opened) return;
+    document.body.classList.remove('resizing-panel');
+    if (typeof saveDetailSize === 'function') saveDetailSize(); // 잡은 크기를 기억
+    try { fitGraph(false); } catch (e) {}
+  };
   btn.addEventListener('mousedown', start);
   window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
   window.addEventListener('mouseup', end);
   btn.addEventListener('touchstart', start, { passive: false });
-  window.addEventListener('touchmove', (e) => { if (active) { const t = e.touches[0]; if (t) move(t.clientX, t.clientY); } }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (!active) return;
+    const t = e.touches[0]; if (!t) return;
+    move(t.clientX, t.clientY);
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
   window.addEventListener('touchend', end);
-  // 드래그로 이미 열었으면 뒤따르는 click은 무시(다시 토글되지 않게)
+  // 드래그로 이미 열었으면 뒤따르는 click은 무시(바로 다시 닫히지 않게)
   btn.addEventListener('click', (e) => { if (opened) { e.stopImmediatePropagation(); e.preventDefault(); opened = false; } }, true);
 })();
 
