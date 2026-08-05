@@ -9,7 +9,11 @@ const _railSections = ['pages', 'search', 'graphcfg', 'aichat'];
 function openRailSection(name) {
   if (_activeRailSection === name) { closeRailFlyout(); return; }
   _activeRailSection = name;
-  document.querySelectorAll('#sidebar .rail-pane').forEach(el => el.classList.toggle('active', el.dataset.section === name));
+  // 범례 패널은 _legendOpen이 따로 관리한다 — 여기서 같이 끄면 섹션을 바꿀 때 도움말이 사라진다
+  document.querySelectorAll('#sidebar .rail-pane').forEach(el => {
+    if (el.dataset.section === 'legend') return;
+    el.classList.toggle('active', el.dataset.section === name);
+  });
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.toggle('active', k === name); });
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('open');
   // 좌우로 못 나누는 상황이면 상세 패널을 접는다 (반대 방향은 ui-panel의 _yieldSidebarIfNarrow)
@@ -111,6 +115,10 @@ function removeRecentNode(id) {
 function closeRailFlyout() {
   if (!_activeRailSection) return;
   _activeRailSection = null;
+  // 섹션 패널은 내려준다(범례는 제외) — 안 그러면 닫았는데도 계속 보인다
+  document.querySelectorAll('#sidebar .rail-pane').forEach(el => {
+    if (el.dataset.section !== 'legend') el.classList.remove('active');
+  });
   // 범례가 켜져 있으면 사이드바는 열어둔다 — 범례가 그 안에 살기 때문
   const keepOpen = typeof _legendOpen !== 'undefined' && _legendOpen;
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.toggle('open', keepOpen);
