@@ -874,6 +874,9 @@ function updateToken() {
   if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
   if (msg) { msg.textContent = '저장됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile();
+  // 토큰이 바뀌면 접근 가능한 페이지가 통째로 달라진다 → 목록을 바로 다시 받는다
+  // (예전엔 이게 없어서 새 토큰을 넣어도 새로고침 전까진 목록이 그대로였다)
+  if (typeof initSidebarPageList === 'function') initSidebarPageList();
 }
 
 function updateAiKey() {

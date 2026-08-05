@@ -854,20 +854,29 @@ async function initSidebarPageList() {
   await refreshSidebarPageList();
 }
 
+// 노션에서 접근 가능한 페이지 목록을 다시 받아 사이드바에 반영.
+// 새로 만든 페이지·새 토큰으로 바뀐 목록이 여기서 들어온다. → 새로 발견한 페이지 수 반환
 async function refreshSidebarPageList() {
-  if (!_savedToken) return;
+  if (!_savedToken) return 0;
   const listEl = document.getElementById('sidebar-page-list');
-  if (!listEl) return;
+  if (!listEl) return 0;
+  // 목록 영역이 접혀 있으면(토큰만 넣고 아직 페이지를 안 담은 상태) 펼쳐준다 —
+  // 안 그러면 새로 받아온 목록이 숨겨진 채로 그려져 "반영이 안 된다"로 보인다
+  const wrap = document.getElementById('sidebar-page-list-wrap');
+  if (wrap) wrap.style.display = 'block';
   listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
   try {
+    const prevIds = new Set((window._sidebarPageList || []).map(p => p.id));
     const data = await notionFetch({ action: 'list' });
     const pages = data.pages || [];
     // 로컬/MD/폴더 항목은 노션 목록에 없으므로 보존
     const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd || p.isFolder) && !pages.some(q => q.id === p.id));
     window._sidebarPageList = pages.concat(extras);
     renderSidebarPageList(window._sidebarPageList);
+    return pages.filter(p => !prevIds.has(p.id)).length;
   } catch(e) {
     listEl.innerHTML = `<div style="font-size:11px; color:#ff6b6b; padding:6px 0; text-align:center;">${e.message}</div>`;
+    return 0;
   }
 }
 
@@ -1399,11 +1408,16 @@ async function bulkSync(opts) {
       const latest = {}; (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
       _pageEdited = latest; _savePageEdited();
     } catch (e) {}
-    for (const pid of ids) { await syncPage(pid, { force: true, noOverlay: true }); } // 오버레이 없이 조용히
-    await syncMdFileHandles();
-    await syncFolderBatches();
-    await refreshSidebarPageList();
-    if (!opts.silent) toast(`${ids.length}개 페이지 전체 동기화`, { type: 'success' });
+    // 한 페이지가 실패해도 나머지와 목록 갱신까지는 진행 (오버레이 없이 조용히)
+    for (const pid of ids) { try { await syncPage(pid, { force: true, noOverlay: true }); } catch (e) {} }
+    try { await syncMdFileHandles(); } catch (e) {}
+    try { await syncFolderBatches(); } catch (e) {}
+    // 노션 페이지 목록도 다시 받는다 — 새로 만든 페이지가 여기서 들어온다
+    const added = await refreshSidebarPageList();
+    if (!opts.silent) {
+      toast(added > 0 ? `${ids.length}개 동기화 · 새 페이지 ${added}개` : `${ids.length}개 페이지 전체 동기화`,
+        { type: 'success' });
+    }
   } finally {
     if (allBtn) { const wait = Math.max(0, 600 - (Date.now() - _spinStart)); setTimeout(() => allBtn.classList.remove('syncing'), wait); }
   }
