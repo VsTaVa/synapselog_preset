@@ -324,6 +324,10 @@ async function notionDeleteBlock(blockId) {
   return notionFetch({ action: 'deleteBlock', blockId });
 }
 
+// 댓글 조회(블록/페이지) / 추가(페이지 단위) — 노션 통합에 '댓글 읽기·삽입' 권한 필요
+async function notionComments(blockId) { const d = await notionFetch({ action: 'comments', blockId }); return (d && d.comments) || []; }
+async function notionAddComment(pageId, text) { return notionFetch({ action: 'addComment', pageId, text }); }
+
 // 헤딩 + 그 섹션 전체 삭제 — 앱이 못 읽는 블록(코드·이미지·표 등)까지 서버가 children 기준으로 지운다
 // → 지워진 블록 ID 배열(문서 순서)
 async function notionDeleteSection(blockId, parentId) {

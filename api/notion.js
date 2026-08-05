@@ -378,6 +378,38 @@ export default async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
   }
 
+  // ── action: 'comments' — 블록/페이지의 미해결 댓글 조회 ──────────────
+  if (action === 'comments') {
+    const { blockId } = req.body;
+    if (!blockId) return res.status(400).json({ error: 'blockId 필요' });
+    try {
+      const items = []; let cursor;
+      do {
+        const r = await fetch(`https://api.notion.com/v1/comments?block_id=${blockId}${cursor ? `&start_cursor=${cursor}` : ''}`, { headers });
+        if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '댓글 조회 실패' }); }
+        const d = await r.json();
+        for (const c of (d.results || [])) items.push({ id: (c.id || '').replace(/-/g, ''), text: (c.rich_text || []).map(t => t.plain_text || '').join(''), created: c.created_time || '' });
+        cursor = d.has_more ? d.next_cursor : undefined;
+      } while (cursor);
+      return res.status(200).json({ comments: items });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
+  // ── action: 'addComment' — 페이지에 댓글 달기 (노션 API는 블록 단위 신규 댓글 미지원) ─
+  if (action === 'addComment') {
+    const { pageId: pid, text } = req.body;
+    if (!pid || !(text || '').trim()) return res.status(400).json({ error: 'pageId/text 필요' });
+    try {
+      const r = await fetch('https://api.notion.com/v1/comments', {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parent: { page_id: pid }, rich_text: buildRichText(text) })
+      });
+      if (!r.ok) { const e = await r.json(); return res.status(r.status).json({ error: e.message || '댓글 추가 실패' }); }
+      const c = await r.json();
+      return res.status(200).json({ ok: true, id: (c.id || '').replace(/-/g, ''), created: c.created_time || '' });
+    } catch (e) { return res.status(500).json({ error: e.message || '서버 오류' }); }
+  }
+
   // ── action: 'headingNode' — 헤딩 노드 1개만 동기화 (제목 + 본문 블록) ─
   if (action === 'headingNode') {
     const { blockId, parentId } = req.body;
