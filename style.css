@@ -40,10 +40,8 @@ input[type=range]:focus-visible,
 #depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
-/* 도움말 버튼이 레일 위쪽(AI 아래)으로 옮겨져 범례도 상단에서 뜬다. 하단 시트(210)보다 위 */
-#legend { position: fixed; left: 64px; top: 14px; z-index: 220; }
-#legend-body { display: none; width: 276px; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 11px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
-#legend.open #legend-body { display: flex; gap: 11px; }
+/* 범례는 사이드바 안의 한 패널 — 바깥 상자(.panel-box)가 유리질감·여백을 이미 준다 */
+#legend-body { display: flex; gap: 11px; }
 .lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
 .lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
@@ -231,7 +229,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-pane.active { display: block; pointer-events: auto; }
 body.resizing-panel { cursor: ew-resize; user-select: none; }
 /* UI 크롬은 텍스트 선택·롱프레스 콜아웃 방지 (드래그하면 파란 선택 영역이 뜨던 문제) */
-#activity-rail, #sidebar, #legend, #settings-modal, #onboarding, #login-screen, #status,
+#activity-rail, #sidebar, #settings-modal, #onboarding, #login-screen, #status,
 .detail-header, .detail-pane-bar, .panel-title, .rail-subhead, .cfg-subtitle, button, label {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }

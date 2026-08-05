@@ -5,12 +5,20 @@ function toggleLegend() {
   try { localStorage.setItem('snlog_legend_open', _legendOpen ? '1' : '0'); } catch (e) {}
   applyLegendState();
 }
+// 범례는 다른 레일 섹션과 달리 '켜짐/꺼짐'이 독립이다 —
+// 섹션이 열려 있으면 그 아래에 이어 붙고, 없으면 혼자 사이드바를 연다.
 function applyLegendState() {
-  const wrap = document.getElementById('legend');
-  if (wrap) wrap.classList.toggle('open', _legendOpen);
+  const pane = document.getElementById('legend-panel');
+  if (pane) pane.classList.toggle('active', _legendOpen);
   const btn = document.getElementById('rail-legend');
   if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
+  // 사이드바는 '섹션이 열렸거나 범례가 켜졌을 때' 열려 있어야 한다
+  const sb = document.getElementById('sidebar');
+  if (sb) sb.classList.toggle('open', _legendOpen || !!_activeRailSection);
+  // 좁은 화면에선 상세 패널과 동시에 못 편다 (레일 섹션과 같은 규칙)
+  if (_legendOpen && typeof _panelsExclusive === 'function' && _panelsExclusive()
+      && typeof collapseDetailPanel === 'function') collapseDetailPanel();
 }
 function renderLegendBody() {
   const body = document.getElementById('legend-body');

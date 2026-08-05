@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#ed7000">
 <!-- CSS보다 먼저 읽혀 브라우저 자동 다크 필터를 애초에 막는다 (style.css의 color-scheme와 같은 목적) -->
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="style.css?v=20260804g">
+<link rel="stylesheet" href="style.css?v=20260804h">
 </head>
 <body>
 <div id="login-screen">
@@ -54,7 +54,6 @@
 <div id="loading-overlay"><div class="spinner"></div><div id="loading-text">불러오는 중...</div></div>
 <canvas id="c"></canvas>
 <div id="tooltip"></div>
-<div id="legend"><div id="legend-body"></div></div>
 <div id="onboarding" onclick="if(event.target===this)dismissOnboarding()">
   <div class="ob-card">
     <div class="ob-title">SynapseLog에 오신 걸 환영합니다.</div>
@@ -152,6 +151,10 @@
       <div class="ctrl-group"><div class="ctrl-label-row"><span data-i18n="lbl-link-width">링크 두께</span><span class="val" id="v-link-width">1.0</span></div><input type="range" id="cfg-link-width" min="0.3" max="3.0" step="0.1" value="1.0"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span data-i18n="lbl-title-size">제목 크기</span><span class="val" id="label-scale-val">100%</span></div><input type="range" id="cfg-label-scale" min="0.5" max="2.5" step="0.1" value="1" oninput="setLabelScale(this.value)"></div>
       </div>
+    </div>
+    <div id="legend-panel" class="panel-box rail-pane" data-section="legend">
+      <div class="panel-title">도움말</div>
+      <div id="legend-body"></div>
     </div>
   </div>
 </div>
@@ -254,10 +257,10 @@
 <script src="js/graph.js?v=20260804d" defer></script>
 <script src="js/notion-client.js?v=20260804f" defer></script>
 <script src="js/ui-core.js?v=20260729c" defer></script>
-<script src="js/ui-legend.js?v=20260804f" defer></script>
+<script src="js/ui-legend.js?v=20260804g" defer></script>
 <script src="js/ui-ai.js?v=20260802a" defer></script>
 <script src="js/ui-embed.js?v=20260729c" defer></script>
-<script src="js/ui-rail.js?v=20260804e" defer></script>
+<script src="js/ui-rail.js?v=20260804g" defer></script>
 <script src="js/ui-panel.js?v=20260804c" defer></script>
 <script src="js/ui-events.js?v=20260804f" defer></script>
 </body>

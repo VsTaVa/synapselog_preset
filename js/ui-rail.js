@@ -111,7 +111,9 @@ function removeRecentNode(id) {
 function closeRailFlyout() {
   if (!_activeRailSection) return;
   _activeRailSection = null;
-  const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('open');
+  // 범례가 켜져 있으면 사이드바는 열어둔다 — 범례가 그 안에 살기 때문
+  const keepOpen = typeof _legendOpen !== 'undefined' && _legendOpen;
+  const sb = document.getElementById('sidebar'); if (sb) sb.classList.toggle('open', keepOpen);
   _railSections.forEach(k => { const b = document.getElementById('rail-' + k); if (b) b.classList.remove('active'); });
 }
 
