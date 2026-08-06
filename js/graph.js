@@ -317,7 +317,7 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-// 상태 배지 하나 — 원 + 글리프('check' | 'pin' | 숫자). 흰 배지에는 글리프를 어둡게 넣는다
+// 상태 배지 하나 — 원 + 글리프('check' | 'pencil' | 'pin' | 숫자). 흰 배지에는 글리프를 어둡게 넣는다
 function _drawBadge(ctx, bx, by, scale, b) {
   const dark = b.fill === '#ffffff';
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
@@ -325,6 +325,7 @@ function _drawBadge(ctx, bx, by, scale, b) {
   ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
   const ink = dark ? '#15110a' : '#ffffff';
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else {
     ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -332,13 +333,33 @@ function _drawBadge(ctx, bx, by, scale, b) {
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
   }
 }
-// 고정 핀 — 머리(원) + 아래로 뾰족한 촉. 가는 선으로 그리면 이 크기에서 안 읽혀 채운다
+// 고정 핀 — 우클릭 툴바의 핀 아이콘과 같은 압정 형태(머리·목·받침·바늘). 선으로 그리면 이 크기에서 안 읽혀 실루엣을 채운다
 function _drawPin(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale); // 여기부터 화면 px 좌표
+  const k = 0.42, P = (x, y) => [(x - 12) * k, (y - 12) * k]; // 아이콘 24 좌표계를 배지 크기로
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.arc(0, -1.5, 2.4, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-1.7, 0.2); ctx.lineTo(1.7, 0.2); ctx.lineTo(0, 4.3); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(...P(8, 2)); ctx.lineTo(...P(16, 2)); ctx.lineTo(...P(16, 6)); ctx.lineTo(...P(15, 6));
+  ctx.lineTo(...P(15, 11)); ctx.lineTo(...P(19, 15)); ctx.lineTo(...P(19, 17)); ctx.lineTo(...P(13, 17));
+  ctx.lineTo(...P(12, 22)); ctx.lineTo(...P(11, 17)); ctx.lineTo(...P(5, 17)); ctx.lineTo(...P(5, 15));
+  ctx.lineTo(...P(9, 11)); ctx.lineTo(...P(9, 6)); ctx.lineTo(...P(8, 6));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// 상세 열림 연필 — 우측 패널 '제목&본문 수정' 아이콘과 같은 형태(사선 연필 + 밑줄)
+function _drawPencil(ctx, bx, by, scale, color) {
+  ctx.save();
+  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
+  const k = 0.40, P = (x, y) => [(x - 12) * k, (y - 12.25) * k];
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(...P(16.5, 3.5));
+  ctx.quadraticCurveTo(...P(19.5, 3.5), ...P(19.5, 6.5)); // 지우개 쪽 둥근 모서리
+  ctx.lineTo(...P(7, 19)); ctx.lineTo(...P(3, 20)); ctx.lineTo(...P(4, 16));
+  ctx.closePath(); ctx.fill();
+  const [lx, ly] = P(12, 20), [rx] = P(21, 20);
+  ctx.beginPath(); ctx.rect(lx, ly - 1.2 * k, rx - lx, 2.4 * k); ctx.fill();
   ctx.restore();
 }
 // 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
@@ -571,13 +592,13 @@ function draw() {
       // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
       if (order > 0) badges.push({ fill: acc, glyph: _multiSelected.length > 1 ? String(order) : 'check' });
     }
-    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 체크 배지
+    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
     if(openPanelIdx.has(n.id)) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
       const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
       gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      badges.push({ fill: '#27ae60', glyph: 'check' });
+      badges.push({ fill: '#27ae60', glyph: 'pencil' });
     }
     if(n.fixed) badges.push({ fill: '#ffffff', glyph: 'pin' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다

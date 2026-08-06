@@ -69,7 +69,7 @@ function _legendBadgeImg(kind) {
   const g = c.getContext('2d');
   const fill = kind === 'panel' ? '#27ae60' : kind === 'fixed' ? '#ffffff' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
   // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-  _drawBadge(g, cx, cy, 7 / R, { fill, glyph: kind === 'fixed' ? 'pin' : 'check' });
+  _drawBadge(g, cx, cy, 7 / R, { fill, glyph: kind === 'fixed' ? 'pin' : kind === 'panel' ? 'pencil' : 'check' });
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
