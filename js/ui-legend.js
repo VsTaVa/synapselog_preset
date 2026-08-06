@@ -68,10 +68,9 @@ function _legendBadgeImg(kind) {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
-  g.fillStyle = kind === 'pencil' ? '#27ae60' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
+  g.fillStyle = kind === 'panel' ? '#27ae60' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
   g.fill();
-  const gs = 7 / R; // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다
-  if (kind === 'pencil') _drawPencil(g, cx, cy, gs); else _drawCheck(g, cx, cy, gs);
+  _drawCheck(g, cx, cy, 7 / R); // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
@@ -101,8 +100,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--satellite);font-weight:800;font-size:12px;">가</span><span>위성 모드 (제목 노란색)</span></div>`
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('pencil')}</span><span>상세 내용 열림</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('check')}</span><span>선택한 노드</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }

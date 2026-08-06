@@ -326,21 +326,6 @@ function _drawCheck(ctx, bx, by, scale) {
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
   ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
-// 14px 배지 안에서는 가는 선 몇 개로 연필이 안 읽힌다 → 몸통·촉을 채워 실루엣으로
-function _drawPencil(ctx, bx, by, scale) {
-  ctx.save();
-  ctx.translate(bx, by);
-  ctx.scale(1/scale, 1/scale); // 여기부터는 화면 px 좌표
-  ctx.rotate(-Math.PI / 4);    // 사선으로 눕힌 연필
-  ctx.fillStyle = '#ffffff';
-  // 틈은 0.8px 이상 벌려야 이 크기에서 지우개·몸통·촉이 따로 읽힌다(붙이면 그냥 사선 덩어리)
-  ctx.fillRect(-1.6, -4.8, 3.2, 1.5);          // 지우개
-  ctx.fillRect(-1.6, -2.5, 3.2, 3.4);          // 몸통
-  ctx.beginPath();                             // 촉
-  ctx.moveTo(-1.6, 1.7); ctx.lineTo(1.6, 1.7); ctx.lineTo(0, 4.9);
-  ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
 
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -588,7 +573,7 @@ function draw() {
       ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
       ctx.fillStyle = '#27ae60'; ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-      _drawPencil(ctx, bx, by, scale);
+      _drawCheck(ctx, bx, by, scale);
     }
     ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
