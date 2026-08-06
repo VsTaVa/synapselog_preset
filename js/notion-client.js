@@ -436,14 +436,6 @@ function addMarkdownPage(title, markdown) {
   return root;
 }
 
-// 마크다운 첫 헤딩 → 제목. 없으면 첫 줄, 그것도 없으면 기본값
-function mdTitleOf(markdown, fallback) {
-  const md = String(markdown || '');
-  const head = md.match(/^\s*#\s+(.+)$/m);
-  const first = md.split('\n').map(l => l.trim()).find(Boolean) || '';
-  return (head ? head[1] : first.replace(/^[#\-*>\s]+/, '')).trim().slice(0, 80) || fallback;
-}
-
 function newLocalRoot() {
   const inp = document.getElementById('new-root-input');
   const t = inp ? inp.value.trim() : '';
@@ -1784,11 +1776,13 @@ function closeMdPaste() {
   if (modal) modal.classList.remove('open');
 }
 function addPastedMarkdown() {
+  const ti = document.getElementById('md-paste-title');
+  const title = (ti ? ti.value : '').trim();
+  // 제목은 필수 — 본문 첫 헤딩을 제목으로 삼으면 그 헤딩 노드가 통째로 사라진다
+  if (!title) { toast('페이지 제목 입력', { type: 'error' }); if (ti) ti.focus(); return; }
   const ta = document.getElementById('md-paste-text');
   const md = normalizeNotionMd(ta ? ta.value : '');
-  if (!md.trim()) { if (ta) ta.focus(); return; }
-  const typed = (document.getElementById('md-paste-title')?.value || '').trim();
-  const title = typed || mdTitleOf(md, '붙여넣은 문서');
+  if (!md.trim()) { toast('마크다운 내용 입력', { type: 'error' }); if (ta) ta.focus(); return; }
   closeMdPaste();
   const root = addMarkdownPage(title, md);
   savePageList();

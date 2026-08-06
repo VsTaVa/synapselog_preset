@@ -413,9 +413,13 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #md-paste-modal.open { display: flex; }
 #md-paste-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 22px; width: min(560px, 92vw); box-shadow: 0 16px 48px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 #md-paste-box .confirm-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
-#md-paste-title { width: 100%; margin-bottom: 8px; }
-#md-paste-text { width: 100%; height: min(46vh, 340px); box-sizing: border-box; resize: vertical; background: rgba(var(--fg-rgb),0.06); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.6; outline: none; margin-bottom: 14px; }
-#md-paste-text:focus { border-color: rgba(var(--accent-rgb),0.5); }
+/* 입력창은 사이드바 인풋과 같은 결 — 기본 스타일이 그대로 나오면 흰 막대가 된다 */
+#md-paste-title, #md-paste-text { width: 100%; box-sizing: border-box; background: rgba(var(--fg-rgb),0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; caret-color: var(--accent); outline: none; transition: border-color 0.2s; }
+#md-paste-title { padding: 6px 10px; font-size: 13px; margin-bottom: 8px; }
+#md-paste-text { height: min(46vh, 340px); resize: vertical; padding: 10px 12px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.65; margin-bottom: 14px; }
+#md-paste-title:focus, #md-paste-text:focus { border-color: rgba(var(--accent-rgb),0.5); }
+#md-paste-title::placeholder, #md-paste-text::placeholder { color: rgba(var(--fg-rgb),0.22); }
+#md-paste-title::selection, #md-paste-text::selection { background: rgba(var(--accent-rgb),0.35); }
 #md-paste-box .confirm-btns { display: flex; gap: 8px; }
 #md-paste-box .confirm-btns button { flex: 1; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.2s; }
 #md-paste-cancel { background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.12); color: var(--text-dim); }
