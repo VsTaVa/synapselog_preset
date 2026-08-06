@@ -361,14 +361,6 @@ function draw() {
   // 우측 패널에 열린 노드 → 표시용(id → 스택 순번 1=위,2=아래)
   const openPanelIdx = new Map();
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
-  // 그 노드가 어디에 속하는지 한눈에 — 루트까지 거슬러 올라가는 링크선을 색칠한다(호버 강조와 같은 방식)
-  // 상세 패널 노드의 경로는 녹색, 선택한 노드의 경로는 주황
-  const panelPath = new Set(), selPath = new Set();
-  if (typeof getAncestorIds === 'function') {
-    const addPath = (set, node) => { let cur = node.id; getAncestorIds(cur, 20).forEach(pid => { set.add(pid + '>' + cur); cur = pid; }); };
-    if (typeof _stack !== 'undefined' && _stack) _stack.forEach(nd => { if (nd) addPath(panelPath, nd); });
-    if (typeof _multiSelected !== 'undefined' && _multiSelected) _multiSelected.forEach(nd => { if (nd) addPath(selPath, nd); });
-  }
 
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
   // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
@@ -411,16 +403,10 @@ function draw() {
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       // 호버 강조가 사슬 전체(조상+하위)로 넓어져 굵은 선이 한꺼번에 많아진다 →
       // 두께 배수는 낮추고(2.2→1.5) 밝기로 존재감을 채운다(0.85→0.95)
-      // 상세 패널 노드의 상위 경로는 녹색, 선택한 노드의 상위 경로는 주황 — 호버와 같은 방식의 강조
-      const key = e.from + '>' + e.to;
-      const onSel = !isDimEdge && selPath.has(key), onPanel = !isDimEdge && panelPath.has(key);
-      const lit = isHov || onSel || onPanel;
-      const alpha=isDimEdge?0.08:(lit?0.95:0.55), width=isDimEdge?0.5:(lit?1.5:1.0);
-      // 강조선만 단색(호버 흰색 > 선택 주황 > 상세 녹색), 평소엔 하위(도착) 노드 색으로 가지 계통을 잇는다
-      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255])
-        : onSel ? cssRgb('--accent-rgb', [237,112,0])
-        : onPanel ? [39,174,96]
-        : nodeRgb(nb);
+      const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:(isHov?1.5:1.0);
+      // 호버 사슬만 흰색 — 노드 색 그대로 굵어지면 원래 밝던 가지와 구분이 안 된다
+      // 평소 선 색은 하위(도착) 노드 기준이라 가지 끝까지 그 가지의 색이 이어진다
+      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255]) : nodeRgb(nb);
       // 자식이 깊을수록 가늘게 — 굵은 쪽이 상위라, 선만 봐도 어느 방향이 위인지 읽힌다
       ctx.strokeStyle=rgbStr(eRgb,alpha);
       ctx.lineWidth=width*edgeDepthScale(nb.level)*CONFIG.linkWidth/scale; ctx.setLineDash([]);

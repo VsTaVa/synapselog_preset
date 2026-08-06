@@ -101,8 +101,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--satellite);font-weight:800;font-size:12px;">가</span><span>위성 모드 (제목 노란색)</span></div>`
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('pencil')}</span><span>상세 내용 열림 (상위 노드에 녹색 링)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('check')}</span><span>선택한 노드 (상위 노드에 주황 링)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('pencil')}</span><span>상세 내용 열림</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('check')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }
