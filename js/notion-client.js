@@ -1792,7 +1792,8 @@ function exportGraph(size) {
   edges.forEach(e => {
     const a = nodeMap[e.from], b = nodeMap[e.to];
     if (!a?.visible || !b?.visible || !visibleIds.has(a.id) || !visibleIds.has(b.id)) return;
-    const edgeRgb = _colorScheme === 'depth' ? nodeRgb(b) : hexToRgb(a.color || '#ffffff');
+    // 화면과 같은 규칙 — 선 색은 하위(도착) 노드 기준
+    const edgeRgb = _colorScheme === 'depth' ? nodeRgb(b) : (b._rgb || hexToRgb(b.color || '#ffffff'));
     if (hasSearch) {
       const bothMatch = searchMatches.has(e.from) && searchMatches.has(e.to);
       const eitherMatch = searchMatches.has(e.from) || searchMatches.has(e.to);

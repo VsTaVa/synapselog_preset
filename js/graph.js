@@ -369,7 +369,7 @@ function draw() {
     } else if(hasSearch) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
-      const eRgb = _colorScheme === 'depth' ? nodeRgb(nb) : na._rgb;
+      const eRgb = nodeRgb(nb); // 선 색은 하위(도착) 노드 기준 — 아래 규칙과 동일
       if(bothMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.15:0.9); ctx.lineWidth=(focusDim?0.6:1.6)/scale; ctx.setLineDash([]); }
       else if(eitherMatch) { ctx.strokeStyle=rgbStr(eRgb,focusDim?0.06:0.35); ctx.lineWidth=(focusDim?0.4:0.8)/scale; ctx.setLineDash([]); }
       else { ctx.strokeStyle=rgbStr(eRgb,0.05); ctx.lineWidth=0.5/scale; ctx.setLineDash([]); }
@@ -381,7 +381,9 @@ function draw() {
       const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:(isHov?1.5:1.0);
       // 호버 사슬은 흰색 — 노드 색 그대로 굵어지면 원래 밝던 가지와 구분이 잘 안 됐다
       // (노드연결·수동연결 선이 이미 흰색이라 강조 색이 한 종류로 통일된다)
-      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255]) : (_colorScheme === 'depth' ? nodeRgb(nb) : na._rgb);
+      // 선 색은 하위(도착) 노드가 정한다 — 가지 끝으로 갈수록 그 가지의 색이 이어져 계통이 읽힌다
+      // (상위 노드 기준이면 한 부모의 자식들이 전부 같은 색이라 어느 가지인지 구분이 안 됐다)
+      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255]) : nodeRgb(nb);
       // 자식이 깊을수록 가늘게 — 굵은 쪽이 상위라, 선만 봐도 어느 방향이 위인지 읽힌다
       ctx.strokeStyle=rgbStr(eRgb,alpha);
       ctx.lineWidth=width*edgeDepthScale(nb.level)*CONFIG.linkWidth/scale; ctx.setLineDash([]);
