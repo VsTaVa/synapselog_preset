@@ -124,7 +124,6 @@ function _legendToolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">동기화</div>`
     + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
     + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
-    + `<div class="lg-row lg-tool"><span class="pli-changed" style="cursor:default;">변경됨</span><span><b>변경 표시</b>: 노션에서 바뀐 페이지. 창 복귀 시·5분마다 확인만 하고, 눌러야 동기화</span></div>`
     + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`
     + `</div>`;
 }

@@ -305,10 +305,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item.active .item-label { color:var(--accent); cursor:default; }
 .page-list-item:not(.active):hover .item-label { color:#fff; }
 .page-list-item:not(.active):hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
-/* 노션에서 바뀐 페이지 표시 — 눌러서 동기화. 배지 자체가 버튼이라 한 번에 최신화된다 */
-.pli-changed { flex-shrink:0; margin-right:2px; background:rgba(var(--accent-rgb),0.16); border:1px solid rgba(var(--accent-rgb),0.45); color:var(--accent); font-family:inherit; font-size:10px; font-weight:700; line-height:1; padding:3px 6px; border-radius:5px; cursor:pointer; transition:background 0.15s; }
-.pli-changed:hover { background:rgba(var(--accent-rgb),0.32); }
-.rail-icon.has-update::after { content:''; position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--graph-bg); }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
 .page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:var(--icon); transition:color 0.15s; display:flex; align-items:center; }
 .page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:#fff; }
