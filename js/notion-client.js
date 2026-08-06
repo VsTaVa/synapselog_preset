@@ -1032,6 +1032,7 @@ function _pageItemHtml(p) {
     // 하위를 묶는 상위 행이기도 하므로 pli-group 모양은 유지한다.
     if (p.isDatabase) {
       const dbActs = isActive ? `<div class="item-actions">
+          ${_changedPageIds.has(p.id) ? `<button class="pli-changed" title="노션에서 변경됨 · 눌러서 동기화" onclick="event.stopPropagation();syncPage('${p.id}')">변경됨</button>` : ''}
           <button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
           <button class="btn-remove" onclick="event.stopPropagation();removePage('${p.id}', document.querySelector('[data-page-id=&quot;${p.id}&quot;]'))">${removeSvg}</button>
         </div>` : '';
@@ -1052,8 +1053,11 @@ function _pageItemHtml(p) {
     }
     if (isActive) {
       const dragAttr = (p.isMd && p.folderBatchId) ? ' draggable="true" title="폴더 안에서 드래그해 이동"' : '';
+      // 노션에서 바뀐 페이지 — 눌러서 동기화(자동으로 갈아끼우지 않는다)
+      const upTag = _changedPageIds.has(p.id)
+        ? `<button class="pli-changed" title="노션에서 변경됨 · 눌러서 동기화" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">변경됨</button>` : '';
       return `<div class="page-list-item active" data-page-id="${p.id}"${dragAttr}>
-        <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
+        <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>${upTag}
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
@@ -1320,6 +1324,7 @@ async function syncPage(pageId, opts) {
     try { sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify({ ...data, _headingsOnly: true, _cachedAt: Date.now() })); } catch(e) {}
     const ghostId = 'ghost_' + pageId;
     if (nodeMap[ghostId]) { nodes = nodes.filter(n => n.id !== ghostId); edges = edges.filter(e => e.from !== ghostId && e.to !== ghostId); delete nodeMap[ghostId]; }
+    clearPageUpdate(pageId); // 이 페이지는 방금 최신화됨 → 변경 표시 해제
     const removed = syncPageIncremental(data.title || '추가 페이지', data.markdown || '', pageId);
     if (removed && removed.size && typeof pruneDetailTabs === 'function') pruneDetailTabs(removed);
     // [진단] 본문(desc)이 실제로 바뀐 노드 = 동기화가 반영한 것
@@ -1394,6 +1399,77 @@ function closeConfirm() { document.getElementById('confirm-modal').classList.rem
 let _pageEdited = (() => { try { return JSON.parse(localStorage.getItem('snlog_page_edited') || '{}'); } catch (e) { return {}; } })();
 function _savePageEdited() { try { localStorage.setItem('snlog_page_edited', JSON.stringify(_pageEdited)); } catch (e) {} }
 
+// ── 노션 변경 감지(자동 최신화) ──────────────────────────────────────
+// 웹훅 대신 폴링: 'list' 한 번이면 모든 페이지의 최종수정일이 온다(요청 1개).
+// 자동으로 갈아끼우지는 않는다 — 편집 중이거나 배치를 보고 있는데 그래프가 갑자기 바뀌면 곤란하니
+// '변경됨' 표시만 띄우고 동기화는 사용자가 누를 때.
+let _changedPageIds = new Set();
+let _lastUpdateCheck = 0;
+
+function _markPageUpdates(ids) {
+  const before = _changedPageIds.size;
+  ids.forEach(id => _changedPageIds.add(id));
+  if (_changedPageIds.size !== before) { refreshSidebarRender(); _paintRailUpdateDot(); }
+}
+function clearPageUpdate(pageId) {
+  if (!_changedPageIds.delete(pageId)) return;
+  refreshSidebarRender(); _paintRailUpdateDot();
+}
+function _paintRailUpdateDot() {
+  const btn = document.getElementById('rail-pages');
+  if (btn) btn.classList.toggle('has-update', _changedPageIds.size > 0);
+}
+
+// 노션에 바뀐 게 있는지 확인 — 기준선(_pageEdited)은 여기서 갱신하지 않는다.
+// 갱신하면 동기화도 안 했는데 '변경'이 소비돼 표시가 사라진다. 처음 보는 id만 조용히 기준선에 넣는다
+// (그 페이지를 아직 한 번도 기준 잡은 적 없을 때 = 방금 담은 페이지 → 가짜 알림 방지).
+async function checkNotionUpdates(opts) {
+  opts = opts || {};
+  if (typeof document !== 'undefined' && document.hidden) return; // 안 보는 탭에서는 요청 낭비
+  if (!_savedToken) return;
+  const now = Date.now();
+  if (!opts.force && now - _lastUpdateCheck < 60000) return; // 창 전환이 잦아도 1분에 한 번
+  const watched = new Set([..._addedPageIds].filter(pid => !pid.startsWith('md_') && !pid.startsWith('local_')));
+  if (!watched.size) return;
+  _lastUpdateCheck = now;
+
+  let data;
+  try { data = await notionFetch({ action: 'list' }); } catch (e) { return; } // 조용히 실패 — 다음 주기에 다시
+  const rows = data.pages || [];
+  const parentOf = {}; rows.forEach(r => { if (r.id) parentOf[r.id] = r.parentId || ''; });
+  // 그 행이 어느 '담은 페이지'에 속하는지 — 하위 페이지·DB 항목이 바뀌어도 상위 페이지에 표시하려면 필요
+  const ownerOf = (id) => {
+    let cur = id;
+    for (let d = 0; d < 8 && cur; d++) {
+      if (watched.has(cur)) return cur;
+      cur = parentOf[cur];
+    }
+    return null;
+  };
+  const hit = new Set(), seed = [];
+  rows.forEach(r => {
+    if (!r.id) return;
+    const owner = ownerOf(r.id);
+    if (!owner) return;
+    if (_pageEdited[owner] === undefined) { seed.push(r); return; } // 이 페이지는 아직 기준선 없음 → 조용히 세움
+    const base = _pageEdited[r.id];
+    if (base === undefined || base !== (r.lastEdited || '')) hit.add(owner); // 새로 생겼거나 수정됨
+  });
+  seed.forEach(r => { _pageEdited[r.id] = r.lastEdited || ''; });
+  if (seed.length) _savePageEdited();
+  if (hit.size) _markPageUpdates(hit);
+}
+
+// 창을 다시 보거나(포커스·탭 복귀) 5분마다 확인
+function startUpdateWatcher() {
+  if (window._updateWatcherOn) return;
+  window._updateWatcherOn = true;
+  const check = () => { checkNotionUpdates().catch(() => {}); };
+  window.addEventListener('focus', check);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  setInterval(check, 5 * 60 * 1000);
+}
+
 function confirmBulkSync() { showConfirm('전체 동기화', '모든 페이지 다시 불러오기', bulkSync); }
 
 // 전체 동기화: 모든 추가 페이지를 강제로 통째로 재요청. 증분은 페이지별 ↻이 담당.
@@ -1416,6 +1492,7 @@ async function bulkSync(opts) {
     try { await syncFolderBatches(); } catch (e) {}
     // 노션 페이지 목록도 다시 받는다 — 새로 만든 페이지가 여기서 들어온다
     const added = await refreshSidebarPageList();
+    _changedPageIds = new Set(); _paintRailUpdateDot(); // 전부 다시 받았으니 변경 표시도 초기화
     if (!opts.silent) {
       toast(added > 0 ? `${ids.length}개 동기화 · 새 페이지 ${added}개` : `${ids.length}개 페이지 전체 동기화`,
         { type: 'success' });

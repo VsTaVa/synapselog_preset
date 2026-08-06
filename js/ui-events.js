@@ -979,6 +979,8 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     setTimeout(initSidebarPageList, 600);
     setTimeout(loadProfile, 400);
     restoreSearchHistory(); // 저장해둔 검색 기록 복원
+    // 노션 변경 감지 — 페이지 복원이 끝난 뒤 한 번 보고, 이후엔 창 복귀·5분 주기로
+    setTimeout(() => { if (typeof startUpdateWatcher === 'function') { startUpdateWatcher(); checkNotionUpdates({ force: true }).catch(() => {}); } }, 4000);
   });
 }
 
