@@ -1748,6 +1748,27 @@ function _importMdFile(file) {
   });
 }
 
+// ── 페이지 추가 메뉴(＋) ────────────────────────────────────────────
+// 아이콘 4개가 입력창을 잠식해 ＋ 하나로 접었다. 바깥을 누르면 닫힌다.
+function togglePageAddMenu() {
+  const menu = document.getElementById('page-add-menu');
+  if (!menu) return;
+  if (menu.classList.contains('open')) { closePageAddMenu(); return; }
+  menu.classList.add('open');
+  document.getElementById('page-add-btn')?.classList.add('open');
+  setTimeout(() => document.addEventListener('mousedown', _pageAddOutside), 0);
+}
+function closePageAddMenu() {
+  document.getElementById('page-add-menu')?.classList.remove('open');
+  document.getElementById('page-add-btn')?.classList.remove('open');
+  document.removeEventListener('mousedown', _pageAddOutside);
+}
+function _pageAddOutside(e) {
+  if (e.target.closest && e.target.closest('#page-add-menu, #page-add-btn')) return;
+  closePageAddMenu();
+}
+function _pageAddRun(fn) { closePageAddMenu(); if (typeof fn === 'function') fn(); }
+
 // ── 마크다운 붙여넣기 ───────────────────────────────────────────────
 function openMdPaste() {
   const modal = document.getElementById('md-paste-modal');
