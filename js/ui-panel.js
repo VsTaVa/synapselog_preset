@@ -825,6 +825,22 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         e.preventDefault(); rows.splice(idx, 1); item.remove();
         _focusEditRow(rows[idx - 1] || rows[idx], true); return;
       }
+      // 줄 맨 앞 백스페이스 → 이 줄을 앞줄 끝에 이어 붙이고 이 줄은 삭제 (노션식 병합)
+      if (e.key === 'Backspace' && !e.isComposing && idx > 0 && _ceCaretAtStart(ce)) {
+        e.preventDefault();
+        const prev = rows[idx - 1], pe = prev.el;
+        const tail = document.createRange(); tail.selectNodeContents(ce);
+        const moved = tail.extractContents();
+        const joint = pe.lastChild; // 붙이기 전 끝 = 합쳐지는 지점(캐럿 자리)
+        pe.appendChild(moved);
+        rows.splice(idx, 1); item.remove();
+        pe.focus();
+        const r2 = document.createRange();
+        if (joint) r2.setStartAfter(joint); else r2.setStart(pe, 0);
+        r2.collapse(true);
+        const s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r2);
+        return;
+      }
       // 콜아웃은 Enter로 새 블록 분리 금지 — 중간에 문단이 끼면 콜아웃 박스가 깨진다. 대신 소프트 줄바꿈.
       if (e.key === 'Enter' && !e.shiftKey && rowObj.type === 'callout') { e.preventDefault(); document.execCommand('insertLineBreak'); return; }
       // Enter → 캐럿 뒤 내용을 새 블록으로 분리(아래에 추가)
