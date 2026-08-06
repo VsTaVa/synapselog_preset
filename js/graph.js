@@ -13,6 +13,18 @@ let searchKeyword = '', searchMatches = new Set();
 let searchDirect = new Set(); // 키워드 직접 매칭 노드(글로우 대상). searchMatches는 조상 경로 포함
 let _showLabels = true;
 let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
+// 제목 뒤 지움 — 글자 모양대로 배경색을 페더로 덮어, 겹친 링크선·노드를 글자 주변에서 빼준다
+let _labelKnockout = (() => { try { return localStorage.getItem('snlog_label_knockout') !== 'false'; } catch(e) { return true; } })();
+// 캔버스 배경색 — 원본은 CSS 토큰(--graph-bg-rgb), JS는 한 번 읽어 캐시만
+let _bgRgbCache = null;
+function bgRgb() {
+  if (!_bgRgbCache) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--graph-bg-rgb');
+    const p = String(v).split(',').map(x => parseInt(x, 10));
+    _bgRgbCache = (p.length === 3 && p.every(x => x >= 0 && x <= 255)) ? p : [12,13,18];
+  }
+  return _bgRgbCache;
+}
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -272,7 +284,7 @@ function simulate() {
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0c0d12'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=rgbStr(bgRgb(),1); ctx.fillRect(0,0,W,H);
   ctx.save();
   ctx.translate(W/2+panX, H/2+panY);
   ctx.scale(scale, scale);
@@ -531,27 +543,50 @@ function draw() {
   if (_showLabels && labelQueue.length) {
     ctx.save();
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    // 1) 그릴 라벨을 먼저 계산 — 아래에서 '뒤 지움'과 '글자'를 두 패스로 나눠 그린다
+    const specs = [];
     labelQueue.forEach(({ n, r, isMatch, isDim }) => {
       const sp = worldToScreen(n.x, n.y);
       const sr = r * scale;
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
+      if (!lbl) return;
       let fontSize = 10;
       if (n.level === 0 || n.level === 1) fontSize = 12;
       else if (n.level === 2) fontSize = 11;
       fontSize = fontSize * _labelScale * scale;
-      const lblFont = (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`;
-      ctx.font = lblFont; ctx.textBaseline = 'top';
-      ctx.textAlign = 'center';
       const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
-      // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크가 계속 주황으로 보이게.
-      // 위성 모드는 노드 위 아이콘 대신 라벨 노란색으로 표시(상태 표시인 위 둘보다는 낮은 우선순위)
-      ctx.fillStyle = _bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})`
-        : isMatch ? '#ffffff'
-        : n._satelliteRoot ? `rgba(255,214,74,${isDim ? 0.15 : 1})`
-        : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`;
-      ctx.fillText(lbl, sp.x, sp.y + sr + 5 * scale);
+      specs.push({
+        lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
+        font: (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`,
+        // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크가 계속 주황으로 보이게.
+        // 위성 모드는 노드 위 아이콘 대신 라벨 노란색으로 표시(상태 표시인 위 둘보다는 낮은 우선순위)
+        color: _bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})`
+          : isMatch ? '#ffffff'
+          : n._satelliteRoot ? `rgba(255,214,74,${isDim ? 0.15 : 1})`
+          : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
+      });
     });
+    // 2) 제목 뒤 지움 — 글자 윤곽을 배경색으로 넓게→좁게 겹쳐 그어 가장자리가 부드럽게 빠지게(페더).
+    //    캔버스가 불투명 배경이라 '투명하게 파기'(destination-out)는 아래 DOM 배경이 비쳐 얼룩진다 → 같은 색으로 덮는 방식.
+    //    흐려진 라벨(검색 비매치·포커스 밖)은 제외 — 존재감이 약한 게 의도인데 주변만 파이면 되레 눈에 띈다.
+    if (_labelKnockout) {
+      const bg = bgRgb();
+      const feather = [[6.5,0.13],[4.6,0.2],[3.0,0.3],[1.8,0.45]]; // [선 두께(11px 기준), 불투명도]
+      const lj = ctx.lineJoin, lc = ctx.lineCap;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      specs.forEach(s => {
+        if (s.isDim) return;
+        ctx.font = s.font;
+        const k = s.fontSize / 11; // 줌·제목 크기에 따라 페더 폭도 같이
+        feather.forEach(([w, a]) => { ctx.lineWidth = w * k; ctx.strokeStyle = rgbStr(bg, a); ctx.strokeText(s.lbl, s.x, s.y); });
+        ctx.fillStyle = rgbStr(bg, 0.9); ctx.fillText(s.lbl, s.x, s.y); // 글자 속은 거의 다 비움
+      });
+      ctx.lineJoin = lj; ctx.lineCap = lc;
+    }
+    // 3) 글자
+    specs.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
   }

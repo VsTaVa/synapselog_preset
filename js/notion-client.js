@@ -1688,7 +1688,8 @@ function exportGraph(size) {
   const offscreen = document.createElement('canvas');
   offscreen.width = SIZE; offscreen.height = SIZE;
   const ctx2 = offscreen.getContext('2d');
-  ctx2.fillStyle = '#0a0c14'; ctx2.fillRect(0, 0, SIZE, SIZE);
+  const EXPORT_BG = [10,12,20];
+  ctx2.fillStyle = rgbStr(EXPORT_BG, 1); ctx2.fillRect(0, 0, SIZE, SIZE);
   const offsetX = (SIZE - graphW * exportScale) / 2 - minX * exportScale;
   const offsetY = (SIZE - graphH * exportScale) / 2 - minY * exportScale;
   const visibleIds = new Set(visibleNodes.map(n => n.id));
@@ -1746,8 +1747,18 @@ function exportGraph(size) {
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
       const fontSize = (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
-      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
+      // 화면과 같은 '제목 뒤 지움' — 겹친 선·노드를 글자 주변에서 페더로 빼준다
+      if (typeof _labelKnockout === 'undefined' || _labelKnockout) {
+        const k = fontSize / 11, lj = ctx2.lineJoin, lc = ctx2.lineCap;
+        ctx2.lineJoin = 'round'; ctx2.lineCap = 'round';
+        [[6.5,0.13],[4.6,0.2],[3.0,0.3],[1.8,0.45]].forEach(([w, a]) => {
+          ctx2.lineWidth = w * k; ctx2.strokeStyle = rgbStr(EXPORT_BG, a); ctx2.strokeText(lbl, nx, ny + r + 4);
+        });
+        ctx2.fillStyle = rgbStr(EXPORT_BG, 0.9); ctx2.fillText(lbl, nx, ny + r + 4);
+        ctx2.lineJoin = lj; ctx2.lineCap = lc;
+      }
+      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.fillText(lbl, nx, ny + r + 4);
     }
   });

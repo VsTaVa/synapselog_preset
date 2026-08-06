@@ -123,6 +123,12 @@ function hideLoading() { const el = document.getElementById('loading-overlay'); 
 
 function toggleLabels() { const cb = document.getElementById('label-toggle-input'); _showLabels = cb ? cb.checked : !_showLabels; }
 
+function toggleLabelKnockout() {
+  const cb = document.getElementById('label-knockout-input');
+  _labelKnockout = cb ? cb.checked : !_labelKnockout;
+  try { localStorage.setItem('snlog_label_knockout', String(_labelKnockout)); } catch (e) {}
+}
+
 function setLabelScale(v) {
   v = parseFloat(v); if (!(v >= 0.5 && v <= 2.5)) v = 1;
   _labelScale = v;

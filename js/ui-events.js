@@ -921,6 +921,7 @@ setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 (() => { const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = _showConnections; })(); // 노드 연결 표시 토글 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
+(() => { const cb = document.getElementById('label-knockout-input'); if (cb) cb.checked = _labelKnockout; })(); // 제목 뒤 지움 토글 동기화
 (() => {
   const deg = Math.round(_viewRotation * 180 / Math.PI);
   const sl = document.getElementById('cfg-rotation'); if (sl) sl.value = deg;
