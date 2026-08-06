@@ -365,25 +365,28 @@ function _drawPencil(ctx, bx, by, scale, color) {
   ctx.beginPath(); ctx.rect(lx, ly - 1.2 * k, rx - lx, 2.4 * k); ctx.fill();
   ctx.restore();
 }
-// 북마크 리본 — 툴바·패널의 북마크 아이콘과 같은 형태. 둥근 모서리는 이 크기에서 안 보여 모따기로 대체
+// 북마크 리본 — 툴바 북마크 아이콘 형태. 원본 비율(14:18)은 배지에서 흰 덩어리로만 보여
+// 폭을 줄이고 아래 V홈을 원본보다 깊게 팠다(28%→45%) — 이 홈이 없으면 북마크로 안 읽힌다
 function _drawBookmark(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  const k = 0.42, P = (x, y) => [(x - 12) * k, (y - 12) * k];
+  const k = 0.46, P = (x, y) => [(x - 12) * k, (y - 12) * k];
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(...P(5, 21)); ctx.lineTo(...P(5, 5)); ctx.lineTo(...P(7, 3)); ctx.lineTo(...P(17, 3));
-  ctx.lineTo(...P(19, 5)); ctx.lineTo(...P(19, 21)); ctx.lineTo(...P(12, 16));
+  ctx.moveTo(...P(6.5, 20.5)); ctx.lineTo(...P(6.5, 5)); ctx.lineTo(...P(8, 3.5)); ctx.lineTo(...P(16, 3.5));
+  ctx.lineTo(...P(17.5, 5)); ctx.lineTo(...P(17.5, 20.5)); ctx.lineTo(...P(12, 13));
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-// 위성 궤도 — 툴바 '위성 모드'의 점선 원. 원본 굵기(2/24)는 배지 크기에서 사라져 선·간격을 키웠다
+// 위성 궤도 — 점선 링 + 궤도 위의 본체. 링만으론 '분리'로 안 읽혀 도는 몸체를 얹었다
 function _drawOrbit(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-  ctx.setLineDash([2.4, 1.6]);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.setLineDash([2.2, 1.6]);
   ctx.beginPath(); ctx.arc(0, 0, 3.7, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(2.62, -2.62, 1.6, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
 // 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
@@ -614,7 +617,7 @@ function draw() {
       ctx.fillStyle = gSelA; ctx.fill();
       const order = _multiSelected.indexOf(n) + 1;
       // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
-      if (order > 0) badges.push({ rgb: accRgb, glyph: _multiSelected.length > 1 ? String(order) : 'check' });
+      if (order > 0) badges.push({ rgb: cssRgb('--select-rgb',[168,50,72]), glyph: _multiSelected.length > 1 ? String(order) : 'check' });
     }
     // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
     if(openPanelIdx.has(n.id)) {

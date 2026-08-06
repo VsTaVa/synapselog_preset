@@ -67,12 +67,11 @@ function _legendBadgeImg(kind) {
   const S = 40, cx = 20, cy = 20, R = 13;
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
-  const acc = cssRgb('--accent-rgb', [237,112,0]);
   const spec = {
     panel:     { rgb: [39,174,96],   glyph: 'pencil' },
-    select:    { rgb: acc,           glyph: 'check' },
+    select:    { rgb: cssRgb('--select-rgb', [168,50,72]), glyph: 'check' },
     fixed:     { rgb: [255,255,255], glyph: 'pin' },
-    bookmark:  { rgb: acc,           glyph: 'bookmark' },
+    bookmark:  { rgb: cssRgb('--accent-rgb', [237,112,0]), glyph: 'bookmark' },
     satellite: { rgb: cssRgb('--satellite-rgb', [255,214,74]), glyph: 'orbit' },
   }[kind];
   // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
@@ -486,7 +485,7 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로 연결/해제">${chainIcon} 순서대로 연결</button>`;
   }
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
-  const satIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>`;
+  const satIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/><circle cx="18.4" cy="5.6" r="2.8" fill="currentColor" stroke="none"/></svg>`;
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${satIcon} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
