@@ -191,20 +191,17 @@ function mdTableToHtml(text) {
   return out.join('\n');
 }
 
-// 이 노드가 어디에 있는지 — 페이지 → … → 부모 → 현재. 조상은 노드칩이라 눌러서 바로 이동된다.
-// 깊으면 가운데를 접는다(앞 1개 + 뒤 2개) — 패널이 좁아 다 펴면 두 줄로 넘친다.
+// 이 노드가 어디에 있는지 — 페이지 › 부모 › … › 현재. 조상은 노드칩이라 눌러서 바로 이동된다.
+// 깊어도 접지 않고 전부 보여준다(줄바꿈으로 흐름) — 어디에 있는지가 경로의 존재 이유라 생략이 손해다.
 function _nodePathHtml(n) {
   if (!n || typeof getAncestorIds !== 'function') return '';
   const chain = getAncestorIds(n.id, 12).reverse().map(id => nodeMap[id]).filter(Boolean);
   if (!chain.length) return '';
   const sep = `<span class="detail-path-sep">›</span>`;
-  let parts = chain;
-  let folded = false;
-  if (parts.length > 3) { parts = [chain[0], ...chain.slice(-2)]; folded = true; }
   const chip = nd => (typeof createNodeChip === 'function')
     ? createNodeChip(nd, { maxLen: 14, className: 'node-chip--sm' })
     : `<span class="node-chip node-chip--sm">${escapeHtml(nd.label)}</span>`;
-  const segs = parts.map((nd, idx) => (folded && idx === 1 ? `<span class="detail-path-fold" title="${escapeHtml(chain.slice(1, -2).map(x => x.label).join(' › '))}">…</span>${sep}${chip(nd)}` : chip(nd)));
+  const segs = chain.map(chip);
   // 현재 노드는 제목 칩과 겹치므로 누를 수 없는 흐린 텍스트로 — 위치의 끝점 표시용
   const cur = `<span class="detail-path-cur">${escapeHtml((n.label || '').length > 16 ? n.label.slice(0, 15) + '…' : n.label)}</span>`;
   return segs.join(sep) + sep + cur;
