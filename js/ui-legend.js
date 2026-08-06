@@ -67,17 +67,13 @@ function _legendBadgeImg(kind) {
   const S = 40, cx = 20, cy = 20, R = 13;
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
-  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
-  g.fillStyle = kind === 'panel' ? '#27ae60' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
-  g.fill();
-  _drawCheck(g, cx, cy, 7 / R); // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다
+  const fill = kind === 'panel' ? '#27ae60' : kind === 'fixed' ? '#ffffff' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
+  // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
+  _drawBadge(g, cx, cy, 7 / R, { fill, glyph: kind === 'fixed' ? 'pin' : 'check' });
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
 function _legendSymbolsHtml() {
-  const S = {
-    ringDash: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2.2 2.2"/></svg>`,
-  };
   const L = {
     solid: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#9fb0c6" stroke-width="2"/></svg>`,
     wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
@@ -102,7 +98,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
     + `</div>`;
 }
 // 페이지 목록의 동기화 버튼과 같은 아이콘 — 화살표 1개(페이지) / 2개(전체)

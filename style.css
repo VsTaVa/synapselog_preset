@@ -642,7 +642,12 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* 토큰 삭제는 다시 입력하면 되는 되돌릴 수 있는 동작이라 흰색 — 빨강은 '전체 캐시' 전용 */
 .token-edit-row .s-trash-btn { background: none; border: none; color: var(--icon); padding: 6px 0 6px 6px; flex-shrink: 0; }
 .token-edit-row .s-trash-btn:hover { background: var(--hover); color: var(--fg); }
-#status { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: rgba(var(--fg-rgb),0.5); pointer-events: none; }
+/* 가로모드에선 레일·사이드바·상세 패널이 화면을 잠식한다 — 화면 가운데가 아니라
+   '보이는 그래프 영역'의 가운데에 놓아야 안 치우쳐 보인다(패널 폭은 드래그로 변해 변수로 읽는다) */
+body { --gz-l: 56px; --gz-r: 0px; }
+body:has(#sidebar.open:not(.collapsed)) { --gz-l: calc(56px + var(--sidebar-w)); }
+body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
+#status { position: fixed; bottom: 16px; left: calc(var(--gz-l) + (100vw - var(--gz-l) - var(--gz-r)) / 2); transform: translateX(-50%); background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: rgba(var(--fg-rgb),0.5); pointer-events: none; }
 .shortcut-btn { font-size: 11px; font-weight: 700; font-family: 'Noto Sans KR', monospace; padding: 4px 10px; border-radius: 5px; cursor: pointer; min-width: 52px; text-align: center; background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.15); color: rgba(var(--fg-rgb),0.7); transition: all 0.15s; }
 .shortcut-btn:hover { background: rgba(var(--fg-rgb),0.12); color: var(--fg); border-color: rgba(var(--fg-rgb),0.25); }
 .shortcut-btn.recording { background: rgba(var(--accent-rgb),0.15); border-color: rgba(var(--accent-rgb),0.5); color: var(--accent); animation: sc-pulse 0.9s ease-in-out infinite; }
@@ -828,7 +833,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   }
   /* 확대·회전 표시(#status)와 재열기 손잡이는 둘 다 하단 가운데라 서로 겹친다.
      손잡이(bottom 10~26) 위에 얹어 같은 세로줄에 나란히 놓는다. */
-  #status { bottom: 32px; }
+  /* 세로모드는 패널이 바닥 시트라 가로를 안 잠식 → 화면 가운데 그대로 */
+  #status { bottom: 32px; left: 50%; }
   /* 시트가 떠 있으면 손잡이는 숨으므로 시트 바로 위로 — 안 그러면 시트 뒤에 깔린다 */
   body:has(#detail-panel.open:not(.panel-collapsed)) #status {
     bottom: calc(var(--sheet-eff) + 16px);

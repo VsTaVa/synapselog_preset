@@ -317,13 +317,37 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
+// 상태 배지 하나 — 원 + 글리프('check' | 'pin' | 숫자). 흰 배지에는 글리프를 어둡게 넣는다
+function _drawBadge(ctx, bx, by, scale, b) {
+  const dark = b.fill === '#ffffff';
+  ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
+  ctx.fillStyle = b.fill; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
+  const ink = dark ? '#15110a' : '#ffffff';
+  if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
+  else {
+    ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(b.glyph, bx, by);
+    ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+  }
+}
+// 고정 핀 — 머리(원) + 아래로 뾰족한 촉. 가는 선으로 그리면 이 크기에서 안 읽혀 채운다
+function _drawPin(ctx, bx, by, scale, color) {
+  ctx.save();
+  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale); // 여기부터 화면 px 좌표
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(0, -1.5, 2.4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-1.7, 0.2); ctx.lineTo(1.7, 0.2); ctx.lineTo(0, 4.3); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
 // 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
-function _drawCheck(ctx, bx, by, scale) {
+function _drawCheck(ctx, bx, by, scale, color) {
   ctx.beginPath();
   ctx.moveTo(bx - 3.2/scale, by + 0.3/scale);
   ctx.lineTo(bx - 0.8/scale, by + 2.6/scale);
   ctx.lineTo(bx + 3.4/scale, by - 2.4/scale);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.strokeStyle = color || '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
   ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
 
@@ -469,6 +493,7 @@ function draw() {
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const ndRgb = nodeRgb(n);
+    const badges = []; // 상태 배지(상세 열림·선택·고정) — 아래에서 한 번에 왼쪽에 쌓아 그린다
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
     // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택표시·위성 등)은 똑바로 유지 — 역회전 적용
@@ -512,11 +537,6 @@ function draw() {
       ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
     }
-    if(n.fixed) {
-      ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);
-      ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1/scale;
-      ctx.setLineDash([2.5,2.5]); ctx.stroke(); ctx.setLineDash([]);
-    }
     if(_connectMode && n.connectSelected) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+16, 0, Math.PI*2);
       const gSel = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, r+16);
@@ -548,33 +568,20 @@ function draw() {
       gSelA.addColorStop(0, rgbStr(accRgb, 0.38)); gSelA.addColorStop(1, rgbStr(accRgb, 0));
       ctx.fillStyle = gSelA; ctx.fill();
       const order = _multiSelected.indexOf(n) + 1;
-      if (order > 0) {
-        const bx = n.x + r + 5, by = n.y - r - 5, rr = 7/scale;
-        ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
-        ctx.fillStyle = acc; ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-        // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
-        if (_multiSelected.length > 1) {
-          ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillText(order, bx, by);
-          ctx.textAlign='start'; ctx.textBaseline='alphabetic';
-        } else {
-          _drawCheck(ctx, bx, by, scale);
-        }
-      }
+      // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
+      if (order > 0) badges.push({ fill: acc, glyph: _multiSelected.length > 1 ? String(order) : 'check' });
     }
-    // 우측 패널에 열린 노드: 녹색 체크 배지 + 은은한 녹색 글로우(흐려져도 표시)
+    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 체크 배지
     if(openPanelIdx.has(n.id)) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
       const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
       gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      const bx = n.x + r + 5, by = n.y - r - 5, rr = 7/scale;
-      ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
-      ctx.fillStyle = '#27ae60'; ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-      _drawCheck(ctx, bx, by, scale);
+      badges.push({ fill: '#27ae60', glyph: 'check' });
     }
+    if(n.fixed) badges.push({ fill: '#ffffff', glyph: 'pin' });
+    // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
+    badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b));
     ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
   });
