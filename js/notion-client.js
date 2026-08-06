@@ -64,7 +64,7 @@ function pickMdFile() {
 
 async function _importMdFileHandle(handle, pageId) {
   const file = await handle.getFile();
-  const text = await file.text();
+  const text = normalizeNotionMd(await file.text()); // 노션 내보내기 속성·이스케이프 정리
   const title = file.name.replace(/\.md$|\.txt$/i, '');
   pageId = pageId || ('md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
   mergeGraph(title, text, pageId);
@@ -137,7 +137,7 @@ async function _saveFolderBatchToIDB(folderBatchId) {
 
 async function _importFolderFile(path, handle, folderBatchId, pageId) {
   const file = await handle.getFile();
-  const text = await file.text();
+  const text = normalizeNotionMd(await file.text()); // 노션 내보내기 속성·이스케이프 정리
   const title = file.name.replace(/\.md$|\.txt$/i, '');
   pageId = pageId || ('md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7));
   mergeGraph(title, text, pageId);
@@ -418,6 +418,30 @@ function createLocalRoot(title) {
   isStable = false;
   if (root && typeof openPanel === 'function') openPanel(root);
   return root;
+}
+
+// 마크다운 텍스트 → 임시(local_) 페이지. /Import·붙여넣기가 같은 경로를 쓰게 하는 공통 진입점
+function addMarkdownPage(title, markdown) {
+  const pageId = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  mergeGraph(title, markdown || '', pageId);
+  nodes.forEach(n => { if (n.sourcePageId === pageId) { n.local = true; n.visible = true; } });
+  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  if (root) root.headingDepth = 0;
+  _addedPageIds.add(pageId);
+  saveLocalPages();
+  _registerLocalInList(pageId, title);
+  refreshSidebarRender();
+  updateBulkActionsVisibility();
+  isStable = false;
+  return root;
+}
+
+// 마크다운 첫 헤딩 → 제목. 없으면 첫 줄, 그것도 없으면 기본값
+function mdTitleOf(markdown, fallback) {
+  const md = String(markdown || '');
+  const head = md.match(/^\s*#\s+(.+)$/m);
+  const first = md.split('\n').map(l => l.trim()).find(Boolean) || '';
+  return (head ? head[1] : first.replace(/^[#\-*>\s]+/, '')).trim().slice(0, 80) || fallback;
 }
 
 function newLocalRoot() {
@@ -1707,7 +1731,7 @@ function _importMdFile(file) {
   return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const markdown = e.target.result;
+      const markdown = normalizeNotionMd(e.target.result); // 노션 내보내기 속성·이스케이프 정리
       const title = file.name.replace(/\.md$|\.txt$/i, '');
       const pageId = 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
       mergeGraph(title, markdown, pageId);
@@ -1722,6 +1746,34 @@ function _importMdFile(file) {
     };
     reader.readAsText(file);
   });
+}
+
+// ── 마크다운 붙여넣기 ───────────────────────────────────────────────
+function openMdPaste() {
+  const modal = document.getElementById('md-paste-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  const ta = document.getElementById('md-paste-text');
+  if (ta) { ta.value = ''; ta.focus(); }
+  const ti = document.getElementById('md-paste-title');
+  if (ti) ti.value = '';
+}
+function closeMdPaste() {
+  const modal = document.getElementById('md-paste-modal');
+  if (modal) modal.classList.remove('open');
+}
+function addPastedMarkdown() {
+  const ta = document.getElementById('md-paste-text');
+  const md = normalizeNotionMd(ta ? ta.value : '');
+  if (!md.trim()) { if (ta) ta.focus(); return; }
+  const typed = (document.getElementById('md-paste-title')?.value || '').trim();
+  const title = typed || mdTitleOf(md, '붙여넣은 문서');
+  closeMdPaste();
+  const root = addMarkdownPage(title, md);
+  savePageList();
+  const cnt = nodes.filter(n => root && n.sourcePageId === root.sourcePageId).length;
+  toast(`"${title}" 추가됨 · 노드 ${cnt}개`, { type: 'success' });
+  setTimeout(() => { try { fitGraph(true); } catch (e) {} }, 300);
 }
 
 function importMarkdownFile(event) {

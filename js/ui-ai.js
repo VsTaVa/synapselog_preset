@@ -211,17 +211,7 @@ async function aiImportUrl(url) {
     if (!md) throw new Error('마크다운 생성 결과 비어있음');
     const title = (md.match(/^#\s+(.+)$/m)?.[1] || srcTitle).trim();
     // 임시(local) 페이지로 추가 — 생성된 마크다운이라 저장 전이므로 "임시" 취급(편집·저장·내보내기 대상)
-    const pageId = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-    mergeGraph(title, md, pageId);
-    nodes.forEach(n => { if (n.sourcePageId === pageId) { n.local = true; n.visible = true; } });
-    const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
-    if (root) root.headingDepth = 0;
-    _addedPageIds.add(pageId);
-    if (typeof saveLocalPages === 'function') saveLocalPages();
-    if (typeof _registerLocalInList === 'function') _registerLocalInList(pageId, title);
-    if (typeof refreshSidebarRender === 'function') refreshSidebarRender();
-    if (typeof updateBulkActionsVisibility === 'function') updateBulkActionsVisibility();
-    isStable = false;
+    addMarkdownPage(title, md);
     _aiChatReplace(waitId, `"${title}" 임시 노드로 추가됨. (${isYt ? '자막' : '본문'} 기반 — 저장하려면 사이드바에서 내보내기)`, []);
     if (typeof fitGraph === 'function') setTimeout(() => fitGraph(true), 400);
   });

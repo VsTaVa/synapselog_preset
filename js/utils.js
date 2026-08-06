@@ -168,6 +168,16 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// 노션에서 내보낸 마크다운 다듬기 — 속성({toggle="true"})·백슬래시 이스케이프가 제목·본문에 그대로 새는 걸 막는다
+function normalizeNotionMd(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/^(\s*#{1,6}\s.*?)\s*\{[^}\n]*\}\s*$/gm, '$1') // 헤딩 줄 끝의 노션 속성
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\\([\[\]>*~`#|_-])/g, '$1') // 이스케이프 해제
+    .replace(/^\t+/gm, m => '  '.repeat(m.length)); // 탭 들여쓰기 → 공백
+}
+
 function cleanLabel(str) {
   if (!str) return '';
   return str

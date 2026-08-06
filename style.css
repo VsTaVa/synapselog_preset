@@ -399,6 +399,20 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #confirm-cancel:hover { background: rgba(255,255,255,0.12); }
 #confirm-ok { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); }
 #confirm-ok:hover { background: rgba(var(--accent-rgb),0.25); }
+/* 마크다운 붙여넣기 — 확인 모달과 같은 껍데기에 입력창만 추가 */
+#md-paste-modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
+#md-paste-modal.open { display: flex; }
+#md-paste-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 22px; width: min(560px, 92vw); box-shadow: 0 16px 48px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+#md-paste-box .confirm-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+#md-paste-title { width: 100%; margin-bottom: 8px; }
+#md-paste-text { width: 100%; height: min(46vh, 340px); box-sizing: border-box; resize: vertical; background: rgba(var(--fg-rgb),0.06); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.6; outline: none; margin-bottom: 14px; }
+#md-paste-text:focus { border-color: rgba(var(--accent-rgb),0.5); }
+#md-paste-box .confirm-btns { display: flex; gap: 8px; }
+#md-paste-box .confirm-btns button { flex: 1; padding: 9px; border-radius: 7px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.2s; }
+#md-paste-cancel { background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.12); color: var(--text-dim); }
+#md-paste-cancel:hover { background: rgba(var(--fg-rgb),0.12); }
+#md-paste-ok { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); }
+#md-paste-ok:hover { background: rgba(var(--accent-rgb),0.25); }
 /* ⚙·✕은 헤더 오른쪽 위에 못박아 둔다 — 경로를 펼치든 제목이 길든 자리가 안 움직이게.
    그만큼 오른쪽 여백을 비워 제목·경로가 버튼 밑으로 파고들지 않게 한다 */
 .detail-header { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 68px 8px 11px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
