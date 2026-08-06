@@ -85,7 +85,6 @@ function _legendSymbolsHtml() {
     solid: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#9fb0c6" stroke-width="2"/></svg>`,
     wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
   };
-  const glow = (c) => `<span class="lg-glow" style="background:radial-gradient(circle, ${c} 0%, transparent 70%)"></span>`;
   const colorSec = `<div class="lg-row lg-tool"><span><b>노드별</b>: 노드마다 색상 변화</span></div>`
     + `<div class="lg-row lg-tool"><span><b>깊이별</b>: 헤딩 레벨에 따라 색상 변화</span></div>`;
   return `<div class="lg-sec"><div class="lg-sec-title">노드 색상</div>${colorSec}</div>`
@@ -100,7 +99,6 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드 (선택 순번)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
