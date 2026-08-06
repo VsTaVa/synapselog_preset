@@ -148,6 +148,7 @@ function renderPanes(animateId) {
         `</div>` +
       `</div>` +
       `<div class="detail-body">` +
+        `<div class="detail-path"></div>` +
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
@@ -190,6 +191,25 @@ function mdTableToHtml(text) {
   return out.join('\n');
 }
 
+// 이 노드가 어디에 있는지 — 페이지 → … → 부모 → 현재. 조상은 노드칩이라 눌러서 바로 이동된다.
+// 깊으면 가운데를 접는다(앞 1개 + 뒤 2개) — 패널이 좁아 다 펴면 두 줄로 넘친다.
+function _nodePathHtml(n) {
+  if (!n || typeof getAncestorIds !== 'function') return '';
+  const chain = getAncestorIds(n.id, 12).reverse().map(id => nodeMap[id]).filter(Boolean);
+  if (!chain.length) return '';
+  const sep = `<span class="detail-path-sep">›</span>`;
+  let parts = chain;
+  let folded = false;
+  if (parts.length > 3) { parts = [chain[0], ...chain.slice(-2)]; folded = true; }
+  const chip = nd => (typeof createNodeChip === 'function')
+    ? createNodeChip(nd, { maxLen: 14, className: 'node-chip--sm' })
+    : `<span class="node-chip node-chip--sm">${escapeHtml(nd.label)}</span>`;
+  const segs = parts.map((nd, idx) => (folded && idx === 1 ? `<span class="detail-path-fold" title="${escapeHtml(chain.slice(1, -2).map(x => x.label).join(' › '))}">…</span>${sep}${chip(nd)}` : chip(nd)));
+  // 현재 노드는 제목 칩과 겹치므로 누를 수 없는 흐린 텍스트로 — 위치의 끝점 표시용
+  const cur = `<span class="detail-path-cur">${escapeHtml((n.label || '').length > 16 ? n.label.slice(0, 15) + '…' : n.label)}</span>`;
+  return segs.join(sep) + sep + cur;
+}
+
 function renderPaneContent(i, n) {
   const paneEl = getPaneEl(i);
   if (!paneEl) return;
@@ -199,6 +219,7 @@ function renderPaneContent(i, n) {
   const headerEl = paneEl.querySelector('.detail-header');
   if (!n) {
     if (titleEl) titleEl.textContent = '';
+    const emptyPath = paneEl.querySelector('.detail-path'); if (emptyPath) emptyPath.innerHTML = '';
     if (dateEl) dateEl.style.display = 'none';
     if (contentEl) contentEl.innerHTML = '';
     const oldLink = headerEl && headerEl.querySelector('.detail-notion-link');
@@ -207,6 +228,8 @@ function renderPaneContent(i, n) {
   }
   // 제목은 기존 노드칩 컴포넌트 그대로 사용(색·북마크 표식·클릭 이동 포함)
   if (titleEl) { titleEl.innerHTML = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 30, className: 'node-chip--lg' }) : escapeHtml(n.label); titleEl.title = n.label; }
+  const pathEl = paneEl.querySelector('.detail-path');
+  if (pathEl) pathEl.innerHTML = _nodePathHtml(n);
   if (dateEl) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
