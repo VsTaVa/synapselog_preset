@@ -713,7 +713,7 @@ document.addEventListener('keydown', e => {
   // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  if (k === _shortcuts.toggleLabels) { e.preventDefault(); const cb = document.getElementById('label-toggle-input'); if (cb) cb.checked = !cb.checked; toggleLabels(); }
+  if (k === _shortcuts.toggleLabels) { e.preventDefault(); toggleLabels(); }
   else if (e.key === ' ') { e.preventDefault(); fitGraph(true); } // 스페이스바 → 화면 맞춤
 });
 
@@ -818,7 +818,7 @@ function updateAiKey() {
 }
 
 function clearCache(type) {
-  // 전체 초기화: 노드 모드(색상·배치·연결/제목 표시·회전)·그래프 설정(슬라이더)·페이지·북마크·본문 캐시 등 전부 삭제.
+  // 전체 초기화: 노드 모드(색상·배치·연결 표시·회전)·그래프 설정(슬라이더)·페이지·북마크·본문 캐시 등 전부 삭제.
   // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
   if (type === 'all') {
     showConfirm('전체 초기화', '노드 모드&그래프 설정 포함 저장 데이터 전체 초기화.\n(로그인&언어&단축키 유지, 새로고침됨)', () => {
@@ -921,7 +921,6 @@ setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 (() => { const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = _showConnections; })(); // 노드 연결 표시 토글 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
-(() => { const cb = document.getElementById('label-knockout-input'); if (cb) cb.checked = _labelKnockout; })(); // 제목 뒤 지움 토글 동기화
 (() => {
   const deg = Math.round(_viewRotation * 180 / Math.PI);
   const sl = document.getElementById('cfg-rotation'); if (sl) sl.value = deg;

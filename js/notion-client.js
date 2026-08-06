@@ -647,7 +647,7 @@ const _SAMPLE_MD = `# 노트 샘플
 #### 키보드 단축키
 
 (버튼 클릭 후 원하는 키 입력)
-- 제목 표시: \`T\`
+- 제목 숨김 / 복원: \`T\`
 - 패널 숨기기: \`esc\`
 - 노드 고정 / 해제: \`Ctrl+클릭\`
 - 노드 선택: \`우클릭\`
@@ -1822,22 +1822,20 @@ function exportGraph(size) {
     else if(n.isChildPage || n.entryNotionId) drawStarX(ctx2, nx, ny, r);
     else { ctx2.beginPath(); ctx2.arc(nx, ny, r, 0, Math.PI*2); }
     ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : rgbStr(rgb, 1); ctx2.fill();
-    if (_showLabels) {
+    if (_labelScale > 0) {
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
-      const fontSize = (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
+      const fontSize = (n.level <= 1 ? 12 : 10) * _labelScale;
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
       // 화면과 같은 '제목 뒤 지움' — 그림자 블러를 페더로 써서 겹친 선·노드를 글자 주변에서 뺀다
-      if (typeof _labelKnockout === 'undefined' || _labelKnockout) {
-        ctx2.fillStyle = rgbStr(EXPORT_BG, 1);
-        ctx2.shadowColor = rgbStr(EXPORT_BG, 1);
-        ctx2.shadowOffsetX = 0; ctx2.shadowOffsetY = 0;
-        // 그림자 블러는 변환행렬을 안 타므로 출력 배율(exportScale)로 환산
-        ctx2.shadowBlur = Math.max(2.5, fontSize * 0.5) * exportScale;
-        ctx2.fillText(lbl, nx, ny + r + 4); ctx2.fillText(lbl, nx, ny + r + 4);
-        ctx2.shadowColor = 'rgba(0,0,0,0)'; ctx2.shadowBlur = 0;
-      }
+      ctx2.fillStyle = rgbStr(EXPORT_BG, 1);
+      ctx2.shadowColor = rgbStr(EXPORT_BG, 1);
+      ctx2.shadowOffsetX = 0; ctx2.shadowOffsetY = 0;
+      // 그림자 블러는 변환행렬을 안 타므로 출력 배율(exportScale)로 환산
+      ctx2.shadowBlur = Math.max(2.5, fontSize * 0.5) * exportScale;
+      ctx2.fillText(lbl, nx, ny + r + 4); ctx2.fillText(lbl, nx, ny + r + 4);
+      ctx2.shadowColor = 'rgba(0,0,0,0)'; ctx2.shadowBlur = 0;
       ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.fillText(lbl, nx, ny + r + 4);
     }

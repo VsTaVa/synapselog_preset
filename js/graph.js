@@ -11,10 +11,8 @@ let isStable = false;
 let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.5, linkTension: 0.005, hubGlow: 1.0 };
 let searchKeyword = '', searchMatches = new Set();
 let searchDirect = new Set(); // 키워드 직접 매칭 노드(글로우 대상). searchMatches는 조상 경로 포함
-let _showLabels = true;
-let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
-// 제목 뒤 지움 — 글자 모양대로 배경색을 페더로 덮어, 겹친 링크선·노드를 글자 주변에서 빼준다
-let _labelKnockout = (() => { try { return localStorage.getItem('snlog_label_knockout') !== 'false'; } catch(e) { return true; } })();
+// 0이면 제목을 안 그린다 — 표시 여부와 크기를 값 하나로 합쳤다(T 단축키가 0과 직전 값을 오간다)
+let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 // 색의 원본은 CSS 토큰(:root) — JS는 한 번 읽어 캐시만 한다(매 프레임 조회는 비싸다)
 const _cssRgbCache = {};
 function cssRgb(name, fallback) {
@@ -622,7 +620,7 @@ function draw() {
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b));
     ctx.restore();
-    if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
+    if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
   });
   // 활성(직접 히트) 글로우 — 모든 노드 위에 마지막으로. 안쪽은 구멍을 내 노드 색을 덮지 않는다
   glowQueue.forEach(({ x, y, r }) => {
@@ -640,7 +638,7 @@ function draw() {
   ctx.restore();
 
   // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로
-  if (_showLabels && labelQueue.length) {
+  if (labelQueue.length) {
     ctx.save();
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.textBaseline = 'top'; ctx.textAlign = 'center';
@@ -667,21 +665,19 @@ function draw() {
     //    (윤곽선을 두께별로 겹쳐 긋는 방식은 단계가 층으로 보였다 — 블러는 연속이라 층이 안 생김)
     //    캔버스가 불투명 배경이라 '투명하게 파기'(destination-out)는 아래 DOM 배경이 비쳐 얼룩진다 → 같은 색으로 덮는 방식.
     //    흐려진 라벨(검색 비매치·포커스 밖)은 제외 — 존재감이 약한 게 의도인데 주변만 파이면 되레 눈에 띈다.
-    if (_labelKnockout) {
-      const bg = bgRgb();
-      ctx.fillStyle = rgbStr(bg, 1);
-      ctx.shadowColor = rgbStr(bg, 1);
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-      specs.forEach(s => {
-        if (s.isDim) return;
-        ctx.font = s.font;
-        // 그림자 블러는 변환행렬을 안 타므로 장치 픽셀로 환산(DPR). 글자 크기에 비례 + 최소치.
-        ctx.shadowBlur = Math.max(2.5, s.fontSize * 0.5) * DPR;
-        // 두 번 겹쳐 글자 가까이를 충분히 덮는다 — 가장자리는 여전히 블러라 매끈
-        ctx.fillText(s.lbl, s.x, s.y); ctx.fillText(s.lbl, s.x, s.y);
-      });
-      ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0;
-    }
+    const bg = bgRgb();
+    ctx.fillStyle = rgbStr(bg, 1);
+    ctx.shadowColor = rgbStr(bg, 1);
+    ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    specs.forEach(s => {
+      if (s.isDim) return;
+      ctx.font = s.font;
+      // 그림자 블러는 변환행렬을 안 타므로 장치 픽셀로 환산(DPR). 글자 크기에 비례 + 최소치.
+      ctx.shadowBlur = Math.max(2.5, s.fontSize * 0.5) * DPR;
+      // 두 번 겹쳐 글자 가까이를 충분히 덮는다 — 가장자리는 여전히 블러라 매끈
+      ctx.fillText(s.lbl, s.x, s.y); ctx.fillText(s.lbl, s.x, s.y);
+    });
+    ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0;
     // 3) 글자
     specs.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';

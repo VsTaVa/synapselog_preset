@@ -124,18 +124,20 @@ function showLoading(text='불러오는 중...') {
 }
 function hideLoading() { const el = document.getElementById('loading-overlay'); if (el) el.classList.remove('visible'); }
 
-// ── 제목 표시 토글 ────────────────────────────────────────────────────
+// ── 제목 크기 ─────────────────────────────────────────────────────────
 
-function toggleLabels() { const cb = document.getElementById('label-toggle-input'); _showLabels = cb ? cb.checked : !_showLabels; }
+let _labelScalePrev = 1; // 0(숨김)에서 돌아올 크기 — 마지막으로 쓰던 값
 
-function toggleLabelKnockout() {
-  const cb = document.getElementById('label-knockout-input');
-  _labelKnockout = cb ? cb.checked : !_labelKnockout;
-  try { localStorage.setItem('snlog_label_knockout', String(_labelKnockout)); } catch (e) {}
+// 단축키(T): 제목 크기를 0과 직전 값 사이로 오간다
+function toggleLabels() {
+  setLabelScale(_labelScale > 0 ? 0 : _labelScalePrev);
+  const sl = document.getElementById('cfg-label-scale');
+  if (sl) sl.value = _labelScale;
 }
 
 function setLabelScale(v) {
-  v = parseFloat(v); if (!(v >= 0.5 && v <= 2.5)) v = 1;
+  v = parseFloat(v); if (!(v >= 0 && v <= 2.5)) v = 1;
+  if (v > 0) _labelScalePrev = v;
   _labelScale = v;
   try { localStorage.setItem('snlog_label_scale', String(v)); } catch (e) {}
   const out = document.getElementById('label-scale-val');
