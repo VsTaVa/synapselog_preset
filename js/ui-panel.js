@@ -143,17 +143,21 @@ function renderPanes(animateId) {
     el.dataset.pane = i;
     el.innerHTML =
       `<div class="detail-header">` +
+        `<button class="detail-path-toggle" title="위치 보기" aria-expanded="false">` +
+          `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>` +
+        `</button>` +
+        `<div class="detail-path"></div>` +
         `<div class="detail-title"></div>` +
         `<div class="detail-header-actions">` +
           `<button class="pane-x" title="닫기">✕</button>` +
         `</div>` +
       `</div>` +
       `<div class="detail-body">` +
-        `<div class="detail-path"></div>` +
         `<div class="detail-meta-row"><span class="detail-date"></span></div>` +
         `<div class="detail-content"></div>` +
       `</div>`;
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
+    el.querySelector('.detail-path-toggle').onclick = (e) => { e.stopPropagation(); toggleNodePath(); };
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
@@ -202,8 +206,26 @@ function _nodePathHtml(n) {
   const chip = nd => (typeof createNodeChip === 'function')
     ? createNodeChip(nd, { maxLen: 14, className: 'node-chip--sm' })
     : `<span class="node-chip node-chip--sm">${escapeHtml(nd.label)}</span>`;
-  // 현재 노드도 같은 노드칩으로 — 경로가 한 종류로 읽힌다(끝점만 텍스트면 다른 것처럼 보였음)
-  return chain.concat([n]).map(chip).join(sep);
+  // 끝의 현재 노드는 바로 뒤에 오는 제목 칩이 대신한다 — 같은 칩을 두 번 그리지 않게
+  return chain.map(chip).join(sep) + sep;
+}
+
+// 위치 경로 펼침 — 기본은 접힘(칩 뭉치가 여러 개면 시선이 분산된다).
+// 두 패인이 따로 놀면 헷갈려서 상태는 하나로 공유한다.
+let _pathOpen = false;
+function toggleNodePath() { _pathOpen = !_pathOpen; _applyPathOpen(); }
+function _applyPathOpen() {
+  document.querySelectorAll('.detail-pane').forEach(p => {
+    const pathEl = p.querySelector('.detail-path');
+    const has = !!(pathEl && pathEl.innerHTML);
+    p.classList.toggle('path-open', _pathOpen && has);
+    const btn = p.querySelector('.detail-path-toggle');
+    if (btn) {
+      btn.style.display = has ? '' : 'none'; // 최상위 노드는 펼칠 위치가 없다
+      btn.setAttribute('aria-expanded', String(_pathOpen && has));
+      btn.title = (_pathOpen && has) ? '위치 접기' : '위치 보기';
+    }
+  });
 }
 
 function renderPaneContent(i, n) {
@@ -225,7 +247,7 @@ function renderPaneContent(i, n) {
   // 제목은 기존 노드칩 컴포넌트 그대로 사용(색·북마크 표식·클릭 이동 포함)
   if (titleEl) { titleEl.innerHTML = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 30, className: 'node-chip--lg' }) : escapeHtml(n.label); titleEl.title = n.label; }
   const pathEl = paneEl.querySelector('.detail-path');
-  if (pathEl) pathEl.innerHTML = _nodePathHtml(n);
+  if (pathEl) { pathEl.innerHTML = _nodePathHtml(n); _applyPathOpen(); }
   if (dateEl) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
