@@ -68,8 +68,8 @@
 <div id="confirm-modal"><div id="confirm-box"><div class="confirm-title" id="confirm-title"></div><div class="confirm-msg" id="confirm-msg"></div><div class="confirm-btns"><button id="confirm-cancel" onclick="closeConfirm()">취소</button><button id="confirm-ok">확인</button></div></div></div>
 <div id="md-paste-modal"><div id="md-paste-box">
   <div class="confirm-title">마크다운 붙여넣기</div>
-  <input type="text" id="md-paste-title" autocomplete="off" placeholder="페이지 제목 (필수)">
-  <textarea id="md-paste-text" placeholder="# 대주제              1단계 노드&#10;## 소주제             2단계 (##### 5단계까지)&#10;헤딩 아래 줄          그 노드의 본문&#10;&#10;- 불릿   /   1. 번호&#10;> 인용   /   >> 콜아웃&#10;☐ 할 일   /   ☑ 완료&#10;---                   구분선&#10;![설명](이미지 주소)&#10;| 표 | 머리 |&#10;&#10;[[노드 제목]]         노드 연결&#10;**볼드**  *기울임*  ~~취소선~~  `코드`"></textarea>
+  <input type="text" id="md-paste-title" autocomplete="off" placeholder="페이지 제목">
+  <textarea id="md-paste-text" placeholder="#~#### 각 단위의 노드&#10;헤딩 아래 본문: 헤당 노드 본문&#10;&#10;- 불릿   /   1. 번호&#10;> 인용   /   >> 콜아웃&#10;☐ 할 일   /   ☑ 완료&#10;--- 분선&#10;&#10;[[노드 제목]]         노드 연결&#10;**볼드**  *기울임*  ~~취소선~~  `코드`"></textarea>
   <div class="confirm-btns"><button id="md-paste-cancel" onclick="closeMdPaste()">취소</button><button id="md-paste-ok" onclick="addPastedMarkdown()">추가</button></div>
 </div></div>
 <div id="activity-rail">
