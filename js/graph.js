@@ -556,9 +556,12 @@ function draw() {
       }
     }
     if(n.multiSelected) {
-      const acc = rgbStr(cssRgb('--accent-rgb',[237,112,0]), 1);
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+8, 0, Math.PI*2);
-      ctx.strokeStyle = acc; ctx.lineWidth = 2/scale; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      const accRgb = cssRgb('--accent-rgb',[237,112,0]), acc = rgbStr(accRgb, 1);
+      // 상세 열림(녹색 글로우)과 같은 형태의 주황 글로우 — 두 표시가 한 규칙으로 읽힌다
+      ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
+      const gSelA = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
+      gSelA.addColorStop(0, rgbStr(accRgb, 0.38)); gSelA.addColorStop(1, rgbStr(accRgb, 0));
+      ctx.fillStyle = gSelA; ctx.fill();
       const order = _multiSelected.indexOf(n) + 1;
       if (order > 0) {
         const bx = n.x + r + 5, by = n.y - r - 5, rr = 7/scale;
