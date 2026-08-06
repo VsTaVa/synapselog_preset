@@ -759,7 +759,7 @@ export default async function handler(req, res) {
 
       // Count all databases (child_database + child_page-that-is-db) across heading/toggle tree
       async function _countDbs(id, depth = 0) {
-        if (depth > 5) return 0;
+        if (depth > 6) return 0; // fetchHeadings와 같은 깊이까지 세야 DB 노드 판정이 어긋나지 않는다
         const blocks = await _hChildren(id);
         let n = blocks.filter(b => b.type === 'child_database').length;
         // Check child_page blocks in parallel — some may be full-page databases
@@ -767,8 +767,8 @@ export default async function handler(req, res) {
         const pageDbResults = await Promise.all(pageBlocks.map(b => _checkIsDb(b.id)));
         n += pageDbResults.filter(Boolean).length;
         for (const b of blocks) {
-          // 콜아웃 안에 DB를 넣는 경우가 있어 콜아웃도 파고든다 — 안 세면 globalUseDb가 어긋나 DB 노드가 안 생김
-          if (b.has_children && /^(heading_\d|toggle|callout)$/.test(b.type)) n += await _countDbs(b.id, depth + 1);
+          // 콜아웃·컬럼 안에 DB를 넣는 경우가 있어 거기도 파고든다 — 안 세면 globalUseDb가 어긋나 DB 노드가 안 생김
+          if (b.has_children && /^(heading_\d|toggle|callout|column_list|column)$/.test(b.type)) n += await _countDbs(b.id, depth + 1);
         }
         return n;
       }
@@ -776,19 +776,24 @@ export default async function handler(req, res) {
       const totalDbs = await _countDbs(pageId);
       const globalUseDb = totalDbs >= 2;
 
-      async function fetchHeadings(blockId, depth = 0) {
-        if (depth > 5) return '';
+      // inCallout: 콜아웃 안쪽 서브트리를 도는 중 — 본문 줄에만 '>>' 마커를 붙인다.
+      // (구조 블록(하위 페이지·DB·헤딩)은 콜아웃 안이라고 다르게 처리하면 안 된다 — 그래프 노드가 통째로 어긋난다)
+      async function fetchHeadings(blockId, depth = 0, inCallout = false) {
+        if (depth > 6) return '';
         const allBlocks = await _hChildren(blockId);
         let md = '';
+        const body = t => inCallout ? calloutLines(t) : t;
+        // 콜아웃 안에서는 문단·목록의 자식까지 파고든다(중첩 텍스트 유실 방지)
+        const deep = async block => (inCallout && block.has_children) ? await fetchHeadings(block.id, depth + 1, true) : '';
 
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
-            else if (type === 'toggle') { const t = extractHeadingMd(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1); }
+            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
+            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
+            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
+            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
+            else if (type === 'toggle') { const t = extractHeadingMd(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call
@@ -822,17 +827,21 @@ export default async function handler(req, res) {
             // 본문 텍스트 블록 — [BB:] 마커로 본문으로 인식되게 (헤딩 사이 본문)
             else if (type === 'paragraph') {
               const text = extractRichText(block.paragraph?.rich_text);
-              if (text.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + text + '\n';
+              if (text.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + body(text) + '\n';
+              md += await deep(block);
             }
             else if (type === 'bulleted_list_item') {
-              md += `[BB:${block.id.replace(/-/g,'')}]\n- ` + extractRichText(block.bulleted_list_item?.rich_text) + '\n';
+              md += `[BB:${block.id.replace(/-/g,'')}]\n` + body('- ' + extractRichText(block.bulleted_list_item?.rich_text)) + '\n';
+              md += await deep(block);
             }
             else if (type === 'numbered_list_item') {
-              md += `[BB:${block.id.replace(/-/g,'')}]\n1. ` + extractRichText(block.numbered_list_item?.rich_text) + '\n';
+              md += `[BB:${block.id.replace(/-/g,'')}]\n` + body('1. ' + extractRichText(block.numbered_list_item?.rich_text)) + '\n';
+              md += await deep(block);
             }
             else if (type === 'to_do') {
               const t = extractRichText(block.to_do?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + (block.to_do?.checked ? '☑ ' : '☐ ') + t + '\n';
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + body((block.to_do?.checked ? '☑ ' : '☐ ') + t) + '\n';
+              md += await deep(block);
             }
             else if (type === 'divider') {
               md += `[BB:${block.id.replace(/-/g,'')}]\n---\n`;
@@ -843,20 +852,35 @@ export default async function handler(req, res) {
               const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
               if (url) md += `[BB:${block.id.replace(/-/g,'')}]\n![${cap}](${url})\n`;
             }
+            else if (type === 'table' && block.has_children) {
+              // 예전엔 콜아웃·컬럼 안 표만 (fetchBlocks 경유로) 읽혔다 — 이제 어디 있든 같은 규칙으로 읽는다
+              const rows = (await _hChildren(block.id)).filter(b => b.type === 'table_row');
+              if (rows.length) {
+                const esc = s => (s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+                const cells = rows.map(r => (r.table_row?.cells || []).map(c => esc(extractRichText(c))));
+                md += '\n| ' + cells[0].join(' | ') + ' |\n';
+                md += '|' + new Array(cells[0].length).fill('---').join('|') + '|\n';
+                for (let ri = 1; ri < cells.length; ri++) md += '| ' + cells[ri].join(' | ') + ' |\n';
+              }
+            }
             else if ((type === 'column_list' || type === 'column') && block.has_children) {
-              md += await fetchBlocks(block.id, depth + 1, false, 0); // 다단 → 위→아래로 펼침
+              // 다단 → 위→아래로 펼침. 콜아웃과 같은 이유로 fetchBlocks가 아니라 여기서 계속 돈다
+              // (컬럼 안의 하위 페이지·DB도 다른 곳과 똑같이 노드가 되어야 한다)
+              md += await fetchHeadings(block.id, depth + 1, inCallout);
             }
             else if (type === 'quote') {
               const t = extractRichText(block.quote?.rich_text);
-              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + quoteLines(t) + '\n';
+              if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + (inCallout ? calloutLines(t) : quoteLines(t)) + '\n';
+              md += await deep(block);
             }
             else if (type === 'callout') {
               // 콜아웃 자기 텍스트는 인용처럼 '>>' 마커로 스타일
               const t = extractRichText(block.callout?.rich_text);
               if (t.trim()) md += `[BB:${block.id.replace(/-/g,'')}]\n` + calloutLines(t) + '\n';
-              // fetchHeadings는 문단/리스트 자식을 재귀하지 않아 콜아웃 안 중첩 텍스트가 유실됨 →
-              // fetchBlocks로 서브트리 전체를 깊이 캡처 + 자식도 '>>'로 감싸 콜아웃 스타일 통일.
-              if (block.has_children) md += _calloutWrapChildren(await fetchBlocks(block.id, depth + 1, false, 0));
+              // 자식은 같은 fetchHeadings로 계속 돈다 — 예전엔 fetchBlocks에 넘겼는데,
+              // 그쪽은 하위 페이지의 DB 여부를 안 보고 child_database도 자체 기준(로컬 개수)으로 펼쳐서
+              // 콜아웃 안의 DB·하위 페이지가 그래프 노드로 안 잡히거나 엉뚱한 id로 잡혀 오류가 났다.
+              if (block.has_children) md += await fetchHeadings(block.id, depth + 1, true);
             }
           } catch(e) {}
         }
