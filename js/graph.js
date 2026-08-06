@@ -568,22 +568,24 @@ function draw() {
           : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
       });
     });
-    // 2) 제목 뒤 지움 — 글자 윤곽을 배경색으로 넓게→좁게 겹쳐 그어 가장자리가 부드럽게 빠지게(페더).
+    // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
+    //    (윤곽선을 두께별로 겹쳐 긋는 방식은 단계가 층으로 보였다 — 블러는 연속이라 층이 안 생김)
     //    캔버스가 불투명 배경이라 '투명하게 파기'(destination-out)는 아래 DOM 배경이 비쳐 얼룩진다 → 같은 색으로 덮는 방식.
     //    흐려진 라벨(검색 비매치·포커스 밖)은 제외 — 존재감이 약한 게 의도인데 주변만 파이면 되레 눈에 띈다.
     if (_labelKnockout) {
       const bg = bgRgb();
-      const feather = [[6.5,0.13],[4.6,0.2],[3.0,0.3],[1.8,0.45]]; // [선 두께(11px 기준), 불투명도]
-      const lj = ctx.lineJoin, lc = ctx.lineCap;
-      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.fillStyle = rgbStr(bg, 1);
+      ctx.shadowColor = rgbStr(bg, 1);
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
       specs.forEach(s => {
         if (s.isDim) return;
         ctx.font = s.font;
-        const k = s.fontSize / 11; // 줌·제목 크기에 따라 페더 폭도 같이
-        feather.forEach(([w, a]) => { ctx.lineWidth = w * k; ctx.strokeStyle = rgbStr(bg, a); ctx.strokeText(s.lbl, s.x, s.y); });
-        ctx.fillStyle = rgbStr(bg, 0.9); ctx.fillText(s.lbl, s.x, s.y); // 글자 속은 거의 다 비움
+        // 그림자 블러는 변환행렬을 안 타므로 장치 픽셀로 환산(DPR). 글자 크기에 비례 + 최소치.
+        ctx.shadowBlur = Math.max(2.5, s.fontSize * 0.5) * DPR;
+        // 두 번 겹쳐 글자 가까이를 충분히 덮는다 — 가장자리는 여전히 블러라 매끈
+        ctx.fillText(s.lbl, s.x, s.y); ctx.fillText(s.lbl, s.x, s.y);
       });
-      ctx.lineJoin = lj; ctx.lineCap = lc;
+      ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0;
     }
     // 3) 글자
     specs.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });

@@ -1748,15 +1748,15 @@ function exportGraph(size) {
       const fontSize = (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
       ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
-      // 화면과 같은 '제목 뒤 지움' — 겹친 선·노드를 글자 주변에서 페더로 빼준다
+      // 화면과 같은 '제목 뒤 지움' — 그림자 블러를 페더로 써서 겹친 선·노드를 글자 주변에서 뺀다
       if (typeof _labelKnockout === 'undefined' || _labelKnockout) {
-        const k = fontSize / 11, lj = ctx2.lineJoin, lc = ctx2.lineCap;
-        ctx2.lineJoin = 'round'; ctx2.lineCap = 'round';
-        [[6.5,0.13],[4.6,0.2],[3.0,0.3],[1.8,0.45]].forEach(([w, a]) => {
-          ctx2.lineWidth = w * k; ctx2.strokeStyle = rgbStr(EXPORT_BG, a); ctx2.strokeText(lbl, nx, ny + r + 4);
-        });
-        ctx2.fillStyle = rgbStr(EXPORT_BG, 0.9); ctx2.fillText(lbl, nx, ny + r + 4);
-        ctx2.lineJoin = lj; ctx2.lineCap = lc;
+        ctx2.fillStyle = rgbStr(EXPORT_BG, 1);
+        ctx2.shadowColor = rgbStr(EXPORT_BG, 1);
+        ctx2.shadowOffsetX = 0; ctx2.shadowOffsetY = 0;
+        // 그림자 블러는 변환행렬을 안 타므로 출력 배율(exportScale)로 환산
+        ctx2.shadowBlur = Math.max(2.5, fontSize * 0.5) * exportScale;
+        ctx2.fillText(lbl, nx, ny + r + 4); ctx2.fillText(lbl, nx, ny + r + 4);
+        ctx2.shadowColor = 'rgba(0,0,0,0)'; ctx2.shadowBlur = 0;
       }
       ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
       ctx2.fillText(lbl, nx, ny + r + 4);
