@@ -335,6 +335,23 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// 노드칩 호버(위임): 그래프에서 그 노드를 실제로 호버한 것과 똑같이 강조 —
+// hoveredNode만 세우면 draw()가 조상·하위 사슬 링크선까지 알아서 굵게 그린다.
+// 캔버스 위 마우스 이동이 다시 계산해 덮어쓰므로 따로 복원할 게 없다.
+document.addEventListener('mouseover', (e) => {
+  const chip = e.target.closest && e.target.closest('.node-chip[data-nid]');
+  if (!chip || typeof nodeMap === 'undefined') return;
+  const n = nodeMap[chip.dataset.nid];
+  if (n && n.visible) hoveredNode = n;
+});
+document.addEventListener('mouseout', (e) => {
+  const chip = e.target.closest && e.target.closest('.node-chip[data-nid]');
+  if (!chip || typeof nodeMap === 'undefined') return;
+  // 칩 안쪽(라벨 등)으로 옮겨 다니는 건 벗어난 게 아니다 — 안 걸러내면 한 프레임씩 깜빡인다
+  if (e.relatedTarget && chip.contains(e.relatedTarget)) return;
+  if (hoveredNode && hoveredNode === nodeMap[chip.dataset.nid]) hoveredNode = null;
+});
+
 function _aiMdToHtml(t) {
   let s = escapeHtml(t || '');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>');
