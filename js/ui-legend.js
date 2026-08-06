@@ -67,12 +67,13 @@ function _legendBadgeImg(kind) {
   const S = 40, cx = 20, cy = 20, R = 13;
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
+  const acc = cssRgb('--accent-rgb', [237,112,0]);
   const spec = {
     panel:     { rgb: [39,174,96],   glyph: 'pencil' },
-    select:    { rgb: cssRgb('--select-rgb', [168,50,72]), glyph: 'check' },
+    select:    { rgb: [0,0,0], ring: acc, ink: acc, glyph: '1' },
     fixed:     { rgb: [255,255,255], glyph: 'pin' },
-    bookmark:  { rgb: cssRgb('--accent-rgb', [237,112,0]), glyph: 'bookmark' },
-    satellite: { rgb: cssRgb('--satellite-rgb', [255,214,74]), glyph: 'orbit' },
+    bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
+    satellite: { rgb: [0,0,0], ink: cssRgb('--satellite-rgb', [90,200,250]), glyph: 'orbit' },
   }[kind];
   // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
   _drawBadge(g, cx, cy, 7 / R, spec);
@@ -101,7 +102,7 @@ function _legendSymbolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드 (선택 순번)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('bookmark')}</span><span>북마크</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`

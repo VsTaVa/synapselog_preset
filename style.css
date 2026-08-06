@@ -191,8 +191,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
-  --satellite-rgb: 255,214,74;           /* 위성 모드 배지 색 — 캔버스(graph.js)와 범례가 같이 쓴다 */
-  --select-rgb: 168,50,72;               /* 선택 노드 배지 — 북마크(주황)와 색으로 갈리게 와인 */
+  --satellite-rgb: 90,200,250;           /* 위성 모드 배지 글리프 색 — 캔버스(graph.js)와 범례가 같이 쓴다 */
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
   --fg: rgb(var(--fg-rgb));              /* 순백 텍스트 */
   --surface-rgb: 14,16,24;               /* 카드/모달 표면 */

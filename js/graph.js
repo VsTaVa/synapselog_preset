@@ -26,7 +26,7 @@ function cssRgb(name, fallback) {
   return _cssRgbCache[name];
 }
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
-const satelliteRgb = () => cssRgb('--satellite-rgb', [255,214,74]); // 위성 모드 배지 색
+const satelliteRgb = () => cssRgb('--satellite-rgb', [90,200,250]); // 위성 모드 배지 글리프 색
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -317,16 +317,16 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-// 상태 배지 하나 — 원 + 글리프('check' | 'pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
-// 글리프 색은 배지 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
+// 상태 배지 하나 — 원(rgb=바탕, ring=테두리) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+// ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b) {
   const rgb = b.rgb;
-  const ink = (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? '#15110a' : '#ffffff';
+  const ink = b.ink ? rgbStr(b.ink, 1) : (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? '#15110a' : '#ffffff';
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
   ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-  if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
+  ctx.strokeStyle = b.ring ? rgbStr(b.ring, 1) : 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = (b.ring ? 1.6 : 1)/scale; ctx.stroke();
+  if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
   else if (b.glyph === 'orbit') _drawOrbit(ctx, bx, by, scale, ink);
@@ -389,16 +389,6 @@ function _drawOrbit(ctx, bx, by, scale, color) {
   ctx.beginPath(); ctx.arc(2.62, -2.62, 1.6, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
-// 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
-function _drawCheck(ctx, bx, by, scale, color) {
-  ctx.beginPath();
-  ctx.moveTo(bx - 3.2/scale, by + 0.3/scale);
-  ctx.lineTo(bx - 0.8/scale, by + 2.6/scale);
-  ctx.lineTo(bx + 3.4/scale, by - 2.4/scale);
-  ctx.strokeStyle = color || '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
-}
-
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
@@ -609,15 +599,10 @@ function draw() {
       }
     }
     if(n.multiSelected) {
-      const accRgb = cssRgb('--accent-rgb',[237,112,0]);
-      // 상세 열림(녹색 글로우)과 같은 형태의 주황 글로우 — 두 표시가 한 규칙으로 읽힌다
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
-      const gSelA = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
-      gSelA.addColorStop(0, rgbStr(accRgb, 0.38)); gSelA.addColorStop(1, rgbStr(accRgb, 0));
-      ctx.fillStyle = gSelA; ctx.fill();
       const order = _multiSelected.indexOf(n) + 1;
-      // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
-      if (order > 0) badges.push({ rgb: cssRgb('--select-rgb',[168,50,72]), glyph: _multiSelected.length > 1 ? String(order) : 'check' });
+      // 순번은 하나만 골라도 보여준다 — 순서대로 연결에 쓰이니 몇 번째인지가 곧 선택 표시
+      const accRgb = cssRgb('--accent-rgb',[237,112,0]);
+      if (order > 0) badges.push({ rgb: [0,0,0], ring: accRgb, ink: accRgb, glyph: String(order) });
     }
     // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
     if(openPanelIdx.has(n.id)) {
@@ -629,8 +614,8 @@ function draw() {
     }
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
     // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
-    if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
-    if(n._satelliteRoot) badges.push({ rgb: satelliteRgb(), glyph: 'orbit' });
+    if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
+    if(n._satelliteRoot) badges.push({ rgb: [0,0,0], ink: satelliteRgb(), glyph: 'orbit' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b));
     ctx.restore();
