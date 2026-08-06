@@ -25,8 +25,6 @@ function cssRgb(name, fallback) {
   }
   return _cssRgbCache[name];
 }
-// 커서 위치(화면 px) — 마우스가 캔버스 밖이면 null. 커서 글로우가 이 값만 본다
-let _cursorX = null, _cursorY = null;
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
 const satelliteRgb = () => cssRgb('--satellite-rgb', [255,214,74]); // 위성 모드 제목 색
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
@@ -323,16 +321,6 @@ function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle=rgbStr(bgRgb(),1); ctx.fillRect(0,0,W,H);
-  // 커서 글로우 — 배경 바로 위(노드·선 아래)라 빈 공간만 은은하게 밝힌다
-  if (_cursorX != null) {
-    const cr = 190;
-    const cg = ctx.createRadialGradient(_cursorX, _cursorY, 0, _cursorX, _cursorY, cr);
-    cg.addColorStop(0, 'rgba(255,255,255,0.075)');
-    cg.addColorStop(0.45, 'rgba(255,255,255,0.028)');
-    cg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = cg;
-    ctx.fillRect(_cursorX - cr, _cursorY - cr, cr * 2, cr * 2);
-  }
   ctx.save();
   ctx.translate(W/2+panX, H/2+panY);
   ctx.scale(scale, scale);

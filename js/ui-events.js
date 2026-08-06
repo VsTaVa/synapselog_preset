@@ -331,7 +331,6 @@ async function undoLastDelete() {
   else toast('삭제 취소됨', { type: 'success' });
 }
 canvas.addEventListener('mousemove', e => {
-  _cursorX = e.clientX; _cursorY = e.clientY; // 커서 글로우 — 아래 분기들이 먼저 return하므로 맨 위에서
   if (_rotating) {
     const dy = e.clientY - _rotStartY;
     if (Math.abs(dy) > 2) { _rotMoved = true; canvas.style.cursor = 'ns-resize'; }
@@ -409,7 +408,7 @@ function clearAllModes() {
   }
 }
 
-canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; _cursorX = null; drag = null; isPanning = false; if (_rotating) { _rotating = false; canvas.style.cursor = ''; } });
+canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; hoveredNode = null; drag = null; isPanning = false; if (_rotating) { _rotating = false; canvas.style.cursor = ''; } });
 
 function unfreezeSubtree(node) {
   node._frozen = false; node._frozenFrames = 0;
