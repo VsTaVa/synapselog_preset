@@ -62,14 +62,21 @@ function _legendShapeImg(kind) {
   else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 15); g.fill(); }
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="${D}" height="${D}" alt="">`;
 }
-// 노드 배지(상세 열림 / 선택)를 그래프와 같은 함수로 그려 범례에 넣는다
+// 노드 배지를 그래프와 같은 함수로 그려 범례에 넣는다 — 색·글리프는 graph.js draw()와 짝을 맞춘다
 function _legendBadgeImg(kind) {
   const S = 40, cx = 20, cy = 20, R = 13;
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
-  const fill = kind === 'panel' ? '#27ae60' : kind === 'fixed' ? '#ffffff' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
+  const acc = cssRgb('--accent-rgb', [237,112,0]);
+  const spec = {
+    panel:     { rgb: [39,174,96],   glyph: 'pencil' },
+    select:    { rgb: acc,           glyph: 'check' },
+    fixed:     { rgb: [255,255,255], glyph: 'pin' },
+    bookmark:  { rgb: acc,           glyph: 'bookmark' },
+    satellite: { rgb: cssRgb('--satellite-rgb', [255,214,74]), glyph: 'orbit' },
+  }[kind];
   // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-  _drawBadge(g, cx, cy, 7 / R, { fill, glyph: kind === 'fixed' ? 'pin' : kind === 'panel' ? 'pencil' : 'check' });
+  _drawBadge(g, cx, cy, 7 / R, spec);
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
@@ -93,12 +100,12 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:var(--satellite);font-weight:800;font-size:12px;">가</span><span>위성 모드 (제목 노란색)</span></div>`
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('bookmark')}</span><span>북마크</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`
     + `</div>`;
 }
 // 페이지 목록의 동기화 버튼과 같은 아이콘 — 화살표 1개(페이지) / 2개(전체)
@@ -117,7 +124,7 @@ function _legendToolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
     + row('노드 연결', '노드 간 연결')
     + row('포커스 모드', '연결된 노드 포커스')
-    + row('위성 모드', '그래프 분리 (제목 노란색)')
+    + row('위성 모드', '그래프 분리')
     + row('노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
     // 동기화 두 가지가 같은 자리에 있어 헷갈리기 쉬움 — 무엇이 다른지 여기서 설명

@@ -26,7 +26,7 @@ function cssRgb(name, fallback) {
   return _cssRgbCache[name];
 }
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
-const satelliteRgb = () => cssRgb('--satellite-rgb', [255,214,74]); // 위성 모드 제목 색
+const satelliteRgb = () => cssRgb('--satellite-rgb', [255,214,74]); // 위성 모드 배지 색
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -317,18 +317,21 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-// 상태 배지 하나 — 원 + 글리프('check' | 'pencil' | 'pin' | 숫자). 흰 배지에는 글리프를 어둡게 넣는다
+// 상태 배지 하나 — 원 + 글리프('check' | 'pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+// 글리프 색은 배지 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b) {
-  const dark = b.fill === '#ffffff';
+  const rgb = b.rgb;
+  const ink = (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? '#15110a' : '#ffffff';
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
-  ctx.fillStyle = b.fill; ctx.fill();
+  ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-  const ink = dark ? '#15110a' : '#ffffff';
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'orbit') _drawOrbit(ctx, bx, by, scale, ink);
   else {
-    ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(b.glyph, bx, by);
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
   }
@@ -360,6 +363,27 @@ function _drawPencil(ctx, bx, by, scale, color) {
   ctx.closePath(); ctx.fill();
   const [lx, ly] = P(12, 20), [rx] = P(21, 20);
   ctx.beginPath(); ctx.rect(lx, ly - 1.2 * k, rx - lx, 2.4 * k); ctx.fill();
+  ctx.restore();
+}
+// 북마크 리본 — 툴바·패널의 북마크 아이콘과 같은 형태. 둥근 모서리는 이 크기에서 안 보여 모따기로 대체
+function _drawBookmark(ctx, bx, by, scale, color) {
+  ctx.save();
+  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
+  const k = 0.42, P = (x, y) => [(x - 12) * k, (y - 12) * k];
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(...P(5, 21)); ctx.lineTo(...P(5, 5)); ctx.lineTo(...P(7, 3)); ctx.lineTo(...P(17, 3));
+  ctx.lineTo(...P(19, 5)); ctx.lineTo(...P(19, 21)); ctx.lineTo(...P(12, 16));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// 위성 궤도 — 툴바 '위성 모드'의 점선 원. 원본 굵기(2/24)는 배지 크기에서 사라져 선·간격을 키웠다
+function _drawOrbit(ctx, bx, by, scale, color) {
+  ctx.save();
+  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  ctx.setLineDash([2.4, 1.6]);
+  ctx.beginPath(); ctx.arc(0, 0, 3.7, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
 }
 // 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
@@ -582,7 +606,7 @@ function draw() {
       }
     }
     if(n.multiSelected) {
-      const accRgb = cssRgb('--accent-rgb',[237,112,0]), acc = rgbStr(accRgb, 1);
+      const accRgb = cssRgb('--accent-rgb',[237,112,0]);
       // 상세 열림(녹색 글로우)과 같은 형태의 주황 글로우 — 두 표시가 한 규칙으로 읽힌다
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
       const gSelA = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
@@ -590,7 +614,7 @@ function draw() {
       ctx.fillStyle = gSelA; ctx.fill();
       const order = _multiSelected.indexOf(n) + 1;
       // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
-      if (order > 0) badges.push({ fill: acc, glyph: _multiSelected.length > 1 ? String(order) : 'check' });
+      if (order > 0) badges.push({ rgb: accRgb, glyph: _multiSelected.length > 1 ? String(order) : 'check' });
     }
     // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
     if(openPanelIdx.has(n.id)) {
@@ -598,9 +622,12 @@ function draw() {
       const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
       gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      badges.push({ fill: '#27ae60', glyph: 'pencil' });
+      badges.push({ rgb: [39,174,96], glyph: 'pencil' });
     }
-    if(n.fixed) badges.push({ fill: '#ffffff', glyph: 'pin' });
+    if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
+    // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
+    if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
+    if(n._satelliteRoot) badges.push({ rgb: satelliteRgb(), glyph: 'orbit' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b));
     ctx.restore();
@@ -638,16 +665,11 @@ function draw() {
       if (n.level === 0 || n.level === 1) fontSize = 12;
       else if (n.level === 2) fontSize = 11;
       fontSize = fontSize * _labelScale * scale;
-      const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
         lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
         font: (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`,
-        // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크가 계속 주황으로 보이게.
-        // 위성 모드는 노드 위 아이콘 대신 라벨 노란색으로 표시(상태 표시인 위 둘보다는 낮은 우선순위)
-        color: _bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})`
-          : isMatch ? '#ffffff'
-          : n._satelliteRoot ? rgbStr(satelliteRgb(), isDim ? 0.15 : 1)
-          : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
+        // 북마크·위성은 배지가 맡는다 → 제목 색은 검색 매치 강조에만 쓴다
+        color: isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
       });
     });
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
