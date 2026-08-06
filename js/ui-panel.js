@@ -3,9 +3,9 @@
 let _detailPanelCollapsed = false;
 
 // 우측 패널: 1개(단일) 또는 2개(상하 분할)의 독립 패인.
-// 우측 패널: 탭 없이 노드 패널을 세로로 쌓는다(최대 3개, FIFO). 새 노드 클릭 시 아래에 추가, 넘치면 맨 위 제거.
-// 2개일 때만 경계선을 드래그해 비율을 바꿀 수 있고, 3개는 3등분 고정.
-const MAX_STACK = 3;
+// 우측 패널: 탭 없이 노드 패널을 세로로 쌓는다(최대 2개, FIFO). 새 노드 클릭 시 아래에 추가, 넘치면 맨 위 제거.
+// (3개도 해봤지만 경계가 둘이라 비율 드래그를 못 쓰고 3등분 고정이 돼, 2개 유지)
+const MAX_STACK = 2;
 let _stack = []; // 열린 노드(위→아래), 최신이 마지막
 let _activeNode = null; // 현재 패널에 열린(선택된) 노드
 let _undoDelete = null; // 마지막 삭제 묶음 (실행 취소용)
@@ -84,10 +84,10 @@ function _applyPaneRatio() {
   const wrap = document.getElementById('detail-panes');
   if (!wrap || !wrap.classList.contains('split')) return;
   const panes = wrap.querySelectorAll('.detail-pane');
-  // 비율 조절은 2개일 때만 — 3개는 경계가 둘이라 한 비율로 못 나눈다(똑같이 3등분)
-  if (panes.length !== 2) { panes.forEach(p => { p.style.flex = '1 1 0'; }); return; }
-  panes[0].style.flex = `${_paneRatio} 1 0`;
-  panes[1].style.flex = `${1 - _paneRatio} 1 0`;
+  if (panes.length >= 2) {
+    panes[0].style.flex = `${_paneRatio} 1 0`;
+    panes[1].style.flex = `${1 - _paneRatio} 1 0`;
+  }
   const dv = wrap.querySelector('.pane-divider');
   if (dv) dv.style.top = (_paneRatio * 100) + '%';
 }
@@ -157,9 +157,8 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
-  // 2개일 때만 경계선 핸들 — 3개는 3등분 고정(경계가 둘이라 핸들 하나로는 못 다룬다)
-  if (_stack.length > 2) { _applyPaneRatio(); }
-  else if (_stack.length === 2) {
+  // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
+  if (_stack.length >= 2) {
     const dv = document.createElement('div');
     dv.className = 'pane-divider';
     dv.title = '드래그하여 위&아래 패널 크기 조절';
