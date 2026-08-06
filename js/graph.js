@@ -427,16 +427,16 @@ function draw() {
       if(hasSearch && !bothMatch) return;
       if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.35})`;
-      ctx.lineWidth = (isHov ? 1.6 : 1.0) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+      ctx.lineWidth = CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return; // 수동 연결도 노드연결과 같은 규칙
       if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
-      ctx.lineWidth = (isHov ? 1.8 : 1.2) * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+      ctx.lineWidth = 1.2 * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
     } else if(e.weakLink) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const pathActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
-      if(pathActive) { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.95:0.85})`; ctx.lineWidth = (isHov?2.2:1.6)*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]); }
+      if(pathActive) { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.95:0.85})`; ctx.lineWidth = 1.6*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]); }
       else { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`; ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]); }
     } else if(hasSearch) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
@@ -448,9 +448,8 @@ function draw() {
     } else {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
-      // 호버 강조가 사슬 전체(조상+하위)로 넓어져 굵은 선이 한꺼번에 많아진다 →
-      // 두께 배수는 낮추고(2.2→1.5) 밝기로 존재감을 채운다(0.85→0.95)
-      const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:(isHov?1.5:1.0);
+      // 호버 강조는 색·밝기만 — 두께까지 바뀌면 사슬 전체가 굵어져 레이아웃이 흔들려 보인다
+      const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:1.0;
       // 호버 사슬만 흰색 — 노드 색 그대로 굵어지면 원래 밝던 가지와 구분이 안 된다
       // 평소 선 색은 하위(도착) 노드 기준이라 가지 끝까지 그 가지의 색이 이어진다
       const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255]) : nodeRgb(nb);
