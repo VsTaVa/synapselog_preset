@@ -53,7 +53,7 @@ input[type=range]:focus-visible,
 .lg-sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 6px; }
 .lg-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: rgba(255,255,255,0.82); line-height: 1.5; margin-bottom: 4px; }
 .lg-row:last-child { margin-bottom: 0; }
-.lg-shape { width: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lg-shape { width: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .lg-line { width: 32px; display: inline-flex; align-items: center; flex-shrink: 0; }
 .lg-glow { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
@@ -191,6 +191,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
+  --satellite-rgb: 255,214,74;           /* 위성 모드 노드의 제목 색 — 캔버스(graph.js)와 범례가 같이 쓴다 */
+  --satellite: rgb(var(--satellite-rgb));
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
   --fg: rgb(var(--fg-rgb));              /* 순백 텍스트 */
   --surface-rgb: 14,16,24;               /* 카드/모달 표면 */

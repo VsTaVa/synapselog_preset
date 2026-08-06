@@ -15,16 +15,18 @@ let _showLabels = true;
 let _labelScale = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale')); return (v >= 0.5 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 // 제목 뒤 지움 — 글자 모양대로 배경색을 페더로 덮어, 겹친 링크선·노드를 글자 주변에서 빼준다
 let _labelKnockout = (() => { try { return localStorage.getItem('snlog_label_knockout') !== 'false'; } catch(e) { return true; } })();
-// 캔버스 배경색 — 원본은 CSS 토큰(--graph-bg-rgb), JS는 한 번 읽어 캐시만
-let _bgRgbCache = null;
-function bgRgb() {
-  if (!_bgRgbCache) {
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--graph-bg-rgb');
+// 색의 원본은 CSS 토큰(:root) — JS는 한 번 읽어 캐시만 한다(매 프레임 조회는 비싸다)
+const _cssRgbCache = {};
+function cssRgb(name, fallback) {
+  if (!_cssRgbCache[name]) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name);
     const p = String(v).split(',').map(x => parseInt(x, 10));
-    _bgRgbCache = (p.length === 3 && p.every(x => x >= 0 && x <= 255)) ? p : [12,13,18];
+    _cssRgbCache[name] = (p.length === 3 && p.every(x => x >= 0 && x <= 255)) ? p : fallback;
   }
-  return _bgRgbCache;
+  return _cssRgbCache[name];
 }
+const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
+const satelliteRgb = () => cssRgb('--satellite-rgb', [255,214,74]); // 위성 모드 제목 색
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -598,7 +600,7 @@ function draw() {
         // 위성 모드는 노드 위 아이콘 대신 라벨 노란색으로 표시(상태 표시인 위 둘보다는 낮은 우선순위)
         color: _bmLbl ? `rgba(237,112,0,${isDim ? 0.2 : 1})`
           : isMatch ? '#ffffff'
-          : n._satelliteRoot ? `rgba(255,214,74,${isDim ? 0.15 : 1})`
+          : n._satelliteRoot ? rgbStr(satelliteRgb(), isDim ? 0.15 : 1)
           : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
       });
     });

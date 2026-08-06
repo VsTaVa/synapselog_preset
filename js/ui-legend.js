@@ -52,14 +52,15 @@ function _updateLegendActiveTab() {
 }
 // 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
 function _legendShapeImg(kind) {
-  const S = 36, cx = 18, cy = 18;
+  const S = 40, cx = 20, cy = 20, D = 18; // D=표시 크기(.lg-shape 폭과 같아야 줄 정렬이 안 흔들린다)
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
-  if (kind === 'circle') { g.fillStyle = '#c9d3e2'; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill(); }
-  else if (kind === 'star8' && typeof drawStar8 === 'function') { g.fillStyle = '#ffffff'; drawStar8(g, cx, cy, 8); g.fill(); }
-  else if (kind === 'star4' && typeof drawStar4 === 'function') { g.fillStyle = '#eef2f8'; drawStar4(g, cx, cy, 12); g.fill(); }
-  else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 13.5); g.fill(); }
-  return `<img class="lg-shape-img" src="${c.toDataURL()}" width="16" height="16" alt="">`;
+  // 최상위(8각별)는 뾰족한 가지가 가늘어 같은 크기로 그리면 유독 흐리게 보인다 → 상자를 꽉 채워 그린다
+  if (kind === 'circle') { g.fillStyle = '#c9d3e2'; g.beginPath(); g.arc(cx, cy, 10, 0, Math.PI * 2); g.fill(); }
+  else if (kind === 'star8' && typeof drawStar8 === 'function') { g.fillStyle = '#ffffff'; drawStar8(g, cx, cy, 10); g.fill(); }
+  else if (kind === 'star4' && typeof drawStar4 === 'function') { g.fillStyle = '#eef2f8'; drawStar4(g, cx, cy, 13); g.fill(); }
+  else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 15); g.fill(); }
+  return `<img class="lg-shape-img" src="${c.toDataURL()}" width="${D}" height="${D}" alt="">`;
 }
 function _legendSymbolsHtml() {
   const S = {
@@ -84,8 +85,9 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:#ed7000;font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
-      + `<div class="lg-row">${glow('rgba(0,207,255,0.75)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:var(--satellite);font-weight:800;font-size:12px;">가</span><span>위성 모드 (제목 노란색)</span></div>`
+      + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }
@@ -111,7 +113,7 @@ function _legendToolsHtml() {
     // 동기화 두 가지가 같은 자리에 있어 헷갈리기 쉬움 — 무엇이 다른지 여기서 설명
     + `<div class="lg-sec"><div class="lg-sec-title">동기화</div>`
     + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
-    + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
+    + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
     + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`
     + `</div>`;
 }
