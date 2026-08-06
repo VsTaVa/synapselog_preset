@@ -123,6 +123,50 @@ function parseMarkdown(text, rootTitle) {
   const currentParents = { 0: rootId, 1: null, 2: null, 3: null, 4: null, 5: null };
   const lines = text.split('\n');
   let sawHeading = false;
+
+  // 한 노드에 딸린 본문 줄 모으기 — 헤딩 다음 줄부터, 다음 헤딩/구조 마커를 만날 때까지.
+  // (헤딩 분기 안에 있던 코드를 꺼낸 것 — 페이지 맨 앞 본문에도 같은 규칙을 쓰기 위해)
+  function collectBody(startIdx) {
+    const descLines = [], bodyBlocks = [];
+    let curBlk = null, nextIdx = startIdx, date = '';
+    const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '', type: curBlk.type || 'paragraph', checked: !!curBlk.checked }); curBlk = null; } };
+    while (nextIdx < lines.length) {
+      const rawLine = lines[nextIdx].replace(/\s+$/, '');
+      const nextLine = rawLine.trim();
+      if (!nextLine) { nextIdx++; continue; }
+      if (nextLine.startsWith('#')) break;
+      if (nextLine === '[DB_NODE]') break;
+      if (nextLine === '[CHILD_PAGE]') break;
+      if (nextLine === '[TGL]') break;
+      if (nextLine.startsWith('[NOTION_ENTRY:')) break;
+      if (nextLine.startsWith('[BLOCK:')) break;
+      const bbm = nextLine.match(/^\[BB:([a-f0-9]+)\]$/);
+      if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
+      const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
+      if (dateOnlyMatch) { date = date || dateOnlyMatch[1]; nextIdx++; continue; }
+      // (제거) 홀로 있는 볼드 줄에서 본문 수집을 끊던 휴리스틱 — 그 뒤 내용을 노드로 만들지도 않고
+      // 그냥 버려서, 볼드 소제목이 여러 개인 콜아웃/본문의 뒷부분이 desc·bodyBlocks에서 통째로 사라졌음.
+      if (descLines.join('\n').length > 20000) { nextIdx++; continue; }
+      descLines.push(rawLine);
+      // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄에서 목록 마커·블록 유형·체크 상태 캡처
+      if (curBlk) { if (!curBlk.lines.length) { curBlk.mark = _listMark(rawLine); curBlk.type = _blockTypeOf(rawLine); curBlk.checked = _blockChecked(rawLine); } curBlk.lines.push(bodyBlockText(rawLine)); }
+      nextIdx++;
+    }
+    flushBlk();
+    return { descLines, bodyBlocks, date, nextIdx };
+  }
+
+  // 첫 헤딩보다 앞에 있는 본문(페이지 맨 위에 그냥 쓴 글)은 예전엔 어느 노드에도 안 붙어 통째로 사라졌다 → 루트 노드 본문으로
+  if (rootId) {
+    const head = collectBody(0);
+    if (head.descLines.length) {
+      nodeMap[rootId].desc = cleanDesc(head.descLines.join('\n').substring(0, 20000));
+      if (head.bodyBlocks.length) nodeMap[rootId].bodyBlocks = head.bodyBlocks;
+      if (head.date) nodeMap[rootId].date = head.date;
+    }
+  }
+  // [DB_NODE]로 만든 직전 노드 — 뒤따르는 [NOTION_ENTRY] 항목들의 부모
+  let lastDbNodeId = null;
   let pendingEntryId = null;
   let pendingIsDbNode = false;
   let pendingIsChildPage = false;
@@ -151,34 +195,16 @@ function parseMarkdown(text, rootTitle) {
       let nDate = '';
       const inlineDateMatch = lbl.match(/-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-/);
       if (inlineDateMatch) { nDate = inlineDateMatch[1]; lbl = lbl.replace(/-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-/, ''); }
+      // 구조 노드(DB·DB 항목·하위 페이지)인가 — 헤딩 계층에 끼어들면 안 되는 것들
+      const isStruct = !!(pendingEntryId || pendingIsDbNode || pendingIsChildPage);
+      const isDbEntry = !!(pendingEntryId && !pendingIsDbNode && !pendingIsChildPage && lastDbNodeId);
       let parentId = null;
-      for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
+      if (isDbEntry) parentId = lastDbNodeId; // DB 항목은 바로 앞 DB 노드 밑으로
+      else for (let d = depth - 1; d >= 0; d--) { if (currentParents[d]) { parentId = currentParents[d]; break; } }
       if (!parentId) parentId = rootId;
-      let descLines = [], bodyBlocks = [], curBlk = null, nextIdx = i + 1;
-      const flushBlk = () => { if (curBlk) { bodyBlocks.push({ id: curBlk.id, text: curBlk.lines.join('\n'), mark: curBlk.mark || '', type: curBlk.type || 'paragraph', checked: !!curBlk.checked }); curBlk = null; } };
-      while (nextIdx < lines.length) {
-        const rawLine = lines[nextIdx].replace(/\s+$/, '');
-        let nextLine = rawLine.trim();
-        if (!nextLine) { nextIdx++; continue; }
-        if (nextLine.startsWith('#')) break;
-        if (nextLine === '[DB_NODE]') break;
-        if (nextLine === '[CHILD_PAGE]') break;
-        if (nextLine === '[TGL]') break;
-        if (nextLine.startsWith('[NOTION_ENTRY:')) break;
-        if (nextLine.startsWith('[BLOCK:')) break;
-        const bbm = nextLine.match(/^\[BB:([a-f0-9]+)\]$/);
-        if (bbm) { flushBlk(); curBlk = { id: bbm[1], lines: [] }; nextIdx++; continue; }
-        const dateOnlyMatch = nextLine.match(/^-\s*(\d{4}\.\d{2}(?:\.\d{2})?)\s*-$/);
-        if (dateOnlyMatch) { nDate = nDate || dateOnlyMatch[1]; nextIdx++; continue; }
-        // (제거) 홀로 있는 볼드 줄에서 본문 수집을 끊던 휴리스틱 — 그 뒤 내용을 노드로 만들지도 않고
-        // 그냥 버려서, 볼드 소제목이 여러 개인 콜아웃/본문의 뒷부분이 desc·bodyBlocks에서 통째로 사라졌음.
-        if (descLines.join('\n').length > 20000) { nextIdx++; continue; }
-        descLines.push(rawLine);
-        // 한 블록의 모든 줄(소프트 줄바꿈 포함) 수집 + 첫 줄에서 목록 마커·블록 유형·체크 상태 캡처
-        if (curBlk) { if (!curBlk.lines.length) { curBlk.mark = _listMark(rawLine); curBlk.type = _blockTypeOf(rawLine); curBlk.checked = _blockChecked(rawLine); } curBlk.lines.push(bodyBlockText(rawLine)); }
-        nextIdx++;
-      }
-      flushBlk();
+      const col = collectBody(i + 1);
+      const descLines = col.descLines, bodyBlocks = col.bodyBlocks, nextIdx = col.nextIdx;
+      if (col.date) nDate = nDate || col.date;
       // 파일 맨 앞의 # 제목이 페이지 제목(파일명)과 같으면 헤딩 노드로 쪼개지 않고 루트에 흡수 —
       // 같은 이름 노드가 둘로 갈라지던 문제. 원본 파일 복원용으로 titleHeading 표시.
       // 노션 본문(BLOCK/ENTRY 마커 동반)은 블록 ID를 잃으면 편집이 깨지므로 제외.
@@ -186,9 +212,10 @@ function parseMarkdown(text, rootTitle) {
       if (isFirstHeading && rawDepth === 1 && rootId && noNotionMarker && plainLabel(lbl) === nodeMap[rootId].label) {
         const rn = nodeMap[rootId];
         rn.titleHeading = true;
-        rn.desc = cleanDesc(descLines.join('\n').substring(0, 20000));
+        // 제목 헤딩 앞에 이미 본문이 있었다면(위에서 루트에 담아둔 것) 덮어쓰지 말고 이어 붙인다
+        rn.desc = cleanDesc([rn.desc, descLines.join('\n')].filter(s => s && s.trim()).join('\n').substring(0, 20000));
         if (nDate) rn.date = nDate;
-        if (bodyBlocks.length) rn.bodyBlocks = bodyBlocks;
+        if (bodyBlocks.length) rn.bodyBlocks = (rn.bodyBlocks || []).concat(bodyBlocks);
         if (nextIdx > i + 1) i = nextIdx - 1;
         continue;
       }
@@ -201,8 +228,15 @@ function parseMarkdown(text, rootTitle) {
         if (pendingToggle) { nodeMap[curId].notionToggle = true; pendingToggle = false; }
         if (pendingIsDbNode) { nodeMap[curId].isDbNode = true; pendingIsDbNode = false; }
         if (pendingIsChildPage) { nodeMap[curId].isChildPage = true; pendingIsChildPage = false; }
-        currentParents[depth] = curId;
-        for (let d = depth + 1; d <= 5; d++) currentParents[d] = null;
+        if (isStruct) {
+          // 구조 노드는 헤딩 스택에 넣지 않는다 — 넣으면 그 뒤에 오는 진짜 헤딩이 DB·하위 페이지 밑으로
+          // 딸려 들어가 계층이 통째로 어긋났다. DB 노드만 뒤따르는 항목들의 부모로 기억.
+          lastDbNodeId = nodeMap[curId].isDbNode ? curId : lastDbNodeId;
+        } else {
+          lastDbNodeId = null;
+          currentParents[depth] = curId;
+          for (let d = depth + 1; d <= 5; d++) currentParents[d] = null;
+        }
       }
       if (nextIdx > i + 1) i = nextIdx - 1;
     }

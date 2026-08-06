@@ -1516,8 +1516,11 @@ function _addEntryChildNodes(entryNode, markdown) {
     nodes.push(n); nodeMap[id] = n;
     edges.push({ from: parentId, to: id });
     newIds.add(id);
-    currentParents[mdDepth] = id;
-    for (let d = mdDepth + 1; d <= 5; d++) currentParents[d] = null;
+    // 하위 페이지·DB 항목은 헤딩 스택에 넣지 않는다 — 넣으면 뒤에 오는 헤딩이 그 밑으로 딸려 들어간다
+    if (!n.entryNotionId && !n.isChildPage) {
+      currentParents[mdDepth] = id;
+      for (let d = mdDepth + 1; d <= 5; d++) currentParents[d] = null;
+    }
     if (nextIdx > i + 1) i = nextIdx - 1;
   }
   return newIds;
@@ -1546,6 +1549,14 @@ async function _loadEntryNode(node, pageId) {
   // 요청이 오가는 동안 페이지를 닫았을 수 있다 — 시작부 검사만으론 이미 날아간 요청을 못 막는다
   if (!_addedPageIds.has(pageId)) return;
   const newIds = _addEntryChildNodes(node, md);
+  // 엔트리(하위 페이지·DB 항목) 자신의 본문 = 첫 헤딩 전까지의 줄.
+  // 예전엔 이 계산이 '헤딩이 하나도 없을 때'에만 돌아서, 페이지 안에 헤딩이 하나라도 있으면
+  // 그 페이지에 쓴 글이 통째로 화면에서 사라졌다(헤딩 아래 내용만 자식 노드로 보였음).
+  const own = _entryOwnBody(md, newIds.size > 0);
+  if (own.desc || own.blocks.length) {
+    node.desc = own.desc;
+    if (own.blocks.length) node.bodyBlocks = own.blocks;
+  }
   if (newIds.size > 0) {
     // 새로 추가된 자식 + 이 엔트리만 물리 해제 — 이미 자리 잡은 다른 노드는 그대로 둠(재배치 방지)
     newIds.forEach(id => { const nn = nodeMap[id]; if (nn) { nn.visible = true; nn._frozen = false; nn._frozenFrames = 0; } });
@@ -1553,24 +1564,27 @@ async function _loadEntryNode(node, pageId) {
     isStable = false;
     const nestedChildPages = [...newIds].map(id => nodeMap[id]).filter(n => n?.entryNotionId);
     for (const child of nestedChildPages) await _loadEntryNode(child, pageId);
-  } else {
-    // 헤딩 없는 엔트리: 본문 블록 마커를 파싱해 desc + bodyBlocks 구성
-    const bb = [], descArr = [];
-    let cur = null;
-    const flush = () => { if (cur) { bb.push({ id: cur.id, text: cur.lines.join('\n'), mark: cur.mark || '', type: cur.type || 'paragraph', checked: !!cur.checked }); cur = null; } };
-    for (const raw of md.split('\n')) {
-      const t = raw.trim();
-      if (!t) continue;
-      const m = t.match(/^\[BB:([a-f0-9]+)\]$/);
-      if (m) { flush(); cur = { id: m[1], lines: [] }; continue; }
-      if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { flush(); continue; }
-      descArr.push(raw.replace(/^#{1,5}\s+/, ''));
-      if (cur) { if (!cur.lines.length) { cur.mark = _listMark(raw); cur.type = _blockTypeOf(raw); cur.checked = _blockChecked(raw); } cur.lines.push(bodyBlockText(raw)); }
-    }
-    flush();
-    node.desc = cleanDesc(descArr.join('\n').substring(0, 5000).trim());
-    if (bb.length) node.bodyBlocks = bb;
   }
+}
+
+// 엔트리 마크다운에서 '그 페이지 자신의 본문'을 뽑는다.
+// leadOnly=true(아래에 헤딩 노드가 생긴 경우)면 첫 헤딩/구조 마커 전까지만 — 그 뒤는 자식 노드 몫이다.
+function _entryOwnBody(md, leadOnly) {
+  const blocks = [], descArr = [];
+  let cur = null;
+  const flush = () => { if (cur) { blocks.push({ id: cur.id, text: cur.lines.join('\n'), mark: cur.mark || '', type: cur.type || 'paragraph', checked: !!cur.checked }); cur = null; } };
+  for (const raw of md.split('\n')) {
+    const t = raw.trim();
+    if (!t) continue;
+    if (leadOnly && /^#{1,5}\s/.test(t)) break;
+    const m = t.match(/^\[BB:([a-f0-9]+)\]$/);
+    if (m) { flush(); cur = { id: m[1], lines: [] }; continue; }
+    if (/^\[(?:BLOCK|NOTION_ENTRY|DB_NODE|CHILD_PAGE|TGL)[^\]]*\]$/.test(t)) { flush(); if (leadOnly) break; continue; }
+    descArr.push(raw.replace(/^#{1,5}\s+/, ''));
+    if (cur) { if (!cur.lines.length) { cur.mark = _listMark(raw); cur.type = _blockTypeOf(raw); cur.checked = _blockChecked(raw); } cur.lines.push(bodyBlockText(raw)); }
+  }
+  flush();
+  return { desc: cleanDesc(descArr.join('\n').substring(0, 5000).trim()), blocks };
 }
 
 async function _loadEntriesBackground(pageId) {

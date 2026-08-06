@@ -778,51 +778,49 @@ export default async function handler(req, res) {
 
       // inCallout: 콜아웃 안쪽 서브트리를 도는 중 — 본문 줄에만 '>>' 마커를 붙인다.
       // (구조 블록(하위 페이지·DB·헤딩)은 콜아웃 안이라고 다르게 처리하면 안 된다 — 그래프 노드가 통째로 어긋난다)
-      async function fetchHeadings(blockId, depth = 0, inCallout = false) {
+      async function fetchHeadings(blockId, depth = 0, inCallout = false, pend = null, headLevel = 0) {
         if (depth > 6) return '';
         const allBlocks = await _hChildren(blockId);
         let md = '';
+        // 지금 어느 헤딩 섹션 안인지(#의 개수). 하위 페이지·DB를 이보다 한 단계 깊게 내보내야
+        // 그 섹션의 자식으로 붙는다 — 예전엔 항상 '##' 고정이라 h2 아래 있어도 형제로 튀어나왔다.
+        let curHead = headLevel;
+        const subLevel = (min, max) => '#'.repeat(Math.max(min, Math.min(curHead + 1, max)));
         const body = t => inCallout ? calloutLines(t) : t;
+        // 하위 페이지·DB는 만나는 자리에서 바로 내보내지 않고 모아 뒀다가 섹션이 끝날 때(다음 헤딩 앞 / 이 레벨 끝) 내보낸다.
+        // 클라이언트 파서는 마커 뒤에 오는 본문 줄을 '그 노드의 본문'으로 빨아들이기 때문에,
+        // 순서대로 내보내면 하위 페이지·DB 뒤에 있는 문단이 엔트리 노드로 흘러들어가 화면에서 사라졌다.
+        const P = pend || { s: '' };
+        const flush = () => { const s = P.s; P.s = ''; return s; };
+        // DB 하나 = [DB_NODE] 제목 + 그 아래 항목들. DB가 2개 미만이면 중간 노드 없이 항목만 편다(기존 규칙 유지)
+        const dbGroup = async (dbId, dbTitle) => {
+          const lv = subLevel(1, 4);
+          let s = globalUseDb ? `\n[DB_NODE]\n${lv} ${dbTitle}\n` : '';
+          const rowLv = globalUseDb ? lv + '#' : lv;
+          try {
+            for (const p of await fetchDatabaseChildren(dbId)) s += `[NOTION_ENTRY:${p.id.replace(/-/g,'')}]\n${rowLv} ${extractPageTitle(p)}\n`;
+          } catch (e) {}
+          return s;
+        };
         // 콜아웃 안에서는 문단·목록의 자식까지 파고든다(중첩 텍스트 유실 방지)
         const deep = async block => (inCallout && block.has_children) ? await fetchHeadings(block.id, depth + 1, true) : '';
 
         for (const block of allBlocks) {
           try {
             const type = block.type;
-            if (type === 'heading_1') { md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
-            else if (type === 'heading_2') { md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
-            else if (type === 'heading_3') { md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
-            else if (type === 'heading_4') { md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
-            else if (type === 'toggle') { const t = extractHeadingMd(block.toggle?.rich_text); if (t.trim()) md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout); }
+            if (type === 'heading_1') { md += flush(); md += `${block.heading_1?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n# ` + extractHeadingMd(block.heading_1?.rich_text) + '\n'; curHead = 1; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout, null, 1); }
+            else if (type === 'heading_2') { md += flush(); md += `${block.heading_2?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + extractHeadingMd(block.heading_2?.rich_text) + '\n'; curHead = 2; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout, null, 2); }
+            else if (type === 'heading_3') { md += flush(); md += `${block.heading_3?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n### ` + extractHeadingMd(block.heading_3?.rich_text) + '\n'; curHead = 3; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout, null, 3); }
+            else if (type === 'heading_4') { md += flush(); md += `${block.heading_4?.is_toggleable ? '[TGL]\n' : ''}[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n#### ` + extractHeadingMd(block.heading_4?.rich_text) + '\n'; curHead = 4; if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout, null, 4); }
+            else if (type === 'toggle') { md += flush(); const t = extractHeadingMd(block.toggle?.rich_text); if (t.trim()) { md += `[TGL]\n[BLOCK:${block.id.replace(/-/g,'')}|${blockId.replace(/-/g,'')}]\n## ` + t + '\n'; curHead = 2; } if (block.has_children) md += await fetchHeadings(block.id, depth+1, inCallout, null, curHead); }
             else if (type === 'child_page') {
               // Check if this page is actually a full-page database
               const dbData = await _checkIsDb(block.id); // from cache, no extra call
-              if (dbData) {
-                const dbTitle = dbData.title?.[0]?.plain_text || block.child_page?.title || 'Database';
-                if (globalUseDb) md += `\n[DB_NODE]\n# ${dbTitle}\n`;
-                try {
-                  const dbPages = await fetchDatabaseChildren(block.id);
-                  if (globalUseDb) {
-                    for (const p of dbPages) md += `[NOTION_ENTRY:${p.id.replace(/-/g,'')}]\n## ${extractPageTitle(p)}\n`;
-                  } else {
-                    for (const p of dbPages) md += `[NOTION_ENTRY:${p.id.replace(/-/g,'')}]\n# ${extractPageTitle(p)}\n`;
-                  }
-                } catch(e) {}
-              } else {
-                md += `[CHILD_PAGE]\n[NOTION_ENTRY:${block.id.replace(/-/g,'')}]\n## ${block.child_page?.title || '하위 페이지'}\n`;
-              }
+              if (dbData) P.s += await dbGroup(block.id, dbData.title?.[0]?.plain_text || block.child_page?.title || 'Database');
+              else P.s += `[CHILD_PAGE]\n[NOTION_ENTRY:${block.id.replace(/-/g,'')}]\n${subLevel(2, 5)} ${block.child_page?.title || '하위 페이지'}\n`;
             }
             else if (type === 'child_database') {
-              const dbTitle = block.child_database?.title || 'Database';
-              if (globalUseDb) md += `\n[DB_NODE]\n# ${dbTitle}\n`;
-              try {
-                const dbPages = await fetchDatabaseChildren(block.id);
-                if (globalUseDb) {
-                  for (const p of dbPages) md += `[NOTION_ENTRY:${p.id.replace(/-/g,'')}]\n## ${extractPageTitle(p)}\n`;
-                } else {
-                  for (const p of dbPages) md += `[NOTION_ENTRY:${p.id.replace(/-/g,'')}]\n# ${extractPageTitle(p)}\n`;
-                }
-              } catch(e) {}
+              P.s += await dbGroup(block.id, block.child_database?.title || 'Database');
             }
             // 본문 텍스트 블록 — [BB:] 마커로 본문으로 인식되게 (헤딩 사이 본문)
             else if (type === 'paragraph') {
@@ -852,21 +850,10 @@ export default async function handler(req, res) {
               const cap = extractRichText(img.caption).replace(/[\[\]]/g, '');
               if (url) md += `[BB:${block.id.replace(/-/g,'')}]\n![${cap}](${url})\n`;
             }
-            else if (type === 'table' && block.has_children) {
-              // 예전엔 콜아웃·컬럼 안 표만 (fetchBlocks 경유로) 읽혔다 — 이제 어디 있든 같은 규칙으로 읽는다
-              const rows = (await _hChildren(block.id)).filter(b => b.type === 'table_row');
-              if (rows.length) {
-                const esc = s => (s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
-                const cells = rows.map(r => (r.table_row?.cells || []).map(c => esc(extractRichText(c))));
-                md += '\n| ' + cells[0].join(' | ') + ' |\n';
-                md += '|' + new Array(cells[0].length).fill('---').join('|') + '|\n';
-                for (let ri = 1; ri < cells.length; ri++) md += '| ' + cells[ri].join(' | ') + ' |\n';
-              }
-            }
             else if ((type === 'column_list' || type === 'column') && block.has_children) {
               // 다단 → 위→아래로 펼침. 콜아웃과 같은 이유로 fetchBlocks가 아니라 여기서 계속 돈다
-              // (컬럼 안의 하위 페이지·DB도 다른 곳과 똑같이 노드가 되어야 한다)
-              md += await fetchHeadings(block.id, depth + 1, inCallout);
+              // (컬럼 안의 하위 페이지·DB도 다른 곳과 똑같이 노드가 되어야 한다). 보류함은 같은 섹션이니 공유.
+              md += await fetchHeadings(block.id, depth + 1, inCallout, P, curHead);
             }
             else if (type === 'quote') {
               const t = extractRichText(block.quote?.rich_text);
@@ -880,10 +867,12 @@ export default async function handler(req, res) {
               // 자식은 같은 fetchHeadings로 계속 돈다 — 예전엔 fetchBlocks에 넘겼는데,
               // 그쪽은 하위 페이지의 DB 여부를 안 보고 child_database도 자체 기준(로컬 개수)으로 펼쳐서
               // 콜아웃 안의 DB·하위 페이지가 그래프 노드로 안 잡히거나 엉뚱한 id로 잡혀 오류가 났다.
-              if (block.has_children) md += await fetchHeadings(block.id, depth + 1, true);
+              if (block.has_children) md += await fetchHeadings(block.id, depth + 1, true, P, curHead);
             }
           } catch(e) {}
         }
+        // 내가 만든 보류함이면 여기서 비운다(넘겨받은 것이면 부모가 자기 섹션 끝에서 비움)
+        if (!pend) md += P.s;
         return md;
       }
 
