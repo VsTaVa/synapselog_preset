@@ -900,7 +900,7 @@ document.getElementById('settings-modal')?.addEventListener('click', function(e)
 function restoreSlider() {
   const saved = localStorage.getItem('snlog_slider') || sessionStorage.getItem('snlog_slider'); // 항상 localStorage 우선(구 세션값 폴백)
   if (!saved) return;
-  try { const { rep, grav, tension, nodeSize, linkWidth } = JSON.parse(saved); if (rep) cfgRep.value = rep; if (grav) cfgGrav.value = grav; if (tension) cfgTension.value = tension; if (nodeSize) cfgNodeSize.value = nodeSize; if (linkWidth) cfgLinkWidth.value = linkWidth; updateConfig(); } catch(e) {}
+  try { const { rep, grav, tension, nodeSize, linkWidth, hub } = JSON.parse(saved); if (rep) cfgRep.value = rep; if (grav) cfgGrav.value = grav; if (tension) cfgTension.value = tension; if (nodeSize) cfgNodeSize.value = nodeSize; if (linkWidth) cfgLinkWidth.value = linkWidth; if (hub !== undefined) cfgHub.value = hub; updateConfig(); } catch(e) {}
 }
 
 // ── 검색 기록 저장/복원 ───────────────────────────────────────────────

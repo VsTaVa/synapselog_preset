@@ -8,7 +8,7 @@ let _idSeq = 0;
 let drag = null, hoveredNode = null;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartOffsetX = 0, panStartOffsetY = 0;
 let isStable = false;
-let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.5, linkTension: 0.005 };
+let CONFIG = { repulsion: 500, gravity: 0.0010, linkDistance: 60, nodeSize: 1.0, linkWidth: 1.5, linkTension: 0.005, hubGlow: 1.0 };
 let searchKeyword = '', searchMatches = new Set();
 let searchDirect = new Set(); // 키워드 직접 매칭 노드(글로우 대상). searchMatches는 조상 경로 포함
 let _showLabels = true;
@@ -318,6 +318,13 @@ function simulate() {
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
 const BADGE_INK_DARK = [21,17,10]; // 밝은 배지 위 글리프 색 — 순검정은 배지 테두리와 붙어 보인다
+
+// 허브 글로우(하위 3개 이상) — 화면과 PNG 내보내기가 같은 공식을 쓰게 한 곳에 둔다. 슬라이더 0이면 안 그림
+function hubGlowSpec(childCount, r) {
+  if (childCount < 3 || CONFIG.hubGlow <= 0) return null;
+  const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
+  return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
+}
 // 상태 배지 하나 — 원(rgb=바탕) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b) {
@@ -543,13 +550,11 @@ function draw() {
       ctx.fillStyle = gM; ctx.fill();
     }
     if(!isDim && n.level > 0) {
-      const childCount = childCountMap.get(n.id) || 0;
-      if(childCount >= 3) {
-        const hubStrength = Math.min((childCount - 2) / 4, 1);
-        const glowR = r + 8 + hubStrength * 22;
-        ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI*2);
-        const gH = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
-        gH.addColorStop(0, rgbStr(ndRgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(ndRgb, 0));
+      const hub = hubGlowSpec(childCountMap.get(n.id) || 0, r);
+      if(hub) {
+        ctx.beginPath(); ctx.arc(n.x, n.y, hub.radius, 0, Math.PI*2);
+        const gH = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, hub.radius);
+        gH.addColorStop(0, rgbStr(ndRgb, hub.alpha)); gH.addColorStop(1, rgbStr(ndRgb, 0));
         ctx.fillStyle = gH; ctx.fill();
       }
     }

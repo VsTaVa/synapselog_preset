@@ -606,7 +606,7 @@ const _SAMPLE_MD = `# 노트 샘플
 
 - **노드 색상**(노드별, 깊이별)
 - **그래프 배치**(힘기반, 방사형(Radial Tree), 페이지별)
-- **그래프 설정:** (노드 반발력 슬라이더, 중력, 노드 크기, 링크 선 두께, 제목 글자 크기)
+- **그래프 설정:** (노드 반발력 슬라이더, 중력, 노드 크기, 링크 선 두께, 노드 허브, 제목 글자 크기)
 
 ### 검색
 
@@ -1809,13 +1809,11 @@ function exportGraph(size) {
       ctx2.fillStyle = gS; ctx2.fill();
     }
     if (n.level > 0) {
-      const childCount = getChildCount(n.id);
-      if (childCount >= 3) {
-        const hubStrength = Math.min((childCount - 2) / 4, 1);
-        const glowR = r + 8 + hubStrength * 22;
-        ctx2.beginPath(); ctx2.arc(nx, ny, glowR, 0, Math.PI*2);
-        const gH = ctx2.createRadialGradient(nx, ny, r, nx, ny, glowR);
-        gH.addColorStop(0, rgbStr(rgb, 0.28 + hubStrength * 0.15)); gH.addColorStop(1, rgbStr(rgb, 0));
+      const hub = hubGlowSpec(getChildCount(n.id), r);
+      if (hub) {
+        ctx2.beginPath(); ctx2.arc(nx, ny, hub.radius, 0, Math.PI*2);
+        const gH = ctx2.createRadialGradient(nx, ny, r, nx, ny, hub.radius);
+        gH.addColorStop(0, rgbStr(rgb, hub.alpha)); gH.addColorStop(1, rgbStr(rgb, 0));
         ctx2.fillStyle = gH; ctx2.fill();
       }
     }

@@ -76,11 +76,13 @@ const cfgGrav = document.getElementById('cfg-grav');
 const cfgTension = document.getElementById('cfg-tension');
 const cfgNodeSize = document.getElementById('cfg-node-size');
 const cfgLinkWidth = document.getElementById('cfg-link-width');
+const cfgHub = document.getElementById('cfg-hub');
 const vRep = document.getElementById('v-rep');
 const vGrav = document.getElementById('v-grav');
 const vTension = document.getElementById('v-tension');
 const vNodeSize = document.getElementById('v-node-size');
 const vLinkWidth = document.getElementById('v-link-width');
+const vHub = document.getElementById('v-hub');
 const detailPanel = document.getElementById('detail-panel');
 
 // ── 그래프 설정 슬라이더 ──────────────────────────────────────────────
@@ -91,23 +93,26 @@ function updateConfig() {
   CONFIG.linkTension = parseFloat(cfgTension.value);
   CONFIG.nodeSize = parseFloat(cfgNodeSize.value);
   CONFIG.linkWidth = parseFloat(cfgLinkWidth.value) * 1.5; // 표시값 1.0 = 실제 두께 1.5
+  CONFIG.hubGlow = parseFloat(cfgHub.value);
   vRep.textContent = Math.round(parseFloat(cfgRep.value) / 100);
   vGrav.textContent = Math.round(parseFloat(cfgGrav.value) * 10000);
   vTension.textContent = Math.round(parseFloat(cfgTension.value) * 1000);
   vNodeSize.textContent = parseFloat(cfgNodeSize.value).toFixed(1);
   vLinkWidth.textContent = parseFloat(cfgLinkWidth.value).toFixed(1);
+  vHub.textContent = parseFloat(cfgHub.value).toFixed(1);
   isStable = false;
   nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
   // 방사형만 물리를 안 쓰므로 좌표 재계산. (클러스터는 물리라 슬라이더가 매 프레임 반영됨)
   if (_layoutMode === 'radial') applyTreeLayout();
   // 그래프 슬라이더는 레이아웃·색상·라벨스케일처럼 항상 localStorage에 저장(민감정보 아님, 토글/스코프 무관)
-  try { localStorage.setItem('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value })); } catch (e) {}
+  try { localStorage.setItem('snlog_slider', JSON.stringify({ rep: cfgRep.value, grav: cfgGrav.value, tension: cfgTension.value, nodeSize: cfgNodeSize.value, linkWidth: cfgLinkWidth.value, hub: cfgHub.value })); } catch (e) {}
 }
 cfgRep.addEventListener('input', updateConfig);
 cfgGrav.addEventListener('input', updateConfig);
 cfgTension.addEventListener('input', updateConfig);
 cfgNodeSize.addEventListener('input', updateConfig);
 cfgLinkWidth.addEventListener('input', updateConfig);
+cfgHub.addEventListener('input', updateConfig);
 
 // ── 로딩 오버레이 ─────────────────────────────────────────────────────
 
