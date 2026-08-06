@@ -326,15 +326,20 @@ function _drawCheck(ctx, bx, by, scale) {
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
   ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
+// 14px 배지 안에서는 가는 선 몇 개로 연필이 안 읽힌다 → 몸통·촉을 채워 실루엣으로
 function _drawPencil(ctx, bx, by, scale) {
-  const s = v => v/scale;
-  ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.lineWidth = 1.9/scale;
-  ctx.beginPath(); ctx.moveTo(bx - s(2.6), by + s(2.6)); ctx.lineTo(bx + s(2.4), by - s(2.4)); ctx.stroke(); // 몸통
-  ctx.lineWidth = 1.3/scale;
-  ctx.beginPath(); ctx.moveTo(bx + s(0.5), by - s(2.9)); ctx.lineTo(bx + s(2.9), by - s(0.5)); ctx.stroke(); // 지우개 쪽 띠
-  ctx.beginPath(); ctx.moveTo(bx - s(3.2), by + s(3.2)); ctx.lineTo(bx - s(1.7), by + s(2.6)); ctx.stroke(); // 촉
-  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.scale(1/scale, 1/scale); // 여기부터는 화면 px 좌표
+  ctx.rotate(-Math.PI / 4);    // 사선으로 눕힌 연필
+  ctx.fillStyle = '#ffffff';
+  // 틈은 0.8px 이상 벌려야 이 크기에서 지우개·몸통·촉이 따로 읽힌다(붙이면 그냥 사선 덩어리)
+  ctx.fillRect(-1.6, -4.8, 3.2, 1.5);          // 지우개
+  ctx.fillRect(-1.6, -2.5, 3.2, 3.4);          // 몸통
+  ctx.beginPath();                             // 촉
+  ctx.moveTo(-1.6, 1.7); ctx.lineTo(1.6, 1.7); ctx.lineTo(0, 4.9);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
 }
 
 function draw() {
@@ -356,11 +361,13 @@ function draw() {
   // 우측 패널에 열린 노드 → 표시용(id → 스택 순번 1=위,2=아래)
   const openPanelIdx = new Map();
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
-  // 그 노드가 어디에 속하는지 한눈에 — 상세 패널 노드의 상위는 녹색, 선택한 노드의 상위는 주황 링
-  const panelAnc = new Set(), selAnc = new Set();
+  // 그 노드가 어디에 속하는지 한눈에 — 루트까지 거슬러 올라가는 링크선을 색칠한다(호버 강조와 같은 방식)
+  // 상세 패널 노드의 경로는 녹색, 선택한 노드의 경로는 주황
+  const panelPath = new Set(), selPath = new Set();
   if (typeof getAncestorIds === 'function') {
-    if (typeof _stack !== 'undefined' && _stack) _stack.forEach(nd => { if (nd) getAncestorIds(nd.id, 20).forEach(id => panelAnc.add(id)); });
-    if (typeof _multiSelected !== 'undefined' && _multiSelected) _multiSelected.forEach(nd => { if (nd) getAncestorIds(nd.id, 20).forEach(id => selAnc.add(id)); });
+    const addPath = (set, node) => { let cur = node.id; getAncestorIds(cur, 20).forEach(pid => { set.add(pid + '>' + cur); cur = pid; }); };
+    if (typeof _stack !== 'undefined' && _stack) _stack.forEach(nd => { if (nd) addPath(panelPath, nd); });
+    if (typeof _multiSelected !== 'undefined' && _multiSelected) _multiSelected.forEach(nd => { if (nd) addPath(selPath, nd); });
   }
 
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
@@ -404,12 +411,16 @@ function draw() {
       const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
       // 호버 강조가 사슬 전체(조상+하위)로 넓어져 굵은 선이 한꺼번에 많아진다 →
       // 두께 배수는 낮추고(2.2→1.5) 밝기로 존재감을 채운다(0.85→0.95)
-      const alpha=isDimEdge?0.08:(isHov?0.95:0.55), width=isDimEdge?0.5:(isHov?1.5:1.0);
-      // 호버 사슬은 흰색 — 노드 색 그대로 굵어지면 원래 밝던 가지와 구분이 잘 안 됐다
-      // (노드연결·수동연결 선이 이미 흰색이라 강조 색이 한 종류로 통일된다)
-      // 선 색은 하위(도착) 노드가 정한다 — 가지 끝으로 갈수록 그 가지의 색이 이어져 계통이 읽힌다
-      // (상위 노드 기준이면 한 부모의 자식들이 전부 같은 색이라 어느 가지인지 구분이 안 됐다)
-      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255]) : nodeRgb(nb);
+      // 상세 패널 노드의 상위 경로는 녹색, 선택한 노드의 상위 경로는 주황 — 호버와 같은 방식의 강조
+      const key = e.from + '>' + e.to;
+      const onSel = !isDimEdge && selPath.has(key), onPanel = !isDimEdge && panelPath.has(key);
+      const lit = isHov || onSel || onPanel;
+      const alpha=isDimEdge?0.08:(lit?0.95:0.55), width=isDimEdge?0.5:(lit?1.5:1.0);
+      // 강조선만 단색(호버 흰색 > 선택 주황 > 상세 녹색), 평소엔 하위(도착) 노드 색으로 가지 계통을 잇는다
+      const eRgb = isHov ? cssRgb('--fg-rgb', [255,255,255])
+        : onSel ? cssRgb('--accent-rgb', [237,112,0])
+        : onPanel ? [39,174,96]
+        : nodeRgb(nb);
       // 자식이 깊을수록 가늘게 — 굵은 쪽이 상위라, 선만 봐도 어느 방향이 위인지 읽힌다
       ctx.strokeStyle=rgbStr(eRgb,alpha);
       ctx.lineWidth=width*edgeDepthScale(nb.level)*CONFIG.linkWidth/scale; ctx.setLineDash([]);
@@ -529,12 +540,6 @@ function draw() {
       ctx.fillStyle=isDim?rgbStr(ndRgb,0.15):rgbStr(ndRgb,1);
       ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
-    }
-    // 상위 계층 링 — 둘 다 해당되면 반지름을 달리해 겹쳐도 둘 다 보이게
-    if(!isDim && (panelAnc.has(n.id) || selAnc.has(n.id))) {
-      const ring = (rad, color) => { ctx.beginPath(); ctx.arc(n.x, n.y, rad, 0, Math.PI*2); ctx.strokeStyle = color; ctx.lineWidth = 1.6/scale; ctx.stroke(); };
-      if(panelAnc.has(n.id)) ring(r+4.5, 'rgba(39,174,96,0.85)');
-      if(selAnc.has(n.id)) ring(r+7.5, rgbStr(cssRgb('--accent-rgb',[237,112,0]), 0.85));
     }
     if(n.fixed) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);
