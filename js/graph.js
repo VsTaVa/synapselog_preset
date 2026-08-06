@@ -317,15 +317,15 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-// 상태 배지 하나 — 원(rgb=바탕, ring=테두리) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+const BADGE_INK_DARK = [21,17,10]; // 밝은 배지 위 글리프 색 — 순검정은 배지 테두리와 붙어 보인다
+// 상태 배지 하나 — 원(rgb=바탕) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b) {
   const rgb = b.rgb;
-  const ink = b.ink ? rgbStr(b.ink, 1) : (rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? '#15110a' : '#ffffff';
+  const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), 1);
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
   ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
-  ctx.strokeStyle = b.ring ? rgbStr(b.ring, 1) : 'rgba(0,0,0,0.25)';
-  ctx.lineWidth = (b.ring ? 1.6 : 1)/scale; ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
   if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
@@ -600,8 +600,7 @@ function draw() {
     if(n.multiSelected) {
       const order = _multiSelected.indexOf(n) + 1;
       // 순번은 하나만 골라도 보여준다 — 순서대로 연결에 쓰이니 몇 번째인지가 곧 선택 표시
-      const accRgb = cssRgb('--accent-rgb',[237,112,0]);
-      if (order > 0) badges.push({ rgb: [0,0,0], ring: accRgb, ink: accRgb, glyph: String(order) });
+      if (order > 0) badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), ink: BADGE_INK_DARK, glyph: String(order) });
     }
     // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
     if(openPanelIdx.has(n.id)) {

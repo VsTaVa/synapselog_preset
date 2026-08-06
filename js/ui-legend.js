@@ -70,7 +70,7 @@ function _legendBadgeImg(kind) {
   const acc = cssRgb('--accent-rgb', [237,112,0]);
   const spec = {
     panel:     { rgb: [39,174,96],   glyph: 'pencil' },
-    select:    { rgb: [0,0,0], ring: acc, ink: acc, glyph: '1' },
+    select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: '1' },
     fixed:     { rgb: [255,255,255], glyph: 'pin' },
     bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
     satellite: { rgb: [0,0,0], ink: cssRgb('--satellite-rgb', [90,200,250]), glyph: 'orbit' },
