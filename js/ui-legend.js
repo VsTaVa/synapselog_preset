@@ -62,6 +62,19 @@ function _legendShapeImg(kind) {
   else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 15); g.fill(); }
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="${D}" height="${D}" alt="">`;
 }
+// 노드 배지(상세 열림 / 선택)를 그래프와 같은 함수로 그려 범례에 넣는다
+function _legendBadgeImg(kind) {
+  const S = 40, cx = 20, cy = 20, R = 13;
+  const c = document.createElement('canvas'); c.width = S; c.height = S;
+  const g = c.getContext('2d');
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
+  g.fillStyle = kind === 'pencil' ? '#27ae60' : rgbStr(cssRgb('--accent-rgb', [237,112,0]), 1);
+  g.fill();
+  const gs = 7 / R; // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다
+  if (kind === 'pencil') _drawPencil(g, cx, cy, gs); else _drawCheck(g, cx, cy, gs);
+  return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
+}
+
 function _legendSymbolsHtml() {
   const S = {
     ringDash: `<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2.2 2.2"/></svg>`,
@@ -88,6 +101,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--satellite);font-weight:800;font-size:12px;">가</span><span>위성 모드 (제목 노란색)</span></div>`
       + `<div class="lg-row">${glow('rgba(255,255,255,0.85)')}<span>노드 허브 (하위 노드 3개 이상)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('pencil')}</span><span>상세 내용 열림 (상위 노드에 녹색 링)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('check')}</span><span>선택한 노드 (상위 노드에 주황 링)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${S.ringDash}</span><span>노드 고정</span></div>`
     + `</div>`;
 }

@@ -317,6 +317,26 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
+// 노드 배지 속 글리프 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
+function _drawCheck(ctx, bx, by, scale) {
+  ctx.beginPath();
+  ctx.moveTo(bx - 3.2/scale, by + 0.3/scale);
+  ctx.lineTo(bx - 0.8/scale, by + 2.6/scale);
+  ctx.lineTo(bx + 3.4/scale, by - 2.4/scale);
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+}
+function _drawPencil(ctx, bx, by, scale) {
+  const s = v => v/scale;
+  ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.lineWidth = 1.9/scale;
+  ctx.beginPath(); ctx.moveTo(bx - s(2.6), by + s(2.6)); ctx.lineTo(bx + s(2.4), by - s(2.4)); ctx.stroke(); // 몸통
+  ctx.lineWidth = 1.3/scale;
+  ctx.beginPath(); ctx.moveTo(bx + s(0.5), by - s(2.9)); ctx.lineTo(bx + s(2.9), by - s(0.5)); ctx.stroke(); // 지우개 쪽 띠
+  ctx.beginPath(); ctx.moveTo(bx - s(3.2), by + s(3.2)); ctx.lineTo(bx - s(1.7), by + s(2.6)); ctx.stroke(); // 촉
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+}
+
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
@@ -336,6 +356,12 @@ function draw() {
   // 우측 패널에 열린 노드 → 표시용(id → 스택 순번 1=위,2=아래)
   const openPanelIdx = new Map();
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
+  // 그 노드가 어디에 속하는지 한눈에 — 상세 패널 노드의 상위는 녹색, 선택한 노드의 상위는 주황 링
+  const panelAnc = new Set(), selAnc = new Set();
+  if (typeof getAncestorIds === 'function') {
+    if (typeof _stack !== 'undefined' && _stack) _stack.forEach(nd => { if (nd) getAncestorIds(nd.id, 20).forEach(id => panelAnc.add(id)); });
+    if (typeof _multiSelected !== 'undefined' && _multiSelected) _multiSelected.forEach(nd => { if (nd) getAncestorIds(nd.id, 20).forEach(id => selAnc.add(id)); });
+  }
 
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
   // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
@@ -504,6 +530,12 @@ function draw() {
       ctx.strokeStyle=isDim?rgbStr(ndRgb,0.06):rgbStr(ndRgb,1);
       ctx.lineWidth=isHov?2/scale:1/scale; ctx.fill(); ctx.stroke();
     }
+    // 상위 계층 링 — 둘 다 해당되면 반지름을 달리해 겹쳐도 둘 다 보이게
+    if(!isDim && (panelAnc.has(n.id) || selAnc.has(n.id))) {
+      const ring = (rad, color) => { ctx.beginPath(); ctx.arc(n.x, n.y, rad, 0, Math.PI*2); ctx.strokeStyle = color; ctx.lineWidth = 1.6/scale; ctx.stroke(); };
+      if(panelAnc.has(n.id)) ring(r+4.5, 'rgba(39,174,96,0.85)');
+      if(selAnc.has(n.id)) ring(r+7.5, rgbStr(cssRgb('--accent-rgb',[237,112,0]), 0.85));
+    }
     if(n.fixed) {
       ctx.beginPath(); ctx.arc(n.x,n.y,r+3.5,0,Math.PI*2);
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1/scale;
@@ -533,15 +565,23 @@ function draw() {
       }
     }
     if(n.multiSelected) {
+      const acc = rgbStr(cssRgb('--accent-rgb',[237,112,0]), 1);
       ctx.beginPath(); ctx.arc(n.x, n.y, r+8, 0, Math.PI*2);
-      ctx.strokeStyle = '#ed7000'; ctx.lineWidth = 2/scale; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = acc; ctx.lineWidth = 2/scale; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
       const order = _multiSelected.indexOf(n) + 1;
       if (order > 0) {
-        ctx.beginPath(); ctx.arc(n.x+r+6, n.y-r-6, 7/scale, 0, Math.PI*2);
-        ctx.fillStyle = '#ed7000'; ctx.fill();
-        ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(order, n.x+r+6, n.y-r-6);
-        ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+        const bx = n.x + r + 5, by = n.y - r - 5, rr = 7/scale;
+        ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
+        ctx.fillStyle = acc; ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
+        // 여럿 고르면 순번이 필요하다(순서대로 연결) → 그때만 숫자, 하나면 체크
+        if (_multiSelected.length > 1) {
+          ctx.fillStyle = '#15110a'; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText(order, bx, by);
+          ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+        } else {
+          _drawCheck(ctx, bx, by, scale);
+        }
       }
     }
     // 우측 패널에 열린 노드: 녹색 체크 배지 + 은은한 녹색 글로우(흐려져도 표시)
@@ -554,12 +594,7 @@ function draw() {
       ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI*2);
       ctx.fillStyle = '#27ae60'; ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(bx - 3.2/scale, by + 0.3/scale);
-      ctx.lineTo(bx - 0.8/scale, by + 2.6/scale);
-      ctx.lineTo(bx + 3.4/scale, by - 2.4/scale);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.7/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-      ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+      _drawPencil(ctx, bx, by, scale);
     }
     ctx.restore();
     if(_showLabels) labelQueue.push({ n, r, isMatch, isDim });
