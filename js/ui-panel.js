@@ -157,7 +157,7 @@ function renderPanes(animateId) {
         `<div class="detail-content"></div>` +
       `</div>`;
     el.querySelector('.pane-x').onclick = (e) => { e.stopPropagation(); closePaneAt(i); };
-    el.querySelector('.detail-path-toggle').onclick = (e) => { e.stopPropagation(); toggleNodePath(); };
+    el.querySelector('.detail-path-toggle').onclick = (e) => { e.stopPropagation(); toggleNodePath(node.id); };
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
@@ -210,20 +210,26 @@ function _nodePathHtml(n) {
   return chain.map(chip).join(sep) + sep;
 }
 
-// 위치 경로 펼침 — 기본은 접힘(칩 뭉치가 여러 개면 시선이 분산된다).
-// 두 패인이 따로 놀면 헷갈려서 상태는 하나로 공유한다.
-let _pathOpen = false;
-function toggleNodePath() { _pathOpen = !_pathOpen; _applyPathOpen(); }
+// 위치 경로 펼침 — 기본은 접힘(칩 뭉치가 늘 떠 있으면 시선이 분산된다).
+// 패인마다 따로 여닫는다. 인덱스는 순서 교체·닫기로 밀리므로 노드 id로 기억한다.
+let _pathOpenIds = new Set();
+function toggleNodePath(nodeId) {
+  if (!nodeId) return;
+  if (_pathOpenIds.has(nodeId)) _pathOpenIds.delete(nodeId); else _pathOpenIds.add(nodeId);
+  _applyPathOpen();
+}
 function _applyPathOpen() {
   document.querySelectorAll('.detail-pane').forEach(p => {
+    const node = _stack[Number(p.dataset.pane)];
     const pathEl = p.querySelector('.detail-path');
     const has = !!(pathEl && pathEl.innerHTML);
-    p.classList.toggle('path-open', _pathOpen && has);
+    const open = has && !!node && _pathOpenIds.has(node.id);
+    p.classList.toggle('path-open', open);
     const btn = p.querySelector('.detail-path-toggle');
     if (btn) {
       btn.style.display = has ? '' : 'none'; // 최상위 노드는 펼칠 위치가 없다
-      btn.setAttribute('aria-expanded', String(_pathOpen && has));
-      btn.title = (_pathOpen && has) ? '위치 접기' : '위치 보기';
+      btn.setAttribute('aria-expanded', String(open));
+      btn.title = open ? '위치 접기' : '위치 보기';
     }
   });
 }
@@ -251,6 +257,9 @@ function renderPaneContent(i, n) {
   if (dateEl) {
     if (n.date) { dateEl.style.display = 'inline'; dateEl.textContent = n.date; }
     else { dateEl.style.display = 'none'; }
+    // 날짜가 없으면 줄 자체를 없앤다 — 빈 줄의 아래 여백만 남아 본문이 괜히 밀려 있었다
+    const metaRow = dateEl.closest('.detail-meta-row');
+    if (metaRow) metaRow.style.display = n.date ? '' : 'none';
   }
   // 노션에서 보기 / 북마크는 설정(⚙) 메뉴로 이동 — 예전 직접 아이콘이 남아있으면 제거
   headerEl.querySelectorAll('.detail-notion-link, .detail-bookmark-btn').forEach(el => el.remove());

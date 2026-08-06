@@ -399,7 +399,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #confirm-cancel:hover { background: rgba(255,255,255,0.12); }
 #confirm-ok { background: rgba(var(--accent-rgb),0.15); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); }
 #confirm-ok:hover { background: rgba(var(--accent-rgb),0.25); }
-.detail-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 16px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
+.detail-header { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 11px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .detail-header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .pane-x { background: none; border: none; cursor: pointer; color: var(--icon); width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
 .pane-x { color: var(--accent); font-size: 16px; line-height: 1; }
@@ -535,15 +535,16 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-path-toggle { flex-shrink: 0; background: none; border: none; padding: 0; width: 16px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--icon); cursor: pointer; transition: color 0.15s, transform 0.28s cubic-bezier(0.4,0,0.2,1); }
 .detail-path-toggle:hover { color: var(--text); }
 .detail-pane.path-open .detail-path-toggle { transform: rotate(90deg); color: var(--text); }
-.detail-path { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-width: 0; max-width: 0; opacity: 0; overflow: hidden;
+/* 헤더는 한 줄 고정 — 줄바꿈을 허용했더니 설정·닫기 버튼까지 아래로 따라 내려갔다.
+   경로가 길면 그 안에서 가로로 밀린다(스크롤바는 숨김, 칩은 그대로 누를 수 있다) */
+.detail-path { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; flex: 0 1 auto; min-width: 0; max-width: 0; opacity: 0;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none;
   transition: max-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease, margin-right 0.3s cubic-bezier(0.4,0,0.2,1); }
-.detail-pane.path-open .detail-path { max-width: 100%; opacity: 1; margin-right: 2px; }
-.detail-path .node-chip--sm { font-size: 11.5px; padding: 2px 7px; border-radius: 6px; max-width: 150px; }
+.detail-path::-webkit-scrollbar { display: none; }
+.detail-pane.path-open .detail-path { max-width: 72%; opacity: 1; margin-right: 2px; }
+.detail-path .node-chip--sm { font-size: 11.5px; padding: 2px 7px; border-radius: 6px; max-width: 150px; flex-shrink: 0; }
 .detail-path-sep { color: var(--text); font-size: 12px; flex-shrink: 0; }
-/* 경로를 펼치면 헤더가 두 줄이 될 수 있다 — 제목이 실오라기처럼 눌리는 것보다 낫다.
-   제목에 최소 폭을 줘야 계속 쪼그라들지 않고 다음 줄로 내려간다 */
-.detail-pane.path-open .detail-header { flex-wrap: wrap; row-gap: 4px; }
-.detail-pane.path-open .detail-title { min-width: 130px; }
+.detail-pane.path-open .detail-title { flex: 0 1 auto; min-width: 56px; } /* 밀려도 제목 일부는 보이게 */
 .detail-meta-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .detail-meta-row:empty { margin-bottom: 0; }
 .detail-date { font-size: 12px; color: var(--accent); font-family: monospace; font-weight: 600; letter-spacing: 0.03em; display: none; }
