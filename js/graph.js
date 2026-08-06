@@ -340,7 +340,7 @@ function _drawBadge(ctx, bx, by, scale, b) {
 function _drawPin(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale); // 여기부터 화면 px 좌표
-  const k = 0.42, P = (x, y) => [(x - 12) * k, (y - 12) * k]; // 아이콘 24 좌표계를 배지 크기로
+  const k = 0.50, P = (x, y) => [(x - 12) * k, (y - 12) * k]; // 아이콘 24 좌표계를 배지 크기로
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(...P(8, 2)); ctx.lineTo(...P(16, 2)); ctx.lineTo(...P(16, 6)); ctx.lineTo(...P(15, 6));
@@ -370,7 +370,7 @@ function _drawPencil(ctx, bx, by, scale, color) {
 function _drawBookmark(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  const k = 0.46, P = (x, y) => [(x - 12) * k, (y - 12) * k];
+  const k = 0.54, P = (x, y) => [(x - 12) * k, (y - 12) * k];
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(...P(6.5, 20.5)); ctx.lineTo(...P(6.5, 5)); ctx.lineTo(...P(8, 3.5)); ctx.lineTo(...P(16, 3.5));
