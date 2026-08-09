@@ -69,7 +69,7 @@ function _legendBadgeImg(kind) {
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
   const spec = {
-    panel:     { rgb: [39,174,96],   glyph: 'pencil' },
+    panel:     { rgb: [39,174,96],   glyph: 'info' },
     select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: '1' },
     fixed:     { rgb: [255,255,255], glyph: 'pin' },
     bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },

@@ -323,7 +323,7 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 배지 하나 — 원(rgb=바탕) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+// 상태 배지 하나 — 원(rgb=바탕) + 글리프('info' | 'pin' | 'bookmark' | 'orbit' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
@@ -332,7 +332,7 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
   ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
   ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
-  if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
+  if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
   else if (b.glyph === 'orbit') _drawOrbit(ctx, bx, by, scale, ink);
@@ -356,19 +356,14 @@ function _drawPin(ctx, bx, by, scale, color) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-// 상세 열림 연필 — 우측 패널 '제목&본문 수정' 아이콘과 같은 형태(사선 연필 + 밑줄)
-function _drawPencil(ctx, bx, by, scale, color) {
+// 상세 열림 — 정보 'i'. 도안이 1024 좌표계라 좌표를 옮겨 적는 대신 Path2D로 그대로 쓴다
+const INFO_GLYPH = new Path2D('M 491.50 842.95 C448.55,836.26 423.56,818.12 414.41,787.00 C411.74,777.91 411.67,739.08 414.30,722.00 C417.87,698.83 431.35,634.66 442.45,588.00 C448.14,564.07 453.90,535.90 457.59,514.00 C460.80,494.91 461.60,469.12 459.16,463.34 C456.81,457.75 453.34,457.17 441.06,460.29 C428.39,463.52 418.67,468.13 410.30,474.90 L 404.09 479.92 L 391.80 466.86 C385.03,459.68 379.50,453.43 379.50,452.97 C379.50,451.54 394.96,434.08 406.50,422.48 C433.29,395.55 454.63,381.16 475.43,376.00 C487.31,373.05 507.01,373.50 516.71,376.95 C537.60,384.37 559.23,409.53 570.57,439.58 C577.10,456.88 579.99,482.09 578.13,505.53 C576.94,520.50 570.10,557.29 561.02,597.50 C549.06,650.50 540.34,693.98 538.46,709.99 C534.55,743.37 539.58,778.74 549.68,788.87 C552.82,792.02 553.40,792.21 558.27,791.79 C566.41,791.10 574.44,786.63 583.06,778.01 C594.75,766.32 605.08,749.50 613.10,729.12 C615.20,723.79 617.47,719.50 618.19,719.50 C620.35,719.50 645.93,738.38 645.97,740.00 C646.02,742.47 629.51,772.35 620.40,786.27 C600.88,816.09 578.37,831.23 539.00,841.02 C529.25,843.44 501.81,844.56 491.50,842.95 ZM 488.94 325.66 C478.63,322.60 472.84,319.00 463.88,310.09 C455.28,301.51 449.85,291.99 445.89,278.50 C443.85,271.57 443.54,268.36 443.54,254.50 C443.54,236.33 444.69,231.24 452.18,216.29 C461.07,198.54 476.69,186.72 496.94,182.43 C505.76,180.55 524.99,180.60 532.54,182.51 C549.42,186.77 565.96,198.75 573.25,212.00 C580.68,225.51 584.22,244.44 582.12,259.44 C578.01,288.81 560.69,312.31 536.00,322.02 C520.48,328.12 502.08,329.55 488.94,325.66 Z');
+function _drawInfo(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  const k = 0.40, P = (x, y) => [(x - 12) * k, (y - 12.25) * k];
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(...P(16.5, 3.5));
-  ctx.quadraticCurveTo(...P(19.5, 3.5), ...P(19.5, 6.5)); // 지우개 쪽 둥근 모서리
-  ctx.lineTo(...P(7, 19)); ctx.lineTo(...P(3, 20)); ctx.lineTo(...P(4, 16));
-  ctx.closePath(); ctx.fill();
-  const [lx, ly] = P(12, 20), [rx] = P(21, 20);
-  ctx.beginPath(); ctx.rect(lx, ly - 1.2 * k, rx - lx, 2.4 * k); ctx.fill();
+  ctx.scale(9.2/664, 9.2/664); // 도안의 원 대비 비율(664/1024)을 배지 지름 14px에 그대로 옮긴 값
+  ctx.translate(-513, -512); // 도안 중심을 배지 중심에
+  ctx.fillStyle = color; ctx.fill(INFO_GLYPH);
   ctx.restore();
 }
 // 북마크 리본 — 툴바 북마크 아이콘 형태. 원본 비율(14:18)은 배지에서 흰 덩어리로만 보여
@@ -606,13 +601,13 @@ function draw() {
       // 순번은 하나만 골라도 보여준다 — 순서대로 연결에 쓰이니 몇 번째인지가 곧 선택 표시
       if (order > 0) badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), ink: BADGE_INK_DARK, glyph: String(order) });
     }
-    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 연필 배지
+    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 정보 배지
     if(openPanelIdx.has(n.id)) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
       const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
       gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      badges.push({ rgb: [39,174,96], glyph: 'pencil' });
+      badges.push({ rgb: [39,174,96], glyph: 'info' });
     }
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
     // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
