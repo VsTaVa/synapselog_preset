@@ -224,18 +224,6 @@ function multiSelectConnect() {
   clearMultiSelect();
 }
 
-function multiSelectChainConnect() {
-  if (_multiSelected.length < 3) return;
-  const seq = _multiSelected.slice(); // 선택 순서대로 a→b→c
-  const pairs = [];
-  for (let i = 0; i < seq.length - 1; i++) pairs.push([seq[i], seq[i + 1]]);
-  // 출처가 섞여 있을 수 있으니 저장 방식 분기는 toggleWikiConnect에 맡긴다
-  const allLinked = pairs.every(([a, b]) => isPairConnected(a, b));
-  if (allLinked) pairs.forEach(([a, b]) => toggleWikiConnect(a, b));
-  else pairs.forEach(([a, b]) => { if (!isPairConnected(a, b)) toggleWikiConnect(a, b); });
-  clearMultiSelect();
-}
-
 
 // 격리 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
 function recomputeSatelliteFlags() {

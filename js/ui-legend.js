@@ -70,7 +70,7 @@ function _legendBadgeImg(kind) {
   const acc = cssRgb('--accent-rgb', [237,112,0]);
   const spec = {
     panel:     { rgb: [39,174,96],   glyph: 'info' },
-    select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: '1' },
+    select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
     fixed:     { rgb: [255,255,255], glyph: 'pin' },
     bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
     satellite: { rgb: [0,0,0], ink: cssRgb('--satellite-rgb', [90,200,250]), glyph: 'orbit' },
@@ -99,7 +99,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드 (선택 순번)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('bookmark')}</span><span>북마크</span></div>`
@@ -321,7 +321,7 @@ function _wikiDisconnect(a, b) {
       toast('연결 해제 저장 실패(되돌림): ' + (err.message || err), { type: 'error', duration: 4000 });
     });
 }
-// 공통 토글 — 단일/멀티/순서대로 연결에서 모두 사용
+// 공통 토글 — 단일/멀티 연결에서 모두 사용
 // 연결 클릭을 받을 수 있는 노드 — 페이지/MD 파일 루트(level 0)도 대상.
 // 페이지에 속하지 않은 합성 최상위 루트만 제외(연결할 본문 자체가 없음)
 function canConnectNode(n) { return !!n && (n.level > 0 || !!n.sourcePageId); }
@@ -488,8 +488,6 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectFocus()" title="${focusOn ? '포커스 모드 해제' : '해당 노드의 상/하위 노드만 표시'}">${focusIcon} ${focusOn ? '포커스 해제' : '포커스 모드'}</button>`;
   } else if (n === 2) {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
-  } else {
-    html += `<button onclick="multiSelectChainConnect()" title="선택한 순서대로 연결/해제">${chainIcon} 순서대로 연결</button>`;
   }
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
   html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${isolateModeIcon(13)} 격리 모드${satOn ? ' 해제' : ''}</button>`;

@@ -323,7 +323,7 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 배지 하나 — 원(rgb=바탕) + 글리프('info' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+// 상태 배지 하나 — 원(rgb=바탕) + 글리프('check' | 'info' | 'pin' | 'bookmark' | 'orbit' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
@@ -332,7 +332,8 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
   ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
   ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
-  if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
+  if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
   else if (b.glyph === 'orbit') _drawOrbit(ctx, bx, by, scale, ink);
@@ -341,6 +342,15 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
     ctx.fillText(b.glyph, bx, by);
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
   }
+}
+// 선택 체크 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
+function _drawCheck(ctx, bx, by, scale, color) {
+  ctx.beginPath();
+  ctx.moveTo(bx - 3.4/scale, by + 0.3/scale);
+  ctx.lineTo(bx - 0.9/scale, by + 2.8/scale);
+  ctx.lineTo(bx + 3.6/scale, by - 2.6/scale);
+  ctx.strokeStyle = color; ctx.lineWidth = 2/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
 // 고정 핀 — 우클릭 툴바의 핀 아이콘과 같은 압정 형태(머리·목·받침·바늘). 선으로 그리면 이 크기에서 안 읽혀 실루엣을 채운다
 function _drawPin(ctx, bx, by, scale, color) {
@@ -596,10 +606,9 @@ function draw() {
         ctx.fillStyle = gDel2; ctx.fill();
       }
     }
-    if(n.multiSelected) {
-      const order = _multiSelected.indexOf(n) + 1;
-      // 순번은 하나만 골라도 보여준다 — 순서대로 연결에 쓰이니 몇 번째인지가 곧 선택 표시
-      if (order > 0) badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), ink: BADGE_INK_DARK, glyph: String(order) });
+    // 순번은 '순서대로 연결'이 사라지며 쓸모가 없어졌다 → 골랐다는 표시만
+    if(n.multiSelected && _multiSelected.indexOf(n) >= 0) {
+      badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), ink: BADGE_INK_DARK, glyph: 'check' });
     }
     // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 정보 배지
     if(openPanelIdx.has(n.id)) {
