@@ -149,8 +149,6 @@ function setColorScheme(mode) {
   const a = document.getElementById('cs-node'), b = document.getElementById('cs-depth');
   if (a) a.classList.toggle('active', _colorScheme === 'node');
   if (b) b.classList.toggle('active', _colorScheme === 'depth');
-  const legend = document.getElementById('depth-legend');
-  if (legend) legend.style.display = _colorScheme === 'depth' ? 'flex' : 'none';
   if (_legendOpen) renderLegendBody();
   isStable = false;
 }

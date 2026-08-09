@@ -674,14 +674,15 @@ function toggleSection(id) {
 
 // ── 단축키 시스템 ─────────────────────────────────────────────────────
 
-const DEFAULT_SHORTCUTS = { toggleLabels: 't' };
+const DEFAULT_SHORTCUTS = { toggleLabels: 't', toggleConnections: 'g' };
+const SHORTCUT_ACTIONS = Object.keys(DEFAULT_SHORTCUTS); // 힌트·설정 버튼이 같은 목록을 읽는다
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
 // 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 선택 모드 하나, N 키)
 delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleEditMode; delete _shortcuts.toggleMultiSelectMode;
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
-  ['toggleLabels'].forEach(action => {
+  SHORTCUT_ACTIONS.forEach(action => {
     const el = document.getElementById('hint-' + action);
     if (el) el.textContent = `(${formatKey(_shortcuts[action])})`;
   });
@@ -714,6 +715,7 @@ document.addEventListener('keydown', e => {
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === _shortcuts.toggleLabels) { e.preventDefault(); toggleLabels(); }
+  else if (k === _shortcuts.toggleConnections) { e.preventDefault(); const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = !cb.checked; toggleConnections(); }
   else if (e.key === ' ') { e.preventDefault(); fitGraph(true); } // 스페이스바 → 화면 맞춤
 });
 
@@ -763,7 +765,7 @@ function openSettings() {
 
   ['pages'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
   [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
-  ['toggleLabels'].forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
+  SHORTCUT_ACTIONS.forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
 
   ['shortcuts', 'storage'].forEach(id => {
     const saved = localStorage.getItem('snlog_sec_' + id), body = document.getElementById('section-' + id), arrow = document.getElementById('arrow-' + id);

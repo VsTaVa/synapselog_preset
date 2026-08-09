@@ -6,11 +6,10 @@ canvas { display: block; }
    :focus 규칙이 입력창 쪽에만 있어서, 아이콘 버튼(레일·패널·페이지 목록)을
    탭으로 옮겨 다니면 지금 어디에 있는지 화면에 전혀 안 나타났다.
    :focus-visible이라 마우스로 누를 땐 안 뜬다 — 기존 화면은 그대로.
-   슬라이더는 outline:none이 걸려 있어 명시적으로 다시 켠다(선택자 우선순위로 이김). */
+   슬라이더는 제외 — 방향키로 값을 맞추는 내내 테두리가 따라다녀 거슬린다(손잡이가 곧 위치 표시). */
 button:focus-visible,
 a:focus-visible,
 summary:focus-visible,
-input[type=range]:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
   outline: 2px solid var(--accent);
@@ -37,7 +36,6 @@ input[type=range]:focus-visible,
 .seg-toggle button { background: none; border: none; color: #fff; font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .seg-toggle button.active { background: rgba(var(--accent-rgb),0.9); color: #15110a; font-weight: 700; }
 .seg-toggle button:not(.active):hover { background: rgba(var(--accent-rgb),0.18); color: #fff; }
-#depth-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.35); }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 /* 범례는 사이드바 안의 한 패널 — 바깥 상자(.panel-box)가 유리질감·여백을 이미 준다 */
