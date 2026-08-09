@@ -16,6 +16,8 @@ summary:focus-visible,
   outline-offset: 1px;
 }
 .shortcut-hint { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; }
+/* 마스크 아이콘 — 캔버스로 그린 모양에 글자색을 입힌다(호버 색을 그대로 따라가려고) */
+.mask-ic { display: inline-block; flex-shrink: 0; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 #toast-container { position: fixed; right: 18px; bottom: 18px; z-index: 9000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; max-width: 360px; background: rgba(20,22,30,0.97); border: 1px solid rgba(255,255,255,0.12); border-left: 3px solid rgba(255,255,255,0.4); border-radius: 9px; padding: 11px 14px; font-size: 12.5px; font-weight: 600; color: #eee; box-shadow: 0 8px 28px rgba(0,0,0,0.5); backdrop-filter: blur(10px); transform: translateX(20px); opacity: 0; transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.22s; }
 .toast.show { transform: translateX(0); opacity: 1; }
@@ -188,7 +190,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
-  --satellite-rgb: 90,200,250;           /* 위성 모드 배지 글리프 색 — 캔버스(graph.js)와 범례가 같이 쓴다 */
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
   --fg: rgb(var(--fg-rgb));              /* 순백 텍스트 */
   --surface-rgb: 14,16,24;               /* 카드/모달 표면 */

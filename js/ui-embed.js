@@ -225,7 +225,7 @@ function multiSelectConnect() {
 }
 
 
-// 격리 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
+// 위성 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
 function recomputeSatelliteFlags() {
   nodes.forEach(n => { n._satellite = false; });
   nodes.forEach(root => {

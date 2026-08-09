@@ -24,7 +24,6 @@ function cssRgb(name, fallback) {
   return _cssRgbCache[name];
 }
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
-const satelliteRgb = () => cssRgb('--satellite-rgb', [90,200,250]); // 위성 모드 배지 글리프 색
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -323,7 +322,7 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 배지 하나 — 원(rgb=바탕) + 글리프('check' | 'info' | 'pin' | 'bookmark' | 'orbit' | 숫자)
+// 상태 배지 하나 — 원(rgb=바탕) + 글리프('check' | 'info' | 'pin' | 'bookmark' | 'logo' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
 function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
@@ -336,7 +335,7 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'orbit') _drawOrbit(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'logo') _drawLogo(ctx, bx, by, scale, ink);
   else {
     ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(b.glyph, bx, by);
@@ -389,16 +388,10 @@ function _drawBookmark(ctx, bx, by, scale, color) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-// 위성 궤도 — 점선 링 + 궤도 위의 본체. 링만으론 '분리'로 안 읽혀 도는 몸체를 얹었다
-function _drawOrbit(ctx, bx, by, scale, color) {
-  ctx.save();
-  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
-  ctx.setLineDash([2.2, 1.6]);
-  ctx.beginPath(); ctx.arc(0, 0, 3.7, 0, Math.PI*2); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(2.62, -2.62, 1.6, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
+// 위성 모드 — 앱 로고(8각별). 최상위 노드와 같은 함수라 모양이 어긋날 일이 없다
+function _drawLogo(ctx, bx, by, scale, color) {
+  drawStar8(ctx, bx, by, 2.4/scale); // 별은 r의 2배까지 뻗는다 → 지름 9.6px
+  ctx.fillStyle = color; ctx.fill();
 }
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -621,7 +614,7 @@ function draw() {
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
     // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
     if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
-    if(n._satelliteRoot) badges.push({ rgb: [0,0,0], ink: satelliteRgb(), glyph: 'orbit' });
+    if(n._satelliteRoot) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
     // 흐린 노드는 배지도 같이 죽인다 — 노드는 흐린데 배지만 쨍하면 되레 그쪽으로 눈이 간다
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));

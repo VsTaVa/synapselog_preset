@@ -40,8 +40,7 @@ function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
 function isBookmarked(n) { return !!n && _bookmarkedKeys.has(bookmarkKey(n)); }
 function saveBookmarks() { try { localStorage.setItem('snlog_bookmarks', JSON.stringify([..._bookmarkedKeys])); } catch(e) {} if (typeof _activeRailSection !== 'undefined' && _activeRailSection === 'bookmarks' && typeof renderBookmarkList === 'function') renderBookmarkList(); }
 
-// 격리 모드 지속: 격리 루트 label 저장 (fixed_pos와 동일 규칙·스코프) → 새로고침해도 복원
-// 코드에선 satellite로 남겨둔다 — 페이지 격리(_isolateActive)와 이름이 겹쳐 바꾸면 더 헷갈린다
+// 위성 모드 지속: 위성 루트 label 저장 (fixed_pos와 동일 규칙·스코프) → 새로고침해도 복원
 let _satelliteKeys = new Set((() => { try { return JSON.parse(snGet('snlog_satellites', 'pages') || '[]'); } catch(e) { return []; } })());
 function saveSatellites() { snSet('snlog_satellites', JSON.stringify([..._satelliteKeys]), 'pages'); }
 function restoreSatellites() {
