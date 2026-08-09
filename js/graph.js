@@ -390,7 +390,7 @@ function _drawBookmark(ctx, bx, by, scale, color) {
 }
 // 위성 모드 — 앱 로고(8각별). 최상위 노드와 같은 함수라 모양이 어긋날 일이 없다
 function _drawLogo(ctx, bx, by, scale, color) {
-  drawStar8(ctx, bx, by, 2.4/scale); // 별은 r의 2배까지 뻗는다 → 지름 9.6px
+  drawStar8(ctx, bx, by, 3.0/scale); // 별은 r의 2배까지 뻗는다 → 지름 12px(배지 14px에 꽉)
   ctx.fillStyle = color; ctx.fill();
 }
 function draw() {
