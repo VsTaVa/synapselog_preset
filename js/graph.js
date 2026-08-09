@@ -328,14 +328,16 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
   const rgb = b.rgb;
   const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), a);
-  ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
-  ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
-  ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
+  if (!b.bare) { // bare = 바탕 원 없이 글리프만(로고처럼 그 자체로 도형이 뚜렷할 때)
+    ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
+    ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
+    ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
+  }
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
   else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'logo') _drawLogo(ctx, bx, by, scale, ink);
+  else if (b.glyph === 'logo') _drawLogo(ctx, bx, by, scale, ink, b.glyphR);
   else {
     ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(b.glyph, bx, by);
@@ -389,8 +391,8 @@ function _drawBookmark(ctx, bx, by, scale, color) {
   ctx.restore();
 }
 // 위성 모드 — 앱 로고(8각별). 최상위 노드와 같은 함수라 모양이 어긋날 일이 없다
-function _drawLogo(ctx, bx, by, scale, color) {
-  drawStar8(ctx, bx, by, 3.0/scale); // 별은 r의 2배까지 뻗는다 → 지름 12px(배지 14px에 꽉)
+function _drawLogo(ctx, bx, by, scale, color, r) {
+  drawStar8(ctx, bx, by, (r || 3.0)/scale); // 별은 r의 2배까지 뻗는다 → 지름 = r*4
   ctx.fillStyle = color; ctx.fill();
 }
 function draw() {
@@ -614,7 +616,8 @@ function draw() {
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
     // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
     if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
-    if(n._satelliteRoot) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
+    // 위성만 바탕 원 없이 로고 그대로 — 별 실루엣이 이미 또렷해 원을 두르면 오히려 갇혀 보인다
+    if(n._satelliteRoot) badges.push({ bare: true, glyphR: 4.5, ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
     // 흐린 노드는 배지도 같이 죽인다 — 노드는 흐린데 배지만 쨍하면 되레 그쪽으로 눈이 간다
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));

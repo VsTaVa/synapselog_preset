@@ -68,15 +68,18 @@ function _legendBadgeImg(kind) {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
-  const spec = {
-    panel:     { rgb: [39,174,96],   glyph: 'info' },
-    select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
-    fixed:     { rgb: [255,255,255], glyph: 'pin' },
-    bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
-    satellite: { rgb: [0,0,0], ink: acc, glyph: 'logo' },
-  }[kind];
-  // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-  _drawBadge(g, cx, cy, 7 / R, spec);
+  // 위성은 바탕 원 없이 로고만 → 노드 모양 범례의 별과 같은 크기로 그린다
+  if (kind === 'satellite') { drawStar8(g, cx, cy, 10); g.fillStyle = rgbStr(acc, 1); g.fill(); }
+  else {
+    const spec = {
+      panel:     { rgb: [39,174,96],   glyph: 'info' },
+      select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
+      fixed:     { rgb: [255,255,255], glyph: 'pin' },
+      bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
+    }[kind];
+    // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
+    _drawBadge(g, cx, cy, 7 / R, spec);
+  }
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
@@ -499,7 +502,7 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   }
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
-  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${logoIcon(16)} 위성 모드${satOn ? ' 해제' : ''}</button>`;
+  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${logoIcon(18)} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
