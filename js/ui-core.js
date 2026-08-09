@@ -126,7 +126,8 @@ function hideLoading() { const el = document.getElementById('loading-overlay'); 
 
 // ── 제목 크기 ─────────────────────────────────────────────────────────
 
-let _labelScalePrev = 1; // 0(숨김)에서 돌아올 크기 — 마지막으로 쓰던 값
+// 0(숨김)에서 돌아올 크기 — 숨긴 채 새로고침해도 원래 크기로 돌아오게 따로 저장한다
+let _labelScalePrev = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale_prev')); return (v > 0 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 
 // 단축키(T): 제목 크기를 0과 직전 값 사이로 오간다
 function toggleLabels() {
@@ -137,7 +138,7 @@ function toggleLabels() {
 
 function setLabelScale(v) {
   v = parseFloat(v); if (!(v >= 0 && v <= 2.5)) v = 1;
-  if (v > 0) _labelScalePrev = v;
+  if (v > 0) { _labelScalePrev = v; try { localStorage.setItem('snlog_label_scale_prev', String(v)); } catch (e) {} }
   _labelScale = v;
   try { localStorage.setItem('snlog_label_scale', String(v)); } catch (e) {}
   const out = document.getElementById('label-scale-val');

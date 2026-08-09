@@ -325,12 +325,13 @@ function hubGlowSpec(childCount, r) {
 }
 // 상태 배지 하나 — 원(rgb=바탕) + 글리프('pencil' | 'pin' | 'bookmark' | 'orbit' | 숫자)
 // ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
-function _drawBadge(ctx, bx, by, scale, b) {
+function _drawBadge(ctx, bx, by, scale, b, alpha) {
+  const a = alpha === undefined ? 1 : alpha;
   const rgb = b.rgb;
-  const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), 1);
+  const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), a);
   ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
-  ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1/scale; ctx.stroke();
+  ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
+  ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
   if (b.glyph === 'pencil') _drawPencil(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink);
@@ -618,7 +619,8 @@ function draw() {
     if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
     if(n._satelliteRoot) badges.push({ rgb: [0,0,0], ink: satelliteRgb(), glyph: 'orbit' });
     // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
-    badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b));
+    // 흐린 노드는 배지도 같이 죽인다 — 노드는 흐린데 배지만 쨍하면 되레 그쪽으로 눈이 간다
+    badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));
     ctx.restore();
     if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
   });

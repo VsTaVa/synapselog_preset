@@ -99,8 +99,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드 (선택 순번)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('bookmark')}</span><span>북마크</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`
