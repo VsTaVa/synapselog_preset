@@ -109,6 +109,8 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`
     + `</div>`;
 }
+// 아이콘마다 그린 크기가 달라도 글자 시작 위치는 같아야 한다 → 고정 폭 슬롯에 가운데 정렬(넘치는 만큼은 그대로 삐져나감)
+const icSlot = (html, px) => `<span class="ic-slot" style="width:${px}px">${html}</span>`;
 // 하위 노드 추가 — 우클릭 툴바와 우측 패널 메뉴가 같이 쓴다(둘 다 바꿔야 해서 한 곳에 둔다)
 // viewBox는 그림 경계에 맞춰 잘라낸 값 — 원본 1024 상자엔 여백이 커서 옆 아이콘보다 작아 보였다
 const ADD_CHILD_PATH = 'M 515.50 872.99 C480.02,865.71 450.43,844.68 431.73,813.46 C424.76,801.83 419.17,786.49 416.51,771.69 C414.89,762.72 414.79,745.32 416.25,726.22 L 416.50 722.93 L 326.00 668.88 C276.23,639.15 234.31,614.20 232.85,613.44 C230.34,612.13 229.80,612.31 223.36,616.63 C210.12,625.51 194.56,632.02 178.00,635.61 C166.14,638.18 140.86,638.18 129.00,635.61 C103.75,630.13 82.71,618.77 64.97,601.03 C50.43,586.49 41.05,571.28 34.44,551.51 C10.04,478.60 58.36,400.00 134.66,388.50 C168.34,383.42 202.48,392.27 230.11,413.24 L 239.10 420.07 L 328.88 363.51 L 418.67 306.95 L 416.86 297.73 C414.55,285.88 414.39,263.51 416.55,251.86 C419.74,234.58 425.86,219.42 435.46,205.00 C454.89,175.83 483.56,156.88 517.86,150.55 C528.80,148.52 551.20,148.52 562.14,150.55 C576.63,153.22 591.93,158.85 603.50,165.76 C635.03,184.59 656.80,215.86 663.45,251.86 C665.48,262.80 665.48,285.20 663.45,296.14 C657.77,326.90 641.57,353.81 617.50,372.46 C593.80,390.82 569.92,399.00 540.00,399.00 C511.25,399.00 486.60,390.89 464.71,374.23 C460.62,371.12 458.56,370.11 457.71,370.81 C457.04,371.36 416.00,397.31 366.50,428.49 C317.00,459.66 276.45,485.24 276.39,485.33 C276.33,485.43 276.87,489.33 277.58,494.00 C280.02,509.86 278.77,531.72 274.64,545.26 L 273.19 550.03 L 312.84 573.69 C334.65,586.70 375.37,610.99 403.33,627.67 L 454.17 657.98 L 462.33 651.66 C486.27,633.15 510.01,625.00 540.00,625.00 C559.26,625.00 574.96,628.25 592.00,635.75 C604.36,641.20 621.24,653.19 630.53,663.12 C653.71,687.90 665.00,716.35 665.00,750.00 C665.00,779.92 656.82,803.80 638.46,827.50 C619.81,851.57 592.90,867.77 562.14,873.45 C550.42,875.62 527.21,875.39 515.50,872.99 ZM 817.00 676.13 C802.51,671.47 791.48,659.62 787.53,644.47 C786.28,639.65 786.00,631.26 786.00,598.29 L 786.00 558.00 L 745.71 558.00 C712.74,558.00 704.35,557.72 699.53,556.47 C679.11,551.15 666.00,534.16 666.00,513.00 C666.00,491.84 679.11,474.85 699.53,469.53 C704.35,468.28 712.74,468.00 745.71,468.00 L 786.00 468.00 L 786.00 427.71 C786.00,394.74 786.28,386.35 787.53,381.53 C792.85,361.11 809.84,348.00 831.00,348.00 C852.16,348.00 869.15,361.11 874.47,381.53 C875.72,386.35 876.00,394.74 876.00,427.71 L 876.00 468.00 L 916.29 468.00 C949.26,468.00 957.65,468.28 962.47,469.53 C982.89,474.85 996.00,491.84 996.00,513.00 C996.00,534.16 982.89,551.15 962.47,556.47 C957.65,557.72 949.26,558.00 916.29,558.00 L 876.00 558.00 L 876.00 598.29 C876.00,631.26 875.72,639.65 874.47,644.47 C870.47,659.79 859.40,671.58 844.66,676.18 C837.10,678.54 824.44,678.51 817.00,676.13 Z';
@@ -467,7 +469,7 @@ function _editToolsHtml(node) {
   const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   const isLocalLike = node.local || String(node.sourcePageId || '').startsWith('md_') || String(node.sourcePageId || '').startsWith('local_');
   let html = '';
-  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="해당 노드에 하위 노드 추가">${addChildIcon(12)} 하위 노드 추가</button>`;
+  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="해당 노드에 하위 노드 추가">${icSlot(addChildIcon(12), 12)} 하위 노드 추가</button>`;
   if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="노션 동기화">${syncIcon} 노드 동기화</button>`;
   if (!isLocalLike && (node.notionBlockId || node.sourcePageId)) html += `<button onclick="multiSelectOpenNotion()" title="노션 페이지 해당 위치로 이동.">${notionIcon} 노션에서 보기</button>`;
   html += `<button onclick="multiSelectBookmark()" title="즐겨찾기">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
@@ -491,7 +493,7 @@ function _multiEditToolsHtml() {
 function _exploreToolsHtml() {
   const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
-  const focusIcon = focusModeIcon(13);
+  const focusIcon = icSlot(focusModeIcon(13), 12);
   let html = '';
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="해당 노드를 다른 노드들과 연결/해제">${chainIcon} 노드 다중 연결</button>`;
@@ -502,7 +504,7 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   }
   const satOn = _multiSelected.every(nd => nd._satelliteRoot);
-  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${logoIcon(18)} 위성 모드${satOn ? ' 해제' : ''}</button>`;
+  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${icSlot(logoIcon(18), 12)} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;

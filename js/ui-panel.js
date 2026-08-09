@@ -424,7 +424,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
   const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
-  const addItem = canAdd ? `<button data-act="add">${addChildIcon(15)} 하위 노드 추가</button>` : '';
+  const addItem = canAdd ? `<button data-act="add">${icSlot(addChildIcon(15), 15)} 하위 노드 추가</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
   const aiActItem = `<button data-act="aiact"><span class="menu-ic-txt">AI</span> AI 노드 선택</button>`;
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
