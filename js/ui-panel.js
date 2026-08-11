@@ -380,6 +380,23 @@ async function _applyNodeSync(node) {
   node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
 }
 
+// 쓰기 성공 뒤에 해야 할 일 한 묶음 — 호출부마다 흩어져 있으면 하나씩 빠뜨린다.
+// resync:false는 방금 노션에서 읽어온 직후처럼 다시 읽을 필요가 없을 때만.
+async function afterNodeWrite(node, paneIdx, opts) {
+  if (!node) return;
+  const resync = !opts || opts.resync !== false;
+  invalidateNodeCache(node);
+  if (resync && !node.local && node.notionBlockId) {
+    // 화면은 '이렇게 됐을 것'이 아니라 실제 저장된 내용을 그려야 한다
+    try { await _applyNodeSync(node); } catch (e) { /* 확인 실패는 조용히 — 쓰기 자체는 이미 끝났다 */ }
+  }
+  isStable = false;
+  if (typeof paneIdx !== 'number') return;
+  const el = getPaneEl(paneIdx);
+  // 그 사이 다시 편집에 들어갔거나 다른 노드를 열었으면 건드리지 않는다
+  if (el && !el.querySelector('.detail-edit-save') && _stack[paneIdx] === node) renderPaneContent(paneIdx, node);
+}
+
 // 해당 노드 + 하위 노드들을 노션에서 다시 가져와 갱신 (제목 + 본문)
 async function syncNode(node, paneIdx) {
   if (!node || node.local) { toast('이 노드는 동기화할 수 없어 (노션 노드만)', { type: 'error' }); return; }
@@ -395,10 +412,8 @@ async function syncNode(node, paneIdx) {
   const dismiss = toast(targets.length > 1 ? `노드 ${targets.length}개 동기화 중…` : '노드 동기화 중…', { type: 'info', duration: 60000 });
   try {
     await Promise.all(targets.map(t => _applyNodeSync(t)));
-    invalidateNodeCache(node);
-    isStable = false;
     if (dismiss) dismiss();
-    if (typeof paneIdx === 'number') renderPaneContent(paneIdx, node);
+    await afterNodeWrite(node, paneIdx, { resync: false }); // 방금 읽어온 참이라 다시 읽지 않는다
     if (typeof refreshOpenPanes === 'function') refreshOpenPanes();
     toast(targets.length > 1 ? `${targets.length}개 동기화됨` : '동기화됨', { type: 'success' });
   } catch (err) {
@@ -1048,7 +1063,6 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
         if (reordered) {
           // A안: 자리 바뀐 블록만 옮김(최소 이동) + create-before-delete → 대량 블록도 안 어지럽혀짐
           finalBlocks = await _applyReorder(node, tgt, finalRows, origBody, oldBodyIds);
-          node.desc = finalBlocks.map(_bodyDescLine).join('\n'); // 줄머리 표식 복원(안 그러면 재정렬 후 목록·인용 표시가 사라짐)
         } else {
           const pre = [];
           finalRows.filter(r => r.blk && (r.text !== r.orig || _checkFlipped(r)))
@@ -1063,28 +1077,11 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
           const newIds = newRows.length ? await notionAppendBlocks(tgt.parentId, tgt.afterId, newRows.map(r => r.text), 'paragraph', false, newRows.map(r => r.type || null), newRows.map(r => !!r.checked)) : [];
           let qi = 0;
           finalBlocks = finalRows.map(r => _savedBodyBlock(r.blk ? r.blk.id : newIds[qi++], r));
-          // desc는 본문 외 내용(표 등) 보존 위해 원본 desc를 블록 단위로 갈아끼운다.
-          // 원본 순서(origBody)대로 '위치 커서'를 이동하며 치환 → 같은 텍스트 줄이 여러 개여도
-          // 올바른 줄을 갱신(String.replace 첫-일치로 엉뚱한 줄이 바뀌던 중복 버그 방지).
-          const rowByBlkId = new Map(finalRows.filter(r => r.blk).map(r => [r.blk.id, r]));
-          let d = node.desc || '', from = 0, allMatched = true;
-          for (const b of origBody) {
-            if (!b.text) continue;
-            const om = (b.mark === '☑' || b.mark === '☐') ? b.mark + ' ' : '';
-            const needle = om + b.text;
-            const at = d.indexOf(needle, from);
-            if (at < 0) { allMatched = false; continue; }
-            const r = rowByBlkId.get(b.id);
-            if (!r) { d = d.slice(0, at) + d.slice(at + needle.length); continue; } // 삭제된 블록 제거(커서 유지)
-            const nm = r.type === 'to_do' ? (r.checked ? '☑ ' : '☐ ') : om;
-            if (r.text !== b.text || nm !== om) { const repl = nm + r.text; d = d.slice(0, at) + repl + d.slice(at + needle.length); from = at + repl.length; }
-            else from = at + needle.length;
-          }
-          finalRows.filter(r => !r.blk).forEach(r => { const line = _bodyDescLine(r); d = d ? d + '\n' + line : line; }); // 새 블록은 끝에(유형 마커 포함)
-          node.desc = allMatched ? d.replace(/\n{3,}/g, '\n\n').trim() : finalBlocks.map(_bodyDescLine).join('\n');
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
-        invalidateNodeCache(node);
+        // 본문의 원본은 블록 배열 하나 — desc는 거기서 만들어 쓰는 표시용 문자열이다.
+        // (예전엔 원본 desc에서 옛 줄을 찾아 갈아끼웠는데, 못 찾은 줄이 옛 글로 남는 버그가 났다)
+        node.desc = finalBlocks.map(_bodyDescLine).join('\n');
       }
       if (titleChanged) {
         // 라벨은 항상 평문(검색·노드 매칭·그래프 표시가 이걸 씀), 서식 원문은 labelMd에
@@ -1100,16 +1097,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       isStable = false;
       finish();
       toast(isLocal ? (localWroteFile ? '파일에 저장됨' : '저장됨') : '노션에 저장됨', { type: 'success' });
-      // 위 화면은 desc를 손으로 기워 만든 '예상 결과'다. 그 기움이 어긋나면 저장은 됐는데 화면만 옛 글로
-      // 남았다 → 저장이 끝난 뒤 실제 저장된 내용을 다시 읽어 덮는다(토스트 뒤라 체감 속도는 그대로).
-      if (!isLocal && node.notionBlockId && typeof _applyNodeSync === 'function') {
-        try {
-          await _applyNodeSync(node);
-          const el = getPaneEl(paneIdx);
-          // 그 사이 사용자가 다시 편집에 들어갔거나 다른 노드를 열었으면 건드리지 않는다
-          if (el && !el.querySelector('.detail-edit-save') && _stack[paneIdx] === node) renderPaneContent(paneIdx, node);
-        } catch (e) { /* 확인 실패는 조용히 — 저장 자체는 이미 끝났다 */ }
-      }
+      await afterNodeWrite(node, paneIdx); // 토스트 뒤에 실제 저장된 내용으로 맞춘다(체감 속도는 그대로)
     } catch (err) {
       saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
       toast('저장 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
@@ -1250,9 +1238,8 @@ async function createChildNode(node, rawTitle) {
   const snippet = `[BLOCK:${res.id}|${tgt.parentId}]\n# ${title}`;
   const newIds = _addEntryChildNodes(node, snippet);
   newIds.forEach(id => { const c = nodeMap[id]; if (c) { c.visible = true; c.headingDepth = childDepth; } });
-  invalidateNodeCache(node);
   nodes.forEach(nd => { nd._frozen = false; nd._frozenFrames = 0; });
-  isStable = false;
+  await afterNodeWrite(node, undefined, { resync: false }); // 자식은 별도 노드라 부모 본문은 그대로
   return [...newIds];
 }
 
