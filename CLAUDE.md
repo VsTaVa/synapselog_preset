@@ -19,7 +19,7 @@ SynapseLog — a client-side web app that visualizes Notion pages and Markdown f
 
 ### Global-scope "module" pattern (important)
 
-`js/*.js` files use **no ES imports/exports**. `index.html` loads them with `defer` in a **fixed order** (utils → graph → notion-client → ui-core → ui-legend → ui-ai → ui-embed → ui-rail → ui-panel → ui-events). All top-level `let`/`const`/`function` declarations live in one shared global scope, so any file can reference another's globals directly (`nodes`, `edges`, `nodeMap`, `CONFIG`, `_stack`, `_savedToken`, `_useLocalStorage`, …). Consequences:
+`js/*.js` files use **no ES imports/exports**. `index.html` loads them with `defer` in a **fixed order** (utils → icons → sample → graph → notion-client → export → ui-core → ui-legend → ui-ai → ui-embed → ui-rail → ui-panel → ui-events). All top-level `let`/`const`/`function` declarations live in one shared global scope, so any file can reference another's globals directly (`nodes`, `edges`, `nodeMap`, `CONFIG`, `_stack`, `_savedToken`, `_useLocalStorage`, …). Consequences:
 
 - Adding a file means adding a `<script>` tag in the correct position in `index.html`.
 - Code frequently guards cross-file calls with `typeof fn === 'function'` because load order / availability isn't guaranteed at call-definition time.
@@ -58,7 +58,10 @@ SynapseLog — a client-side web app that visualizes Notion pages and Markdown f
 - `js/ui-rail.js` — left activity rail and its fly-out sections (pages, search, bookmarks/insights, graph settings, AI chat). Insights (hubs / link suggestions) are pure graph/keyword computation, no AI tokens.
 - `js/ui-panel.js` — right detail panel: a stack of up to 2 node panes (`_stack`, FIFO). Owns pane rendering, top/bottom split ratio drag (`_paneRatio`), swap popup, collapse/reopen.
 - `js/ui-events.js` — search, keyboard/pointer input, panel resize handles, and the main `loop()`.
-- `js/ui-legend.js`, `js/ui-embed.js` — legend overlay and embedding-based RAG search.
+- `js/ui-legend.js`, `js/ui-embed.js` — legend overlay (+ the node right-click toolbar) and embedding-based RAG search.
+- `js/icons.js` — every shared SVG/canvas icon (`addChildIcon`, `focusModeIcon`, `logoIcon`, `icSlot`, sync icons). Icons used in two places live here so the copies can't drift apart.
+- `js/export.js` — graph → PNG export. Redraws on an offscreen canvas with the **same formulas as `draw()`** (e.g. `hubGlowSpec`); if a rule changes in one place only, the exported image silently differs.
+- `js/sample.js` — `_SAMPLE_MD`, the "샘플로 둘러보기" notebook that doubles as the in-app usage guide.
 
 ## Conventions
 
