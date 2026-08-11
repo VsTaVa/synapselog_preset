@@ -1100,6 +1100,16 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       isStable = false;
       finish();
       toast(isLocal ? (localWroteFile ? '파일에 저장됨' : '저장됨') : '노션에 저장됨', { type: 'success' });
+      // 위 화면은 desc를 손으로 기워 만든 '예상 결과'다. 그 기움이 어긋나면 저장은 됐는데 화면만 옛 글로
+      // 남았다 → 저장이 끝난 뒤 실제 저장된 내용을 다시 읽어 덮는다(토스트 뒤라 체감 속도는 그대로).
+      if (!isLocal && node.notionBlockId && typeof _applyNodeSync === 'function') {
+        try {
+          await _applyNodeSync(node);
+          const el = getPaneEl(paneIdx);
+          // 그 사이 사용자가 다시 편집에 들어갔거나 다른 노드를 열었으면 건드리지 않는다
+          if (el && !el.querySelector('.detail-edit-save') && _stack[paneIdx] === node) renderPaneContent(paneIdx, node);
+        } catch (e) { /* 확인 실패는 조용히 — 저장 자체는 이미 끝났다 */ }
+      }
     } catch (err) {
       saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = '저장';
       toast('저장 실패: ' + (err.message || err), { type: 'error', duration: 5000 });
