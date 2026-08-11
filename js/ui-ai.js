@@ -358,7 +358,12 @@ function _renderAiChat() {
         `<div class="aichat-help-title">AI 기능 사용에 Gemini API 키(무료) 필요</div>` +
         `<div class="aichat-help-step"><b>1.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 접속 → <b>Create API key</b> → 키 복사 </div>` +
         `<div class="aichat-help-step"><b>2.</b> 좌측 하단 <b>설정(⚙)</b> → <b>AI API 키</b> 입력 후 저장</div>` +
-        `<div class="aichat-help-step"><b>3.</b> AI 대화창에서 노드 검색, 요약, 편집 가능</div>` +
+        // 범례에 있던 'AI가 해주는 것' — 설명은 AI를 쓰는 자리에 있어야 한다
+        `<div class="aichat-help-sec">AI가 해주는 것</div>` +
+        `<div class="aichat-help-item"><b>노드 요약</b> 선택 노드(하위&연결 포함)</div>` +
+        `<div class="aichat-help-item"><b>연결 추천</b> 관련 노드를 찾아 연결 제안</div>` +
+        `<div class="aichat-help-item"><b>본문 다듬기</b> 선택 노드 문법&문장 교정</div>` +
+        `<div class="aichat-help-item"><b>링크 가져오기</b> 웹&유튜브를 시각화</div>` +
       `</div>`;
     return;
   }
