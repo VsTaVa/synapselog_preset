@@ -380,8 +380,7 @@ async function _applyNodeSync(node) {
   node.desc = cleanDesc(lines.map(b => b.line).join('\n'));
 }
 
-// 쓰기 성공 뒤에 해야 할 일 한 묶음 — 호출부마다 흩어져 있으면 하나씩 빠뜨린다.
-// resync:false는 방금 노션에서 읽어온 직후처럼 다시 읽을 필요가 없을 때만.
+// 쓰기 뒤 할 일 한 묶음 — 흩어두면 하나씩 빠뜨린다. resync:false는 방금 읽어온 직후에만
 async function afterNodeWrite(node, paneIdx, opts) {
   if (!node) return;
   const resync = !opts || opts.resync !== false;
@@ -1079,8 +1078,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
           finalBlocks = finalRows.map(r => _savedBodyBlock(r.blk ? r.blk.id : newIds[qi++], r));
         }
         node.bodyBlocks = finalBlocks.filter(b => b.id);
-        // 본문의 원본은 블록 배열 하나 — desc는 거기서 만들어 쓰는 표시용 문자열이다.
-        // (예전엔 원본 desc에서 옛 줄을 찾아 갈아끼웠는데, 못 찾은 줄이 옛 글로 남는 버그가 났다)
+        // 원본은 블록 배열 하나 — 예전처럼 desc의 옛 줄을 찾아 갈아끼우면 못 찾은 줄이 남는다
         node.desc = finalBlocks.map(_bodyDescLine).join('\n');
       }
       if (titleChanged) {

@@ -322,8 +322,7 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 배지 하나 — 원(rgb=바탕) + 글리프('check' | 'info' | 'pin' | 'bookmark' | 'logo' | 숫자)
-// ink를 안 주면 바탕 밝기에서 뽑는다 — 색을 늘려도 대비를 따로 안 정해도 된다
+// 상태 배지 — 원(rgb=바탕) + 글리프. ink를 안 주면 바탕 밝기에서 뽑아 대비를 맞춘다
 function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
   const rgb = b.rgb;
@@ -377,8 +376,7 @@ function _drawInfo(ctx, bx, by, scale, color) {
   ctx.fillStyle = color; ctx.fill(INFO_GLYPH);
   ctx.restore();
 }
-// 북마크 리본 — 툴바 북마크 아이콘 형태. 원본 비율(14:18)은 배지에서 흰 덩어리로만 보여
-// 폭을 줄이고 아래 V홈을 원본보다 깊게 팠다(28%→45%) — 이 홈이 없으면 북마크로 안 읽힌다
+// 북마크 리본 — 원본 비율은 배지에서 흰 덩어리라, 폭을 줄이고 V홈을 깊게 팠다(28%→45%)
 function _drawBookmark(ctx, bx, by, scale, color) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
@@ -618,8 +616,7 @@ function draw() {
     if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ rgb: [0,0,0], ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
     // 위성만 바탕 원 없이 로고 그대로 — 별 실루엣이 이미 또렷해 원을 두르면 오히려 갇혀 보인다
     if(n._satelliteRoot) badges.push({ bare: true, glyphR: 4.5, ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
-    // 배지는 노드 왼쪽 위에서 아래로 쌓는다 — 상태가 겹쳐도 서로 안 가린다
-    // 흐린 노드는 배지도 같이 죽인다 — 노드는 흐린데 배지만 쨍하면 되레 그쪽으로 눈이 간다
+    // 왼쪽 위에서 아래로 쌓아 서로 안 가리게. 흐린 노드는 배지도 같이 죽인다(안 그러면 배지만 쨍하다)
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));
     ctx.restore();
     if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
