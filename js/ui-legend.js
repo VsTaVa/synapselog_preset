@@ -25,19 +25,17 @@ function renderLegendBody() {
   if (!body) return;
   const tocIc = `<div class="lg-toc-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg></div>`;
   const tab = (id, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')">${label}</button>`;
-  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}${tab('ai', 'AI')}</div>`;
+  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}</div>`;
   const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
     + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
     + _legendSymbolsHtml()
     + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 툴바</div>`
     + _legendToolsHtml()
-    + `<div class="lg-divider lg-divider-gap" id="lg-sec-ai">AI</div>`
-    + _legendAiHtml()
     + `</div>`;
   body.innerHTML = content + tabs;
   _updateLegendActiveTab();
 }
-const _LEGEND_SECS = ['symbols', 'tools', 'ai'];
+const _LEGEND_SECS = ['symbols', 'tools'];
 function _setLegendTab(t) {
   const scroll = document.getElementById('lg-scroll');
   const target = document.getElementById('lg-sec-' + t);
@@ -132,17 +130,6 @@ function _legendToolsHtml() {
     + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`
     + `</div>`;
 }
-function _legendAiHtml() {
-  const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-note lg-note-top">제미나이 API 필요</div>`
-    + `<div class="lg-sec"><div class="lg-sec-title">AI가 해주는 것</div>`
-    + row('노드 요약', '선택 노드(하위&연결 포함)')
-    + row('연결 추천', '관련 노드를 찾아 연결 제안')
-    + row('본문 다듬기', '선택 노드 문법&문장 교정')
-    + row('링크 가져오기', '웹&유튜브를 시각화')
-    + `</div>`;
-}
-
 function setColorScheme(mode) {
   _colorScheme = (mode === 'depth') ? 'depth' : 'node';
   try { localStorage.setItem('snlog_color_scheme', _colorScheme); } catch (e) {}
