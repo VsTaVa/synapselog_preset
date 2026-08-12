@@ -1257,17 +1257,6 @@ function focusPage(pageId) {
   if (typeof highlightSidebarPage === 'function') highlightSidebarPage(pageId);
 }
 
-function isAncestorOf(potentialAncId, nodeId) {
-  let cur = nodeId;
-  for (let i = 0; i < 30; i++) {
-    const pe = getParentEdge(cur);
-    if (!pe) break;
-    if (pe.from === potentialAncId) return true;
-    cur = pe.from;
-  }
-  return false;
-}
-
 function showPanel() {
   if (!anyTabs()) return;
   _detailPanelCollapsed = false;
