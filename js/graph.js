@@ -316,6 +316,28 @@ function simulate() {
 
 const BADGE_INK_DARK = [21,17,10]; // 밝은 배지 위 글리프 색 — 순검정은 배지 테두리와 붙어 보인다
 
+// 정보 주입 펄스 — 구조 엣지를 따라 발광 원이 흘러 내려간다. 깊이별로 출발을 어긋내 캐스케이드처럼 보이게
+function drawInjectionPulse(na, nb, rgb) {
+  const now = performance.now();
+  const staggerMs = 480, travelMs = 620;
+  const cycleMs = Math.max(travelMs * 1.05, staggerMs * 2.4 / 1.4);
+  const start = (nb.level || 1) * staggerMs;
+  const localT = ((now - start) % cycleMs + cycleMs) % cycleMs;
+  if (localT > travelMs) return;
+  const prog = localT / travelMs;
+  const px = na.x + (nb.x - na.x) * prog, py = na.y + (nb.y - na.y) * prog;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(px, py, 0, px, py, 10 / scale);
+  g.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.5)`);
+  g.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+  ctx.beginPath(); ctx.arc(px, py, 10 / scale, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py, 2.6 / scale, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.75)`; ctx.fill();
+  ctx.restore();
+}
+
 // 허브 글로우(하위 3개 이상) — 화면과 PNG 내보내기가 같은 공식을 쓰게 한 곳에 둔다. 슬라이더 0이면 안 그림
 function hubGlowSpec(childCount, r) {
   if (childCount < 3 || CONFIG.hubGlow <= 0) return null;
@@ -463,6 +485,10 @@ function draw() {
     }
     ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke();
     ctx.setLineDash([]);
+    if(!e.wikiLink && !e.manualLink && !e.weakLink && !hasSearch) {
+      const isDimEdge = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
+      if(!isDimEdge) drawInjectionPulse(na, nb, nodeRgb(nb));
+    }
     if(e.wikiLink) {
       // A→B 방향 화살표 (B 노드 앞에). 크기를 노드 크기(월드)에 비례 → 줌 축소 시 함께 작아짐
       const rNb = nodeR(nb.level);
