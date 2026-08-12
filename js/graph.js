@@ -42,6 +42,7 @@ let _multiSelected = [], _isolateActive = false;
 
 // 호버 강조 사슬 — 조상(루트까지) + 하위 트리 전체. 구조 링크만 따라간다(약한·수동 링크 제외).
 let _hoverChainId = null, _hoverChain = new Set();
+let _hoverLinked = new Set(); // 호버 노드와 점선(노드연결·수동연결)으로 이어진 상대 노드들
 function _computeHoverChain(n) {
   const s = new Set();
   if (!n) return s;
@@ -390,12 +391,23 @@ function draw() {
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
   // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
   // 호버 노드가 바뀔 때만 다시 계산 — 매 프레임 BFS는 비싸다.
-  if (!hoveredNode) { _hoverChainId = null; _hoverChain.clear(); }
-  else if (hoveredNode.id !== _hoverChainId) { _hoverChainId = hoveredNode.id; _hoverChain = _computeHoverChain(hoveredNode); }
+  if (!hoveredNode) { _hoverChainId = null; _hoverChain.clear(); _hoverLinked.clear(); }
+  else if (hoveredNode.id !== _hoverChainId) {
+    _hoverChainId = hoveredNode.id;
+    _hoverChain = _computeHoverChain(hoveredNode);
+    _hoverLinked = new Set();
+    edges.forEach(ed => { // 점선 연결은 계층과 무관하게 뻗으므로 사슬과 따로 모은다
+      if (!ed.wikiLink && !ed.manualLink) return;
+      if (ed.from === hoveredNode.id) _hoverLinked.add(ed.to);
+      else if (ed.to === hoveredNode.id) _hoverLinked.add(ed.from);
+    });
+  }
   [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
     if(!na||!nb||!na.visible||!nb.visible) return;
-    const isHov = hoveredNode && _hoverChain.has(e.from) && _hoverChain.has(e.to);
+    // 점선은 호버 노드에 닿기만 하면 활성 — 상대가 사슬 밖이라 양끝 조건으론 절대 안 걸린다
+    const isHov = hoveredNode && (((e.wikiLink || e.manualLink) && (e.from === hoveredNode.id || e.to === hoveredNode.id))
+      || (_hoverChain.has(e.from) && _hoverChain.has(e.to)));
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
     if(e.wikiLink) {
@@ -503,7 +515,8 @@ function draw() {
 
   nodes.forEach(n => {
     if(!n.visible) return;
-    const isHov=hoveredNode===n, isMatch=searchMatches.has(n.id);
+    // 점선으로 이어진 상대 노드도 호버 노드와 같이 켠다 — 선만 밝으면 어디로 이어졌는지 눈이 못 따라간다
+    const isHov=hoveredNode===n||_hoverLinked.has(n.id), isMatch=searchMatches.has(n.id);
     const isDirectMatch=searchDirect.has(n.id)||_activeGlowIds.has(n.id);
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
