@@ -310,7 +310,7 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-const BADGE_INK_DARK = [21,17,10]; // 밝은 배지 위 글리프 색 — 순검정은 배지 테두리와 붙어 보인다
+const BADGE_INK_DARK = [21,17,10]; // 밝은 바탕 위 글리프 색 — 순검정은 가장자리와 붙어 보인다
 
 // 허브 글로우(하위 3개 이상) — 화면과 PNG 내보내기가 같은 공식을 쓰게 한 곳에 둔다. 슬라이더 0이면 안 그림
 function hubGlowSpec(childCount, r) {
@@ -318,23 +318,15 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 배지 — 원(rgb=바탕) + 글리프. ink를 안 주면 바탕 밝기에서 뽑아 대비를 맞춘다
-function _drawBadge(ctx, bx, by, scale, b, alpha) {
+// 상태 표시 — 노드를 같은 크기 원반으로 덮고 글리프를 얹는다.
+// 글리프에 7/r을 넘기면 예전 배지(반지름 7px)와 같은 비율이 그대로 나온다
+function _drawNodeState(ctx, x, y, r, rgb, ink, glyphFn, alpha) {
   const a = alpha === undefined ? 1 : alpha;
-  const rgb = b.rgb;
-  const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), a);
-  ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
   ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
-  ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
-  if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
-  else {
-    ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(b.glyph, bx, by);
-    ctx.textAlign='start'; ctx.textBaseline='alphabetic';
-  }
+  glyphFn(ctx, x, y, 7/r, rgbStr(ink, a));
 }
-// 선택 체크 — 화면에서 항상 같은 크기로 보이게 좌표를 scale로 나눈다
+// 선택 체크 — 좌표를 scale로 나눠 그린다(배지 반지름 7 기준 비율)
 function _drawCheck(ctx, bx, by, scale, color) {
   ctx.beginPath();
   ctx.moveTo(bx - 3.4/scale, by + 0.3/scale);
@@ -521,7 +513,6 @@ function draw() {
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const ndRgb = nodeRgb(n);
-    const badges = []; // 상태 배지(상세 열림·선택·고정) — 아래에서 한 번에 왼쪽에 쌓아 그린다
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
     // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택 표시 등)은 똑바로 유지 — 역회전 적용
@@ -586,20 +577,19 @@ function draw() {
         ctx.fillStyle = gDel2; ctx.fill();
       }
     }
-    // 순번은 '순서대로 연결'이 사라지며 쓸모가 없어졌다 → 골랐다는 표시만
-    if(n.multiSelected && _multiSelected.indexOf(n) >= 0) {
-      badges.push({ rgb: cssRgb('--accent-rgb',[237,112,0]), ink: BADGE_INK_DARK, glyph: 'check' });
-    }
-    // 우측 패널에 열린 노드: 은은한 녹색 글로우(흐려져도 표시) + 녹색 정보 배지
+    // 우측 패널에 열린 노드: 은은한 녹색 글로우 — 노드를 덮기 전에 깔아야 테두리처럼 남는다
     if(openPanelIdx.has(n.id)) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
       const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
       gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
       ctx.fillStyle = gOp; ctx.fill();
-      badges.push({ rgb: [39,174,96], glyph: 'info' });
     }
-    // 왼쪽 위에서 아래로 쌓아 서로 안 가리게. 흐린 노드는 배지도 같이 죽인다(안 그러면 배지만 쨍하다)
-    badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));
+    // 선택·상세 열림은 노드 자리를 통째로 덮는다. 둘 다면 지금 하는 행동(선택)을 보여준다
+    const stAlpha = isDim ? 0.25 : 1;
+    if(n.multiSelected && _multiSelected.indexOf(n) >= 0)
+      _drawNodeState(ctx, n.x, n.y, r, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
+    else if(openPanelIdx.has(n.id))
+      _drawNodeState(ctx, n.x, n.y, r, [39,174,96], [255,255,255], _drawInfo, stAlpha);
     // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다
     if(n.fixed) {
       const off = r + 4/scale, dg = Math.SQRT1_2;

@@ -60,19 +60,16 @@ function _legendShapeImg(kind) {
   else if (kind === 'starX' && typeof drawStarX === 'function') { g.fillStyle = '#eef2f8'; drawStarX(g, cx, cy, 15); g.fill(); }
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="${D}" height="${D}" alt="">`;
 }
-// 노드 배지를 그래프와 같은 함수로 그려 범례에 넣는다 — 색·글리프는 graph.js draw()와 짝을 맞춘다
+// 상태 표시를 그래프와 같은 함수로 그려 범례에 넣는다 — 색·글리프가 draw()와 갈라지지 않게
 function _legendBadgeImg(kind) {
-  const S = 40, cx = 20, cy = 20, R = 13;
+  const S = 40, cx = 20, cy = 20, R = 10; // R=노드 모양 범례(원·별)와 같은 반지름
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
-  // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-  // 고정은 배지가 아니라 노드에 꽂힌 흰 핀 — 그래프와 같은 모양·각도로 그린다
+  // 고정은 노드에 꽂힌 흰 핀, 나머지는 노드를 덮는 원반
   if (kind === 'fixed') _drawPin(g, cx, cy, 7 / R, '#ffffff', Math.PI / 4);
-  else _drawBadge(g, cx, cy, 7 / R, {
-    panel:  { rgb: [39,174,96], glyph: 'info' },
-    select: { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
-  }[kind]);
+  else if (kind === 'select') _drawNodeState(g, cx, cy, R, acc, BADGE_INK_DARK, _drawCheck);
+  else _drawNodeState(g, cx, cy, R, [39,174,96], [255,255,255], _drawInfo);
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
