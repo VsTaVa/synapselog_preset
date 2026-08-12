@@ -73,7 +73,6 @@ function _legendBadgeImg(kind) {
       panel:     { rgb: [39,174,96],   glyph: 'info' },
       select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
       fixed:     { rgb: [255,255,255], glyph: 'pin' },
-      bookmark:  { bare: true, glyphK: 0.95, ink: acc, glyph: 'bookmark' },
     }[kind];
     // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
     _drawBadge(g, cx, cy, 7 / R, spec);
@@ -103,7 +102,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('bookmark')}</span><span>북마크</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`
     + `</div>`;
 }

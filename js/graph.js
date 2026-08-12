@@ -335,7 +335,6 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
   else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'bookmark') _drawBookmark(ctx, bx, by, scale, ink, b.glyphK);
   else if (b.glyph === 'logo') _drawLogo(ctx, bx, by, scale, ink, b.glyphR);
   else {
     ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -374,18 +373,6 @@ function _drawInfo(ctx, bx, by, scale, color) {
   ctx.scale(9.2/664, 9.2/664); // 도안의 원 대비 비율(664/1024)을 배지 지름 14px에 그대로 옮긴 값
   ctx.translate(-513, -512); // 도안 중심을 배지 중심에
   ctx.fillStyle = color; ctx.fill(INFO_GLYPH);
-  ctx.restore();
-}
-// 북마크 리본 — 원본 비율은 배지에서 흰 덩어리라, 폭을 줄이고 V홈을 깊게 팠다(28%→45%)
-function _drawBookmark(ctx, bx, by, scale, color, k0) {
-  ctx.save();
-  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  const k = k0 || 0.54, P = (x, y) => [(x - 12) * k, (y - 12) * k];
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(...P(6.5, 20.5)); ctx.lineTo(...P(6.5, 5)); ctx.lineTo(...P(8, 3.5)); ctx.lineTo(...P(16, 3.5));
-  ctx.lineTo(...P(17.5, 5)); ctx.lineTo(...P(17.5, 20.5)); ctx.lineTo(...P(12, 13));
-  ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 // 위성 모드 — 앱 로고(8각별). 최상위 노드와 같은 함수라 모양이 어긋날 일이 없다
@@ -612,8 +599,6 @@ function draw() {
       badges.push({ rgb: [39,174,96], glyph: 'info' });
     }
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
-    // 지속 속성(북마크·위성)은 상태 배지 아래에 — 예전엔 제목 색이었지만 색만으로는 검색 강조와 겹쳤다
-    if(typeof isBookmarked === 'function' && isBookmarked(n)) badges.push({ bare: true, glyphK: 0.95, ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'bookmark' });
     // 위성만 바탕 원 없이 로고 그대로 — 별 실루엣이 이미 또렷해 원을 두르면 오히려 갇혀 보인다
     if(n._satelliteRoot) badges.push({ bare: true, glyphR: 4.5, ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
     // 왼쪽 위에서 아래로 쌓아 서로 안 가리게. 흐린 노드는 배지도 같이 죽인다(안 그러면 배지만 쨍하다)
@@ -653,11 +638,13 @@ function draw() {
       if (n.level === 0 || n.level === 1) fontSize = 12;
       else if (n.level === 2) fontSize = 11;
       fontSize = fontSize * _labelScale * scale;
+      const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
         lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
         font: (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`,
-        // 북마크·위성은 배지가 맡는다 → 제목 색은 검색 매치 강조에만 쓴다
-        color: isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
+        // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
+        color: _bmLbl ? rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.2 : 1)
+          : isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
       });
     });
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.

@@ -33,7 +33,7 @@ function toggleFavorite(pageId) {
   refreshSidebarRender();
 }
 
-// ── 노드 북마크 (켜면 노드에 주황 배지) ─────────────────────────────
+// ── 노드 북마크 (켜면 제목이 주황색) ─────────────────────────────
 // 안정 키로 저장: 노션 노드는 notionBlockId, 그 외는 노드 id
 let _bookmarkedKeys = new Set((() => { try { return JSON.parse(localStorage.getItem('snlog_bookmarks') || '[]'); } catch(e) { return []; } })());
 function bookmarkKey(n) { return n && (n.notionBlockId || n.id); }
