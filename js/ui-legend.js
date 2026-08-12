@@ -66,17 +66,13 @@ function _legendBadgeImg(kind) {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
-  // 위성은 바탕 원 없이 로고만 → 노드 모양 범례의 별과 같은 크기로 그린다
-  if (kind === 'satellite') { drawStar8(g, cx, cy, 10); g.fillStyle = rgbStr(acc, 1); g.fill(); }
-  else {
-    const spec = {
-      panel:     { rgb: [39,174,96],   glyph: 'info' },
-      select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
-      fixed:     { rgb: [255,255,255], glyph: 'pin' },
-    }[kind];
-    // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-    _drawBadge(g, cx, cy, 7 / R, spec);
-  }
+  const spec = {
+    panel:  { rgb: [39,174,96],   glyph: 'info' },
+    select: { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
+    fixed:  { rgb: [255,255,255], glyph: 'pin' },
+  }[kind];
+  // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
+  _drawBadge(g, cx, cy, 7 / R, spec);
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
@@ -103,7 +99,6 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('satellite')}</span><span>위성 모드</span></div>`
     + `</div>`;
 }
 function _legendToolsHtml() {
@@ -119,7 +114,6 @@ function _legendToolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
     + row('노드 연결', '노드 간 연결')
     + row('포커스 모드', '연결된 노드 포커스')
-    + row('위성 모드', '그래프 분리')
     + row('노드 고정', '노드 고정 및 위치 이동')
     + `</div>`
     // 동기화 두 가지가 같은 자리에 있어 헷갈리기 쉬움 — 무엇이 다른지 여기서 설명
@@ -450,7 +444,7 @@ function _multiEditToolsHtml() {
   return html;
 }
 
-// 탐색 툴: 연결 / 포커스 / 위성 (선택 개수에 따라 달라짐)
+// 탐색 툴: 연결 / 포커스 / 고정 (선택 개수에 따라 달라짐)
 function _exploreToolsHtml() {
   const n = _multiSelected.length;
   const chainIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
@@ -458,14 +452,12 @@ function _exploreToolsHtml() {
   let html = '';
   if (n === 1) {
     html += `<button onclick="multiSelectStartConnect()" title="해당 노드를 다른 노드들과 연결/해제">${chainIcon} 노드 다중 연결</button>`;
-    // 고정·위성 버튼과 같은 방식 — 켜져 있으면 해제 버튼으로 보인다
+    // 고정 버튼과 같은 방식 — 켜져 있으면 해제 버튼으로 보인다
     const focusOn = _focusMode && _focusNodeId === _multiSelected[0].id;
     html += `<button onclick="multiSelectFocus()" title="${focusOn ? '포커스 모드 해제' : '해당 노드의 상/하위 노드만 표시'}">${focusIcon} ${focusOn ? '포커스 해제' : '포커스 모드'}</button>`;
   } else if (n === 2) {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   }
-  const satOn = _multiSelected.every(nd => nd._satelliteRoot);
-  html += `<button onclick="multiSelectSatellite()" title="선택한 노드와 하위 노드를 상위에서 분리/복원">${icSlot(logoIcon(18), 12)} 위성 모드${satOn ? ' 해제' : ''}</button>`;
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;

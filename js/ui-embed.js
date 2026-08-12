@@ -165,7 +165,7 @@ function multiSelectPin() {
   const allFixed = targets.every(n => n.fixed);
   targets.forEach(n => {
     n.fixed = !allFixed;
-    if (!n.fixed) { n.vx = 0; n.vy = 0; delete n._satFixed; }
+    if (!n.fixed) { n.vx = 0; n.vy = 0; }
     if (typeof unfreezeSubtree === 'function') unfreezeSubtree(n);
   });
   if (typeof saveFixedPositions === 'function') saveFixedPositions();
@@ -224,63 +224,6 @@ function multiSelectConnect() {
   clearMultiSelect();
 }
 
-
-// 위성 모드는 노드 고정/해제처럼 노드별로 독립 토글된다.
-function recomputeSatelliteFlags() {
-  nodes.forEach(n => { n._satellite = false; });
-  nodes.forEach(root => {
-    if (!root._satelliteRoot) return;
-    const group = new Set([root.id]);
-    const q = [root.id];
-    while (q.length) {
-      const id = q.shift();
-      edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !group.has(e.to)) { group.add(e.to); q.push(e.to); } });
-    }
-    group.forEach(id => { if (nodeMap[id]) nodeMap[id]._satellite = true; });
-  });
-}
-
-function activateSatellite(node) {
-  if (node._satelliteRoot) return;
-  node._satelliteRoot = true;
-  // node + 하위 트리에 위성 플래그
-  const group = new Set([node.id]);
-  const q = [node.id];
-  while (q.length) {
-    const id = q.shift();
-    edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !group.has(e.to)) { group.add(e.to); q.push(e.to); } });
-  }
-  group.forEach(id => { if (nodeMap[id]) nodeMap[id]._satellite = true; });
-  // node의 부모(계층) 엣지 제거 — 루트 id로 태그해 복원용 저장
-  const parentEdges = edges.filter(e => e.to === node.id && !e.weakLink && !e.manualLink);
-  parentEdges.forEach(e => { e._satRoot = node.id; _satelliteRemovedEdges.push(e); });
-  edges = edges.filter(e => !parentEdges.includes(e));
-  nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-  if (typeof _satelliteKeys !== 'undefined') { _satelliteKeys.add(node.label); saveSatellites(); }
-}
-
-function releaseSatellite(node) {
-  // 이 루트가 분리했던 부모 엣지 복원
-  _satelliteRemovedEdges.filter(e => e._satRoot === node.id).forEach(e => { delete e._satRoot; edges.push(e); });
-  _satelliteRemovedEdges = _satelliteRemovedEdges.filter(e => e._satRoot !== node.id);
-  node._satelliteRoot = false;
-  if (typeof _satelliteKeys !== 'undefined') { _satelliteKeys.delete(node.label); saveSatellites(); }
-  // 위성 드래그로 자동 고정됐던 경우만 해제 (수동 고정은 유지)
-  if (node._satFixed) { node.fixed = false; node.vx = 0; node.vy = 0; delete node._satFixed; }
-  recomputeSatelliteFlags();
-  nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-}
-
-function multiSelectSatellite() {
-  if (_multiSelected.length < 1) return;
-  if (!_satelliteRemovedEdges) _satelliteRemovedEdges = [];
-  _multiSelected.forEach(node => {
-    if (node._satelliteRoot) releaseSatellite(node);
-    else activateSatellite(node);
-  });
-  isStable = false;
-  clearMultiSelect();
-}
 
 function multiSelectBookmark() {
   if (_multiSelected.length < 1) return;

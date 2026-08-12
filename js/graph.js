@@ -57,7 +57,6 @@ function _computeHoverChain(n) {
 }
 // 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
 let _activeGlowIds = new Set();
-let _satelliteRemovedEdges = [];
 
 // 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
@@ -292,10 +291,6 @@ function simulate() {
       fx += dx/d*f; fy += dy/d*f;
     });
     if(fixedDescendants.has(n.id)){}
-    else if(n._satellite){
-      const sdx=n.x-WORLD_CX, sdy=n.y-WORLD_CY, sd=Math.max(Math.sqrt(sdx*sdx+sdy*sdy),1);
-      const sf=(sd-700)*0.0016; fx-=sdx/sd*sf; fy-=sdy/sd*sf;
-    }
     else if(clusterMode){
       const a = (_pageAnchors && _pageAnchors[nKey]) || { x: WORLD_CX, y: WORLD_CY };
       fx += (a.x-n.x)*centerForce; fy += (a.y-n.y)*centerForce;
@@ -327,15 +322,12 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   const a = alpha === undefined ? 1 : alpha;
   const rgb = b.rgb;
   const ink = rgbStr(b.ink || ((rgb[0]*0.299 + rgb[1]*0.587 + rgb[2]*0.114) > 150 ? BADGE_INK_DARK : [255,255,255]), a);
-  if (!b.bare) { // bare = 바탕 원 없이 글리프만(로고처럼 그 자체로 도형이 뚜렷할 때)
-    ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
-    ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
-    ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
-  }
+  ctx.beginPath(); ctx.arc(bx, by, 7/scale, 0, Math.PI*2);
+  ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
+  ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
   else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
   else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'logo') _drawLogo(ctx, bx, by, scale, ink, b.glyphR);
   else {
     ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(b.glyph, bx, by);
@@ -374,11 +366,6 @@ function _drawInfo(ctx, bx, by, scale, color) {
   ctx.translate(-513, -512); // 도안 중심을 배지 중심에
   ctx.fillStyle = color; ctx.fill(INFO_GLYPH);
   ctx.restore();
-}
-// 위성 모드 — 앱 로고(8각별). 최상위 노드와 같은 함수라 모양이 어긋날 일이 없다
-function _drawLogo(ctx, bx, by, scale, color, r) {
-  drawStar8(ctx, bx, by, (r || 3.0)/scale); // 별은 r의 2배까지 뻗는다 → 지름 = r*4
-  ctx.fillStyle = color; ctx.fill();
 }
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -524,7 +511,7 @@ function draw() {
     const badges = []; // 상태 배지(상세 열림·선택·고정) — 아래에서 한 번에 왼쪽에 쌓아 그린다
     const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
-    // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택표시·위성 등)은 똑바로 유지 — 역회전 적용
+    // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택 표시 등)은 똑바로 유지 — 역회전 적용
     ctx.save();
     if(_viewRotation){ ctx.translate(n.x, n.y); ctx.rotate(-_viewRotation); ctx.translate(-n.x, -n.y); }
     if(isManualLinked && !isDim) {
@@ -599,8 +586,6 @@ function draw() {
       badges.push({ rgb: [39,174,96], glyph: 'info' });
     }
     if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
-    // 위성만 바탕 원 없이 로고 그대로 — 별 실루엣이 이미 또렷해 원을 두르면 오히려 갇혀 보인다
-    if(n._satelliteRoot) badges.push({ bare: true, glyphR: 4.5, ink: cssRgb('--accent-rgb',[237,112,0]), glyph: 'logo' });
     // 왼쪽 위에서 아래로 쌓아 서로 안 가리게. 흐린 노드는 배지도 같이 죽인다(안 그러면 배지만 쨍하다)
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));
     ctx.restore();
@@ -738,7 +723,6 @@ function restoreFixedPositions() {
     const data = JSON.parse(snGet('snlog_fixed_pos', 'pages') || '{}');
     nodes.forEach(n => { if (data[n.label]) { n.fixed=true; n.x=data[n.label].x; n.y=data[n.label].y; n.vx=0; n.vy=0; } });
   } catch(e) {}
-  if (typeof restoreSatellites === 'function') restoreSatellites();
 }
 
 function placeChildrenAroundParent(parentNode, children, radius) {
