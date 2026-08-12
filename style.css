@@ -104,7 +104,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 /* 순위 번호 — 오른쪽 정렬로 두 자리(10.)까지 자릿수가 맞음 */
 .chip-rank { flex-shrink: 0; min-width: 17px; margin-right: 3px; font-size: 10px; font-weight: 700; color: var(--text-mute); text-align: right; font-variant-numeric: tabular-nums; }
 /* 중심 노드 항목 — 누르면 하위 전체 활성화 */
-.insight-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 4px; font-size: 9.5px; font-weight: 700; color: var(--accent); background: rgba(var(--accent-rgb),0.16); border-radius: 8px; }
 /* 오른쪽 위 ✕ 자리를 비워두고 카드 자체가 '그래프에서 보기' 트리거 */
 .insight-pair { position: relative; padding: 8px 26px 8px 8px; margin-bottom: 7px; background: rgba(var(--fg-rgb),0.035); border: 1px solid var(--border-soft); border-radius: 9px; }
 .insight-pair:hover { background: rgba(var(--fg-rgb),0.06); }
@@ -233,7 +232,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 body.resizing-panel { cursor: ew-resize; user-select: none; }
 /* UI 크롬은 텍스트 선택·롱프레스 콜아웃 방지 (드래그하면 파란 선택 영역이 뜨던 문제) */
 #activity-rail, #sidebar, #settings-modal, #onboarding, #login-screen, #status,
-.detail-header, .detail-pane-bar, .panel-title, .rail-subhead, .cfg-subtitle, button, label {
+.detail-header, .panel-title, .rail-subhead, button, label {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 /* 실제로 읽거나 입력하는 텍스트는 선택 허용 */
@@ -326,9 +325,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 #sidebar-content::-webkit-scrollbar { width: 5px; }
 #sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-#sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 300; width: 24px; height: 88px; border-radius: 0 12px 12px 0; background: rgba(var(--accent-rgb),0.2); border: 1px solid rgba(var(--accent-rgb),0.55); border-left: none; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: background 0.2s, color 0.2s, opacity 0.2s, visibility 0.2s; }
-#sidebar-toggle.collapsed-visible { opacity: 1; visibility: visible; }
-#sidebar-toggle:hover { background: rgba(var(--accent-rgb),0.35); color: #ffbe76; }
 #search-bar { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; transition: border-color 0.2s; }
 #search-bar:focus-within { border-color: rgba(var(--accent-rgb),0.6); }
 #search-bar:focus-within #search-btn svg circle, #search-bar:focus-within #search-btn svg line { stroke: var(--accent); }
@@ -344,12 +340,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .ui-search-bar input::placeholder { color: rgba(255,255,255,0.25); }
 .ui-search-bar > button { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; flex-shrink: 0; }
 #new-root-btn svg { width: 14px; height: 14px; }
-#add-child-btn { background: rgba(var(--accent-rgb),0.1); border: 1px solid rgba(var(--accent-rgb),0.35); color: var(--accent); }
-#add-child-btn:hover { background: rgba(var(--accent-rgb),0.2); }
-#add-child-btn.armed { background: rgba(var(--accent-rgb),0.3); box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.5); }
-#del-node-btn { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.35); color: #ff8585; }
-#del-node-btn:hover { background: rgba(255,107,107,0.18); }
-#del-node-btn.armed { background: rgba(255,107,107,0.28); box-shadow: 0 0 0 2px rgba(255,107,107,0.5); }
 #top-search { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 150; width: min(440px, 56vw); }
 #top-search #search-bar { background: rgba(14,16,24,0.92); backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.45); border-color: rgba(var(--accent-rgb),0.55); }
 #top-search #search-bar:focus-within { border-color: var(--accent); }
@@ -477,7 +467,6 @@ body.resizing-panes .detail-pane { transition: none; }
 /* {{ }} 위키링크 — 읽기뷰 인라인 링크 */
 .wl-ref { color: #38d1c5; cursor: pointer; border-bottom: 1px solid rgba(56,209,197,0.4); }
 .wl-ref:hover { color: #6ef0e6; border-bottom-color: rgba(110,240,230,0.8); }
-.wl-ref.wl-unresolved { color: rgba(255,255,255,0.45); border-bottom: 1px dashed rgba(255,255,255,0.3); cursor: default; }
 a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* 인라인 코드 */
 .detail-content code, .wl-code, .body-edit-row code { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; padding: 0.5px 5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; color: #ff9d6c; }
@@ -623,7 +612,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-row:last-child { border-bottom: none; }
 .settings-row-label { font-size: 13px; color: rgba(var(--fg-rgb),0.75); }
 .settings-row-sub { font-size: 11px; color: rgba(var(--fg-rgb),0.35); margin-top: 2px; }
-.s-warn { font-size: 11px; color: rgba(var(--accent-rgb),0.7); background: rgba(var(--accent-rgb),0.08); border: 1px solid rgba(var(--accent-rgb),0.2); border-radius: 6px; padding: 8px 10px; margin-top: 8px; line-height: 1.6; display: none; }
 .s-size-btn { flex: none; font-size: 11px; font-weight: 700; font-family: inherit; padding: 5px 11px; border-radius: 6px; cursor: pointer; text-align: center; background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.1); color: rgba(var(--fg-rgb),0.5); transition: all 0.15s; }
 .s-size-btn.active { background: rgba(var(--accent-rgb),0.15); border-color: rgba(var(--accent-rgb),0.4); color: var(--accent); }
 .settings-close-btn { width: 100%; margin-top: 16px; padding: 10px; border-radius: 8px; background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.1); color: rgba(var(--fg-rgb),0.5); font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.2s; }

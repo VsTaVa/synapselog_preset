@@ -73,7 +73,7 @@ function _legendBadgeImg(kind) {
       panel:     { rgb: [39,174,96],   glyph: 'info' },
       select:    { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
       fixed:     { rgb: [255,255,255], glyph: 'pin' },
-      bookmark:  { rgb: [0,0,0], ink: acc, glyph: 'bookmark' },
+      bookmark:  { bare: true, glyphK: 0.95, ink: acc, glyph: 'bookmark' },
     }[kind];
     // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
     _drawBadge(g, cx, cy, 7 / R, spec);

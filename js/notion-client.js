@@ -682,15 +682,15 @@ function renderPageList(pages) {
   const ordered = _orderPagesByHierarchy(pages.filter(p => p.title && p.title.trim()));
   const vis = _visibleRows(ordered);
   list.innerHTML = vis.map((row, i) => row.p.isDatabase ? `
-    <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
-      ${_pliGuides(vis, i)}${_pliToggle(row)}
+    <div class="pli-row" style="--d:${row.depth}">
+      ${_pliToggle(row)}
       <div class="page-pick-item pli-group">
         <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
       </div>
     </div>
   ` : `
-    <div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">
-      ${_pliGuides(vis, i)}${_pliToggle(row)}
+    <div class="pli-row" style="--d:${row.depth}">
+      ${_pliToggle(row)}
       <div class="page-pick-item${window._selectedPageIds.has(row.p.id) ? ' selected' : ''}" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)">
         <div class="pick-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
@@ -773,7 +773,7 @@ function renderSidebarPageList(pages) {
   if (!pages || !pages.length) { listEl.innerHTML = _emptyPagesHtml(true); return; }
   const ordered = _orderPagesByHierarchy([...pages].filter(p => p.title && p.title.trim()), { byAdded: true });
   const vis = _visibleRows(ordered);
-  listEl.innerHTML = vis.map((row, i) => `<div class="${_pliRowClass(vis, i)}" style="--d:${row.depth}">${_pliGuides(vis, i)}${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
+  listEl.innerHTML = vis.map((row, i) => `<div class="pli-row" style="--d:${row.depth}">${_pliToggle(row)}${_pageItemHtml(row.p)}</div>`).join('');
 }
 
 // 목록이 비는 가장 흔한 원인은 '통합을 페이지에 연결' 누락 — 원인과 해결을 같이 안내
@@ -817,28 +817,6 @@ function _pliToggle(row) {
   return `<button class="pli-toggle${open ? ' open' : ''}" title="하위 페이지 펼치기/접기" aria-label="하위 페이지 펼치기/접기" onclick="event.stopPropagation();togglePageGroup('${row.p.id}')"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>`;
 }
 
-// 들여쓰기 가이드 클래스 — 같은 깊이가 연속된 구간의 처음/끝을 '[' 처럼 꺾기 위한 표시
-function _pliIndex(ordered) {
-  if (!ordered._idx) ordered._idx = new Map(ordered.map((r, n) => [r.p.id, n]));
-  return ordered._idx;
-}
-// 자손 행은 건너뛰고, 같은 부모를 둔 같은 깊이의 형제가 그 방향에 있는지 판정
-function _pliHasSibling(ordered, row, dir) {
-  const start = _pliIndex(ordered).get(row.p.id);
-  if (start === undefined) return false;
-  for (let j = start + dir; j >= 0 && j < ordered.length; j += dir) {
-    const o = ordered[j];
-    if (o.depth > row.depth) continue;      // 자손 — 건너뜀
-    if (o.depth < row.depth) return false;  // 그룹이 끝남
-    // 묶음 머리글(DB·MD 폴더)은 형제로 세지 않음 — 만나면 거기서 그룹이 끊김
-    if (o.p.isDatabase || row.p.isDatabase || o.p.isFolder || row.p.isFolder) return false;
-    return o.parentRowId === row.parentRowId;
-  }
-  return false;
-}
-// 연결선(트리 라인)은 그리지 않음 — 간격(들여쓰기)·토글만 유지
-function _pliRowClass(ordered, i) { return 'pli-row'; }
-function _pliGuides(ordered, i) { return ''; }
 
 // 상위/하위 페이지를 트리 순서로 정렬하고 깊이를 매김 (부모가 목록에 없으면 최상위로 취급)
 // opts.byAdded=true면 '그래프에 추가된 페이지'를 즐겨찾기 다음 순위로 올린다(사이드바 목록 전용).
