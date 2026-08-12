@@ -66,13 +66,13 @@ function _legendBadgeImg(kind) {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
-  const spec = {
-    panel:  { rgb: [39,174,96],   glyph: 'info' },
-    select: { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
-    fixed:  { rgb: [255,255,255], glyph: 'pin' },
-  }[kind];
   // 배지 반지름 대비 글리프 비율을 그래프와 맞춘다(7/R)
-  _drawBadge(g, cx, cy, 7 / R, spec);
+  // 고정은 배지가 아니라 노드에 꽂힌 흰 핀 — 그래프와 같은 모양·각도로 그린다
+  if (kind === 'fixed') _drawPin(g, cx, cy, 7 / R, '#ffffff', Math.PI / 4);
+  else _drawBadge(g, cx, cy, 7 / R, {
+    panel:  { rgb: [39,174,96], glyph: 'info' },
+    select: { rgb: acc, ink: BADGE_INK_DARK, glyph: 'check' },
+  }[kind]);
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 

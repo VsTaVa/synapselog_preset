@@ -328,7 +328,6 @@ function _drawBadge(ctx, bx, by, scale, b, alpha) {
   ctx.strokeStyle = `rgba(0,0,0,${0.25*a})`; ctx.lineWidth = 1/scale; ctx.stroke();
   if (b.glyph === 'check') _drawCheck(ctx, bx, by, scale, ink);
   else if (b.glyph === 'info') _drawInfo(ctx, bx, by, scale, ink);
-  else if (b.glyph === 'pin') _drawPin(ctx, bx, by, scale, ink);
   else {
     ctx.fillStyle = ink; ctx.font = `bold ${10/scale}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(b.glyph, bx, by);
@@ -345,9 +344,10 @@ function _drawCheck(ctx, bx, by, scale, color) {
   ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
 // 고정 핀 — 우클릭 툴바의 핀 아이콘과 같은 압정 형태(머리·목·받침·바늘). 선으로 그리면 이 크기에서 안 읽혀 실루엣을 채운다
-function _drawPin(ctx, bx, by, scale, color) {
+function _drawPin(ctx, bx, by, scale, color, rot) {
   ctx.save();
   ctx.translate(bx, by); ctx.scale(1/scale, 1/scale); // 여기부터 화면 px 좌표
+  if (rot) ctx.rotate(rot);
   const k = 0.50, P = (x, y) => [(x - 12) * k, (y - 12) * k]; // 아이콘 24 좌표계를 배지 크기로
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -598,9 +598,13 @@ function draw() {
       ctx.fillStyle = gOp; ctx.fill();
       badges.push({ rgb: [39,174,96], glyph: 'info' });
     }
-    if(n.fixed) badges.push({ rgb: [255,255,255], glyph: 'pin' });
     // 왼쪽 위에서 아래로 쌓아 서로 안 가리게. 흐린 노드는 배지도 같이 죽인다(안 그러면 배지만 쨍하다)
     badges.forEach((b, bi) => _drawBadge(ctx, n.x - r - 5, n.y - r - 5 + bi * 16/scale, scale, b, isDim ? 0.25 : 1));
+    // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다
+    if(n.fixed) {
+      const off = r + 4/scale, dg = Math.SQRT1_2;
+      _drawPin(ctx, n.x + off*dg, n.y - off*dg, scale, `rgba(255,255,255,${isDim ? 0.25 : 1})`, Math.PI/4);
+    }
     ctx.restore();
     if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
   });
