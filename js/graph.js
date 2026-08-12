@@ -318,7 +318,8 @@ function hubGlowSpec(childCount, r) {
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
 }
-// 상태 표시 — 노드를 같은 크기 원반으로 덮고 글리프를 얹는다.
+const NODE_STATE_R = 1.25; // 상태 원반은 노드보다 살짝 크게 — 딱 맞추면 노드 색이 테두리로 새어 보인다
+// 상태 표시 — 노드를 덮는 원반 + 글리프.
 // 글리프에 7/r을 넘기면 예전 배지(반지름 7px)와 같은 비율이 그대로 나온다
 function _drawNodeState(ctx, x, y, r, rgb, ink, glyphFn, alpha) {
   const a = alpha === undefined ? 1 : alpha;
@@ -587,9 +588,9 @@ function draw() {
     // 선택·상세 열림은 노드 자리를 통째로 덮는다. 둘 다면 지금 하는 행동(선택)을 보여준다
     const stAlpha = isDim ? 0.25 : 1;
     if(n.multiSelected && _multiSelected.indexOf(n) >= 0)
-      _drawNodeState(ctx, n.x, n.y, r, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
+      _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
     else if(openPanelIdx.has(n.id))
-      _drawNodeState(ctx, n.x, n.y, r, [39,174,96], [255,255,255], _drawInfo, stAlpha);
+      _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, [39,174,96], [255,255,255], _drawInfo, stAlpha);
     // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다
     if(n.fixed) {
       const off = r + 4/scale, dg = Math.SQRT1_2;

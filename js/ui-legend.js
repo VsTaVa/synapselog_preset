@@ -62,7 +62,7 @@ function _legendShapeImg(kind) {
 }
 // 상태 표시를 그래프와 같은 함수로 그려 범례에 넣는다 — 색·글리프가 draw()와 갈라지지 않게
 function _legendBadgeImg(kind) {
-  const S = 40, cx = 20, cy = 20, R = 10; // R=노드 모양 범례(원·별)와 같은 반지름
+  const S = 40, cx = 20, cy = 20, R = 18; // 노드 모양 범례의 별과 같은 크기로 — 표시 행만 작아 보였다
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
