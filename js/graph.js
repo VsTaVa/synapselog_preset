@@ -719,7 +719,13 @@ function isNodeInteractable(n) {
   if ((_focusMode || _isolateActive) && n.dimmed) return false;
   return true;
 }
-function getNodeAt(sx, sy) { const w=screenToWorld(sx,sy); return nodes.find(n=>n.visible&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+5)||null; }
+// 터치는 손가락이 굵어 여유를 화면 px로 준다 — 월드 단위로 주면 줌아웃할수록 목표가 같이 줄어든다
+const _coarsePointer = (typeof matchMedia === 'function') && matchMedia('(pointer: coarse)').matches;
+function getNodeAt(sx, sy) {
+  const w = screenToWorld(sx, sy);
+  const pad = _coarsePointer ? 14/scale : 5;
+  return nodes.find(n=>n.visible&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+pad)||null;
+}
 
 function saveFixedPositions() {
   const data = {};
