@@ -593,10 +593,11 @@ function draw() {
       _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
     else if(openPanelIdx.has(n.id))
       _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, [39,174,96], [255,255,255], _drawInfo, stAlpha);
-    // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다
+    // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다.
+    // 확대하면 노드에 비례해 커지고(7/r), 축소해도 화면 크기 밑으로는 안 줄어 눈에 남는다
     if(n.fixed) {
-      const off = r + 4/scale, dg = Math.SQRT1_2;
-      _drawPin(ctx, n.x + off*dg, n.y - off*dg, scale, `rgba(255,255,255,${isDim ? 0.25 : 1})`, Math.PI/4);
+      const ps = Math.min(scale, 7/r), off = r + 4/ps, dg = Math.SQRT1_2;
+      _drawPin(ctx, n.x + off*dg, n.y - off*dg, ps, `rgba(255,255,255,${isDim ? 0.25 : 1})`, Math.PI/4);
     }
     ctx.restore();
     if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
