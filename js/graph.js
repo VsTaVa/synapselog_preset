@@ -934,15 +934,39 @@ function applyTreeLayout() {
   const gravK = Math.max(0.3, CONFIG.gravity / 0.0010); // 기본 0.0010 → 1
   const rStep = 155 * repK / gravK;
   const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
+  const ringR = _ringRadii(pos, totalLeaves, baseR, rStep);
   nodes.forEach(n => {
     const p = pos[n.id];
     const ang = (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2;
-    const r = baseR + p.depth * rStep;
+    const r = ringR[p.depth];
     n.x = WORLD_CX + Math.cos(ang) * r;
     n.y = WORLD_CY + Math.sin(ang) * r;
     n.vx = n.vy = 0; n._frozen = true; n._frozenFrames = 0;
   });
   isStable = true;
+}
+
+// 링별 반지름 — 깊이가 같아도 각도폭은 같으므로 안쪽 링일수록 호가 짧아 붙는다.
+// 그 링에서 가장 가까운 이웃 쌍이 노드 지름 2배는 벌어지도록 반지름을 바깥으로 민다.
+function _ringRadii(pos, totalLeaves, baseR, rStep) {
+  const rings = {};
+  nodes.forEach(n => { const p = pos[n.id]; if (p) (rings[p.depth] || (rings[p.depth] = [])).push({ slot: p.slot, lv: n.level }); });
+  const out = {};
+  let prev = -Infinity;
+  Object.keys(rings).map(Number).sort((a, b) => a - b).forEach(d => {
+    const items = rings[d].sort((a, b) => a.slot - b.slot);
+    let need = 0;
+    if (items.length > 1) {
+      let gap = totalLeaves;
+      for (let i = 1; i < items.length; i++) gap = Math.min(gap, items[i].slot - items[i - 1].slot);
+      gap = Math.min(gap, totalLeaves - (items[items.length - 1].slot - items[0].slot)); // 원형이라 양 끝도 이웃
+      const maxR = Math.max(...items.map(it => nodeR(it.lv)));
+      need = (maxR * 4) / (Math.max(gap, 1) / totalLeaves * Math.PI * 2); // 호길이 = r×Δ각 → 필요한 r
+    }
+    prev = Math.max(baseR + d * rStep, prev + rStep, need); // 링 순서는 절대 뒤집히면 안 된다
+    out[d] = prev;
+  });
+  return out;
 }
 
 // 클러스터 모드: 보이는 노드의 페이지별로 중력 앵커를 원형 배치
