@@ -452,7 +452,7 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 6px; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
-#detail-panel-sidebar-toggle:hover::before { background: var(--accent); height: 44px; }
+#detail-panel-sidebar-toggle:hover::before { background: var(--fg); height: 44px; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 .detail-body { flex: 1; overflow-y: auto; padding: 12px 20px 22px; min-height: 0; }
