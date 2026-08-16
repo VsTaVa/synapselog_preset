@@ -512,7 +512,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-edit-cancel:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 /* 툴박스: 유형별(체크박스·인용·콜아웃) 삽입 버튼 */
 .detail-edit-actions .detail-tb-btn { background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.14); color: rgba(var(--fg-rgb),0.8); min-width: 30px; padding: 4px 8px; font-size: 14px; line-height: 1.1; font-weight: 400; }
-.detail-edit-actions .detail-tb-btn:hover { background: rgba(var(--fg-rgb),0.13); color: #fff; }
+.detail-edit-actions .detail-tb-btn:hover { background: rgba(var(--fg-rgb),0.13); color: var(--accent); }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-item { display: flex; align-items: stretch; gap: 6px; }
 .body-edit-item .body-edit-row { flex: 1; min-width: 0; }
@@ -533,6 +533,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-mark.body-edit-check { cursor: pointer; transition: color 0.12s; }
 .body-edit-mark.body-edit-check:hover { color: var(--accent); }
 .body-edit-mark.body-edit-check.on { color: var(--accent); }
+/* 켜진 걸 끄러 가리켰을 때 반응 — .on과 특정도가 같아 :hover만으론 안 먹는다 */
+.body-edit-mark.body-edit-check.on:hover { color: var(--fg); }
 .body-edit-row { width: 100%; box-sizing: border-box; min-height: 38px; background: rgba(255,255,255,0.05); border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 6px; padding: 7px 9px; font-size: 13px; line-height: 1.6; font-family: inherit; color: #eee; outline: none; white-space: pre-wrap; word-break: break-word; }
 .body-edit-row:focus { border-color: rgba(var(--accent-rgb),0.7); }
 /* 편집기 안 검색 키워드 강조 (읽기뷰와 동일 톤) — 저장 시 태그는 제거됨 */
