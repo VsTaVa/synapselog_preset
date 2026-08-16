@@ -29,7 +29,7 @@ summary:focus-visible,
 #multi-select-menu { position: fixed; display: none; flex-direction: column; gap: 2px; z-index: 500; background: rgba(14,16,24,0.97); border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #multi-select-menu.open { display: flex; }
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 6px; }
-#multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
+#multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
 #multi-select-menu button.ms-danger { color: #ff8585; }
 #multi-select-menu button.ms-danger:hover { background: rgba(255,107,107,0.16); color: #ff6b6b; }
 #multi-select-menu .ms-divider { height: 1px; background: rgba(255,255,255,0.14); margin: 3px 8px; }
@@ -61,8 +61,9 @@ summary:focus-visible,
 .lg-tabs { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; width: 52px; margin: 0; }
 .lg-toc-ic { display: flex; align-items: center; justify-content: center; color: var(--icon); padding: 0 0 5px; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .lg-tab { display: block; text-align: center; padding: 6px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
-.lg-tab:hover { color: rgba(255,255,255,0.85); }
+.lg-tab:hover { color: var(--fg); }
 .lg-tab.active { background: rgba(var(--accent-rgb),0.16); border-color: rgba(var(--accent-rgb),0.5); color: var(--accent); }
+.lg-tab.active:hover { color: var(--fg); }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
 .lg-tool { align-items: flex-start; }
 
@@ -115,7 +116,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .insight-pair-line .node-chip { max-width: 100%; min-width: 0; }
 /* 방향 화살표 — "이 노드로 연결". 아이콘만(박스 없음) */
 .insight-dir { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; color: var(--icon); cursor: pointer; transition: color 0.15s; }
-.insight-dir:hover { color: var(--accent); }
+.insight-dir:hover { color: var(--fg); }
 /* 제안 이유(공통 키워드)는 노드 쌍 바로 아래 붙여 근거로 읽히게, 동작 버튼은 그 아래 */
 .insight-shared { font-size: 10.5px; color: var(--text-mute); margin-top: 6px; padding: 0 1px; }
 /* 뒤에 샘플 그래프가 도는 위로 얹힌다 — 불투명 배경이면 그래프가 안 보이므로 반투명 + 블러.
@@ -243,7 +244,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 /* 좌우 폭 조절 핸들 — 상하 구분선과 같은 그립 스타일(세로 알약), 경계에 떠 있음 */
 #detail-resize-handle { position: absolute; top: 0; left: -7px; width: 14px; height: 100%; cursor: ew-resize; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; touch-action: none; }
 #detail-resize-handle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
-#detail-resize-handle:hover::before, #detail-resize-handle.dragging::before { background: var(--accent); height: 44px; }
+#detail-resize-handle:hover::before { background: var(--fg); height: 44px; }
+#detail-resize-handle.dragging::before { background: var(--accent); height: 44px; }
 /* 조절 손잡이는 패널이 실제로 펼쳐져 있을 때만 보여야 한다.
    하단 시트에선 손잡이가 패널 윗변 밖(top:-7px)에 걸쳐 있어, 시트가 내려가 있어도
    7px이 화면 아래 가장자리에 그대로 남는다. 접힘(panel-collapsed)뿐 아니라
@@ -257,8 +259,9 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row > .page-list-item, .pli-row > .page-pick-item { flex:1; min-width:0; }
 /* 하위 페이지 접기/펼치기 토글 (기본 닫힘) */
 .pli-toggle { flex-shrink:0; width:15px; height:15px; display:flex; align-items:center; justify-content:center; padding:0; background:none; border:none; border-radius:3px; cursor:pointer; color:var(--icon); transition:color .15s, transform .15s; }
-.pli-toggle:hover { color:var(--accent); }
+.pli-toggle:hover { color:var(--fg); }
 .pli-toggle.open { transform:rotate(90deg); color:var(--accent); }
+.pli-toggle.open:hover { color:var(--fg); }
 .pli-toggle-sp { flex-shrink:0; width:15px; }
 /* 조상 단계 세로선 — 아래로 형제가 남은 단계만 JS가 개별로 넣어줌 */
 /* 가장 안쪽 단계: '[' 모양 — 그룹 첫 행에서 위로, 마지막 행에서 아래로 꺾임.
@@ -267,7 +270,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 /* ── 초기 페이지 선택 화면 (인라인 스타일 이관 · 토큰 사용) ── */
 .picker-sub { margin-bottom:14px; }
 .picker-back { display:inline-flex; align-items:center; gap:4px; margin-bottom:10px; padding:4px 6px 4px 0; background:none; border:none; font-size:12px; font-family:inherit; color:var(--icon); cursor:pointer; transition:color .15s; }
-.picker-back:hover { color:var(--accent); }
+.picker-back:hover { color:var(--fg); }
 .picker-search-wrap { position:relative; margin-bottom:10px; }
 #page-search-input { width:100%; box-sizing:border-box; background:rgba(var(--fg-rgb),0.05); border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; color:var(--fg); outline:none; transition:border-color .2s; }
 #page-search-input:focus { border-color:rgba(var(--accent-rgb),0.5); }
@@ -304,12 +307,13 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item:not(.active):hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
 .page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:var(--icon); transition:color 0.15s; display:flex; align-items:center; }
-.page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:var(--accent); }
+.page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:var(--fg); }
 .page-list-item .item-actions .btn-remove { color:var(--accent); }
 .page-list-item .item-actions .btn-remove:hover { color:#ffbe76; }
 .page-list-item .item-actions .btn-favorite { color:var(--icon-dim); }
-.page-list-item .item-actions .btn-favorite:hover { color:var(--accent); }
+.page-list-item .item-actions .btn-favorite:hover { color:var(--fg); }
 .page-list-item .item-actions .btn-favorite.active { color:var(--accent); }
+.page-list-item .item-actions .btn-favorite.active:hover { color:var(--fg); }
 /* MD 폴더 행 — 페이지 목록 안에서 DB 그룹 머리글과 같은 규격, 아이콘만 폴더 */
 .md-folder-ic { color:var(--accent); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
 .pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
@@ -320,7 +324,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #sidebar-logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
 #sidebar-logo .accent { color: var(--accent); }
 #sidebar-collapse-btn { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--icon-bright); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
-#sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: var(--accent); }
+#sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: var(--fg); }
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 #sidebar-content::-webkit-scrollbar { width: 5px; }
 #sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -364,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #add-page-error { font-size: 10px; color: #ff6b6b; margin-top: 4px; display: none; }
 #added-pages-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .btn-sync, .btn-export { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--icon); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
-.btn-sync:hover, .btn-export:hover { color: var(--accent); }
+.btn-sync:hover, .btn-export:hover { color: var(--fg); }
 /* 동기화 중: ↻ 아이콘 흰색으로 빙빙 회전 */
 .btn-sync.syncing { color: #fff; display: inline-block; animation: spin 0.7s linear infinite; }
 /* 전체 동기화: 버튼 네모 말고 안의 아이콘(svg)만 빙글 회전 */
@@ -392,7 +396,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #page-add-menu.open { display: flex; }
 /* 아이콘 칸을 18px로 고정 — 8각별만 크게 그려도(범례와 같은 크기) 글자 시작점이 안 어긋난다 */
 #page-add-menu button { background: none; border: none; color: var(--text-dim); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 10px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 8px; transition: background 0.15s, color 0.15s; }
-#page-add-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
+#page-add-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
 #page-add-menu button svg { flex-shrink: 0; justify-self: center; color: var(--accent); }
 /* 마크다운 붙여넣기 — 확인 모달과 같은 껍데기에 입력창만 추가 */
 #md-paste-modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 1200; backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
@@ -422,7 +426,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .detail-header { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 68px 8px 11px; background: rgba(0,0,0,0.14); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
 .detail-header-actions { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .pane-x { background: none; border: none; cursor: pointer; color: var(--icon); font-size: 16px; line-height: 1; width: 28px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.15s; }
-.pane-x:hover { color: var(--accent); }
+.pane-x:hover { color: var(--fg); }
 #detail-panel { display: flex; flex-direction: column; }
 #detail-panes { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 0; padding: 0; position: relative; }
 /* 상하 분할 경계선 — 갤럭시 화면분할식 드래그 핸들. 경계 위에 떠서 패널 간격은 0 유지 */
@@ -430,7 +434,8 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-divider { position: absolute; left: 0; right: 0; height: 18px; transform: translateY(-50%); z-index: 6; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .pane-divider-grip { pointer-events: auto; width: 52px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; }
 .pane-divider-grip::before { content: ''; width: 36px; height: 4px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, width 0.15s; }
-.pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
+.pane-divider-grip:hover::before { background: var(--fg); width: 44px; }
+.pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
 body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
 body.resizing-panes .detail-pane { transition: none; }
 /* 폭을 접힘 임계 아래로 끌면 그립을 accent로 강조 — 손 떼면 접힘 예고 */
@@ -451,7 +456,7 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 6px; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
 #detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
-#detail-panel-sidebar-toggle:hover::before { background: var(--accent); height: 44px; }
+#detail-panel-sidebar-toggle:hover::before { background: var(--fg); height: 44px; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 .detail-body { flex: 1; overflow-y: auto; padding: 12px 20px 22px; min-height: 0; }
@@ -460,7 +465,7 @@ body.resizing-panes .detail-pane { transition: none; }
 .detail-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; color: #fff; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-title .detail-title-input { font-size: 15px; }
 .detail-edit-btn { background: none; border: none; color: var(--icon); cursor: pointer; padding: 4px 6px; flex-shrink: 0; display: inline-flex; align-items: center; transition: color 0.15s; }
-.detail-edit-btn:hover { color: var(--accent); }
+.detail-edit-btn:hover { color: var(--fg); }
 /* {{ }} 위키링크 — 읽기뷰 인라인 링크 */
 .wl-ref { color: #38d1c5; cursor: pointer; border-bottom: 1px solid rgba(56,209,197,0.4); }
 .wl-ref:hover { color: #6ef0e6; border-bottom-color: rgba(110,240,230,0.8); }
@@ -484,8 +489,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-settings-menu { position: fixed; z-index: 9500; background: #15161d; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px; box-shadow: 0 6px 24px rgba(0,0,0,0.5); display: flex; flex-direction: column; min-width: 168px; }
 .detail-settings-menu .ds-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 3px 6px; }
 .detail-settings-menu button { display: flex; align-items: center; gap: 8px; background: none; border: none; color: #ddd; font-family: inherit; font-size: 12.5px; padding: 7px 10px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; }
-.detail-settings-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--accent); }
+.detail-settings-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
 .detail-settings-menu button.on { color: var(--accent); }
+.detail-settings-menu button.on:hover { color: var(--fg); }
 .detail-settings-menu button.danger { color: #ff6b6b; }
 .detail-settings-menu button.danger:hover { background: rgba(255,90,90,0.16); color: #ff8a8a; }
 
@@ -512,12 +518,12 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-edit-cancel:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 /* 툴박스: 유형별(체크박스·인용·콜아웃) 삽입 버튼 */
 .detail-edit-actions .detail-tb-btn { background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.14); color: rgba(var(--fg-rgb),0.8); min-width: 30px; padding: 4px 8px; font-size: 14px; line-height: 1.1; font-weight: 400; }
-.detail-edit-actions .detail-tb-btn:hover { background: rgba(var(--fg-rgb),0.13); color: var(--accent); }
+.detail-edit-actions .detail-tb-btn:hover { background: rgba(var(--fg-rgb),0.13); color: var(--fg); }
 .body-edit-list { display: flex; flex-direction: column; gap: 8px; }
 .body-edit-item { display: flex; align-items: stretch; gap: 6px; }
 .body-edit-item .body-edit-row { flex: 1; min-width: 0; }
 .body-edit-handle { flex-shrink: 0; display: flex; align-items: center; padding: 0 2px; color: var(--icon-dim); cursor: grab; font-size: 14px; user-select: none; touch-action: none; -webkit-user-select: none; }
-.body-edit-handle:hover { color: var(--accent); }
+.body-edit-handle:hover { color: var(--fg); }
 .body-edit-handle:active { cursor: grabbing; }
 /* 터치 기기: 문단 순서 바꾸기 핸들을 손가락으로 잡기 쉽게 */
 @media (pointer: coarse) { .body-edit-handle { padding: 0 8px; font-size: 17px; } }
@@ -531,7 +537,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .body-edit-mark.body-edit-mark--mid { padding-top: 0; display: flex; align-items: center; justify-content: flex-end; }
 /* 체크박스 마커는 눌러서 상태를 바꾸는 버튼 */
 .body-edit-mark.body-edit-check { cursor: pointer; transition: color 0.12s; }
-.body-edit-mark.body-edit-check:hover { color: var(--accent); }
+.body-edit-mark.body-edit-check:hover { color: var(--fg); }
 .body-edit-mark.body-edit-check.on { color: var(--accent); }
 /* 켜진 걸 끄러 가리켰을 때 반응 — .on과 특정도가 같아 :hover만으론 안 먹는다 */
 .body-edit-mark.body-edit-check.on:hover { color: var(--fg); }
@@ -551,8 +557,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* 노드 위치 경로 — 제목 칩 앞에 '페이지 › … › 부모 ›'로 이어 붙는다.
    기본은 접힘. 펼치면 폭이 0에서 자라며 제목 칩을 옆으로 밀어낸다(그 밀림이 곧 애니메이션). */
 .detail-path-toggle { flex-shrink: 0; background: none; border: none; padding: 0; width: 16px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--icon); cursor: pointer; transition: color 0.15s, transform 0.28s cubic-bezier(0.4,0,0.2,1); }
-.detail-path-toggle:hover { color: var(--text); }
-.detail-pane.path-open .detail-path-toggle { transform: rotate(90deg); color: var(--text); }
+.detail-path-toggle:hover { color: var(--fg); }
+.detail-pane.path-open .detail-path-toggle { transform: rotate(90deg); color: var(--accent); }
+.detail-pane.path-open .detail-path-toggle:hover { color: var(--fg); }
 /* 헤더는 한 줄 고정 — 줄바꿈을 허용했더니 설정·닫기 버튼까지 아래로 따라 내려갔다.
    경로가 길면 그 안에서 가로로 밀린다(스크롤바는 숨김, 칩은 그대로 누를 수 있다) */
 .detail-path { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; flex: 0 1 auto; min-width: 0; max-width: 0; opacity: 0;
@@ -610,7 +617,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-row-label { font-size: 13px; color: rgba(var(--fg-rgb),0.75); }
 .settings-row-sub { font-size: 11px; color: rgba(var(--fg-rgb),0.35); margin-top: 2px; }
 .s-size-btn { flex: none; font-size: 11px; font-weight: 700; font-family: inherit; padding: 5px 11px; border-radius: 6px; cursor: pointer; text-align: center; background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.1); color: rgba(var(--fg-rgb),0.5); transition: all 0.15s; }
+.s-size-btn:hover { color: var(--fg); }
 .s-size-btn.active { background: rgba(var(--accent-rgb),0.15); border-color: rgba(var(--accent-rgb),0.4); color: var(--accent); }
+.s-size-btn.active:hover { color: var(--fg); }
 .settings-close-btn { width: 100%; margin-top: 16px; padding: 10px; border-radius: 8px; background: rgba(var(--fg-rgb),0.05); border: 1px solid rgba(var(--fg-rgb),0.1); color: rgba(var(--fg-rgb),0.5); font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.2s; }
 .settings-close-btn:hover { background: rgba(var(--fg-rgb),0.1); color: var(--fg); }
 .token-edit-row { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
@@ -692,7 +701,7 @@ body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
 .ai-cmd-name { font-size: 12px; font-weight: 700; color: var(--accent); font-family: inherit; }
 .ai-cmd-hint { font-size: 10.5px; color: rgba(255,255,255,0.45); }
 #aichat-cmd { color: rgba(255,255,255,0.4); }
-#aichat-cmd:hover { color: var(--accent); }
+#aichat-cmd:hover { color: var(--fg); }
 .aichat-bar-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
 .aichat-cmd-menu { position: fixed; display: block; max-height: 45vh; overflow-y: auto; z-index: 400; }
 .aichat-cmd-menu::-webkit-scrollbar { width: 4px; }
