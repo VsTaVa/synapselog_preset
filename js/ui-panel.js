@@ -427,7 +427,7 @@ const _DS_HELP = {
   add: '이 노드 아래 자식 노드 생성',
   notion: '노션 텍스트 블록 위치로 이동',
   aiact: '해당 노드를 AI 작업 대상으로 선택',
-  bookmark: '북마크 목록에 담기·빼기',
+  bookmark: '즐겨찾기',
   delete: '노드와 내용 삭제',
 };
 let _dsHelpOpen = (() => { try { return localStorage.getItem('snlog_ds_help') === '1'; } catch (e) { return false; } })();
