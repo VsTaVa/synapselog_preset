@@ -166,7 +166,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .ck-orange input:checked + .ck-box { background: var(--accent); }
 /* 체크: translate로 중앙정렬 후 회전(광학 보정으로 살짝 위/좌) */
 .ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 50%; top: 44%; width: 4px; height: 8px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
-.ck-orange:hover .ck-box { border-color: #ff9d3c; }
+.ck-orange:hover .ck-box { border-color: var(--fg); }
 .s-trash-btn { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px 0 4px 8px; display: inline-flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
 .s-trash-btn:hover { color: #ff8a8a; background: rgba(255,90,90,0.14); }
 /* 가볍게 지우는 동작(기록 삭제)은 흰색 — 전부 날리는 빨간 휴지통과 파괴력을 구분 */
@@ -544,7 +544,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-content del { color: rgba(255,255,255,0.5); }
 #fmt-toolbar { position: fixed; z-index: 500; display: none; gap: 2px; padding: 3px; background: rgba(20,22,30,0.97); border: 1px solid rgba(255,255,255,0.14); border-radius: 7px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 #fmt-toolbar button { width: 28px; height: 26px; background: none; border: none; border-radius: 5px; color: var(--accent); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.12s; }
-#fmt-toolbar button:hover { background: rgba(var(--accent-rgb),0.2); color: #ffa94d; }
+#fmt-toolbar button:hover { background: rgba(var(--accent-rgb),0.2); color: var(--fg); }
 #fmt-toolbar button s { text-decoration: line-through; }
 /* 노드 위치 경로 — 제목 칩 앞에 '페이지 › … › 부모 ›'로 이어 붙는다.
    기본은 접힘. 펼치면 폭이 0에서 자라며 제목 칩을 옆으로 밀어낸다(그 밀림이 곧 애니메이션). */
