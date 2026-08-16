@@ -423,12 +423,12 @@ async function syncNode(node, paneIdx) {
 
 // ⚙ 메뉴 항목 설명 — 이 메뉴는 title이 없어 여기에만 적는다(툴바 쪽은 버튼 title을 읽어 씀)
 const _DS_HELP = {
-  edit: '제목과 본문 수정. 저장하면 원본에 반영',
+  edit: '저장 시 노션 페이지에 반영',
   add: '이 노드 아래 자식 노드 생성',
-  notion: '노션 페이지의 해당 위치로 이동',
-  aiact: '이 노드를 AI 작업 대상으로 선택',
+  notion: '노션 텍스트 블록 위치로 이동',
+  aiact: '해당 노드를 AI 작업 대상으로 선택',
   bookmark: '북마크 목록에 담기·빼기',
-  delete: '노드와 하위 내용 삭제',
+  delete: '노드와 내용 삭제',
 };
 let _dsHelpOpen = (() => { try { return localStorage.getItem('snlog_ds_help') === '1'; } catch (e) { return false; } })();
 function toggleDsHelp(btn) {
