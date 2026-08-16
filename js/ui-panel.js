@@ -421,6 +421,35 @@ async function syncNode(node, paneIdx) {
   }
 }
 
+// ⚙ 메뉴 항목 설명 — 이 메뉴는 title이 없어 여기에만 적는다(툴바 쪽은 버튼 title을 읽어 씀)
+const _DS_HELP = {
+  edit: '제목과 본문 수정. 저장하면 원본에 반영',
+  add: '이 노드 아래 자식 노드 생성',
+  notion: '노션 페이지의 해당 위치로 이동',
+  aiact: '이 노드를 AI 작업 대상으로 선택',
+  bookmark: '북마크 목록에 담기·빼기',
+  delete: '노드와 하위 내용 삭제',
+};
+let _dsHelpOpen = (() => { try { return localStorage.getItem('snlog_ds_help') === '1'; } catch (e) { return false; } })();
+function toggleDsHelp(btn) {
+  _dsHelpOpen = !_dsHelpOpen;
+  try { localStorage.setItem('snlog_ds_help', _dsHelpOpen ? '1' : '0'); } catch (e) {}
+  const menu = btn.closest('.detail-settings-menu');
+  if (!menu) return;
+  btn.classList.toggle('on', _dsHelpOpen);
+  menu.querySelectorAll('.ms-desc').forEach(d => d.remove());
+  _applyDsHelp(menu);
+}
+function _applyDsHelp(menu) {
+  if (!_dsHelpOpen) return;
+  menu.querySelectorAll('button[data-act]').forEach(b => {
+    const t = _DS_HELP[b.dataset.act];
+    if (!t) return;
+    const d = document.createElement('small'); d.className = 'ms-desc'; d.textContent = t;
+    b.appendChild(d);
+  });
+}
+
 // 우측 패널 설정 메뉴 (⚙) — 노션에서 보기 / 북마크
 function toggleDetailSettings(anchor, i, n, notionHref) {
   const existing = document.getElementById('detail-settings-menu');
@@ -444,7 +473,9 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem;
   const midGroup = notionItem + aiActItem + bmItem;
-  menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
+  menu.innerHTML = topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem
+    + `<button type="button" class="ui-help-btn${_dsHelpOpen ? ' on' : ''}" onclick="toggleDsHelp(this)" title="각 항목 설명 보기" aria-label="각 항목 설명 보기">${helpIcon(13)}</button>`;
+  _applyDsHelp(menu);
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const mw = 168;
