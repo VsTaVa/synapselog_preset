@@ -220,6 +220,8 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-icon { width: 42px; height: 42px; border-radius: 10px; background: none; border: none; color: #909093; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.14s; }
 .rail-icon:hover { color: #fff; }
 .rail-icon.active { color: var(--accent); }
+/* 켜진 걸 끄러 가리켰을 때 반응 — .active와 특정도가 같아 :hover만으론 안 먹는다 */
+.rail-icon.active:hover { color: #fff; }
 .rail-avatar { background: rgba(var(--accent-rgb),0.18); color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 6px; overflow: hidden; }
 .rail-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 #sidebar { position: fixed; top: 0; left: 56px; width: var(--sidebar-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; z-index: 200; display: flex; flex-direction: column; background: transparent; transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.18s; overflow: hidden; transform: translateX(calc(-100% - 60px)); opacity: 0; pointer-events: none; }
