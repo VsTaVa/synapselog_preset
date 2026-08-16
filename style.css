@@ -302,7 +302,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .page-list-item:not(.active):hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
 .page-list-item .item-actions { display:flex; align-items:center; flex-shrink:0; padding-right:4px; }
 .page-list-item .item-actions button { background:none; border:none; cursor:pointer; font-size:12px; padding:4px 5px; line-height:1; color:var(--icon); transition:color 0.15s; display:flex; align-items:center; }
-.page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:#fff; }
+.page-list-item .item-actions .btn-sync:hover, .page-list-item .item-actions .btn-export:hover { color:var(--accent); }
 .page-list-item .item-actions .btn-remove { color:var(--accent); }
 .page-list-item .item-actions .btn-remove:hover { color:#ffbe76; }
 .page-list-item .item-actions .btn-favorite { color:var(--icon-dim); }
@@ -318,7 +318,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #sidebar-logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
 #sidebar-logo .accent { color: var(--accent); }
 #sidebar-collapse-btn { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--icon-bright); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
-#sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+#sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: var(--accent); }
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 #sidebar-content::-webkit-scrollbar { width: 5px; }
 #sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -342,7 +342,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #top-search #search-bar:focus-within { border-color: var(--accent); }
 #top-search #search-result-count { text-align: center; }
 #gcfg-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; padding: 12px 2px 4px; user-select: none; }
-#gcfg-toggle:hover { color: #fff; }
 #gcfg-toggle #gcfg-arrow { display: inline-block; transition: transform 0.18s; font-size: 13px; color: var(--accent); }
 #gcfg-toggle.open #gcfg-arrow { transform: rotate(90deg); }
 #gcfg-detail { margin-top: 8px; }
@@ -363,7 +362,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #add-page-error { font-size: 10px; color: #ff6b6b; margin-top: 4px; display: none; }
 #added-pages-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .btn-sync, .btn-export { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--icon); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
-.btn-sync:hover, .btn-export:hover { color: #fff; }
+.btn-sync:hover, .btn-export:hover { color: var(--accent); }
 /* 동기화 중: ↻ 아이콘 흰색으로 빙빙 회전 */
 .btn-sync.syncing { color: #fff; display: inline-block; animation: spin 0.7s linear infinite; }
 /* 전체 동기화: 버튼 네모 말고 안의 아이콘(svg)만 빙글 회전 */
@@ -545,8 +544,6 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 #fmt-toolbar button { width: 28px; height: 26px; background: none; border: none; border-radius: 5px; color: var(--accent); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.12s; }
 #fmt-toolbar button:hover { background: rgba(var(--accent-rgb),0.2); color: #ffa94d; }
 #fmt-toolbar button s { text-decoration: line-through; }
-#detail-close { background: rgba(255,255,255,0.08); border: none; color: #aaa; font-size: 14px; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, color 0.2s; }
-#detail-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
 /* 노드 위치 경로 — 제목 칩 앞에 '페이지 › … › 부모 ›'로 이어 붙는다.
    기본은 접힘. 펼치면 폭이 0에서 자라며 제목 칩을 옆으로 밀어낸다(그 밀림이 곧 애니메이션). */
 .detail-path-toggle { flex-shrink: 0; background: none; border: none; padding: 0; width: 16px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--icon); cursor: pointer; transition: color 0.15s, transform 0.28s cubic-bezier(0.4,0,0.2,1); }
@@ -683,7 +680,7 @@ body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
 .aichat-refs { flex-direction: column; align-items: stretch; }
 .aichat-refs-label { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-bottom: 1px; }
 .aichat-bar { position: relative; }
-#aichat-cmd { font-size: 15px; font-weight: 800; color: var(--accent); line-height: 1; flex-shrink: 0; }
+#aichat-cmd { font-size: 15px; font-weight: 800; line-height: 1; flex-shrink: 0; }
 .aichat-cmd-menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 220px; background: #14161f; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 60; display: none; }
 .aichat-cmd-menu.open { display: block; }
 .ai-cmd-item { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; background: none; border: none; padding: 6px 9px; border-radius: 6px; cursor: pointer; }
@@ -691,7 +688,7 @@ body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
 .ai-cmd-name { font-size: 12px; font-weight: 700; color: var(--accent); font-family: inherit; }
 .ai-cmd-hint { font-size: 10.5px; color: rgba(255,255,255,0.45); }
 #aichat-cmd { color: rgba(255,255,255,0.4); }
-#aichat-cmd:hover { color: #fff; }
+#aichat-cmd:hover { color: var(--accent); }
 .aichat-bar-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
 .aichat-cmd-menu { position: fixed; display: block; max-height: 45vh; overflow-y: auto; z-index: 400; }
 .aichat-cmd-menu::-webkit-scrollbar { width: 4px; }
