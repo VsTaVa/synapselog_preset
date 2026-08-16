@@ -600,7 +600,7 @@ function draw() {
       _drawPin(ctx, n.x + off*dg, n.y - off*dg, ps, `rgba(255,255,255,${isDim ? 0.25 : 1})`, Math.PI/4);
     }
     ctx.restore();
-    if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim });
+    if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim, lit: isHov || openPanelIdx.has(n.id) || (n.multiSelected && _multiSelected.indexOf(n) >= 0) });
   });
   // 활성(직접 히트) 글로우 — 모든 노드 위에 마지막으로. 안쪽은 구멍을 내 노드 색을 덮지 않는다
   glowQueue.forEach(({ x, y, r }) => {
@@ -624,7 +624,7 @@ function draw() {
     ctx.textBaseline = 'top'; ctx.textAlign = 'center';
     // 1) 그릴 라벨을 먼저 계산 — 아래에서 '뒤 지움'과 '글자'를 두 패스로 나눠 그린다
     const specs = [];
-    labelQueue.forEach(({ n, r, isMatch, isDim }) => {
+    labelQueue.forEach(({ n, r, isMatch, isDim, lit }) => {
       const sp = worldToScreen(n.x, n.y);
       const sr = r * scale;
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
@@ -639,8 +639,9 @@ function draw() {
         lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
         font: (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`,
         // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
+        // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
         color: _bmLbl ? rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.2 : 1)
-          : isMatch ? '#ffffff' : `rgba(215,220,230,${isDim ? 0.12 : 0.85})`
+          : (isMatch || lit) ? '#ffffff' : `rgba(150,157,170,${isDim ? 0.12 : 1})`
       });
     });
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
