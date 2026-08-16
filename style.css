@@ -31,9 +31,10 @@ summary:focus-visible,
 /* 그리드 — 아이콘/라벨은 첫 줄, 설명은 아래 줄 전체. flex-wrap은 버튼 폭이 내용에 맞춰지는 탓에 줄을 안 넘겼다 */
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 6px; }
 #multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
-/* 도움말 ? — 툴바 오른쪽 위 구석. 회색이면 툴바 배경에 묻혀 안 보여 포인트 컬러로 둔다 */
-#multi-select-menu .ms-help-btn { align-self: flex-end; padding: 1px 7px; font-size: 12px; font-weight: 800; color: var(--accent); }
-#multi-select-menu .ms-help-btn:hover { color: var(--fg); }
+/* 도움말 — 메뉴 안에 두면 첫 항목 위가 비어 어색해서 오른쪽 위 모서리 밖으로 뺐다 */
+#multi-select-menu .ms-help-btn { position: absolute; top: -11px; right: -11px; width: 23px; height: 23px; padding: 0; display: grid; grid-template-columns: 1fr; place-items: center; border-radius: 50%; background: rgba(14,16,24,0.97); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); }
+#multi-select-menu .ms-help-btn.on { background: rgba(var(--accent-rgb),0.22); }
+#multi-select-menu .ms-help-btn:hover { color: var(--fg); border-color: rgba(var(--fg-rgb),0.5); }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
 .ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 #multi-select-menu button.ms-danger { color: #ff8585; }
