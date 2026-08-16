@@ -888,7 +888,7 @@ function _pageItemHtml(p) {
     if (p.isFolder) {
       const folderIc = `<svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
       const acts = p.folderRel ? '' : `<div class="item-actions">
-          <button class="btn-sync" title="폴더 동기화" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
+          <button class="btn-sync" title="폴더 동기화 — 폴더 안 MD 파일을 전부 다시 읽음" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
           <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
         </div>`;
       return `<div class="page-list-item pli-group" data-page-id="${p.id}">
@@ -900,7 +900,7 @@ function _pageItemHtml(p) {
     // 하위를 묶는 상위 행이기도 하므로 pli-group 모양은 유지한다.
     if (p.isDatabase) {
       const dbActs = isActive ? `<div class="item-actions">
-          <button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
+          <button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
           <button class="btn-remove" onclick="event.stopPropagation();removePage('${p.id}', document.querySelector('[data-page-id=&quot;${p.id}&quot;]'))">${removeSvg}</button>
         </div>` : '';
       return `<div class="page-list-item pli-group${isActive ? ' active' : ''}" data-page-id="${p.id}">
@@ -925,7 +925,7 @@ function _pageItemHtml(p) {
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
-          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="동기화" onclick="event.stopPropagation();syncMdFile('${p.id}')">${syncSvg}</button>` : '') : `<button class="btn-sync" title="동기화 (바뀐 부분만)" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">${syncSvg}</button>`}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="MD 동기화 — 원본 파일을 다시 읽어 반영" onclick="event.stopPropagation();syncMdFile('${p.id}')">${syncSvg}</button>` : '') :`<button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">${syncSvg}</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">${removeSvg}</button>
         </div>
       </div>`;

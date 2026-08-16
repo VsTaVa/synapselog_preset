@@ -28,13 +28,14 @@ summary:focus-visible,
 .toast-action:hover { background: rgba(var(--accent-rgb),0.32); }
 #multi-select-menu { position: fixed; display: none; flex-direction: column; gap: 2px; z-index: 500; background: rgba(14,16,24,0.97); border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #multi-select-menu.open { display: flex; }
-#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+/* 그리드 — 아이콘/라벨은 첫 줄, 설명은 아래 줄 전체. flex-wrap은 버튼 폭이 내용에 맞춰지는 탓에 줄을 안 넘겼다 */
+#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 6px; }
 #multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
 /* 도움말 ? — 툴바 오른쪽 위 구석. 회색이면 툴바 배경에 묻혀 안 보여 포인트 컬러로 둔다 */
 #multi-select-menu .ms-help-btn { align-self: flex-end; padding: 1px 7px; font-size: 12px; font-weight: 800; color: var(--accent); }
 #multi-select-menu .ms-help-btn:hover { color: var(--fg); }
-/* 설명 줄 — 라벨과 같은 줄에 끼지 않게 한 줄을 통째로 차지 */
-.ms-desc { flex-basis: 100%; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
+/* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
+.ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 #multi-select-menu button.ms-danger { color: #ff8585; }
 #multi-select-menu button.ms-danger:hover { background: rgba(255,107,107,0.16); color: #ff6b6b; }
 #multi-select-menu .ms-divider { height: 1px; background: rgba(255,255,255,0.14); margin: 3px 8px; }
@@ -176,9 +177,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
 #bulk-actions { display: flex; gap: 6px; }
 .icon-btn-sm { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(var(--accent-rgb),0.12); border: 1px solid rgba(var(--accent-rgb),0.35); color: var(--accent); transition: background 0.2s; }
 .icon-btn-sm:hover { background: rgba(var(--accent-rgb),0.22); }
-.icon-btn-sm.on { background: rgba(var(--accent-rgb),0.3); }
-/* 동기화 안내 — ? 버튼 바로 아래로 펼쳐진다(닫혀 있으면 내용이 비어 자리도 안 먹는다) */
-#sync-help:not(:empty) { margin: 8px 0 2px; padding: 9px 10px; background: rgba(var(--fg-rgb),0.04); border: 1px solid var(--border-soft); border-radius: 8px; }
 :root {
   /* 이 앱은 다크 전용 — 선언이 없으면 모바일 브라우저(삼성 인터넷·크롬 안드로이드)가
      "라이트 페이지"로 보고 자체 다크 필터를 덧씌워 색을 통째로 틀어버린다.
