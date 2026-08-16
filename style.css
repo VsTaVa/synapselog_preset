@@ -60,7 +60,7 @@ summary:focus-visible,
 .lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(var(--accent-rgb),0.32); }
 .lg-divider-gap { margin-top: 18px; }
 /* 단축키 칩 — 설정의 .shortcut-btn과 같은 인상, 다만 누를 수 없는 표시용 */
-.lg-key { flex-shrink: 0; min-width: 62px; padding: 2px 7px; border-radius: 5px; background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.15); color: rgba(var(--fg-rgb),0.7); font-size: 10.5px; font-weight: 700; text-align: center; }
+.lg-key { flex-shrink: 0; min-width: 62px; padding: 2px 7px; border-radius: 5px; background: rgba(var(--accent-rgb),0.1); border: 1px solid rgba(var(--accent-rgb),0.3); color: var(--accent); font-size: 10.5px; font-weight: 700; text-align: center; }
 .lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
@@ -227,9 +227,9 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-grp { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .rail-icon { width: 42px; height: 42px; border-radius: 10px; background: none; border: none; color: #909093; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.14s; }
 .rail-icon.active { color: var(--accent); }
-/* 터치 기기 제외 — 탭 뒤에도 :hover가 남아 활성 주황을 흰색이 계속 덮었다.
-   .active와 특정도가 같아 활성 쪽은 :hover만으론 안 먹으므로 한 단계 올린다 */
-@media (hover: hover) {
+/* 손가락 입력 제외 — 탭 뒤에도 :hover가 남아 활성 주황을 흰색이 계속 덮었다.
+   hover:hover만으론 부족했다(그렇게 보고하는 모바일 브라우저가 있다) → pointer:fine까지 요구 */
+@media (hover: hover) and (pointer: fine) {
   .rail-icon:hover, .rail-icon.active:hover { color: #fff; }
 }
 .rail-avatar { background: rgba(var(--accent-rgb),0.18); color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 6px; overflow: hidden; }
