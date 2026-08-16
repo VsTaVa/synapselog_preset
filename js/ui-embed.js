@@ -112,7 +112,7 @@ function aiSaveToChild(q) {
   const parent = (_multiSelected.length === 1 ? _multiSelected[0] : null) || (typeof _activeNode !== 'undefined' ? _activeNode : null);
   _aiChatPush('user', q);
   if (!parent) { _aiChatPush('ai', '어느 노드 아래에 넣을지 모름. 먼저 노드를 선택하거나 열기.'); return; }
-  if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '이 노드 아래에는 하위 노드 생성 불가.'); return; }
+  if (typeof canAddChild === 'function' && !canAddChild(parent)) { _aiChatPush('ai', '해당 노드 아래에는 하위 노드 생성 불가.'); return; }
   const lastAi = [..._aiChat].reverse().find(m => m.role === 'ai' && m.text && !/[⏳]/.test(m.text) && !/^실패|다시 시도|어느 노드|넣을 내용|하위 노드로|하위 노드 생성/.test(m.text));
   if (!lastAi) { _aiChatPush('ai', '넣을 내용 없음. 먼저 AI와 대화해서 글 만들기.'); return; }
   const md = _extractMdFromAi(lastAi.text);
@@ -248,14 +248,14 @@ function multiSelectOpenNotion() {
   clearMultiSelect();
   const url = _wikiUrlFor(node);
   if (url && /^https?:/i.test(url)) window.open(url, '_blank');
-  else toast('이 노드는 노션 링크 없음 (로컬&MD 노드)', { type: 'error' });
+  else toast('해당 노드는 노션 링크 없음 (로컬&MD 노드)', { type: 'error' });
 }
 
 function multiSelectAddChild() {
   if (_multiSelected.length !== 1) return;
   const node = _multiSelected[0];
   clearMultiSelect();
-  if (!canAddChild(node)) { toast('이 노드에는 하위 노드 생성 불가 (최하위/제한 노드)', { type: 'error' }); return; }
+  if (!canAddChild(node)) { toast('해당 노드에는 하위 노드 생성 불가 (최하위/제한 노드)', { type: 'error' }); return; }
   createChildNode(node, '(제목 없음)').then(ids => { if (ids.length && nodeMap[ids[0]]) openPanel(nodeMap[ids[0]]); toast('하위 노드 추가됨', { type: 'success' }); }).catch(err => toast('하위 노드 추가 실패: ' + (err.message || err), { type: 'error', duration: 5000 }));
 }
 

@@ -272,13 +272,13 @@ function deleteNodeSmart(node) {
 
 // 노드 삭제 진입점 — keepChildren=true면 이 노드만 삭제(하위 보존)
 function deleteNodeConfirm(node, keepChildren) {
-  if (!node || !canDeleteNode(node)) { toast('이 노드는 삭제 불가 (페이지&DB 노드는 목록 ✕로)', { type: 'error' }); return; }
+  if (!node || !canDeleteNode(node)) { toast('해당 노드는 삭제 불가 (페이지&DB 노드는 목록 ✕로)', { type: 'error' }); return; }
   if (keepChildren) {
     const parentEdge = getParentEdge(node.id);
-    if (!parentEdge) { toast('상위 노드가 없어 이 노드만 삭제 불가', { type: 'error' }); return; }
+    if (!parentEdge) { toast('상위 노드가 없어 해당 노드만 삭제 불가', { type: 'error' }); return; }
     const childCount = edges.filter(e => e.from === node.id && !e.weakLink && !e.manualLink).length;
     const msg = `'${node.label}' 노드만 삭제.\n하위 ${childCount}개는 상위 노드로 이동.` + (!node.local ? '\n(노션에서 삭제 — 실행 취소 가능)' : '');
-    showConfirm('이 노드만 삭제', msg, async () => {
+    showConfirm('해당 노드만 삭제', msg, async () => {
       _undoDelete = { entries: [] };
       await deleteNodeOnly(node);
       if (_undoDelete.entries.length) toast('노드 삭제됨 (하위 보존)', { type: 'success', duration: 6000, action: { label: '실행 취소', onClick: undoLastDelete } });

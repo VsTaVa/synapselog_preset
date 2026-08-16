@@ -53,11 +53,10 @@ summary:focus-visible,
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 /* 범례는 사이드바 안의 한 패널 — 바깥 상자(.panel-box)가 유리질감·여백을 이미 준다 */
-#legend-body { display: flex; gap: 11px; }
-.lg-tab-body { flex: 1; min-width: 0; height: 300px; overflow-y: auto; padding-bottom: 200px; }
+/* 내용만큼만 — 고정 높이와 아래 여백은 탭 스크롤 이동용이었고 탭이 사라진 뒤엔 빈 자리만 남았다 */
+.lg-tab-body { max-height: 60vh; overflow-y: auto; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
-.lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
-.lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(var(--accent-rgb),0.32); }
+.lg-divider { font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; margin: 0 0 11px; }
 .lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
@@ -118,7 +117,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .insight-pair-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; }
 .insight-pair-line { display: flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; }
 .insight-pair-line .node-chip { max-width: 100%; min-width: 0; }
-/* 방향 화살표 — "이 노드로 연결". 아이콘만(박스 없음) */
+/* 방향 화살표 — "해당 노드로 연결". 아이콘만(박스 없음) */
 .insight-dir { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; background: none; border: none; color: var(--icon); cursor: pointer; transition: color 0.15s; }
 .insight-dir:hover { color: var(--fg); }
 /* 제안 이유(공통 키워드)는 노드 쌍 바로 아래 붙여 근거로 읽히게, 동작 버튼은 그 아래 */

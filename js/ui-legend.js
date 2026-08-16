@@ -403,8 +403,8 @@ function _editToolsHtml(node) {
   const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   const isLocalLike = node.local || String(node.sourcePageId || '').startsWith('md_') || String(node.sourcePageId || '').startsWith('local_');
   let html = '';
-  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="이 노드 아래 자식 노드 생성">${icSlot(addChildIcon(12), 12)} 하위 노드 추가</button>`;
-  if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="이 노드의 노션 내용만 다시 받기">${syncIcon} 노드 동기화</button>`;
+  if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="해당 아래 자식 노드 생성">${icSlot(addChildIcon(12), 12)} 하위 노드 추가</button>`;
+  if (!node.local && node.notionBlockId) html += `<button onclick="multiSelectSyncNode()" title="해당 노드의 노션 내용만 다시 받기">${syncIcon} 노드 동기화</button>`;
   if (!isLocalLike && (node.notionBlockId || node.sourcePageId)) html += `<button onclick="multiSelectOpenNotion()" title="노션 텍스트 블록 위치로 이동">${notionIcon} 노션에서 보기</button>`;
   html += `<button onclick="multiSelectBookmark()" title="즐겨찾기">${bmIcon} 북마크${bmOn ? ' 해제' : ''}</button>`;
   if (canDeleteNode(node)) html += `<button class="ms-danger" onclick="multiSelectDelete()" title="노드와 내용 삭제">${trashIcon} 노드 삭제</button>`;

@@ -398,7 +398,7 @@ async function afterNodeWrite(node, paneIdx, opts) {
 
 // 해당 노드 + 하위 노드들을 노션에서 다시 가져와 갱신 (제목 + 본문)
 async function syncNode(node, paneIdx) {
-  if (!node || node.local) { toast('이 노드는 동기화할 수 없어 (노션 노드만)', { type: 'error' }); return; }
+  if (!node || node.local) { toast('해당 노드는 동기화할 수 없습니다.(노션 노드만)', { type: 'error' }); return; }
   // 노션 페이지에 속한 노드는 페이지 전체를 증분 동기화 → 하위 헤딩 추가/삭제/이동 등 구조 변경까지 반영
   const pid = node.sourcePageId;
   if (pid && !String(pid).startsWith('local_') && !String(pid).startsWith('md_') && typeof syncPage === 'function') {
@@ -406,7 +406,7 @@ async function syncNode(node, paneIdx) {
     catch (err) { toast('동기화 실패: ' + (err.message || err), { type: 'error', duration: 5000 }); }
     return;
   }
-  if (!node.notionBlockId) { toast('이 노드는 동기화할 수 없어 (노션 헤딩 노드만)', { type: 'error' }); return; }
+  if (!node.notionBlockId) { toast('해당 노드는 동기화할 수 없습니다.(노션 헤딩 노드만)', { type: 'error' }); return; }
   const targets = [node, ...collectSyncDescendants(node)].filter(t => t && t.notionBlockId && !t.local);
   const dismiss = toast(targets.length > 1 ? `노드 ${targets.length}개 동기화 중…` : '노드 동기화 중…', { type: 'info', duration: 60000 });
   try {
@@ -424,7 +424,7 @@ async function syncNode(node, paneIdx) {
 // ⚙ 메뉴 항목 설명 — 이 메뉴는 title이 없어 여기에만 적는다(툴바 쪽은 버튼 title을 읽어 씀)
 const _DS_HELP = {
   edit: '저장 시 노션 페이지에 반영',
-  add: '이 노드 아래 자식 노드 생성',
+  add: '해당 노드 아래 자식 노드 생성',
   notion: '노션 텍스트 블록 위치로 이동',
   aiact: '해당 노드를 AI 작업 대상으로 선택',
   bookmark: '즐겨찾기',

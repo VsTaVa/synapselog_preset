@@ -171,7 +171,7 @@ async function aiRefineNode(node, userText) {
   if (!node) return;
   if (!requireAiKey()) return;
   const editable = node.local || (node.notionBlockId && node.notionParentId);
-  if (!editable) { toast('이 노드는 본문 편집 불가 (노션 하위 노드만)', { type: 'error' }); return; }
+  if (!editable) { toast('해당 노드는 본문 편집 불가 (노션 하위 노드만)', { type: 'error' }); return; }
   const body = (node.desc || '').trim();
   if (!body) { toast('다듬을 본문 없음', { type: 'error' }); return; }
   openAiChat();
