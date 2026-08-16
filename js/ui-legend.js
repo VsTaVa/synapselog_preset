@@ -11,6 +11,7 @@ function applyLegendState() {
   const pane = document.getElementById('legend-panel');
   if (pane) pane.classList.toggle('active', _legendOpen);
   const btn = document.getElementById('rail-legend');
+  if (btn && !btn.innerHTML) btn.innerHTML = helpIcon(20); // 도안은 icons.js 한 곳에서
   if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
   // 사이드바는 '섹션이 열렸거나 범례가 켜졌을 때' 열려 있어야 한다
@@ -79,16 +80,25 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
     + `</div>`;
 }
-// 동기화 도움말 — 페이지 목록 안(동기화 버튼 바로 아래)에서 접었다 편다.
+// 동기화 도움말 — 전체 동기화 버튼 옆 ?로 여닫는다.
 // 두 동기화가 같은 자리에 있어 헷갈리기 쉬우므로 무엇이 다른지 나란히 놓는다
+let _syncHelpOpen = (() => { try { return localStorage.getItem('snlog_sync_help') === '1'; } catch (e) { return false; } })();
 function renderSyncHelp() {
   const el = document.getElementById('sync-help');
+  const btn = document.getElementById('sync-help-btn');
+  if (btn && !btn.innerHTML) btn.innerHTML = helpIcon(14); // 레일 도움말과 같은 도안
+  if (btn) btn.classList.toggle('on', _syncHelpOpen);
   if (!el) return;
-  el.innerHTML = railSecHead('synchelp', '동기화 안내')
-    + railSecBody('synchelp',
-      `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
-      + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
-      + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`);
+  el.classList.toggle('open', _syncHelpOpen);
+  if (!_syncHelpOpen) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
+    + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
+    + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`;
+}
+function toggleSyncHelp() {
+  _syncHelpOpen = !_syncHelpOpen;
+  try { localStorage.setItem('snlog_sync_help', _syncHelpOpen ? '1' : '0'); } catch (e) {}
+  renderSyncHelp();
 }
 function setColorScheme(mode) {
   _colorScheme = (mode === 'depth') ? 'depth' : 'node';

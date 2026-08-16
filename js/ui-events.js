@@ -931,6 +931,7 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 })();
 renderPanes();
 applyLegendState();
+renderSyncHelp(); // ? 버튼 아이콘 주입 + 저장된 펼침 상태 반영
 
 // 여러 시작 경로(시작 화면 배경 → 노션/MD 시작)에서 loop()가 두 번 불릴 수 있다.
 // 가드가 없으면 rAF 체인이 둘 생겨 물리가 프레임당 두 번 돌고 그리기도 두 번 된다.
