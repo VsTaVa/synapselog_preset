@@ -36,7 +36,7 @@ summary:focus-visible,
 /* 노드 색상 표현 세그먼트 토글 */
 .seg-toggle { display: inline-flex; border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 6px; overflow: hidden; }
 .seg-toggle button { background: none; border: none; color: #fff; font-family: inherit; font-size: 11.5px; padding: 4px 10px; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.seg-toggle button.active { background: rgba(var(--accent-rgb),0.9); color: #15110a; font-weight: 700; }
+.seg-toggle button.active { background: rgba(var(--accent-rgb),0.9); background-image: var(--accent-fill); color: #15110a; font-weight: 700; }
 .seg-toggle button:not(.active):hover { background: rgba(var(--accent-rgb),0.18); color: #fff; }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
@@ -163,7 +163,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .ck-orange { display: inline-flex; align-items: center; cursor: pointer; }
 .ck-orange input { display: none; }
 .ck-orange .ck-box { box-sizing: border-box; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--accent); background: transparent; position: relative; transition: background 0.15s; }
-.ck-orange input:checked + .ck-box { background: var(--accent); }
+.ck-orange input:checked + .ck-box { background: var(--accent); background-image: var(--accent-fill); }
 /* 체크: translate로 중앙정렬 후 회전(광학 보정으로 살짝 위/좌) */
 .ck-orange input:checked + .ck-box::after { content: ''; position: absolute; left: 50%; top: 44%; width: 4px; height: 8px; border: solid #0c0d12; border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
 .ck-orange:hover .ck-box { border-color: #ff9d3c; }
@@ -187,6 +187,9 @@ button.rail-sec-head { display: flex; gap: 6px; }
   /* ── 디자인 토큰 (색·텍스트·형태를 한 곳에서 관리) ── */
   --accent-rgb: 237,112,0;              /* 브랜드 주황 — 여기만 바꾸면 전체 재색 */
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
+  /* 면을 칠할 땐 이 그라디언트로. color-scheme:dark를 무시하는 브라우저(삼성 인터넷 '웹페이지 어둡게')가
+     background-color만 붉게 뒤집는데, 배경 '이미지'가 있으면 그 변환을 건너뛴다. 지우면 주황이 다시 적갈색이 된다. */
+  --accent-fill: linear-gradient(rgb(var(--accent-rgb)), rgb(var(--accent-rgb)));
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
@@ -220,7 +223,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .rail-icon { position: relative; width: 42px; height: 42px; border-radius: 10px; background: none; border: none; color: #909093; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.14s, color 0.14s; }
 .rail-icon:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .rail-icon.active { background: rgba(var(--accent-rgb),0.16); color: var(--accent); }
-.rail-icon.active::before { content: ''; position: absolute; left: -7px; top: 50%; transform: translateY(-50%); width: 3px; height: 22px; border-radius: 0 3px 3px 0; background: var(--accent); }
+.rail-icon.active::before { content: ''; position: absolute; left: -7px; top: 50%; transform: translateY(-50%); width: 3px; height: 22px; border-radius: 0 3px 3px 0; background: var(--accent); background-image: var(--accent-fill); }
 .rail-avatar { background: rgba(var(--accent-rgb),0.18); color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 6px; overflow: hidden; }
 .rail-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 #sidebar { position: fixed; top: 0; left: 56px; width: var(--sidebar-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; z-index: 200; display: flex; flex-direction: column; background: transparent; transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.18s; overflow: hidden; transform: translateX(calc(-100% - 60px)); opacity: 0; pointer-events: none; }
@@ -241,8 +244,9 @@ input, textarea, [contenteditable="true"] {
 body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: none; }
 /* 좌우 폭 조절 핸들 — 상하 구분선과 같은 그립 스타일(세로 알약), 경계에 떠 있음 */
 #detail-resize-handle { position: absolute; top: 0; left: -7px; width: 14px; height: 100%; cursor: ew-resize; background: transparent; z-index: 10; display: flex; align-items: center; justify-content: center; touch-action: none; }
-#detail-resize-handle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
-#detail-resize-handle:hover::before, #detail-resize-handle.dragging::before { background: var(--accent); height: 44px; }
+#detail-resize-handle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); background-image: linear-gradient(var(--icon-dim), var(--icon-dim)); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
+/* 잡는 중은 흰색 — 주황은 '놓으면 접힘'(will-collapse) 경고에만 남긴다 */
+#detail-resize-handle:hover::before, #detail-resize-handle.dragging::before { background: var(--fg); background-image: linear-gradient(var(--fg), var(--fg)); height: 44px; }
 /* 조절 손잡이는 패널이 실제로 펼쳐져 있을 때만 보여야 한다.
    하단 시트에선 손잡이가 패널 윗변 밖(top:-7px)에 걸쳐 있어, 시트가 내려가 있어도
    7px이 화면 아래 가장자리에 그대로 남는다. 접힘(panel-collapsed)뿐 아니라
@@ -285,7 +289,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pick-check { width:16px; height:16px; border-radius:4px; border:1px solid rgba(var(--fg-rgb),0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s, border-color .15s; }
 .pick-check svg { opacity:0; transition:opacity .15s; }
 .page-pick-item.selected { background:rgba(var(--accent-rgb),0.1); border-color:rgba(var(--accent-rgb),0.35); }
-.page-pick-item.selected .pick-check { background:var(--accent); border-color:var(--accent); }
+.page-pick-item.selected .pick-check { background:var(--accent); background-image: var(--accent-fill); border-color:var(--accent); }
 .page-pick-item.selected .pick-check svg { opacity:1; }
 
 /* 하위를 묶어주는 상위 행 — 추가·선택 대상이 아니라 그룹 머리글로만 동작 */
@@ -353,10 +357,10 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .ctrl-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #fff; margin-bottom: 6px; }
 .ctrl-label-row .val { color: var(--accent); font-weight: 700; font-family: monospace; font-size: 13px; }
 input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; outline: none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 5px rgba(var(--accent-rgb),0.5); transition: transform 0.12s; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); background-image: var(--accent-fill); cursor: pointer; box-shadow: 0 0 5px rgba(var(--accent-rgb),0.5); transition: transform 0.12s; }
 input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 input[type=range]::-moz-range-track { background: rgba(255,255,255,0.12); height: 3px; border-radius: 2px; }
-input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 5px rgba(var(--accent-rgb),0.5); }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; border-radius: 50%; background: var(--accent); background-image: var(--accent-fill); cursor: pointer; box-shadow: 0 0 5px rgba(var(--accent-rgb),0.5); }
 #add-page-panel input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: #fff; outline: none; margin-bottom: 6px; transition: border-color 0.2s; }
 #add-page-panel input:focus { border-color: rgba(var(--accent-rgb),0.5); }
 #add-page-panel input::placeholder { color: rgba(255,255,255,0.2); }
@@ -430,12 +434,12 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 /* 스트립 자체는 클릭 통과(pointer-events:none), 가운데 그립만 잡히게 해서 아래 패널 헤더 버튼을 안 가림 */
 .pane-divider { position: absolute; left: 0; right: 0; height: 18px; transform: translateY(-50%); z-index: 6; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .pane-divider-grip { pointer-events: auto; width: 52px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; }
-.pane-divider-grip::before { content: ''; width: 36px; height: 4px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, width 0.15s; }
-.pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
+.pane-divider-grip::before { content: ''; width: 36px; height: 4px; border-radius: 3px; background: var(--icon-dim); background-image: linear-gradient(var(--icon-dim), var(--icon-dim)); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, width 0.15s; }
+.pane-divider-grip:hover::before, .pane-divider.dragging .pane-divider-grip::before { background: var(--fg); background-image: linear-gradient(var(--fg), var(--fg)); width: 44px; }
 body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
 body.resizing-panes .detail-pane { transition: none; }
 /* 폭을 접힘 임계 아래로 끌면 그립을 accent로 강조 — 손 떼면 접힘 예고 */
-#detail-resize-handle.will-collapse::before { background: var(--accent); height: 56px; }
+#detail-resize-handle.will-collapse::before { background: var(--accent); background-image: var(--accent-fill); height: 56px; }
 .detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); transition: filter 0.15s, opacity 0.15s; }
 /* 폭을 접힘 임계 아래로 끌면 패널을 흐리게 — 놓으면 접힌다는 예고 */
 #detail-panel.pre-collapse .detail-pane { filter: blur(3px); opacity: 0.5; }
@@ -450,9 +454,9 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panel.open { right: 0; }
 /* 우측 패널 열기 — UI 박스 없이 손잡이 그립만(조절 그립과 동일 크기 4x36). 넓은 히트영역만 투명하게 확보 */
 #detail-panel-sidebar-toggle { position: fixed; top: 50%; right: 6px; transform: translateY(-50%); z-index: 300; width: 16px; height: 60px; background: none; border: none; box-shadow: none; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
-#detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
+#detail-panel-sidebar-toggle::before { content: ''; width: 4px; height: 36px; border-radius: 3px; background: var(--icon-dim); background-image: linear-gradient(var(--icon-dim), var(--icon-dim)); box-shadow: 0 0 0 1px rgb(var(--surface-rgb)); transition: background 0.15s, height 0.15s; }
 #detail-panel-sidebar-toggle.visible { opacity: 1; visibility: visible; }
-#detail-panel-sidebar-toggle:hover::before { background: var(--fg); height: 44px; }
+#detail-panel-sidebar-toggle:hover::before { background: var(--fg); background-image: linear-gradient(var(--fg), var(--fg)); height: 44px; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 .detail-body { flex: 1; overflow-y: auto; padding: 12px 20px 22px; min-height: 0; }
@@ -680,7 +684,7 @@ body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
 .ob-tip { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: rgba(255,255,255,0.82); line-height: 1.5; }
 .ob-tip > b:first-child { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: rgba(var(--accent-rgb),0.18); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
 .ob-tip b { color: var(--accent); font-weight: 700; }
-.ob-btn { width: 100%; padding: 11px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.15s; }
+.ob-btn { width: 100%; padding: 11px; border-radius: 8px; border: none; background: var(--accent); background-image: var(--accent-fill); color: #fff; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.15s; }
 .ob-btn:hover { background: #ff8412; }
 .aichat-refs { flex-direction: column; align-items: stretch; }
 .aichat-refs-label { font-size: 10.5px; color: rgba(255,255,255,0.35); margin-bottom: 1px; }
