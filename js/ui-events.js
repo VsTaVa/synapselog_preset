@@ -679,6 +679,29 @@ const SHORTCUT_ACTIONS = Object.keys(DEFAULT_SHORTCUTS); // 힌트·설정 버�
 let _shortcuts = (() => { try { return { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('snlog_shortcuts') || '{}') }; } catch(e) { return { ...DEFAULT_SHORTCUTS }; } })();
 // 구버전 단축키 정리 (편집/탐색 모드 통합 → 노드 선택 모드 하나, N 키)
 delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _shortcuts.toggleEditMode; delete _shortcuts.toggleMultiSelectMode;
+// 조작 목록 — 설정 모달과 도움말이 이 배열 하나를 읽어 그린다(두 곳에 적으면 반드시 어긋난다).
+// action이 있으면 사용자가 바꿀 수 있는 키, key가 있으면 고정 조작.
+const SHORTCUT_ROWS = [
+  { label: '제목 숨김', sub: '제목 크기 0 / 원래 크기', action: 'toggleLabels' },
+  { label: '노드 연결 표시', sub: '노드 연결선 표시 / 숨김', action: 'toggleConnections' },
+  { label: '패널·범례 닫기', sub: 'Esc (고정)', key: 'Esc' },
+  { label: '노드 고정 / 해제', sub: 'Ctrl+클릭으로 고정', key: 'Ctrl+클릭' },
+  { label: '노드 선택', sub: '노드 우클릭 (모바일: 더블탭)', key: '우클릭' },
+  { label: '화면 맞춤', sub: '빈 공간 더블클릭 / 더블탭', key: '더블클릭' },
+  { label: '화면 확대 / 축소', sub: '마우스 휠 (모바일: 두 손가락)', key: '마우스 휠' },
+  { label: '화면 회전', sub: '빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)', key: '우클릭 드래그' },
+];
+function shortcutKeyOf(r) { return r.action ? formatKey(_shortcuts[r.action]) : r.key; }
+function renderShortcutRows() {
+  const el = document.getElementById('shortcut-rows');
+  if (!el) return;
+  el.innerHTML = SHORTCUT_ROWS.map(r =>
+    `<div class="settings-row"><div><div class="settings-row-label">${r.label}</div><div class="settings-row-sub">${r.sub}</div></div>`
+    + (r.action
+      ? `<button class="shortcut-btn" id="sc-${r.action}" onclick="recordShortcut('${r.action}',this)">${formatKey(_shortcuts[r.action])}</button>`
+      : `<button class="shortcut-btn fixed-key">${r.key}</button>`)
+    + `</div>`).join('');
+}
 function saveShortcuts() { localStorage.setItem('snlog_shortcuts', JSON.stringify(_shortcuts)); }
 function formatKey(k) { return k === ' ' ? 'Space' : k.toUpperCase(); }
 function updateShortcutHints() {
@@ -700,7 +723,8 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (e.key === 'Escape') { _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(_shortcuts[_recordingFor]); _recordingFor = null; _recordingBtn = null; return; }
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (k.length === 1) { _shortcuts[_recordingFor] = k; saveShortcuts(); updateShortcutHints(); _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(k); _recordingFor = null; _recordingBtn = null; }
+    if (k.length === 1) { _shortcuts[_recordingFor] = k; saveShortcuts(); updateShortcutHints(); _recordingBtn.classList.remove('recording'); _recordingBtn.textContent = formatKey(k); _recordingFor = null; _recordingBtn = null;
+      if (_legendOpen) renderLegendBody(); } // 열려 있는 도움말의 키 표시도 같이 갱신
     return;
   }
   if (e.key === 'Escape') {
@@ -930,6 +954,7 @@ syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
   const out = document.getElementById('rotation-val'); if (out) out.textContent = deg + '°';
 })();
 renderPanes();
+renderShortcutRows(); // 설정 모달의 조작 목록 (도움말과 같은 배열에서)
 applyLegendState();
 
 // 여러 시작 경로(시작 화면 배경 → 노션/MD 시작)에서 loop()가 두 번 불릴 수 있다.

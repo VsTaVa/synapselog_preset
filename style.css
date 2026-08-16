@@ -56,7 +56,11 @@ summary:focus-visible,
 /* 내용만큼만 — 고정 높이와 아래 여백은 탭 스크롤 이동용이었고 탭이 사라진 뒤엔 빈 자리만 남았다 */
 .lg-tab-body { max-height: 60vh; overflow-y: auto; }
 .lg-tab-body::-webkit-scrollbar { width: 0; }
-.lg-divider { font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; margin: 0 0 11px; }
+.lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
+.lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(var(--accent-rgb),0.32); }
+.lg-divider-gap { margin-top: 18px; }
+/* 단축키 칩 — 설정의 .shortcut-btn과 같은 인상, 다만 누를 수 없는 표시용 */
+.lg-key { flex-shrink: 0; min-width: 62px; padding: 2px 7px; border-radius: 5px; background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.15); color: rgba(var(--fg-rgb),0.7); font-size: 10.5px; font-weight: 700; text-align: center; }
 .lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
@@ -222,10 +226,12 @@ button.rail-sec-head { display: flex; gap: 6px; }
 #activity-rail { position: fixed; top: 0; left: 0; width: 56px; height: 100vh; height: 100dvh; z-index: 260; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 14px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .rail-grp { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .rail-icon { width: 42px; height: 42px; border-radius: 10px; background: none; border: none; color: #909093; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.14s; }
-.rail-icon:hover { color: #fff; }
 .rail-icon.active { color: var(--accent); }
-/* 켜진 걸 끄러 가리켰을 때 반응 — .active와 특정도가 같아 :hover만으론 안 먹는다 */
-.rail-icon.active:hover { color: #fff; }
+/* 터치 기기 제외 — 탭 뒤에도 :hover가 남아 활성 주황을 흰색이 계속 덮었다.
+   .active와 특정도가 같아 활성 쪽은 :hover만으론 안 먹으므로 한 단계 올린다 */
+@media (hover: hover) {
+  .rail-icon:hover, .rail-icon.active:hover { color: #fff; }
+}
 .rail-avatar { background: rgba(var(--accent-rgb),0.18); color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 6px; overflow: hidden; }
 .rail-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 #sidebar { position: fixed; top: 0; left: 56px; width: var(--sidebar-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; z-index: 200; display: flex; flex-direction: column; background: transparent; transition: transform 0.26s cubic-bezier(0.4,0,0.2,1), opacity 0.18s; overflow: hidden; transform: translateX(calc(-100% - 60px)); opacity: 0; pointer-events: none; }

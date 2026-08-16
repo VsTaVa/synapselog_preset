@@ -28,6 +28,15 @@ function renderLegendBody() {
   body.innerHTML = `<div class="lg-tab-body">`
     + `<div class="lg-divider">그래프 기호</div>`
     + _legendSymbolsHtml()
+    + `<div class="lg-divider lg-divider-gap">단축키</div>`
+    + _legendShortcutsHtml()
+    + `</div>`;
+}
+// 조작 목록은 설정 모달과 같은 배열(SHORTCUT_ROWS)에서 — 바꾼 키도 그대로 따라온다
+function _legendShortcutsHtml() {
+  if (typeof SHORTCUT_ROWS === 'undefined') return '';
+  return `<div class="lg-sec">`
+    + SHORTCUT_ROWS.map(r => `<div class="lg-row"><span class="lg-key">${shortcutKeyOf(r)}</span><span>${r.label}</span></div>`).join('')
     + `</div>`;
 }
 // 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
