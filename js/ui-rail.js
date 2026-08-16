@@ -25,7 +25,7 @@ function openRailSection(name) {
     if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
   }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
-  if (name === 'pages') { renderBookmarkList(); renderInsights(); } // 노드 섹션이 페이지 목록에 합쳐짐
+  if (name === 'pages') { renderBookmarkList(); renderInsights(); renderSyncHelp(); } // 노드 섹션이 페이지 목록에 합쳐짐
   applyRailSecState(); // 정적 마크업(노드 모드·그래프 설정)에 저장된 접힘 상태 반영
 }
 

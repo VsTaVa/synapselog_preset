@@ -28,8 +28,14 @@ summary:focus-visible,
 .toast-action:hover { background: rgba(var(--accent-rgb),0.32); }
 #multi-select-menu { position: fixed; display: none; flex-direction: column; gap: 2px; z-index: 500; background: rgba(14,16,24,0.97); border: 1px solid rgba(var(--accent-rgb),0.4); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #multi-select-menu.open { display: flex; }
-#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 6px; }
+#multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 #multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
+/* 도움말 ? — 툴바 오른쪽 위 구석에 작게 */
+#multi-select-menu .ms-help-btn { align-self: flex-end; padding: 1px 7px; font-size: 11px; font-weight: 800; color: var(--icon); }
+#multi-select-menu .ms-help-btn.on { color: var(--accent); }
+#multi-select-menu .ms-help-btn.on:hover { color: var(--fg); }
+/* 설명 줄 — 라벨과 같은 줄에 끼지 않게 한 줄을 통째로 차지 */
+.ms-desc { flex-basis: 100%; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 #multi-select-menu button.ms-danger { color: #ff8585; }
 #multi-select-menu button.ms-danger:hover { background: rgba(255,107,107,0.16); color: #ff6b6b; }
 #multi-select-menu .ms-divider { height: 1px; background: rgba(255,255,255,0.14); margin: 3px 8px; }
@@ -46,7 +52,6 @@ summary:focus-visible,
 .lg-tab-body::-webkit-scrollbar { width: 0; }
 .lg-divider { display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; white-space: nowrap; margin: 0 0 11px; }
 .lg-divider::before, .lg-divider::after { content: ''; flex: 1; height: 1px; background: rgba(var(--accent-rgb),0.32); }
-.lg-divider-gap { margin-top: 18px; }
 .lg-shape-img { display: block; }
 .lg-sec { margin-bottom: 13px; }
 .lg-sec:last-child { margin-bottom: 0; }
@@ -57,13 +62,6 @@ summary:focus-visible,
 .lg-line { width: 32px; display: inline-flex; align-items: center; flex-shrink: 0; }
 .lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
 .lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
-.lg-note-top { margin-bottom: 12px; }
-.lg-tabs { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; width: 52px; margin: 0; }
-.lg-toc-ic { display: flex; align-items: center; justify-content: center; color: var(--icon); padding: 0 0 5px; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.lg-tab { display: block; text-align: center; padding: 6px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; }
-.lg-tab:hover { color: var(--fg); }
-.lg-tab.active { background: rgba(var(--accent-rgb),0.16); border-color: rgba(var(--accent-rgb),0.5); color: var(--accent); }
-.lg-tab.active:hover { color: var(--fg); }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
 .lg-tool { align-items: flex-start; }
 

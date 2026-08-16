@@ -20,33 +20,14 @@ function applyLegendState() {
   if (_legendOpen && typeof _panelsExclusive === 'function' && _panelsExclusive()
       && typeof collapseDetailPanel === 'function') collapseDetailPanel();
 }
+// 도구·동기화 설명은 각자 쓰이는 자리로 옮겼다(우클릭 툴바 ?, 페이지 목록) — 여기는 기호만
 function renderLegendBody() {
   const body = document.getElementById('legend-body');
   if (!body) return;
-  const tocIc = `<div class="lg-toc-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg></div>`;
-  const tab = (id, label) => `<button class="lg-tab" data-tab="${id}" onclick="_setLegendTab('${id}')">${label}</button>`;
-  const tabs = `<div class="lg-tabs">${tocIc}${tab('symbols', '기호')}${tab('tools', '도구')}</div>`;
-  const content = `<div class="lg-tab-body" id="lg-scroll" onscroll="_updateLegendActiveTab()">`
-    + `<div class="lg-divider" id="lg-sec-symbols">그래프 기호</div>`
+  body.innerHTML = `<div class="lg-tab-body">`
+    + `<div class="lg-divider">그래프 기호</div>`
     + _legendSymbolsHtml()
-    + `<div class="lg-divider lg-divider-gap" id="lg-sec-tools">노드 툴바</div>`
-    + _legendToolsHtml()
     + `</div>`;
-  body.innerHTML = content + tabs;
-  _updateLegendActiveTab();
-}
-const _LEGEND_SECS = ['symbols', 'tools'];
-function _setLegendTab(t) {
-  const scroll = document.getElementById('lg-scroll');
-  const target = document.getElementById('lg-sec-' + t);
-  if (scroll && target) scroll.scrollTo({ top: Math.max(0, target.offsetTop - scroll.offsetTop - 6), behavior: 'smooth' });
-}
-function _updateLegendActiveTab() {
-  const scroll = document.getElementById('lg-scroll'); if (!scroll) return;
-  const st = scroll.scrollTop + 40;
-  let active = 'symbols';
-  _LEGEND_SECS.forEach(id => { const el = document.getElementById('lg-sec-' + id); if (el && (el.offsetTop - scroll.offsetTop) <= st) active = id; });
-  document.querySelectorAll('#legend .lg-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === active));
 }
 // 실제 그래프 노드 도형(drawStar8/4/X)을 작은 캔버스에 그려 이미지로 — 범례가 그래프와 완전히 일치
 function _legendShapeImg(kind) {
@@ -98,27 +79,16 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
     + `</div>`;
 }
-function _legendToolsHtml() {
-  const row = (name, desc) => `<div class="lg-row lg-tool"><span><b>${name}</b>: ${desc}</span></div>`;
-  return `<div class="lg-note lg-note-top">노드 우클릭 시 도구 툴바 표시</div>`
-    + `<div class="lg-sec"><div class="lg-sec-title">편집</div>`
-    + row('하위 노드 추가', '자식 노드 생성')
-    + row('노드 동기화', 'Notion 최신화')
-    + row('노션에서 보기', '노션 페이지로 이동')
-    + row('북마크', '즐겨찾기')
-    + row('노드 삭제', '삭제')
-    + `</div>`
-    + `<div class="lg-sec"><div class="lg-sec-title">탐색</div>`
-    + row('노드 연결', '노드 간 연결')
-    + row('포커스 모드', '연결된 노드 포커스')
-    + row('노드 고정', '노드 고정 및 위치 이동')
-    + `</div>`
-    // 동기화 두 가지가 같은 자리에 있어 헷갈리기 쉬움 — 무엇이 다른지 여기서 설명
-    + `<div class="lg-sec"><div class="lg-sec-title">동기화</div>`
-    + `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
-    + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
-    + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`
-    + `</div>`;
+// 동기화 도움말 — 페이지 목록 안(동기화 버튼 바로 아래)에서 접었다 편다.
+// 두 동기화가 같은 자리에 있어 헷갈리기 쉬우므로 무엇이 다른지 나란히 놓는다
+function renderSyncHelp() {
+  const el = document.getElementById('sync-help');
+  if (!el) return;
+  el.innerHTML = railSecHead('synchelp', '동기화 안내')
+    + railSecBody('synchelp',
+      `<div class="lg-row lg-tool"><span class="lg-shape">${SYNC_ONE}</span><span><b>페이지 동기화</b>: 그 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음</span></div>`
+      + `<div class="lg-row lg-tool"><span class="lg-shape" style="color:var(--accent);">${SYNC_ALL}</span><span><b>전체 동기화</b>: 담은 페이지 전부 + MD·폴더. <b>새로 만든 노션 페이지</b>도 목록에 반영</span></div>`
+      + `<div class="lg-note">헤딩과 본문은 두 경우 모두 항상 다시 받음</div>`);
 }
 function setColorScheme(mode) {
   _colorScheme = (mode === 'depth') ? 'depth' : 'node';
@@ -406,9 +376,31 @@ function renderMultiSelectMenu() {
     const explore = _exploreToolsHtml();
     html = medit + (medit && explore ? '<div class="ms-divider"></div>' : '') + explore;
   }
-  menu.innerHTML = html || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
+  menu.innerHTML = (html ? _msHelpBtn() + html : '')
+    || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
+  _applyMsHelp(menu);
   menu.classList.add('open');
   repositionMultiSelectMenu();
+}
+
+// 툴바 도움말 — 설명 문구는 각 버튼의 title을 그대로 쓴다(두 곳에 적으면 반드시 어긋난다)
+let _msHelpOpen = (() => { try { return localStorage.getItem('snlog_ms_help') === '1'; } catch (e) { return false; } })();
+function _msHelpBtn() {
+  return `<button type="button" class="ms-help-btn${_msHelpOpen ? ' on' : ''}" onclick="toggleMsHelp()" title="각 도구 설명 보기" aria-label="각 도구 설명 보기">?</button>`;
+}
+function toggleMsHelp() {
+  _msHelpOpen = !_msHelpOpen;
+  try { localStorage.setItem('snlog_ms_help', _msHelpOpen ? '1' : '0'); } catch (e) {}
+  renderMultiSelectMenu();
+}
+function _applyMsHelp(menu) {
+  if (!_msHelpOpen) return;
+  menu.querySelectorAll('button:not(.ms-help-btn)').forEach(b => {
+    const t = b.getAttribute('title');
+    if (!t) return;
+    const d = document.createElement('small'); d.className = 'ms-desc'; d.textContent = t;
+    b.appendChild(d);
+  });
 }
 
 // 편집 툴 (단일 노드): 하위 노드 추가 / 노드 동기화 / 북마크 / 노드 삭제
