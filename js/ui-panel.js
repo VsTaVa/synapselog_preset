@@ -41,6 +41,17 @@ function pruneDetailTabs(removedIds) {
 function refreshOpenPanes() { if (anyTabs()) renderPanes(); }
 function getPaneEl(i) { return document.querySelector(`#detail-panes .detail-pane[data-pane="${i}"]`); }
 
+// 재열기 손잡이를 두 번 반짝 — 접힌 상태로 내용만 바뀌었을 때 어디를 눌러야 하는지 가리킨다.
+// 클래스를 뗐다 붙이는 사이 리플로를 한 번 강제해야 연속 클릭에서도 애니메이션이 다시 돈다
+function pulseReopenTab() {
+  const btn = document.getElementById('detail-panel-sidebar-toggle');
+  if (!btn) return;
+  btn.classList.remove('pulse');
+  void btn.offsetWidth;
+  btn.classList.add('pulse');
+  clearTimeout(btn._pulseT);
+  btn._pulseT = setTimeout(() => btn.classList.remove('pulse'), 1000);
+}
 function updateDetailReopenTab() {
   const btn = document.getElementById('detail-panel-sidebar-toggle');
   if (!btn) return;
@@ -1324,6 +1335,7 @@ function openPanel(n, opts) {
     detailPanel.classList.add('open', 'panel-collapsed');
     renderPanes(added ? n.id : null);
     updateDetailReopenTab();
+    pulseReopenTab(); // 접어둔 걸 잊고 '왜 안 열리지' 하는 걸 막는다
     return;
   }
   _yieldSidebarIfNarrow();
