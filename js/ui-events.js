@@ -177,9 +177,14 @@ function gotoSearchMatch(dir) {
 function _markSearchChip(id) {
   const box = document.getElementById('search-results');
   if (!box) return;
+  let hit = null;
   box.querySelectorAll('.node-chip[data-nid]').forEach(el => {
-    el.classList.toggle('chip-pulse', el.dataset.nid === String(id));
+    const on = el.dataset.nid === String(id);
+    el.classList.toggle('chip-pulse', on);
+    if (on) hit = el;
   });
+  // 목록이 길면 깜빡이는 칩이 스크롤 밖에 있다 — 보이는 자리로 끌어온다
+  if (hit && hit.scrollIntoView) hit.scrollIntoView({ block: 'nearest' });
 }
 
 // AI 근거/추천 노드들을 그래프에서 하이라이트 (검색 하이라이트 메커니즘 재활용)
