@@ -147,7 +147,7 @@ function _startPaneDrag(e, dv) {
 // 클래스로 방향만 주던 방식은 재렌더가 한 번 더 오면 애니메이션이 통째로 지워졌다
 function _flipPanes(wrap, beforeTop) {
   Array.from(wrap.children).forEach(el => {
-    if (!el.dataset || !el.dataset.nid || el.classList.contains('pane-leave')) return;
+    if (!el.dataset || !el.dataset.nid) return;
     const was = beforeTop.get(el.dataset.nid);
     if (was === undefined) return;
     const d = was - el.getBoundingClientRect().top;
@@ -165,25 +165,10 @@ function renderPanes(animateId) {
   if (!wrap) return;
   const beforeTop = new Map();
   Array.from(wrap.children).forEach(el => {
-    if (el.dataset && el.dataset.nid && !el.classList.contains('pane-leave'))
-      beforeTop.set(el.dataset.nid, el.getBoundingClientRect().top);
+    if (el.dataset && el.dataset.nid) beforeTop.set(el.dataset.nid, el.getBoundingClientRect().top);
   });
   wrap.classList.toggle('split', _stack.length >= 2);
-  // 스택에서 빠진 패인은 지우기 전에 자리·크기를 고정해 띄워두고 위로 빠지게 한다.
-  // 그냥 innerHTML을 비우면 남는 쪽만 움직여 한쪽이 툭 사라진 것처럼 보인다
-  const alive = new Set(_stack.map(x => String(x.id)));
-  const leaving = Array.from(wrap.children).filter(el =>
-    el.classList.contains('detail-pane') && el.dataset.nid && !alive.has(el.dataset.nid)
-    && !el.classList.contains('pane-leave'));
-  leaving.forEach(el => {
-    el.style.top = el.offsetTop + 'px'; el.style.height = el.offsetHeight + 'px';
-    el.classList.add('pane-leave');
-    el.addEventListener('animationend', () => el.remove(), { once: true });
-    setTimeout(() => el.remove(), 2000); // 애니메이션이 눌린 환경(동작 줄이기) 대비
-  });
-  Array.from(wrap.children).forEach(el => {
-    if (!leaving.includes(el) && !el.classList.contains('pane-leave')) el.remove(); // 나가는 중인 건 제 타이머로 지워진다
-  });
+  wrap.innerHTML = '';
   _stack.forEach((node, i) => {
     const el = document.createElement('div');
     el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : '');
@@ -208,7 +193,6 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
-  leaving.forEach(el => wrap.appendChild(el)); // 흐름 밖(absolute)이라 순서는 무관하지만 맨 뒤에 둔다
   _flipPanes(wrap, beforeTop);
   // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
   if (_stack.length >= 2) {
