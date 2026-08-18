@@ -184,7 +184,6 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --accent-rgb: 237,112,0;              /* 브랜드 주황 — 여기만 바꾸면 전체 재색 */
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
   --pane-anim: 1.1s;                     /* 패인 이동 속도 — 확인용으로 느리게(평소 0.24s) */
-  --pane-shift: 42px;                    /* 미끄러져 들어오는 거리 */
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
@@ -448,7 +447,7 @@ body.resizing-panes .detail-pane { transition: none; animation: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 /* 새 패인·자리를 옮긴 패인 모두 JS(_flipPanes)가 같은 박자로 움직인다 */
 /* 밀려난 패인의 잔상 — 흐름 밖에서 흐려지며 사라진다(실제 DOM은 이미 지워진 뒤) */
-.detail-pane.pane-ghost { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; opacity: 1; transition: opacity var(--pane-anim) linear; }
+.detail-pane.pane-ghost { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; opacity: 1; transition: opacity var(--pane-anim) linear, transform var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
 /* 자리를 옮긴 패인은 JS가 실제 이동 거리를 재서 transform으로 미끄러뜨린다(_flipPanes) */
 
 .detail-body { flex: 1; overflow-y: auto; }

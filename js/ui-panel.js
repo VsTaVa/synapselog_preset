@@ -147,13 +147,13 @@ function _startPaneDrag(e, dv) {
 // 새 패인도 같은 방식으로 처리한다: CSS 애니메이션은 요소가 생기는 즉시 시작해서,
 // 한 프레임 뒤에 출발하는 이동과 박자가 어긋났다. 둘을 같은 프레임·같은 transition으로 묶는다
 function _flipPanes(wrap, beforeTop) {
-  const shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pane-shift')) || 16;
   const ease = 'var(--pane-anim) cubic-bezier(0.4,0,0.2,1)';
   Array.from(wrap.children).forEach(el => {
     if (!el.dataset || !el.dataset.nid) return;
     const was = beforeTop.get(el.dataset.nid);
     const isNew = was === undefined;
-    const d = isNew ? shift : was - el.getBoundingClientRect().top; // 새 패인은 아래에서
+    // 새 패인은 제 높이만큼 아래에서 올라온다 → 위로 밀리는 패인·잔상과 같은 거리가 되어 한 덩어리로 움직인다
+    const d = isNew ? el.getBoundingClientRect().height : was - el.getBoundingClientRect().top;
     if (!d) return;
     el.style.transition = 'none';
     el.style.transform = 'translateY(' + d + 'px)';
@@ -182,7 +182,11 @@ function _ghostLeaving(wrap) {
     detailPanel.appendChild(ghost);
     ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
     setTimeout(() => ghost.remove(), 2000); // 전환이 눌리는 환경 대비
-    requestAnimationFrame(() => { ghost.style.opacity = '0'; });
+    // 제자리에서 흐려지기만 하면 따로 논다 — 남는 패인과 같은 거리(한 칸 높이)만큼 같이 밀려 올라간다
+    requestAnimationFrame(() => {
+      ghost.style.opacity = '0';
+      ghost.style.transform = 'translateY(-' + r.height + 'px)';
+    });
   });
 }
 function renderPanes() {
