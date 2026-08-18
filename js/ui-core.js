@@ -195,7 +195,7 @@ function showViewStatus() {
 }
 // 호버한 노드가 어디에 속하는지 — 패널의 위치 경로와 같은 함수로 그린다(칩 모양이 갈라지지 않게)
 let _statusPathId = null, _statusPathLeftAt = 0;
-const STATUS_PATH_LINGER = 500; // 호버가 풀리자마자 지우면 칩을 누르러 갈 수가 없다
+const STATUS_PATH_LINGER = 500; // 노드 사이를 지나갈 때마다 사라졌다 나타나면 깜빡여 보인다
 function updateStatusPath() {
   const el = document.getElementById('status-path');
   if (!el) return;
@@ -218,7 +218,6 @@ function updateStatusPath() {
     return;
   }
   if (!_statusPathId) return;
-  if (el.matches(':hover')) { _statusPathLeftAt = 0; return; } // 경로 위에 있으면 그대로 둔다
   if (!_statusPathLeftAt) { _statusPathLeftAt = performance.now(); return; }
   if (performance.now() - _statusPathLeftAt < STATUS_PATH_LINGER) return;
   _statusPathId = null; el.innerHTML = ''; el.style.display = 'none';

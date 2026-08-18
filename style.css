@@ -183,7 +183,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
   /* ── 디자인 토큰 (색·텍스트·형태를 한 곳에서 관리) ── */
   --accent-rgb: 237,112,0;              /* 브랜드 주황 — 여기만 바꾸면 전체 재색 */
   --accent: rgb(var(--accent-rgb));      /* 틴트는 rgba(var(--accent-rgb),α) 로 */
-  --pane-anim: 1.1s;                     /* 패인 이동 속도 — 확인용으로 느리게(평소 0.24s) */
+  --pane-anim: 0.28s;                    /* 패인이 한 칸 밀려 올라가는 시간 */
   --graph-bg-rgb: 12,13,18;              /* 캔버스·페이지 배경 — graph.js가 읽어 라벨 뒤를 같은 색으로 파낸다 */
   --graph-bg: rgb(var(--graph-bg-rgb));
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
@@ -654,10 +654,10 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .token-edit-row .s-trash-btn { background: none; border: none; color: var(--icon); padding: 6px 0 6px 6px; flex-shrink: 0; }
 .token-edit-row .s-trash-btn:hover { background: var(--hover); color: var(--fg); }
 /* 상태 칩 — 확대·회전 상자 바로 위에 따로 뜬다(그 상자는 잠깐 보였다 사라지므로 같이 두면 칩까지 흔들린다) */
-/* 호버한 노드의 상위 경로 — 크기·회전 표시 위. 칩은 눌러서 이동할 수 있어야 하므로 클릭을 받는다 */
+/* 호버한 노드의 상위 경로 — 크기·회전 표시 위. 보여주기만 한다(그래프를 만지다 칩이 눌리던 문제) */
 #status-path > * { flex-shrink: 0; } /* 칩이 눌려 찌그러지지 않게 */
 #status-path::-webkit-scrollbar { height: 0; }
-#status-path { position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%); z-index: 120; display: none; align-items: center; flex-wrap: nowrap; justify-content: flex-start; gap: 3px; max-width: min(70vw, 640px); overflow-x: auto; white-space: nowrap; scrollbar-width: none; pointer-events: auto; }
+#status-path { position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%); z-index: 120; display: none; align-items: center; flex-wrap: nowrap; justify-content: flex-start; gap: 3px; max-width: min(70vw, 640px); overflow-x: auto; white-space: nowrap; scrollbar-width: none; pointer-events: none; }
 #status { display: flex; align-items: center; gap: 8px; }
 /* 검색 순회 중인 칩만 깜빡 — 결과가 다 같은 모양이면 지금 보는 게 어느 것인지 안 보인다 */
 @keyframes chipPulse { 0%, 100% { border-color: rgba(var(--fg-rgb),1); } 50% { border-color: rgba(var(--fg-rgb),0.15); } }
