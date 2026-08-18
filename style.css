@@ -833,7 +833,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
      손잡이(bottom 10~26) 위에 얹어 같은 세로줄에 나란히 놓는다. */
   /* 세로모드는 패널이 바닥 시트라 가로를 안 잠식 → 화면 가운데 그대로 */
   #status { bottom: 32px; left: 50%; }
-  #status-path { bottom: 68px; left: 50%; max-width: 86vw; }
+  #status-path { bottom: 68px; left: 50%; max-width: 94vw; }
   /* 시트가 떠 있으면 손잡이는 숨으므로 시트 바로 위로 — 안 그러면 시트 뒤에 깔린다 */
   body:has(#detail-panel.open:not(.panel-collapsed)) #status {
     bottom: calc(var(--sheet-eff) + 16px);

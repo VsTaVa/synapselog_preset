@@ -213,6 +213,7 @@ function updateStatusPath() {
     const self = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 14, className: 'node-chip--sm' }) : '';
     el.innerHTML = path + self;
     el.style.display = (path || self) ? 'flex' : 'none';
+    el.scrollLeft = el.scrollWidth; // 좁은 화면에선 앞쪽이 잘린다 — 지금 노드가 있는 끝을 먼저 보여준다
     return;
   }
   if (!_statusPathId) return;
