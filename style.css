@@ -647,7 +647,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* 호버한 노드의 상위 경로 — 크기·회전 표시 위. 칩은 눌러서 이동할 수 있어야 하므로 클릭을 받는다 */
 #status-path > * { flex-shrink: 0; } /* 칩이 눌려 찌그러지지 않게 */
 #status-path::-webkit-scrollbar { height: 0; }
-#status-path { position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%); z-index: 120; display: none; align-items: center; flex-wrap: nowrap; justify-content: flex-start; gap: 3px; max-width: min(70vw, 640px); overflow-x: auto; white-space: nowrap; scrollbar-width: none; pointer-events: auto; background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 10px; }
+#status-path { position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%); z-index: 120; display: none; align-items: center; flex-wrap: nowrap; justify-content: flex-start; gap: 3px; max-width: min(70vw, 640px); overflow-x: auto; white-space: nowrap; scrollbar-width: none; pointer-events: auto; }
 #status { display: flex; align-items: center; gap: 8px; }
 /* 검색 순회 중인 칩만 깜빡 — 결과가 다 같은 모양이면 지금 보는 게 어느 것인지 안 보인다 */
 @keyframes chipPulse { 0%, 100% { border-color: rgba(var(--fg-rgb),1); } 50% { border-color: rgba(var(--fg-rgb),0.15); } }
@@ -845,7 +845,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   /* 세로모드는 패널이 바닥 시트라 가로를 안 잠식 → 화면 가운데 그대로 */
   #status { bottom: 32px; left: 50%; }
   /* 좁아서 한 줄로는 대부분 잘린다 → 두 줄까지 접히게, 넘치면 세로로 민다 */
-  #status-path { bottom: 68px; left: 50%; max-width: 94vw; flex-wrap: wrap; justify-content: center; overflow-x: visible; max-height: 66px; overflow-y: auto; }
+  #status-path { bottom: 68px; left: 50%; max-width: 94vw; flex-wrap: wrap; justify-content: center; overflow-x: visible; }
   /* 시트가 떠 있으면 손잡이는 숨으므로 시트 바로 위로 — 안 그러면 시트 뒤에 깔린다 */
   body:has(#detail-panel.open:not(.panel-collapsed)) #status {
     bottom: calc(var(--sheet-eff) + 16px);

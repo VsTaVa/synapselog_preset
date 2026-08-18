@@ -214,7 +214,7 @@ function updateStatusPath() {
     el.innerHTML = path + self;
     el.style.display = (path || self) ? 'flex' : 'none';
     // 지금 노드가 있는 끝을 먼저 보여준다(한 줄이면 가로로, 두 줄로 접히는 모바일이면 세로로 밀린다)
-    el.scrollLeft = el.scrollWidth; el.scrollTop = el.scrollHeight;
+    el.scrollLeft = el.scrollWidth; // 한 줄일 때 잘리는 앞쪽 대신 지금 노드가 있는 끝부터
     return;
   }
   if (!_statusPathId) return;
