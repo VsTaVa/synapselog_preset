@@ -120,6 +120,13 @@ function hideLoading() { const el = document.getElementById('loading-overlay'); 
 let _labelScalePrev = (() => { try { const v = parseFloat(localStorage.getItem('snlog_label_scale_prev')); return (v > 0 && v <= 2.5) ? v : 1; } catch(e) { return 1; } })();
 
 // 단축키(T): 제목 크기를 0과 직전 값 사이로 오간다
+// 표시 깊이 — 오른쪽 끝이 전체, 왼쪽으로 갈수록 깊은 단계부터 접힌다
+function setDepthLimit(v) {
+  const n = parseInt(v);
+  applyDepthLimit(n);
+  const out = document.getElementById('v-depth');
+  if (out) out.textContent = (n >= DEPTH_ALL) ? '전체' : String(n);
+}
 function toggleLabels() {
   setLabelScale(_labelScale > 0 ? 0 : _labelScalePrev);
   const sl = document.getElementById('cfg-label-scale');

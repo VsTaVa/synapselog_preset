@@ -60,6 +60,41 @@ function _computeHoverChain(n) {
 // 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
 let _activeGlowIds = new Set();
 let _searchFocusId = null; // 검색 순회로 지금 보고 있는 노드 — 펄스 대상
+// 깊이 제한 — 이 레벨보다 깊은 노드는 접는다(DEPTH_ALL = 제한 없음)
+const DEPTH_ALL = 6;
+let _depthLimit = (() => { try { const v = parseInt(localStorage.getItem('snlog_depth')); return (v >= 0 && v <= DEPTH_ALL) ? v : DEPTH_ALL; } catch(e) { return DEPTH_ALL; } })();
+// visible을 직접 껐다 켠다 — 기존 표시 판정이 전부 visible을 보므로 게이트를 새로 만들 필요가 없다.
+// 페이지 삭제 등으로 원래 꺼져 있던 노드는 _hiddenByDepth가 아니라 그대로 둔다
+function applyDepthLimit(v) {
+  _depthLimit = Math.max(0, Math.min(DEPTH_ALL, v | 0));
+  try { localStorage.setItem('snlog_depth', String(_depthLimit)); } catch(e) {}
+  nodes.forEach(n => {
+    const hide = (n.level || 0) > _depthLimit;
+    if (hide && n.visible) { n._hiddenByDepth = true; n.visible = false; }
+    else if (!hide && n._hiddenByDepth) { n._hiddenByDepth = false; n.visible = true; }
+  });
+  _layoutSig = -1; isStable = false;
+  if (_layoutMode === 'radial') applyTreeLayout(); // 접힌 자리를 남기지 않고 남은 노드끼리 다시 배치
+  else _simBoost = 60;
+}
+// 접힌 노드가 몇 개인지 — 가장 가까운 '보이는' 조상에게 후손 전체를 합산한다.
+// 직계만 세면 여러 단계가 접혔을 때 실제보다 훨씬 적게 나온다
+function hiddenChildCount() {
+  const m = new Map();
+  if (_depthLimit >= DEPTH_ALL) return m;
+  const parent = new Map();
+  edges.forEach(e => { if (!e.weakLink && !e.manualLink) parent.set(e.to, e.from); });
+  nodes.forEach(n => {
+    if (!n._hiddenByDepth) return;
+    let cur = parent.get(n.id), guard = 0;
+    while (cur && guard++ < 20) {
+      const p = nodeMap[cur];
+      if (p && p.visible) { m.set(cur, (m.get(cur) || 0) + 1); break; }
+      cur = parent.get(cur);
+    }
+  });
+  return m;
+}
 
 // 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
@@ -365,6 +400,7 @@ function draw() {
   const labelQueue = [], glowQueue = []; // 활성 글로우는 모든 노드를 그린 뒤 맨 앞 레이어로
   const hasSearch = searchKeyword.length > 0;
   const childCountMap = new Map(), manualLinkedSet = new Set();
+  const hiddenKids = hiddenChildCount();
   edges.forEach(e => {
     if (!e.weakLink && !e.manualLink) childCountMap.set(e.from, (childCountMap.get(e.from) || 0) + 1);
     if (e.manualLink) { manualLinkedSet.add(e.from); manualLinkedSet.add(e.to); }
@@ -585,6 +621,16 @@ function draw() {
     if(n.fixed) {
       const ps = Math.min(scale, 7/r), off = r + 4/ps, dg = Math.SQRT1_2;
       _drawPin(ctx, n.x + off*dg, n.y - off*dg, ps, `rgba(255,255,255,${isDim ? 0.25 : 1})`, Math.PI/4);
+    }
+    // 접힌 자식 수 — 오른쪽 아래에 +N. 화면 크기로 고정해 줌아웃해도 읽힌다
+    const hk = hiddenKids.get(n.id);
+    if (hk) {
+      const fs2 = 10 / scale, bx = n.x + r + 2/scale, by = n.y + r + 2/scale;
+      ctx.font = `700 ${fs2}px 'Noto Sans KR',sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillStyle = rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.3 : 1);
+      ctx.fillText('+' + hk, bx, by);
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
     ctx.restore();
     if(_labelScale > 0) labelQueue.push({ n, r, isMatch, isDim, lit: isHov || openPanelIdx.has(n.id) || (n.multiSelected && _multiSelected.indexOf(n) >= 0) });

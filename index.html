@@ -168,6 +168,7 @@
       <div class="ctrl-group"><div class="ctrl-label-row"><span>링크 장력</span><span class="val" id="v-tension">5</span></div><input type="range" id="cfg-tension" min="0.001" max="0.020" step="0.0005" value="0.005"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span>중력</span><span class="val" id="v-grav">10</span></div><input type="range" id="cfg-grav" min="0.0001" max="0.0030" step="0.0001" value="0.0010"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span>노드 크기</span><span class="val" id="v-node-size">1.0</span></div><input type="range" id="cfg-node-size" min="0.5" max="2.5" step="0.1" value="1.0"></div>
+      <div class="ctrl-group"><div class="ctrl-label-row"><span>표시 깊이</span><span class="val" id="v-depth">전체</span></div><input type="range" id="cfg-depth" min="0" max="6" step="1" value="6" oninput="setDepthLimit(this.value)"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span>제목 크기 <span class="shortcut-hint" id="hint-toggleLabels"></span></span><span class="val" id="label-scale-val">100%</span></div><input type="range" id="cfg-label-scale" min="0" max="2.5" step="0.1" value="1" oninput="setLabelScale(this.value)"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span>링크 두께</span><span class="val" id="v-link-width">1.0</span></div><input type="range" id="cfg-link-width" min="0.3" max="3.0" step="0.1" value="1.0"></div>
       <div class="ctrl-group"><div class="ctrl-label-row"><span>노드 허브</span><span class="val" id="v-hub">1.0</span></div><input type="range" id="cfg-hub" min="0" max="2.0" step="0.1" value="1.0"></div>
@@ -259,15 +260,15 @@
 <script src="js/utils.js?v=20260817a" defer></script>
 <script src="js/icons.js?v=20260816a" defer></script>
 <script src="js/sample.js?v=20260816a" defer></script>
-<script src="js/graph.js?v=20260817f" defer></script>
+<script src="js/graph.js?v=20260818a" defer></script>
 <script src="js/notion-client.js?v=20260816a" defer></script>
 <script src="js/export.js?v=20260807b" defer></script>
-<script src="js/ui-core.js?v=20260817e" defer></script>
+<script src="js/ui-core.js?v=20260818a" defer></script>
 <script src="js/ui-legend.js?v=20260817b" defer></script>
 <script src="js/ui-ai.js?v=20260816a" defer></script>
 <script src="js/ui-embed.js?v=20260817a" defer></script>
 <script src="js/ui-rail.js?v=20260816b" defer></script>
 <script src="js/ui-panel.js?v=20260817b" defer></script>
-<script src="js/ui-events.js?v=20260817h" defer></script>
+<script src="js/ui-events.js?v=20260818a" defer></script>
 </body>
 </html>
