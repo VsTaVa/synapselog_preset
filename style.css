@@ -435,7 +435,7 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 .pane-divider-grip:hover::before { background: var(--fg); width: 44px; }
 .pane-divider.dragging .pane-divider-grip::before { background: var(--accent); width: 44px; }
 body.resizing-panes { cursor: ns-resize; user-select: none; -webkit-user-select: none; }
-body.resizing-panes .detail-pane { transition: none; }
+body.resizing-panes .detail-pane { transition: none; animation: none; }
 /* 폭을 접힘 임계 아래로 끌면 그립을 accent로 강조 — 손 떼면 접힘 예고 */
 #detail-resize-handle.will-collapse::before { background: var(--accent); height: 56px; }
 .detail-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-right: none; border-radius: 0; overflow: hidden; box-shadow: -8px 0 40px rgba(0,0,0,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); transition: filter 0.15s, opacity 0.15s; }
@@ -446,6 +446,11 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 @keyframes paneRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .detail-pane.pane-enter { animation: paneRise 0.24s cubic-bezier(0.4,0,0.2,1); }
+/* 자리를 옮긴 패인 — 온 방향에서 미끄러져 들어온다(위로 갔으면 아래에서, 아래로 밀렸으면 위에서) */
+@keyframes paneUp { from { transform: translateY(16px); } to { transform: translateY(0); } }
+@keyframes paneDown { from { transform: translateY(-16px); } to { transform: translateY(0); } }
+.detail-pane.pane-up { animation: paneUp 0.24s cubic-bezier(0.4,0,0.2,1); }
+.detail-pane.pane-down { animation: paneDown 0.24s cubic-bezier(0.4,0,0.2,1); }
 .detail-body { flex: 1; overflow-y: auto; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
 #detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }

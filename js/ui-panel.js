@@ -143,14 +143,22 @@ function _startPaneDrag(e, dv) {
 }
 
 // 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
+// 재렌더는 패인을 통째로 새로 만든다 → 남아 있는 패인도 '이동'이 아니라 새로 그려져 멈춰 보였다.
+// 직전 자리를 기억해 두고, 자리가 바뀐 패인에는 그 방향으로 짧은 등장 애니메이션을 준다
+let _prevPaneIdx = new Map();
 function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
   wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
+  const nextIdx = new Map();
   _stack.forEach((node, i) => {
+    nextIdx.set(node.id, i);
     const el = document.createElement('div');
-    el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : '');
+    const wasAt = _prevPaneIdx.get(node.id);
+    const moveCls = (wasAt === undefined || wasAt === i) ? ''
+      : (wasAt > i ? ' pane-up' : ' pane-down'); // 위로 올라갔나, 아래로 밀렸나
+    el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : moveCls);
     el.dataset.pane = i;
     el.innerHTML =
       `<div class="detail-header">` +
@@ -172,6 +180,7 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
+  _prevPaneIdx = nextIdx;
   // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
   if (_stack.length >= 2) {
     const dv = document.createElement('div');
