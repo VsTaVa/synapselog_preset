@@ -165,12 +165,13 @@ function _flipPanes(wrap, beforeTop) {
     });
   });
 }
-// 스택에서 빠지는 패인은 '복제본'만 띄워 흐리게 지운다.
-// 원본을 살려두면 다음 렌더가 그걸 또 판정해 빈 칸이 남았다 — 복제본은 패널에 붙고 nid가 없어 판정 밖이다
-function _ghostLeaving(wrap) {
-  if (!_stack.length) return; // 패널을 통째로 닫는 중이면 잔상이 같이 끌려나가 어색하다
+// 스택에서 빠지는 패인의 '복제본'을 만들어 둔다(붙이는 건 패인을 다시 그린 뒤).
+// 원본을 살려두면 다음 렌더가 그걸 또 판정해 빈 칸이 남았다 — 복제본은 nid가 없어 판정 밖이다
+function _makeGhosts(wrap) {
+  if (!_stack.length) return []; // 패널을 통째로 닫는 중이면 잔상이 같이 끌려나가 어색하다
   const alive = new Set(_stack.map(x => String(x.id)));
-  const base = detailPanel.getBoundingClientRect();
+  const base = wrap.getBoundingClientRect();
+  const out = [];
   Array.from(wrap.children).forEach(el => {
     if (!el.dataset || !el.dataset.nid || alive.has(el.dataset.nid)) return;
     const r = el.getBoundingClientRect();
@@ -179,13 +180,21 @@ function _ghostLeaving(wrap) {
     ghost.classList.add('pane-ghost');
     ghost.style.top = (r.top - base.top) + 'px';
     ghost.style.height = r.height + 'px';
-    detailPanel.appendChild(ghost);
+    ghost._shift = r.height;
+    out.push(ghost);
+  });
+  return out;
+}
+// 잔상은 패인 컨테이너 안에 붙인다 — 패널에 붙이면 위로 밀릴 때 밖으로 튀어나와 그래프를 가렸다
+function _attachGhosts(wrap, ghosts) {
+  ghosts.forEach(ghost => {
+    wrap.appendChild(ghost);
     ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
     setTimeout(() => ghost.remove(), 2000); // 전환이 눌리는 환경 대비
-    // 제자리에서 흐려지기만 하면 따로 논다 — 남는 패인과 같은 거리(한 칸 높이)만큼 같이 밀려 올라간다
+    // 제자리에서 흐려지기만 하면 따로 논다 — 남는 패인과 같은 거리만큼 함께 밀려 올라간다
     requestAnimationFrame(() => {
       ghost.style.opacity = '0';
-      ghost.style.transform = 'translateY(-' + r.height + 'px)';
+      ghost.style.transform = 'translateY(-' + ghost._shift + 'px)';
     });
   });
 }
@@ -196,7 +205,7 @@ function renderPanes() {
   Array.from(wrap.children).forEach(el => {
     if (el.dataset && el.dataset.nid) beforeTop.set(el.dataset.nid, el.getBoundingClientRect().top);
   });
-  _ghostLeaving(wrap); // 비우기 전에 사라질 패인의 잔상을 떠 둔다
+  const ghosts = _makeGhosts(wrap); // 비우기 전에 사라질 패인을 복제해 둔다
   wrap.classList.toggle('split', _stack.length >= 2);
   wrap.innerHTML = '';
   _stack.forEach((node, i) => {
@@ -223,6 +232,7 @@ function renderPanes() {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
+  _attachGhosts(wrap, ghosts);
   _flipPanes(wrap, beforeTop);
   // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
   if (_stack.length >= 2) {
