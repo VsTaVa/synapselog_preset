@@ -987,7 +987,7 @@ function computePageAnchors() {
 }
 
 // 배치 전환 시 제자리 미끄러짐 — 목표 좌표는 이미 노드에 들어 있고, 시작점으로 되돌려 보간한다
-function _tweenNodes(prev, dur) {
+function _tweenNodes(prev, dur, done) {
   const to = prev.map(f => ({ x: f.n.x, y: f.n.y }));
   const t0 = performance.now();
   const step = () => {
@@ -996,7 +996,7 @@ function _tweenNodes(prev, dur) {
       const f = prev[i], g = to[i];
       f.n.x = f.x + (g.x - f.x) * e; f.n.y = f.y + (g.y - f.y) * e;
     }
-    if (t < 1) requestAnimationFrame(step);
+    if (t < 1) requestAnimationFrame(step); else if (done) done();
   };
   step();
 }
@@ -1011,13 +1011,22 @@ function setLayoutMode(mode) {
     applyTreeLayout();
   } else {
     // force / cluster: 물리 시뮬 재가동
+    const prev = nodes.map(n => ({ n, x: n.x, y: n.y }));
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     _layoutSig = -1; isStable = false;
     if (_layoutMode === 'cluster') { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
+    // 물리는 목표 좌표가 미리 없다 → 여기서 몇 스텝 돌려 대략 자리를 잡고 그리로 미끄러뜨린다.
+    // 스텝 수는 노드가 많을수록 줄인다(반발력이 O(n²)라 그대로 두면 전환에서 멈칫한다)
+    const steps = Math.max(24, Math.min(140, Math.round(9000 / Math.max(1, nodes.length))));
+    for (let i = 0; i < steps; i++) simulate();
+    tween = prev;
+    nodes.forEach(n => { n._frozen = true; }); // 미끄러지는 동안은 물리를 멈춰 좌표가 덮이지 않게
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
   if (typeof fitGraph === 'function') fitGraph(false); // 화면 맞춤은 최종 좌표로 계산돼야 해서 먼저
-  if (tween) _tweenNodes(tween, 620); // 그 뒤 노드를 원래 자리에서 미끄러뜨린다(카메라와 같은 시간)
+  if (tween) _tweenNodes(tween, 620, () => { // 그 뒤 노드를 원래 자리에서 미끄러뜨린다(카메라와 같은 시간)
+    if (_layoutMode !== 'radial') { nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; }); isStable = false; }
+  });
 }
 
 // ── 링크 해석: [텍스트](노션URL)의 URL 속 ID로 노드 매칭 ──────────────

@@ -650,6 +650,12 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 body { --gz-l: 56px; --gz-r: 0px; }
 body:has(#sidebar.open:not(.collapsed)) { --gz-l: calc(56px + var(--sidebar-w)); }
 body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
+/* 상태 칩 — #status는 클릭을 통과시키므로(pointer-events:none) 칩만 되살린다 */
+#status { display: flex; align-items: center; gap: 8px; }
+.st-chip { display: inline-flex; align-items: center; gap: 5px; pointer-events: auto; background: rgba(var(--accent-rgb),0.16); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.st-chip + .st-chip { margin-left: 4px; }
+.st-chip-x { font-size: 9px; opacity: 0.75; }
+@media (hover: hover) and (pointer: fine) { .st-chip:hover { color: var(--fg); border-color: rgba(var(--fg-rgb),0.45); } }
 #status { position: fixed; bottom: 16px; left: calc(var(--gz-l) + (100vw - var(--gz-l) - var(--gz-r)) / 2); transform: translateX(-50%); background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: rgba(var(--fg-rgb),0.5); pointer-events: none; }
 .shortcut-btn { font-size: 11px; font-weight: 700; font-family: 'Noto Sans KR', monospace; padding: 4px 10px; border-radius: 5px; cursor: pointer; min-width: 52px; text-align: center; background: rgba(var(--fg-rgb),0.07); border: 1px solid rgba(var(--fg-rgb),0.15); color: rgba(var(--fg-rgb),0.7); transition: all 0.15s; }
 .shortcut-btn:hover { background: rgba(var(--fg-rgb),0.12); color: var(--fg); border-color: rgba(var(--fg-rgb),0.25); }

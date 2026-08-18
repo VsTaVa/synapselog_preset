@@ -291,20 +291,19 @@ function toggleWikiConnect(a, b) {
   return existed;
 }
 function handleConnectClick(n) {
-  const s = document.getElementById('status');
   if (!_connectFirstNode) {
     _connectFirstNode = n; n.connectSelected = true;
-    if (s) s.textContent = `"${n.label}" 선택됨 — 연결할 노드 클릭`;
+    setStatusHint(`"${n.label}" 선택됨 — 연결할 노드 클릭`);
     isStable = false; return;
   }
   if (_connectFirstNode.id === n.id) {
     _connectFirstNode.connectSelected = false; _connectFirstNode = null;
-    if (s) s.textContent = '연결 모드: 첫 번째 노드 클릭';
+    setStatusHint('연결 모드: 첫 번째 노드 클릭');
     isStable = false; return;
   }
   const a = _connectFirstNode, b = n;
   const existed = toggleWikiConnect(a, b);
-  if (s) s.textContent = existed ? `"${a.label}" → "${b.label}" 연결 해제 — 계속 클릭` : `"${a.label}" → "${b.label}" 연결 — 계속 클릭`;
+  setStatusHint(existed ? `"${a.label}" → "${b.label}" 연결 해제 — 계속 클릭` : `"${a.label}" → "${b.label}" 연결 — 계속 클릭`);
 }
 
 function saveManualLinks() {

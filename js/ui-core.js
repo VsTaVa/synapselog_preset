@@ -155,13 +155,54 @@ function setViewRotation(deg) {
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
   showViewStatus();
 }
-// 하단 중앙 상태바: 확대 % + 회전 ° 같이 표시
-function showViewStatus() {
+// 하단 중앙 상태바 = 상시 상태 칩 + 잠깐 뜨는 확대·회전.
+// 둘을 각각의 span에 나눠 담는다 — 한 덩어리로 쓰면 확대 표시가 사라질 때 칩까지 지워진다
+function _statusSpan(cls) {
+  if (!statusEl) return null;
+  let el = statusEl.querySelector('.' + cls);
+  if (!el) { el = document.createElement('span'); el.className = cls; statusEl.appendChild(el); }
+  return el;
+}
+// 둘 다 비면 빈 상자만 떠 있게 되므로 표시 자체를 끈다
+function _syncStatusBox() {
   if (!statusEl) return;
+  const txt = c => (statusEl.querySelector('.' + c) || {}).textContent;
+  const has = statusEl.querySelector('.st-chip') || txt('st-view') || txt('st-hint');
+  statusEl.style.display = has ? 'flex' : 'none';
+}
+// 연결 모드 같은 진행 안내 — 칩·확대 표시와 같은 상자에 나란히
+function setStatusHint(t) {
+  const el = _statusSpan('st-hint');
+  if (!el) return;
+  el.textContent = t || '';
+  _syncStatusBox();
+}
+function showViewStatus() {
+  const el = _statusSpan('st-view');
+  if (!el) return;
   const pct = Math.round(scale * 100);
   const deg = Math.round(((_viewRotation * 180 / Math.PI) % 360 + 360) % 360);
-  statusEl.textContent = `확대 ${pct}%` + (deg ? `    ·   회전 ${deg}°` : '');
-  clearTimeout(canvas._st); canvas._st = setTimeout(() => { statusEl.textContent = ''; }, 1400);
+  el.textContent = `확대 ${pct}%` + (deg ? `    ·   회전 ${deg}°` : '');
+  _syncStatusBox();
+  clearTimeout(canvas._st); canvas._st = setTimeout(() => { el.textContent = ''; _syncStatusBox(); }, 1400);
+}
+// 화면을 좁히고 있는 상태를 확대·회전과 같은 자리에 띄운다 — 왜 노드가 안 보이는지 몰라 헤매던 것.
+// 상태가 바뀌는 지점이 여러 곳이라 매 프레임 확인하되, 문자열이 같으면 DOM은 건드리지 않는다
+let _statusFlagSig = '';
+function updateStatusFlags() {
+  const el = _statusSpan('st-flags');
+  if (!el) return;
+  const f = [];
+  if (typeof searchKeyword !== 'undefined' && searchKeyword) f.push(['검색', 'clearSearchMode']);
+  if (typeof _focusMode !== 'undefined' && _focusMode) f.push(['포커스 모드', 'clearFocusMode']);
+  if (typeof _isolateActive !== 'undefined' && _isolateActive) f.push(['격리', 'clearIsolateMode']);
+  if (typeof _connectMode !== 'undefined' && _connectMode) f.push(['연결 모드', 'clearConnectMode']);
+  const sig = f.map(x => x[0]).join('|');
+  if (sig === _statusFlagSig) return;
+  _statusFlagSig = sig;
+  el.innerHTML = f.map(([label, fn]) =>
+    `<button class="st-chip" onclick="${fn}()" title="${label} 해제">${label}<span class="st-chip-x">✕</span></button>`).join('');
+  _syncStatusBox();
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
@@ -216,9 +257,8 @@ function toggleConnectMode() {
   _connectMode = cb ? cb.checked : !_connectMode;
   if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
   if (!_connectMode) nodes.forEach(n => { n.connectSelected = false; });
-  const s = document.getElementById('status');
-  if (_connectMode && s) { s.textContent = '연결 모드: 첫 번째 노드 클릭'; closePanel(); }
-  else if (s) s.textContent = '';
+  if (_connectMode) { setStatusHint('연결 모드: 첫 번째 노드 클릭'); closePanel(); }
+  else setStatusHint('');
   isStable = false;
 }
 

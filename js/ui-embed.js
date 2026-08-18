@@ -192,8 +192,7 @@ function multiSelectStartConnect() {
   clearMultiSelect();
   _connectMode = true;
   _connectFirstNode = node; node.connectSelected = true;
-  const s = document.getElementById('status');
-  if (s) s.textContent = `"${node.label}" 기준 — 연결할 노드 클릭`;
+  setStatusHint(`"${node.label}" 기준 — 연결할 노드 클릭`);
   isStable = false;
 }
 
