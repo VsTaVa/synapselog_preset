@@ -2,19 +2,6 @@
 body { background: var(--graph-bg); overflow: hidden; font-family: 'Noto Sans KR', sans-serif; }
 canvas { display: block; }
 
-/* ── 키보드 포커스 표시 ───────────────────────────────────────────────
-   :focus 규칙이 입력창 쪽에만 있어서, 아이콘 버튼(레일·패널·페이지 목록)을
-   탭으로 옮겨 다니면 지금 어디에 있는지 화면에 전혀 안 나타났다.
-   :focus-visible이라 마우스로 누를 땐 안 뜬다 — 기존 화면은 그대로.
-   슬라이더는 제외 — 방향키로 값을 맞추는 내내 테두리가 따라다녀 거슬린다(손잡이가 곧 위치 표시). */
-button:focus-visible,
-a:focus-visible,
-summary:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:not([tabindex="-1"]):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
 .shortcut-hint { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; }
 /* 아이콘 슬롯 — 그린 크기가 달라도 폭은 고정, 넘치는 만큼은 삐져나가게(글자 시작 위치를 맞추려고) */
 .ic-slot { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }

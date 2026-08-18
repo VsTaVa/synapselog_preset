@@ -170,10 +170,9 @@ function gotoSearchMatch(dir) {
   _searchFocusId = id;
   if (n && typeof focusViewOnNode === 'function') focusViewOnNode(n);
   _searchNavMode = true; // 이 동안은 검색란과 패널을 같이 연다(안 그러면 패널이 검색란을 밀어낸다)
-  if (n && typeof openPanel === 'function') openPanel(n);
+  if (n && typeof openPanel === 'function') openPanel(n, { only: true });
   if (typeof _activeRailSection !== 'undefined' && _activeRailSection !== 'search'
       && typeof openRailSection === 'function') openRailSection('search'); // 이미 밀려 닫혔으면 되편다
-  if (searchInput) searchInput.focus(); // 패널이 포커스를 가져가면 다음 엔터가 안 먹는다
   _markSearchChip(id);
   _updateSearchCount();
   isStable = false; // 펄스가 돌려면 물리가 멎어도 다시 그려야 한다
@@ -209,6 +208,17 @@ function searchCommitOrNext(back) {
   _commitSearch(); _searchCommitted = kw;
 }
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchCommitOrNext(e.shiftKey); });
+// 검색 섹션이 열려 있으면 어디를 보고 있든 엔터로 다음 결과 — 검색란에 커서를 돌려놓게 하는 건 번거롭다.
+// 글을 쓰는 중(입력창·본문 편집)에는 엔터가 그쪽 것이므로 건드리지 않는다
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  if (typeof _activeRailSection === 'undefined' || _activeRailSection !== 'search') return;
+  if (!_searchHits.length) return;
+  const t = e.target;
+  if (t && (t === searchInput || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  e.preventDefault();
+  gotoSearchMatch(e.shiftKey ? -1 : 1);
+});
 document.getElementById('search-btn').addEventListener('click', () => searchCommitOrNext(false));
 clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
 

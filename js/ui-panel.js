@@ -1299,7 +1299,9 @@ function showPanel() {
   _autoFitPanel();
 }
 
-function openPanel(n) {
+function openPanel(n, opts) {
+  // opts.only: 기존 패인을 비우고 이 노드만 — 검색 순회처럼 사람이 직접 고른 게 아닐 때
+  if (opts && opts.only) _stack = _stack.filter(x => x.id === n.id);
   _activeNode = n;
   // 최근 본 노드 추적 (노드 섹션용)
   if (n && n.id && typeof _recentNodes !== 'undefined') {
