@@ -382,7 +382,7 @@ function draw() {
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
   // 점선은 A→B 방향으로 흐른다 — 음수라야 화살표 쪽으로 간다(주기 = dash 합)
-  const _dashFlow = -(performance.now() / 55) % 11;
+  const _dashFlow = -(performance.now() / 140) % 11;
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
   // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
   // 호버 노드가 바뀔 때만 다시 계산 — 매 프레임 BFS는 비싸다.
