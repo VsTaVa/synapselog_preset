@@ -448,11 +448,7 @@ body.resizing-panes .detail-pane { transition: none; animation: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 @keyframes paneRise { from { opacity: 0; transform: translateY(var(--pane-shift)); } to { opacity: 1; transform: translateY(0); } }
 .detail-pane.pane-enter { animation: paneRise var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
-/* 자리를 옮긴 패인 — 온 방향에서 미끄러져 들어온다(위로 갔으면 아래에서, 아래로 밀렸으면 위에서) */
-@keyframes paneUp { from { transform: translateY(var(--pane-shift)); } to { transform: translateY(0); } }
-@keyframes paneDown { from { transform: translateY(calc(-1 * var(--pane-shift))); } to { transform: translateY(0); } }
-.detail-pane.pane-up { animation: paneUp var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
-.detail-pane.pane-down { animation: paneDown var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
+/* 자리를 옮긴 패인은 JS가 실제 이동 거리를 재서 transform으로 미끄러뜨린다(_flipPanes) */
 /* 스택에서 밀려난 패인 — 흐름 밖에 띄운 채 위로 빠진다(남는 패인이 그 자리를 차지하는 동안) */
 @keyframes paneLeave { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(calc(-1 * var(--pane-shift))); } }
 .detail-pane.pane-leave { position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; animation: paneLeave var(--pane-anim) cubic-bezier(0.4,0,0.2,1) forwards; }
