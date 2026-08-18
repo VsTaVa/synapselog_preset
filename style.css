@@ -457,8 +457,13 @@ body.resizing-panes .detail-pane { transition: none; }
 #detail-panel-sidebar-toggle:hover::before { background: var(--fg); height: 44px; }
 /* 접힌 채 새 노드를 열었을 때 — 여기를 누르면 된다는 신호로 두 번 반짝 */
 @keyframes reopenPulse {
-  0%, 100% { background: var(--icon-dim); box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
-  50% { background: var(--accent); box-shadow: 0 0 9px 3px rgba(var(--accent-rgb),0.7); }
+  0%, 100% { height: 36px; background: var(--icon-dim); box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
+  50% { height: 54px; background: var(--accent); box-shadow: 0 0 9px 3px rgba(var(--accent-rgb),0.7); }
+}
+/* 모바일은 가로 막대라 늘어나는 축이 다르다 — 색만 바뀌면 4px 높이에선 거의 안 보인다 */
+@keyframes reopenPulseX {
+  0%, 100% { width: 36px; background: var(--icon-dim); box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
+  50% { width: 58px; background: var(--accent); box-shadow: 0 0 9px 3px rgba(var(--accent-rgb),0.7); }
 }
 #detail-panel-sidebar-toggle.pulse::before { animation: reopenPulse 0.45s ease-in-out 2; }
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
@@ -859,6 +864,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   }
   #detail-panel-sidebar-toggle::before { width: 36px; height: 4px; }
   #detail-panel-sidebar-toggle:hover::before { width: 44px; height: 4px; }
+  #detail-panel-sidebar-toggle.pulse::before { animation-name: reopenPulseX; }
   /* 시트에선 폭이 아니라 높이를 조절 → 손잡이를 위쪽 가로 막대로 */
   #detail-resize-handle { top: -7px; left: 0; width: 100%; height: 14px; cursor: ns-resize; }
   #detail-resize-handle::before { width: 36px; height: 4px; }
