@@ -1372,9 +1372,11 @@ function closePanel() {
   _autoFitPanel();
 }
 
+// Esc로 내리기 — 접기와 같은 '내가 닫아뒀다' 상태로 둔다.
+// false로 두면 다음에 노드를 누르는 순간 패널이 제멋대로 다시 열렸다
 function hidePanel() {
   if (!detailPanel.classList.contains('open')) return;
-  _detailPanelCollapsed = false;
+  _detailPanelCollapsed = true;
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');
   updateDetailReopenTab();
