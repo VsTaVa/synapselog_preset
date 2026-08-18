@@ -381,6 +381,8 @@ function draw() {
   const openPanelIdx = new Map();
   if (typeof _stack !== 'undefined' && _stack) _stack.forEach((nd, i) => { if (nd) openPanelIdx.set(nd.id, i + 1); });
 
+  // 점선은 A→B 방향으로 흐른다 — 음수라야 화살표 쪽으로 간다(주기 = dash 합)
+  const _dashFlow = -(performance.now() / 55) % 11;
   // 위키(노드연결) 엣지를 먼저 그려 맨 아래 레이어로 → 기본 구조 링크선이 위에 오게
   // 호버 강조 대상 = 조상 사슬(위로 루트까지) + 하위 트리 전체(아래로).
   // 호버 노드가 바뀔 때만 다시 계산 — 매 프레임 BFS는 비싸다.
@@ -405,6 +407,7 @@ function draw() {
       || (_hoverChain.has(e.from) && _hoverChain.has(e.to)));
     const bothMatch = hasSearch&&searchMatches.has(e.from)&&searchMatches.has(e.to);
     const eitherMatch = hasSearch&&(searchMatches.has(e.from)||searchMatches.has(e.to));
+    ctx.lineDashOffset = 0; // 흐르는 건 노드 연결선뿐 — 경로 표시까지 움직이면 산만하다
     if(e.wikiLink) {
       // 노드연결: 흰색 점선 한 줄 + A→B 화살표 (글로우 제거 → 한 줄로)
       if(!_showConnections) return; // 노드 연결 표시 끔
@@ -412,12 +415,12 @@ function draw() {
       if(hasSearch && !bothMatch) return;
       if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.8 : 0.35})`;
-      ctx.lineWidth = CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+      ctx.lineWidth = CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]); ctx.lineDashOffset = _dashFlow;
     } else if(e.manualLink) {
       if(hasSearch && !bothMatch) return; // 수동 연결도 노드연결과 같은 규칙
       if((_focusMode||_isolateActive) && (na.dimmed || nb.dimmed)) return;
       ctx.strokeStyle = `rgba(255,255,255,${isHov ? 0.7 : 0.35})`;
-      ctx.lineWidth = 1.2 * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]);
+      ctx.lineWidth = 1.2 * CONFIG.linkWidth / scale; ctx.setLineDash([5, 6]); ctx.lineDashOffset = _dashFlow;
     } else if(e.weakLink) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const pathActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
