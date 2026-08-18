@@ -142,25 +142,30 @@ function _startPaneDrag(e, dv) {
   if (e.cancelable) e.preventDefault();
 }
 
-// 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할. animateId 노드는 진입 애니메이션
+// 스택(_stack)을 DOM에 반영 — 위→아래로 쌓고, 2개면 상하 분할
 // 그리기 전후의 세로 위치 차이만큼 되돌렸다가 풀어준다 — 자리를 옮긴 패인이 실제로 미끄러진다.
-// 클래스로 방향만 주던 방식은 재렌더가 한 번 더 오면 애니메이션이 통째로 지워졌다
+// 새 패인도 같은 방식으로 처리한다: CSS 애니메이션은 요소가 생기는 즉시 시작해서,
+// 한 프레임 뒤에 출발하는 이동과 박자가 어긋났다. 둘을 같은 프레임·같은 transition으로 묶는다
 function _flipPanes(wrap, beforeTop) {
+  const shift = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pane-shift')) || 16;
+  const ease = 'var(--pane-anim) cubic-bezier(0.4,0,0.2,1)';
   Array.from(wrap.children).forEach(el => {
     if (!el.dataset || !el.dataset.nid) return;
     const was = beforeTop.get(el.dataset.nid);
-    if (was === undefined) return;
-    const d = was - el.getBoundingClientRect().top;
+    const isNew = was === undefined;
+    const d = isNew ? shift : was - el.getBoundingClientRect().top; // 새 패인은 아래에서
     if (!d) return;
     el.style.transition = 'none';
     el.style.transform = 'translateY(' + d + 'px)';
+    if (isNew) el.style.opacity = '0';
     requestAnimationFrame(() => {
-      el.style.transition = 'transform var(--pane-anim) cubic-bezier(0.4,0,0.2,1)';
+      el.style.transition = 'transform ' + ease + ', opacity ' + ease;
       el.style.transform = '';
+      if (isNew) el.style.opacity = '';
     });
   });
 }
-function renderPanes(animateId) {
+function renderPanes() {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
   const beforeTop = new Map();
@@ -171,7 +176,7 @@ function renderPanes(animateId) {
   wrap.innerHTML = '';
   _stack.forEach((node, i) => {
     const el = document.createElement('div');
-    el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : '');
+    el.className = 'detail-pane';
     el.dataset.pane = i; el.dataset.nid = String(node.id);
     el.innerHTML =
       `<div class="detail-header">` +
@@ -1346,16 +1351,14 @@ function openPanel(n, opts) {
   // '자리를 차지하고 있었나' — 접힌 상태는 그래프를 안 가리므로 열림으로 치지 않는다
   const _wasVisible = detailPanel.classList.contains('open') && !detailPanel.classList.contains('panel-collapsed');
   // 스택에 없으면 아래(최신)에 추가, 2개 넘치면 맨 위(가장 오래된) 제거
-  let added = false;
   if (!_stack.some(x => x.id === n.id)) {
     _stack.push(n);
     if (_stack.length > MAX_STACK) _stack.shift();
-    added = true;
   }
   // 사용자가 패널을 접어둔 상태면 노드를 눌러도 펼치지 않음 — 내용만 갱신하고 '열기' 버튼으로만 펼침
   if (_detailPanelCollapsed) {
     detailPanel.classList.add('open', 'panel-collapsed');
-    renderPanes(added ? n.id : null);
+    renderPanes();
     updateDetailReopenTab();
     pulseReopenTab(); // 접어둔 걸 잊고 '왜 안 열리지' 하는 걸 막는다
     return;
@@ -1363,7 +1366,7 @@ function openPanel(n, opts) {
   _yieldSidebarIfNarrow();
   detailPanel.classList.add('open'); detailPanel.classList.remove('panel-collapsed');
   statusEl.classList.add('panel-open');
-  renderPanes(added ? n.id : null);
+  renderPanes();
   updateDetailReopenTab();
   // 포커스 모드 중에는 노드를 눌러도 대상이 바뀌지 않는다 —
   // 매번 옮겨가면 '이 가지만 남기고 작업'이라는 목적 자체가 없어진다.

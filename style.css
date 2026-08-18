@@ -446,8 +446,7 @@ body.resizing-panes .detail-pane { transition: none; animation: none; }
 /* 분할 시 아래 패널은 위 패널과 맞닿으므로 위쪽 테두리 겹침(2px) 제거 */
 #detail-panes.split .detail-pane + .detail-pane { border-top: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
-@keyframes paneRise { from { opacity: 0; transform: translateY(var(--pane-shift)); } to { opacity: 1; transform: translateY(0); } }
-.detail-pane.pane-enter { animation: paneRise var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
+/* 새 패인·자리를 옮긴 패인 모두 JS(_flipPanes)가 같은 박자로 움직인다 */
 /* 자리를 옮긴 패인은 JS가 실제 이동 거리를 재서 transform으로 미끄러뜨린다(_flipPanes) */
 
 .detail-body { flex: 1; overflow-y: auto; }
