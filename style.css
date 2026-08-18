@@ -453,6 +453,9 @@ body.resizing-panes .detail-pane { transition: none; animation: none; }
 @keyframes paneDown { from { transform: translateY(calc(-1 * var(--pane-shift))); } to { transform: translateY(0); } }
 .detail-pane.pane-up { animation: paneUp var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
 .detail-pane.pane-down { animation: paneDown var(--pane-anim) cubic-bezier(0.4,0,0.2,1); }
+/* 스택에서 밀려난 패인 — 흐름 밖에 띄운 채 위로 빠진다(남는 패인이 그 자리를 차지하는 동안) */
+@keyframes paneLeave { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(calc(-1 * var(--pane-shift))); } }
+.detail-pane.pane-leave { position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; animation: paneLeave var(--pane-anim) cubic-bezier(0.4,0,0.2,1) forwards; }
 .detail-body { flex: 1; overflow-y: auto; }
 #tooltip { position: fixed; background: rgba(14,16,24,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #fff; pointer-events: none; display: none; z-index: 400; box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap; }
 #detail-panel { position: fixed; top: 0; right: -700px; width: var(--detail-w); max-width: calc(100vw - 72px); height: 100vh; height: 100dvh; background: transparent; border: none; z-index: 200; display: flex; flex-direction: column; transition: right 0.28s cubic-bezier(0.4,0,0.2,1); }

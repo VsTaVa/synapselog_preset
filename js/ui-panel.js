@@ -150,7 +150,18 @@ function renderPanes(animateId) {
   const wrap = document.getElementById('detail-panes');
   if (!wrap) return;
   wrap.classList.toggle('split', _stack.length >= 2);
-  wrap.innerHTML = '';
+  // 스택에서 빠진 패인은 지우기 전에 자리·크기를 고정해 띄워두고 위로 빠지게 한다.
+  // 그냥 innerHTML을 비우면 남는 쪽만 움직여 한쪽이 툭 사라진 것처럼 보인다
+  const alive = new Set(_stack.map(x => String(x.id)));
+  const leaving = Array.from(wrap.children).filter(el =>
+    el.classList.contains('detail-pane') && el.dataset.nid && !alive.has(el.dataset.nid));
+  leaving.forEach(el => {
+    el.style.top = el.offsetTop + 'px'; el.style.height = el.offsetHeight + 'px';
+    el.classList.add('pane-leave');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 2000); // 애니메이션이 눌린 환경(동작 줄이기) 대비
+  });
+  Array.from(wrap.children).forEach(el => { if (!leaving.includes(el)) el.remove(); });
   const nextIdx = new Map();
   _stack.forEach((node, i) => {
     nextIdx.set(node.id, i);
@@ -159,7 +170,7 @@ function renderPanes(animateId) {
     const moveCls = (wasAt === undefined || wasAt === i) ? ''
       : (wasAt > i ? ' pane-up' : ' pane-down'); // 위로 올라갔나, 아래로 밀렸나
     el.className = 'detail-pane' + (animateId && node.id === animateId ? ' pane-enter' : moveCls);
-    el.dataset.pane = i;
+    el.dataset.pane = i; el.dataset.nid = String(node.id);
     el.innerHTML =
       `<div class="detail-header">` +
         `<button class="detail-path-toggle" title="위치 보기" aria-expanded="false">` +
@@ -180,6 +191,7 @@ function renderPanes(animateId) {
     wrap.appendChild(el);
     renderPaneContent(i, node);
   });
+  leaving.forEach(el => wrap.appendChild(el)); // 흐름 밖(absolute)이라 순서는 무관하지만 맨 뒤에 둔다
   _prevPaneIdx = nextIdx;
   // 상하 분할이면 경계선 위에 얇은 드래그 핸들을 띄워 비율 조절 (패널은 계속 맞닿음)
   if (_stack.length >= 2) {
