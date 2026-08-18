@@ -199,7 +199,12 @@ const STATUS_PATH_LINGER = 500; // 호버가 풀리자마자 지우면 칩을 �
 function updateStatusPath() {
   const el = document.getElementById('status-path');
   if (!el) return;
-  const n = (typeof hoveredNode !== 'undefined' && hoveredNode) || null;
+  // 터치엔 호버가 없다 — 끌고 있는 노드, 그것도 없으면 지금 패널에 열린 노드를 기준으로
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const n = (typeof hoveredNode !== 'undefined' && hoveredNode)
+    || (typeof drag !== 'undefined' && drag)
+    || (coarse && typeof _activeNode !== 'undefined' ? _activeNode : null)
+    || null;
   if (n) {
     _statusPathLeftAt = 0;
     if (n.id === _statusPathId) return;
