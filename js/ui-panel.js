@@ -1349,6 +1349,7 @@ function toggleNodePanel(n) {
 }
 
 function closePanel() {
+  _searchNavMode = false; // 패널을 닫으면 레이아웃 배타 규칙을 원래대로
   _stack = []; _activeNode = null; _detailPanelCollapsed = false;
   detailPanel.classList.remove('open', 'panel-collapsed');
   statusEl.classList.remove('panel-open');

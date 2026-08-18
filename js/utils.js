@@ -29,7 +29,9 @@ const NARROW_AT = 1100;
 function _isNarrowLayout() { return window.innerWidth <= NARROW_AT; }
 
 // 사이드바와 상세 패널을 같이 열면 안 되는 상황 — 좁거나, 시트가 사이드바 아래쪽을 덮거나
-function _panelsExclusive() { return _isNarrowLayout() || _isSheetLayout(); }
+// 검색 순회 중에는 예외 — 검색란과 내용을 같이 봐야 엔터로 훑을 수 있다
+let _searchNavMode = false;
+function _panelsExclusive() { return !_searchNavMode && (_isNarrowLayout() || _isSheetLayout()); }
 
 // 패널이 그래프에서 차지하는 여백. 시트는 가로가 아니라 세로를 먹는다(안 나누면 availW가 음수가 됨)
 function _panelInsets() {
