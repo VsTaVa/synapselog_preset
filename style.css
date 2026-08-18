@@ -447,6 +447,8 @@ body.resizing-panes .detail-pane { transition: none; animation: none; }
 #detail-panes.split .detail-pane + .detail-pane { border-top: none; }
 #detail-panes.split .detail-pane { flex: 1 1 50%; min-height: 0; }
 /* 새 패인·자리를 옮긴 패인 모두 JS(_flipPanes)가 같은 박자로 움직인다 */
+/* 밀려난 패인의 잔상 — 흐름 밖에서 흐려지며 사라진다(실제 DOM은 이미 지워진 뒤) */
+.detail-pane.pane-ghost { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; opacity: 1; transition: opacity var(--pane-anim) linear; }
 /* 자리를 옮긴 패인은 JS가 실제 이동 거리를 재서 transform으로 미끄러뜨린다(_flipPanes) */
 
 .detail-body { flex: 1; overflow-y: auto; }
