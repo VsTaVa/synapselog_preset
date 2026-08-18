@@ -155,8 +155,8 @@ function setViewRotation(deg) {
   try { localStorage.setItem('snlog_rotation', String(_viewRotation)); } catch (e) {}
   showViewStatus();
 }
-// 하단 중앙 상태바 = 상시 상태 칩 + 잠깐 뜨는 확대·회전.
-// 둘을 각각의 span에 나눠 담는다 — 한 덩어리로 쓰면 확대 표시가 사라질 때 칩까지 지워진다
+// 하단 중앙 상태바 = 진행 안내(연결 모드) + 잠깐 뜨는 크기·회전.
+// 각각의 span에 나눠 담는다 — 한 덩어리로 쓰면 크기 표시가 사라질 때 안내까지 지워진다
 function _statusSpan(cls) {
   if (!statusEl) return null;
   let el = statusEl.querySelector('.' + cls);
@@ -185,47 +185,6 @@ function showViewStatus() {
   el.textContent = `크기 ${pct}%` + (deg ? `    ·   회전 ${deg}°` : '');
   _syncStatusBox();
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { el.textContent = ''; _syncStatusBox(); }, 1400);
-}
-// 화면을 좁히고 있는 상태를 확대·회전과 같은 자리에 띄운다 — 왜 노드가 안 보이는지 몰라 헤매던 것.
-// 상태가 바뀌는 지점이 여러 곳이라 매 프레임 확인하되, 문자열이 같으면 DOM은 건드리지 않는다
-let _statusFlagSig = '';
-// 호버한 노드가 어디에 속하는지 — 패널의 위치 경로와 같은 함수로 그린다(칩 모양이 갈라지지 않게)
-let _statusPathId = null, _statusPathLeftAt = 0;
-const STATUS_PATH_LINGER = 500; // 호버가 풀리자마자 지우면 칩을 누르러 갈 수가 없다
-function updateStatusPath() {
-  const el = document.getElementById('status-path');
-  if (!el) return;
-  const n = (typeof hoveredNode !== 'undefined' && hoveredNode) || null;
-  if (n) {
-    _statusPathLeftAt = 0;
-    if (n.id === _statusPathId) return;
-    _statusPathId = n.id;
-    const path = (typeof _nodePathHtml === 'function') ? _nodePathHtml(n) : '';
-    const self = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 14, className: 'node-chip--sm' }) : '';
-    el.innerHTML = path + self;
-    el.style.display = (path || self) ? 'flex' : 'none';
-    return;
-  }
-  if (!_statusPathId) return;
-  if (el.matches(':hover')) { _statusPathLeftAt = 0; return; } // 경로 위에 있으면 그대로 둔다
-  if (!_statusPathLeftAt) { _statusPathLeftAt = performance.now(); return; }
-  if (performance.now() - _statusPathLeftAt < STATUS_PATH_LINGER) return;
-  _statusPathId = null; el.innerHTML = ''; el.style.display = 'none';
-}
-function updateStatusFlags() {
-  const el = document.getElementById('status-flags');
-  if (!el) return;
-  const f = [];
-  if (typeof searchKeyword !== 'undefined' && searchKeyword) f.push(['검색', 'clearSearchMode']);
-  if (typeof _focusMode !== 'undefined' && _focusMode) f.push(['포커스 모드', 'clearFocusMode']);
-  if (typeof _isolateActive !== 'undefined' && _isolateActive) f.push(['격리', 'clearIsolateMode']);
-  if (typeof _connectMode !== 'undefined' && _connectMode) f.push(['연결 모드', 'clearConnectMode']);
-  const sig = f.map(x => x[0]).join('|');
-  if (sig === _statusFlagSig) return;
-  _statusFlagSig = sig;
-  el.innerHTML = f.map(([label, fn]) =>
-    `<button class="st-chip" onclick="${fn}()" title="${label} 해제">${label}<span class="st-chip-x">✕</span></button>`).join('');
-  el.style.display = f.length ? 'flex' : 'none';
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
