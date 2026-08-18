@@ -50,7 +50,7 @@ function pulseReopenTab() {
   void btn.offsetWidth;
   btn.classList.add('pulse');
   clearTimeout(btn._pulseT);
-  btn._pulseT = setTimeout(() => btn.classList.remove('pulse'), 1000);
+  btn._pulseT = setTimeout(() => btn.classList.remove('pulse'), 1300); // 깜빡임 2회(0.9초)보다 넉넉히 — 동작 줄이기에선 이 시간이 곧 표시 시간
 }
 function updateDetailReopenTab() {
   const btn = document.getElementById('detail-panel-sidebar-toggle');

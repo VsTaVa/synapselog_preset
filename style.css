@@ -466,6 +466,12 @@ body.resizing-panes .detail-pane { transition: none; }
   50% { width: 58px; background: var(--accent); box-shadow: 0 0 9px 3px rgba(var(--accent-rgb),0.7); }
 }
 #detail-panel-sidebar-toggle.pulse::before { animation: reopenPulse 0.45s ease-in-out 2; }
+/* 동작 줄이기가 켜져 있으면 위 애니메이션이 0.01ms로 눌린다 — 깜빡임 대신 그 시간 동안 켜둔다 */
+@media (prefers-reduced-motion: reduce) {
+  #detail-panel-sidebar-toggle.pulse::before {
+    background: var(--accent); box-shadow: 0 0 9px 3px rgba(var(--accent-rgb),0.7);
+  }
+}
 #detail-panel.panel-collapsed { right: calc(-1 * var(--detail-w) - 120px) !important; box-shadow: none !important; border-color: transparent !important; }
 
 .detail-body { flex: 1; overflow-y: auto; padding: 12px 20px 22px; min-height: 0; }
