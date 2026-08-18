@@ -57,10 +57,17 @@ function _legendBadgeImg(kind) {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
   const acc = cssRgb('--accent-rgb', [237,112,0]);
-  // 고정은 노드에 꽂힌 흰 핀, 나머지는 노드를 덮는 원반
+  // 고정은 노드에 꽂힌 흰 핀, 선택은 노드를 덮는 원반
   if (kind === 'fixed') _drawPin(g, cx, cy, 7 / R, '#ffffff', Math.PI / 4);
   else if (kind === 'select') _drawNodeState(g, cx, cy, R, acc, BADGE_INK_DARK, _drawCheck);
-  else _drawNodeState(g, cx, cy, R, [39,174,96], [255,255,255], _drawInfo);
+  else { // 상세 열림·검색 순회 = 깜빡이는 주황 링. 정지 이미지라 가장 밝은 순간을 그린다
+    const r0 = 7, outer = 18;
+    g.beginPath(); g.arc(cx, cy, r0, 0, Math.PI * 2); g.fillStyle = '#c9d3e2'; g.fill();
+    const gg = g.createRadialGradient(cx, cy, r0, cx, cy, outer);
+    gg.addColorStop(0, rgbStr(acc, 0.65)); gg.addColorStop(1, rgbStr(acc, 0));
+    g.beginPath(); g.arc(cx, cy, outer, 0, Math.PI * 2); g.arc(cx, cy, r0, 0, Math.PI * 2, true);
+    g.fillStyle = gg; g.fill();
+  }
   return `<img class="lg-shape-img" src="${c.toDataURL()}" width="18" height="18" alt="">`;
 }
 
@@ -84,7 +91,7 @@ function _legendSymbolsHtml() {
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
-      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 내용 열림</span></div>`
+      + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 열림 · 검색 순회 중</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
       + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
     + `</div>`;

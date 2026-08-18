@@ -353,16 +353,6 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-// 상세 열림 — 정보 'i'. 도안이 1024 좌표계라 좌표를 옮겨 적는 대신 Path2D로 그대로 쓴다
-const INFO_GLYPH = new Path2D('M 491.50 842.95 C448.55,836.26 423.56,818.12 414.41,787.00 C411.74,777.91 411.67,739.08 414.30,722.00 C417.87,698.83 431.35,634.66 442.45,588.00 C448.14,564.07 453.90,535.90 457.59,514.00 C460.80,494.91 461.60,469.12 459.16,463.34 C456.81,457.75 453.34,457.17 441.06,460.29 C428.39,463.52 418.67,468.13 410.30,474.90 L 404.09 479.92 L 391.80 466.86 C385.03,459.68 379.50,453.43 379.50,452.97 C379.50,451.54 394.96,434.08 406.50,422.48 C433.29,395.55 454.63,381.16 475.43,376.00 C487.31,373.05 507.01,373.50 516.71,376.95 C537.60,384.37 559.23,409.53 570.57,439.58 C577.10,456.88 579.99,482.09 578.13,505.53 C576.94,520.50 570.10,557.29 561.02,597.50 C549.06,650.50 540.34,693.98 538.46,709.99 C534.55,743.37 539.58,778.74 549.68,788.87 C552.82,792.02 553.40,792.21 558.27,791.79 C566.41,791.10 574.44,786.63 583.06,778.01 C594.75,766.32 605.08,749.50 613.10,729.12 C615.20,723.79 617.47,719.50 618.19,719.50 C620.35,719.50 645.93,738.38 645.97,740.00 C646.02,742.47 629.51,772.35 620.40,786.27 C600.88,816.09 578.37,831.23 539.00,841.02 C529.25,843.44 501.81,844.56 491.50,842.95 ZM 488.94 325.66 C478.63,322.60 472.84,319.00 463.88,310.09 C455.28,301.51 449.85,291.99 445.89,278.50 C443.85,271.57 443.54,268.36 443.54,254.50 C443.54,236.33 444.69,231.24 452.18,216.29 C461.07,198.54 476.69,186.72 496.94,182.43 C505.76,180.55 524.99,180.60 532.54,182.51 C549.42,186.77 565.96,198.75 573.25,212.00 C580.68,225.51 584.22,244.44 582.12,259.44 C578.01,288.81 560.69,312.31 536.00,322.02 C520.48,328.12 502.08,329.55 488.94,325.66 Z');
-function _drawInfo(ctx, bx, by, scale, color) {
-  ctx.save();
-  ctx.translate(bx, by); ctx.scale(1/scale, 1/scale);
-  ctx.scale(9.2/664, 9.2/664); // 도안의 원 대비 비율(664/1024)을 배지 지름 14px에 그대로 옮긴 값
-  ctx.translate(-513, -512); // 도안 중심을 배지 중심에
-  ctx.fillStyle = color; ctx.fill(INFO_GLYPH);
-  ctx.restore();
-}
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
@@ -585,19 +575,11 @@ function draw() {
         ctx.fillStyle = gDel2; ctx.fill();
       }
     }
-    // 우측 패널에 열린 노드: 은은한 녹색 글로우 — 노드를 덮기 전에 깔아야 테두리처럼 남는다
-    if(openPanelIdx.has(n.id)) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, r+11, 0, Math.PI*2);
-      const gOp = ctx.createRadialGradient(n.x, n.y, r+4, n.x, n.y, r+12);
-      gOp.addColorStop(0, 'rgba(46,204,113,0.32)'); gOp.addColorStop(1, 'rgba(46,204,113,0)');
-      ctx.fillStyle = gOp; ctx.fill();
-    }
-    // 선택·상세 열림은 노드 자리를 통째로 덮는다. 둘 다면 지금 하는 행동(선택)을 보여준다
+    // 상세가 열린 노드는 검색 순회와 같은 주황 펄스로 알린다(맨 위 레이어에서 한 번에 그림)
+    // 선택은 노드 자리를 통째로 덮는다
     const stAlpha = isDim ? 0.25 : 1;
     if(n.multiSelected && _multiSelected.indexOf(n) >= 0)
       _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
-    else if(openPanelIdx.has(n.id))
-      _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, [39,174,96], [255,255,255], _drawInfo, stAlpha);
     // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다.
     // 확대하면 노드에 비례해 커지고(7/r), 축소해도 화면 크기 밑으로는 안 줄어 눈에 남는다
     if(n.fixed) {
@@ -620,21 +602,24 @@ function draw() {
     ring(r + 18, 0.25);
     ring(r + 8, 0.45);
   });
-  // 검색 순회 중인 노드만 깜빡인다 — 결과가 다 밝으면 지금 어느 걸 보고 있는지 안 보인다
-  if (typeof _searchFocusId !== 'undefined' && _searchFocusId) {
-    const fn = nodeMap[_searchFocusId];
-    if (fn && fn.visible) {
-      const fr = nodeR(fn.level);
-      const puls = 0.5 + 0.5 * Math.sin(performance.now() / 260); // 0~1 왕복
-      const outer = fr + 10 + puls * 16;
-      const gP = ctx.createRadialGradient(fn.x, fn.y, fr, fn.x, fn.y, outer);
-      const acc = cssRgb('--accent-rgb', [237,112,0]);
+  // 깜빡이는 주황 링 — 검색으로 지금 보는 노드와 상세가 열린 노드에 같은 표시를 준다
+  const _pulseIds = new Set();
+  if (typeof _searchFocusId !== 'undefined' && _searchFocusId) _pulseIds.add(_searchFocusId);
+  openPanelIdx.forEach((_, id) => _pulseIds.add(id));
+  if (_pulseIds.size) {
+    const puls = 0.5 + 0.5 * Math.sin(performance.now() / 260); // 0~1 왕복
+    const acc = cssRgb('--accent-rgb', [237,112,0]);
+    _pulseIds.forEach(id => {
+      const pn = nodeMap[id];
+      if (!pn || !pn.visible) return;
+      const pr = nodeR(pn.level), outer = pr + 10 + puls * 16;
+      const gP = ctx.createRadialGradient(pn.x, pn.y, pr, pn.x, pn.y, outer);
       gP.addColorStop(0, rgbStr(acc, 0.15 + puls * 0.5)); gP.addColorStop(1, rgbStr(acc, 0));
       ctx.beginPath();
-      ctx.arc(fn.x, fn.y, outer, 0, Math.PI * 2);
-      ctx.arc(fn.x, fn.y, fr, 0, Math.PI * 2, true);
+      ctx.arc(pn.x, pn.y, outer, 0, Math.PI * 2);
+      ctx.arc(pn.x, pn.y, pr, 0, Math.PI * 2, true); // 노드 자리는 비워 색을 안 덮는다
       ctx.fillStyle = gP; ctx.fill();
-    }
+    });
   }
   ctx.restore();
 
