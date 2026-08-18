@@ -167,7 +167,7 @@ function _statusSpan(cls) {
 function _syncStatusBox() {
   if (!statusEl) return;
   const txt = c => (statusEl.querySelector('.' + c) || {}).textContent;
-  const has = statusEl.querySelector('.st-chip') || txt('st-view') || txt('st-hint');
+  const has = txt('st-view') || txt('st-hint');
   statusEl.style.display = has ? 'flex' : 'none';
 }
 // 연결 모드 같은 진행 안내 — 칩·확대 표시와 같은 상자에 나란히
@@ -190,7 +190,7 @@ function showViewStatus() {
 // 상태가 바뀌는 지점이 여러 곳이라 매 프레임 확인하되, 문자열이 같으면 DOM은 건드리지 않는다
 let _statusFlagSig = '';
 function updateStatusFlags() {
-  const el = _statusSpan('st-flags');
+  const el = document.getElementById('status-flags');
   if (!el) return;
   const f = [];
   if (typeof searchKeyword !== 'undefined' && searchKeyword) f.push(['검색', 'clearSearchMode']);
@@ -202,7 +202,7 @@ function updateStatusFlags() {
   _statusFlagSig = sig;
   el.innerHTML = f.map(([label, fn]) =>
     `<button class="st-chip" onclick="${fn}()" title="${label} 해제">${label}<span class="st-chip-x">✕</span></button>`).join('');
-  _syncStatusBox();
+  el.style.display = f.length ? 'flex' : 'none';
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 

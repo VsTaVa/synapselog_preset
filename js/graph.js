@@ -39,6 +39,7 @@ let _focusMode = false, _focusNodeId = null;
 let _connectMode = false, _connectFirstNode = null;
 let _fitAnimId = null;
 let _multiSelected = [], _isolateActive = false;
+let _simBoost = 0; // 배치를 바꾼 직후 몇 프레임 동안 물리를 여러 번 돌려 빨리 자리잡게 한다
 
 // 호버 강조 사슬 — 조상(루트까지) + 하위 트리 전체. 구조 링크만 따라간다(약한·수동 링크 제외).
 let _hoverChainId = null, _hoverChain = new Set();
@@ -58,6 +59,7 @@ function _computeHoverChain(n) {
 }
 // 흰색 글로우를 붙일 '활성 노드' — 검색은 searchDirect가, 포커스/경로찾기는 이 집합이 담당
 let _activeGlowIds = new Set();
+let _searchFocusId = null; // 검색 순회로 지금 보고 있는 노드 — 펄스 대상
 
 // 노드 색상 표현: 'node'=노드별 색(기본), 'depth'=헤딩 깊이별 색(#,##,###,####)
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
@@ -618,6 +620,22 @@ function draw() {
     ring(r + 18, 0.25);
     ring(r + 8, 0.45);
   });
+  // 검색 순회 중인 노드만 깜빡인다 — 결과가 다 밝으면 지금 어느 걸 보고 있는지 안 보인다
+  if (typeof _searchFocusId !== 'undefined' && _searchFocusId) {
+    const fn = nodeMap[_searchFocusId];
+    if (fn && fn.visible) {
+      const fr = nodeR(fn.level);
+      const puls = 0.5 + 0.5 * Math.sin(performance.now() / 260); // 0~1 왕복
+      const outer = fr + 10 + puls * 16;
+      const gP = ctx.createRadialGradient(fn.x, fn.y, fr, fn.x, fn.y, outer);
+      const acc = cssRgb('--accent-rgb', [237,112,0]);
+      gP.addColorStop(0, rgbStr(acc, 0.15 + puls * 0.5)); gP.addColorStop(1, rgbStr(acc, 0));
+      ctx.beginPath();
+      ctx.arc(fn.x, fn.y, outer, 0, Math.PI * 2);
+      ctx.arc(fn.x, fn.y, fr, 0, Math.PI * 2, true);
+      ctx.fillStyle = gP; ctx.fill();
+    }
+  }
   ctx.restore();
 
   // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로
@@ -987,7 +1005,7 @@ function computePageAnchors() {
 }
 
 // 배치 전환 시 제자리 미끄러짐 — 목표 좌표는 이미 노드에 들어 있고, 시작점으로 되돌려 보간한다
-function _tweenNodes(prev, dur, done) {
+function _tweenNodes(prev, dur) {
   const to = prev.map(f => ({ x: f.n.x, y: f.n.y }));
   const t0 = performance.now();
   const step = () => {
@@ -996,7 +1014,7 @@ function _tweenNodes(prev, dur, done) {
       const f = prev[i], g = to[i];
       f.n.x = f.x + (g.x - f.x) * e; f.n.y = f.y + (g.y - f.y) * e;
     }
-    if (t < 1) requestAnimationFrame(step); else if (done) done();
+    if (t < 1) requestAnimationFrame(step);
   };
   step();
 }
@@ -1011,22 +1029,16 @@ function setLayoutMode(mode) {
     applyTreeLayout();
   } else {
     // force / cluster: 물리 시뮬 재가동
-    const prev = nodes.map(n => ({ n, x: n.x, y: n.y }));
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     _layoutSig = -1; isStable = false;
     if (_layoutMode === 'cluster') { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
-    // 물리는 목표 좌표가 미리 없다 → 여기서 몇 스텝 돌려 대략 자리를 잡고 그리로 미끄러뜨린다.
-    // 스텝 수는 노드가 많을수록 줄인다(반발력이 O(n²)라 그대로 두면 전환에서 멈칫한다)
-    const steps = Math.max(24, Math.min(140, Math.round(9000 / Math.max(1, nodes.length))));
-    for (let i = 0; i < steps; i++) simulate();
-    tween = prev;
-    nodes.forEach(n => { n._frozen = true; }); // 미끄러지는 동안은 물리를 멈춰 좌표가 덮이지 않게
+    // 물리는 목표 좌표가 미리 없어 트윈을 못 건다 → 대신 잠깐 빨리 돌려 눈에 보이게 풀리게 한다.
+    // 미리 몇 스텝 돌려 보간하는 방식은 실패했다: 수렴에 수백 스텝이 필요해 목표가 출발점과 같았다
+    _simBoost = 90;
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
   if (typeof fitGraph === 'function') fitGraph(false); // 화면 맞춤은 최종 좌표로 계산돼야 해서 먼저
-  if (tween) _tweenNodes(tween, 620, () => { // 그 뒤 노드를 원래 자리에서 미끄러뜨린다(카메라와 같은 시간)
-    if (_layoutMode !== 'radial') { nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; }); isStable = false; }
-  });
+  if (tween) _tweenNodes(tween, 620); // 그 뒤 노드를 원래 자리에서 미끄러뜨린다(카메라와 같은 시간)
 }
 
 // ── 링크 해석: [텍스트](노션URL)의 URL 속 ID로 노드 매칭 ──────────────

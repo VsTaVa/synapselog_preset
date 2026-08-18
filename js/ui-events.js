@@ -139,11 +139,11 @@ function doSearch(kw) {
         el.addEventListener('click', () => { const nn = nodeMap[el.dataset.nid]; if (nn && typeof focusViewOnNode === 'function') focusViewOnNode(nn); });
       });
     }
-    _searchHits = [...directMatches]; _searchCursor = -1; // 엔터를 다시 누르면 여기부터 하나씩 돈다
+    _searchHits = [...directMatches]; _searchCursor = -1; _searchFocusId = null; // 엔터를 다시 누르면 여기부터 하나씩 돈다
     _updateSearchCount();
   } else {
     clearGraphHighlight();
-    _searchHits = []; _searchCursor = -1;
+    _searchHits = []; _searchCursor = -1; _searchFocusId = null;
     if (resultEl) resultEl.style.display = 'none';
     if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
   }
@@ -166,9 +166,20 @@ function _updateSearchCount() {
 function gotoSearchMatch(dir) {
   if (!_searchHits.length) return;
   _searchCursor = (_searchCursor + dir + _searchHits.length) % _searchHits.length;
-  const n = nodeMap[_searchHits[_searchCursor]];
+  const id = _searchHits[_searchCursor], n = nodeMap[id];
+  _searchFocusId = id;
   if (n && typeof focusViewOnNode === 'function') focusViewOnNode(n);
+  _markSearchChip(id);
   _updateSearchCount();
+  isStable = false; // 펄스가 돌려면 물리가 멎어도 다시 그려야 한다
+}
+// 결과 칩 목록에서도 지금 보고 있는 것만 깜빡이게
+function _markSearchChip(id) {
+  const box = document.getElementById('search-results');
+  if (!box) return;
+  box.querySelectorAll('.node-chip[data-nid]').forEach(el => {
+    el.classList.toggle('chip-pulse', el.dataset.nid === String(id));
+  });
 }
 
 // AI 근거/추천 노드들을 그래프에서 하이라이트 (검색 하이라이트 메커니즘 재활용)
@@ -181,14 +192,14 @@ function highlightAiNodes(nodeList) {
 searchInput.addEventListener('input', e => doSearch(e.target.value));
 // 확정 검색(엔터·검색 버튼)만 기록 — 타이핑 중간값이 기록에 쌓이지 않게
 function _commitSearch() { const kw = searchInput.value.trim(); doSearch(kw); if (kw) addHistory(kw); }
-searchInput.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
+// 엔터와 돋보기가 같게 동작한다 — 처음이면 검색, 같은 말로 또 누르면 다음 결과로
+function searchCommitOrNext(back) {
   const kw = searchInput.value.trim();
-  // 같은 말로 다시 엔터 = 다음 결과로 이동(검색을 새로 돌리면 커서가 초기화돼 제자리걸음이 된다)
-  if (kw && kw === _searchCommitted && _searchHits.length) { gotoSearchMatch(e.shiftKey ? -1 : 1); return; }
+  if (kw && kw === _searchCommitted && _searchHits.length) { gotoSearchMatch(back ? -1 : 1); return; }
   _commitSearch(); _searchCommitted = kw;
-});
-document.getElementById('search-btn').addEventListener('click', _commitSearch);
+}
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchCommitOrNext(e.shiftKey); });
+document.getElementById('search-btn').addEventListener('click', () => searchCommitOrNext(false));
 clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
 
 
@@ -1006,7 +1017,11 @@ let _loopRunning = false;
 function loop() {
   if (_loopRunning) return;
   _loopRunning = true;
-  const tick = () => { simulate(); draw(); repositionMultiSelectMenu(); updateStatusFlags(); requestAnimationFrame(tick); };
+  const tick = () => {
+    const k = _simBoost > 0 ? (_simBoost--, 3) : 1; // 전환 직후만 3배속
+    for (let i = 0; i < k; i++) simulate();
+    draw(); repositionMultiSelectMenu(); updateStatusFlags(); requestAnimationFrame(tick);
+  };
   tick();
 }
 
