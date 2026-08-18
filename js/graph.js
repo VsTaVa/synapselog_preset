@@ -986,12 +986,28 @@ function computePageAnchors() {
   return anchors;
 }
 
+// 배치 전환 시 제자리 미끄러짐 — 목표 좌표는 이미 노드에 들어 있고, 시작점으로 되돌려 보간한다
+function _tweenNodes(prev, dur) {
+  const to = prev.map(f => ({ x: f.n.x, y: f.n.y }));
+  const t0 = performance.now();
+  const step = () => {
+    const t = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+    for (let i = 0; i < prev.length; i++) {
+      const f = prev[i], g = to[i];
+      f.n.x = f.x + (g.x - f.x) * e; f.n.y = f.y + (g.y - f.y) * e;
+    }
+    if (t < 1) requestAnimationFrame(step);
+  };
+  step();
+}
 function setLayoutMode(mode) {
+  let tween = null;
   _layoutMode = (mode === 'radial' || mode === 'cluster') ? mode : 'force';
   try { localStorage.setItem('snlog_layout', _layoutMode); } catch(e) {}
   if (_layoutMode === 'radial') {
     _viewRotation = 0; // 방사형은 똑바로(회전 리셋)
     try { localStorage.setItem('snlog_rotation', '0'); } catch(e) {}
+    tween = nodes.map(n => ({ n, x: n.x, y: n.y })); // 지금 자리를 기억해 두고 목표로 옮긴다
     applyTreeLayout();
   } else {
     // force / cluster: 물리 시뮬 재가동
@@ -1000,7 +1016,8 @@ function setLayoutMode(mode) {
     if (_layoutMode === 'cluster') { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
-  if (typeof fitGraph === 'function') fitGraph(false);
+  if (typeof fitGraph === 'function') fitGraph(false); // 화면 맞춤은 최종 좌표로 계산돼야 해서 먼저
+  if (tween) _tweenNodes(tween, 620); // 그 뒤 노드를 원래 자리에서 미끄러뜨린다(카메라와 같은 시간)
 }
 
 // ── 링크 해석: [텍스트](노션URL)의 URL 속 ID로 노드 매칭 ──────────────
