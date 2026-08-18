@@ -651,6 +651,8 @@ body { --gz-l: 56px; --gz-r: 0px; }
 body:has(#sidebar.open:not(.collapsed)) { --gz-l: calc(56px + var(--sidebar-w)); }
 body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
 /* 상태 칩 — 확대·회전 상자 바로 위에 따로 뜬다(그 상자는 잠깐 보였다 사라지므로 같이 두면 칩까지 흔들린다) */
+/* 호버한 노드의 상위 경로 — 상태 칩보다 한 줄 더 위. 칩은 눌러서 이동할 수 있어야 하므로 클릭을 받는다 */
+#status-path { position: fixed; bottom: 88px; left: calc(var(--gz-l) + (100vw - var(--gz-l) - var(--gz-r)) / 2); transform: translateX(-50%); z-index: 120; display: none; align-items: center; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: min(70vw, 640px); pointer-events: auto; background: rgba(18,20,28,0.85); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 8px; padding: 5px 10px; }
 #status-flags { position: fixed; bottom: 52px; left: calc(var(--gz-l) + (100vw - var(--gz-l) - var(--gz-r)) / 2); transform: translateX(-50%); z-index: 120; display: none; align-items: center; gap: 6px; }
 #status { display: flex; align-items: center; gap: 8px; }
 .st-chip { display: inline-flex; align-items: center; gap: 5px; pointer-events: auto; background: rgba(var(--accent-rgb),0.16); border: 1px solid rgba(var(--accent-rgb),0.4); color: var(--accent); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
@@ -853,12 +855,16 @@ body:has(#detail-panel.open:not(.panel-collapsed)) { --gz-r: var(--detail-w); }
   /* 세로모드는 패널이 바닥 시트라 가로를 안 잠식 → 화면 가운데 그대로 */
   #status { bottom: 32px; left: 50%; }
   #status-flags { bottom: 68px; left: 50%; } /* 확대 표시 위 한 줄 */
+  #status-path { bottom: 104px; left: 50%; max-width: 86vw; }
   /* 시트가 떠 있으면 손잡이는 숨으므로 시트 바로 위로 — 안 그러면 시트 뒤에 깔린다 */
   body:has(#detail-panel.open:not(.panel-collapsed)) #status {
     bottom: calc(var(--sheet-eff) + 16px);
   }
   body:has(#detail-panel.open:not(.panel-collapsed)) #status-flags {
     bottom: calc(var(--sheet-eff) + 52px);
+  }
+  body:has(#detail-panel.open:not(.panel-collapsed)) #status-path {
+    bottom: calc(var(--sheet-eff) + 88px);
   }
   /* 시트는 가로를 다 쓴다. 바깥 규칙이 특정도(2,1,0)로 더 높아 여기서 같은 선택자로 눌러야 한다 */
   #detail-panel, #sidebar.open ~ #detail-panel { max-width: none; }
