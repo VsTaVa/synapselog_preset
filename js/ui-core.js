@@ -186,6 +186,29 @@ function showViewStatus() {
   _syncStatusBox();
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { el.textContent = ''; _syncStatusBox(); }, 1400);
 }
+// 호버한 노드가 어디에 속하는지 — 패널의 위치 경로와 같은 함수로 그린다(칩 모양이 갈라지지 않게)
+let _statusPathId = null, _statusPathLeftAt = 0;
+const STATUS_PATH_LINGER = 500; // 호버가 풀리자마자 지우면 칩을 누르러 갈 수가 없다
+function updateStatusPath() {
+  const el = document.getElementById('status-path');
+  if (!el) return;
+  const n = (typeof hoveredNode !== 'undefined' && hoveredNode) || null;
+  if (n) {
+    _statusPathLeftAt = 0;
+    if (n.id === _statusPathId) return;
+    _statusPathId = n.id;
+    const path = (typeof _nodePathHtml === 'function') ? _nodePathHtml(n) : '';
+    const self = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 14, className: 'node-chip--sm' }) : '';
+    el.innerHTML = path + self;
+    el.style.display = (path || self) ? 'flex' : 'none';
+    return;
+  }
+  if (!_statusPathId) return;
+  if (el.matches(':hover')) { _statusPathLeftAt = 0; return; } // 경로 위에 있으면 그대로 둔다
+  if (!_statusPathLeftAt) { _statusPathLeftAt = performance.now(); return; }
+  if (performance.now() - _statusPathLeftAt < STATUS_PATH_LINGER) return;
+  _statusPathId = null; el.innerHTML = ''; el.style.display = 'none';
+}
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
 // 데스크탑 노드 선택: 우클릭 고정 (모바일은 더블탭)
