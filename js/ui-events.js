@@ -169,6 +169,10 @@ function gotoSearchMatch(dir) {
   const id = _searchHits[_searchCursor], n = nodeMap[id];
   _searchFocusId = id;
   if (n && typeof focusViewOnNode === 'function') focusViewOnNode(n);
+  // 엔터만으로 내용까지 훑게. 단 좁은 화면은 패널이 검색란을 밀어내 순회가 끊긴다 → 그땐 안 연다
+  const narrow = typeof _panelsExclusive === 'function' && _panelsExclusive();
+  if (n && !narrow && typeof openPanel === 'function') openPanel(n);
+  if (searchInput) searchInput.focus(); // 패널이 포커스를 가져가면 다음 엔터가 안 먹는다
   _markSearchChip(id);
   _updateSearchCount();
   isStable = false; // 펄스가 돌려면 물리가 멎어도 다시 그려야 한다
