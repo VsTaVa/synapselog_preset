@@ -41,7 +41,9 @@ canvas { display: block; }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
 .ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 /* 그래프 설정 항목: 가로 배치인 줄은 설명이 아래로 내려가게 감싼다 */
-.ctrl-group:has(.ms-desc) { flex-wrap: wrap; }
+/* row-gap은 0으로 눌러둔다 — 항목의 gap(라벨↔컨트롤 간격)이 줄바꿈에도 걸려
+   그 항목만 설명 줄 간격이 벌어졌다(노드 색상 gap:8px) */
+.ctrl-group:has(.ms-desc) { flex-wrap: wrap; row-gap: 0; }
 .ctrl-group > .ms-desc { display: block; flex-basis: 100%; max-width: none; margin: 6px 0 0; }
 .ctrl-group > .ms-desc + .ms-desc { margin-top: 2px; }
 /* 설명 다음이 슬라이더 — 붙어 보이지 않게 */
