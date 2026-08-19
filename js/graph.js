@@ -398,7 +398,7 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
 }
 // 많이 축소하면 페이지 이름을 크게 얹는다 — 덩어리가 어느 페이지인지 알 수 없어서.
 // 노드 제목이 이미 작아져 안 읽히는 구간이라 서로 부딪히지 않는다
-const PAGE_TITLE_AT = 0.42; // 이 배율 밑에서만
+const PAGE_TITLE_AT = 0.3; // 이 배율 밑에서만 — 조금만 확대해도 사라지게
 function _drawPageTitles() {
   if (!_clusterMode || scale > PAGE_TITLE_AT) return;
   const roots = nodes.filter(n => n.visible && n.level === 0);
@@ -413,7 +413,7 @@ function _drawPageTitles() {
     if (p.x < -80 || p.x > W + 80 || p.y < -40 || p.y > H + 40) return;
     const label = (n.label || '').slice(0, 16);
     if (!label) return;
-    const y = p.y - 26;
+    const y = p.y + 30; // 최상위 노드 아래 — 위에 두면 그쪽 가지를 가린다
     ctx.fillStyle = rgbStr(bgRgb(), fade);
     ctx.shadowColor = rgbStr(bgRgb(), fade); ctx.shadowBlur = 8 * DPR;
     ctx.fillText(label, p.x, y); ctx.fillText(label, p.x, y);
@@ -452,15 +452,16 @@ function _drawOffscreenPages() {
     drawStar8(ctx, ex, ey, 9);
     ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
     ctx.globalAlpha = 1;
-    // 이름은 화면 안쪽으로 붙인다 — 가장자리 밖으로 나가면 잘린다
+    // 이름은 별 아래에 — 그래프의 최상위 노드와 같은 배치라 눈이 헷갈리지 않는다.
+    // 아래 가장자리에 붙었을 때만 화면 밖이 되므로 그때는 위로 올린다
     const label = (n.label || '').replace(/\s+/g, ' ').slice(0, 12);
     if (label) {
-      const inward = 16;
-      const lx = ex + (ex <= minX + 1 ? inward : ex >= maxX - 1 ? -inward : 0);
-      const ly = ey + (ey <= minY + 1 ? inward : ey >= maxY - 1 ? -inward : 0);
+      const below = ey < maxY - 20;
+      const lx = Math.min(maxX - 4, Math.max(minX + 4, ex));
+      const ly = ey + (below ? 15 : -15);
       ctx.font = "700 10.5px 'Noto Sans KR',sans-serif";
-      ctx.textAlign = ex >= maxX - 1 ? 'right' : (ex <= minX + 1 ? 'left' : 'center');
-      ctx.textBaseline = ey >= maxY - 1 ? 'bottom' : (ey <= minY + 1 ? 'top' : 'middle');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = below ? 'top' : 'bottom';
       ctx.fillStyle = rgbStr(bgRgb(), 1);
       ctx.shadowColor = rgbStr(bgRgb(), 1); ctx.shadowBlur = 5 * DPR;
       ctx.fillText(label, lx, ly); ctx.fillText(label, lx, ly);
