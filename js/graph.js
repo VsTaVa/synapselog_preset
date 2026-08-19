@@ -29,9 +29,17 @@ let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('sn
 
 // 노드 연결(위키링크 엣지) 표시 여부
 let _showConnections = (() => { try { return localStorage.getItem('snlog_show_conn') !== 'false'; } catch(e) { return true; } })();
-// 그래프 배치 모드: 'force'(힘기반·기본) | 'radial'(방사형 트리) | 'cluster'(페이지별 클러스터)
+// 그래프 배치: 'radial'(방사형 트리·기본) | 'force'(힘기반). 페이지별 나눔은 _clusterMode로 따로 켠다
 // 저장값이 없으면 방사형이 기본 — 처음 여는 사람에게 계층이 한눈에 보인다
-let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'force' || v === 'cluster') ? v : 'radial'; } catch(e) { return 'radial'; } })();
+// 옛 저장값 'cluster'는 힘기반 + 페이지별로 나뉘었다 → 읽을 때 옮겨 준다
+let _layoutMode = (() => { try { const v = localStorage.getItem('snlog_layout'); return (v === 'force' || v === 'cluster') ? 'force' : 'radial'; } catch(e) { return 'radial'; } })();
+// 페이지별로 나눠 볼지 — 배치(방사형·힘기반)와 곱해져서 네 조합이 된다
+let _clusterMode = (() => {
+  try {
+    if (localStorage.getItem('snlog_layout') === 'cluster') return true;
+    return localStorage.getItem('snlog_cluster') === '1';
+  } catch(e) { return false; }
+})();
 let _layoutSig = -1; // 마지막 트리 배치 시 노드 수(변하면 재배치)
 let _pageAnchors = null, _clusterSig = -1; // 클러스터 모드: 페이지별 중력 앵커
 
@@ -290,7 +298,7 @@ function simulate() {
   }
   if (isStable && !drag) return;
   // 페이지별 클러스터: 페이지마다 중력 앵커를 따로 둬서 섬처럼 뭉침. 페이지 집합 바뀌면 앵커 재계산
-  const clusterMode = _layoutMode === 'cluster';
+  const clusterMode = _clusterMode;
   if (clusterMode && (!_pageAnchors || nodes.length !== _clusterSig)) { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
   const repulsion = CONFIG.repulsion, damping = 0.92, centerForce = CONFIG.gravity;
   const fixedDescendants = new Set();
@@ -957,14 +965,51 @@ function _buildForest() {
 }
 
 // 계산된 좌표를 노드에 적용(전체 노드 대상 → reveal/격리와 무관하게 안정적)
+// 페이지별이 켜지면 페이지마다 독립된 방사형 트리를 만들고, 트리 크기에 맞춰 원형으로 벌려 놓는다.
+// 꺼져 있으면 예전처럼 전체가 하나의 동심원.
 function applyTreeLayout() {
   _layoutSig = nodes.length;
   if (!nodes.length) return;
   const { childrenOf, roots } = _buildForest();
+  // 방사형 간격: 반발력↑ → 노드 간 넓게, 중력↑ → 계층(링) 간 촘촘
+  const repK = Math.max(0.3, CONFIG.repulsion / 500);   // 기본 500 → 1
+  const gravK = Math.max(0.3, CONFIG.gravity / 0.0010); // 기본 0.0010 → 1
+  const rStep = 155 * repK / gravK;
+
   const visited = new Set();
-  const pos = {}; // id -> { slot, depth }
+  const groups = [];
+  if (_clusterMode) {
+    const byPage = new Map();
+    roots.forEach(id => {
+      const k = (nodeMap[id] && nodeMap[id].sourcePageId) || '_root';
+      if (!byPage.has(k)) byPage.set(k, []);
+      byPage.get(k).push(id);
+    });
+    byPage.forEach(rs => groups.push(rs));
+  } else groups.push(roots);
+
+  const laid = groups.map(rs => _layoutTreeGroup(rs, childrenOf, visited, rStep));
+  // 어느 트리에도 안 걸린 노드(끊긴 것)는 마지막에 중앙 주위로
+  const orphans = nodes.filter(n => !visited.has(n.id));
+  if (orphans.length) laid.push({ items: orphans.map((n, i) => ({
+    n, ang: (i / orphans.length) * Math.PI * 2, r: rStep * 0.6 }), ), maxR: rStep * 0.6 });
+
+  // 트리가 하나면 화면 중앙, 여럿이면 가장 큰 트리에 맞춰 원형으로 — 반지름이 모자라면 서로 겹친다
+  if (laid.length === 1) _placeTree(laid[0], WORLD_CX, WORLD_CY);
+  else {
+    const maxR = Math.max(...laid.map(g => g.maxR), rStep);
+    const ring = Math.max(maxR * 1.6, maxR + rStep * 2);
+    laid.forEach((g, i) => {
+      const ang = (i / laid.length) * Math.PI * 2 - Math.PI / 2;
+      _placeTree(g, WORLD_CX + Math.cos(ang) * ring, WORLD_CY + Math.sin(ang) * ring);
+    });
+  }
+  isStable = true;
+}
+// 트리 하나의 상대 좌표(각도·반지름)만 계산한다 — 어디에 놓을지는 부르는 쪽이 정한다
+function _layoutTreeGroup(rootIds, childrenOf, visited, rStep) {
+  const pos = {};
   let leafCursor = 0;
-  // 후위순회: 리프는 순차 슬롯, 내부노드는 자식 슬롯 평균
   function walk(id, depth) {
     if (visited.has(id)) return null;
     visited.add(id);
@@ -978,25 +1023,27 @@ function applyTreeLayout() {
     pos[id] = { slot, depth };
     return slot;
   }
-  roots.forEach(r => { walk(r, 0); leafCursor += 1; }); // 뿌리 사이 한 칸 띄움
-  nodes.forEach(n => { if (!pos[n.id]) pos[n.id] = { slot: leafCursor++, depth: 0 }; }); // 고아 보정
+  rootIds.forEach(r => { walk(r, 0); leafCursor += 1; }); // 뿌리 사이 한 칸 띄움
   const totalLeaves = Math.max(leafCursor, 1);
-
-  // 방사형 간격: 반발력↑ → 노드 간 넓게, 중력↑ → 계층(링) 간 촘촘
-  const repK = Math.max(0.3, CONFIG.repulsion / 500);   // 기본 500 → 1
-  const gravK = Math.max(0.3, CONFIG.gravity / 0.0010); // 기본 0.0010 → 1
-  const rStep = 155 * repK / gravK;
-  const baseR = roots.length > 1 ? rStep * 0.7 : 0; // 다중 페이지면 뿌리를 안쪽 원에
+  const baseR = rootIds.length > 1 ? rStep * 0.7 : 0; // 뿌리가 여럿이면 안쪽 원에
   const ringR = _ringRadii(pos, totalLeaves, baseR, rStep);
-  nodes.forEach(n => {
-    const p = pos[n.id];
-    const ang = (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2;
-    const r = ringR[p.depth];
-    n.x = WORLD_CX + Math.cos(ang) * r;
-    n.y = WORLD_CY + Math.sin(ang) * r;
+  const items = [];
+  let maxR = 0;
+  Object.keys(pos).forEach(id => {
+    const n = nodeMap[id];
+    if (!n) return;
+    const p = pos[id], r = ringR[p.depth];
+    items.push({ n, ang: (p.slot / totalLeaves) * Math.PI * 2 - Math.PI / 2, r });
+    if (r > maxR) maxR = r;
+  });
+  return { items, maxR };
+}
+function _placeTree(group, cx, cy) {
+  group.items.forEach(({ n, ang, r }) => {
+    n.x = cx + Math.cos(ang) * r;
+    n.y = cy + Math.sin(ang) * r;
     n.vx = n.vy = 0; n._frozen = true; n._frozenFrames = 0;
   });
-  isStable = true;
 }
 
 // 링별 반지름 — 깊이가 같아도 각도폭은 같으므로 안쪽 링일수록 호가 짧아 붙는다.
@@ -1049,9 +1096,19 @@ function _tweenNodes(prev, dur) {
   };
   step();
 }
+// 페이지별로 나눠 보기 — 배치와 곱해져 네 조합이 된다(방사형/힘기반 × 나눔/합침)
+function setClusterMode(on) {
+  _clusterMode = !!on;
+  try { localStorage.setItem('snlog_cluster', _clusterMode ? '1' : '0'); } catch(e) {}
+  _pageAnchors = _clusterMode ? computePageAnchors() : null;
+  _clusterSig = nodes.length;
+  if (_layoutMode === 'radial') { applyTreeLayout(); }
+  else { nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; }); isStable = false; _simBoost = 90; }
+  if (typeof fitGraph === 'function') fitGraph(false);
+}
 function setLayoutMode(mode) {
   let tween = null;
-  _layoutMode = (mode === 'radial' || mode === 'cluster') ? mode : 'force';
+  _layoutMode = (mode === 'radial') ? 'radial' : 'force';
   try { localStorage.setItem('snlog_layout', _layoutMode); } catch(e) {}
   if (_layoutMode === 'radial') {
     _viewRotation = 0; // 방사형은 똑바로(회전 리셋)
@@ -1062,7 +1119,7 @@ function setLayoutMode(mode) {
     // force / cluster: 물리 시뮬 재가동
     nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
     _layoutSig = -1; isStable = false;
-    if (_layoutMode === 'cluster') { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
+    if (_clusterMode) { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
     // 물리는 목표 좌표가 미리 없어 트윈을 못 건다 → 대신 잠깐 빨리 돌려 눈에 보이게 풀리게 한다.
     // 미리 몇 스텝 돌려 보간하는 방식은 실패했다: 수렴에 수백 스텝이 필요해 목표가 출발점과 같았다
     _simBoost = 90;

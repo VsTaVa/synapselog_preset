@@ -162,7 +162,8 @@
       <button type="button" class="rail-subhead rail-sec-head" data-sec="nodemode" onclick="toggleRailSec('nodemode')"><svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg><span>노드 모드</span></button>
       <div class="rail-secbody" data-sec="nodemode">
       <div class="ctrl-group" data-help="노드별 = 가지마다 다른 색, 깊이별 = 헤딩 단계에 따라 명도 변화" style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><span style="font-size:13px; color:#fff;">노드 색상</span><div class="seg-toggle"><button id="cs-node" class="active" onclick="setColorScheme('node')">노드별</button><button id="cs-depth" onclick="setColorScheme('depth')">깊이별</button></div></div>
-      <div class="ctrl-group" data-help="방사형 = 계층을 원으로, 힘기반 = 자유 배치, 페이지별 = 같은 페이지끼리 뭉침" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;">그래프 배치</span><div class="seg-toggle"><button id="lm-radial" class="active" onclick="setLayoutMode('radial')">방사형</button><button id="lm-force" onclick="setLayoutMode('force')">힘기반</button><button id="lm-cluster" onclick="setLayoutMode('cluster')">페이지별</button></div></div>
+      <div class="ctrl-group" data-help="방사형 = 계층을 원으로, 힘기반 = 자유 배치" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;">그래프 배치</span><div class="seg-toggle"><button id="lm-radial" class="active" onclick="setLayoutMode('radial')">방사형</button><button id="lm-force" onclick="setLayoutMode('force')">힘기반</button></div></div>
+      <div class="ctrl-group" data-help="페이지마다 따로 묶어서 본다 — 배치와 함께 걸린다(방사형이면 페이지마다 원이 하나씩)" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;">페이지별로 나누기</span><label class="ck-orange"><input type="checkbox" id="cluster-toggle-input" onchange="setClusterMode(this.checked)"><span class="ck-box"></span></label></div>
       <div class="ctrl-group" data-help="본문 링크로 이어진 점선 표시 여부" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff; display:flex; align-items:center; gap:6px;"><span>노드 연결 표시</span><span class="shortcut-hint" id="hint-toggleConnections"></span></span><label class="ck-orange"><input type="checkbox" id="conn-toggle-input" checked onchange="toggleConnections()"><span class="ck-box"></span></label></div>
       </div>
       <button type="button" class="rail-subhead rail-sec-head mt" data-sec="graphset" onclick="toggleRailSec('graphset')"><svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg><span>슬라이더</span></button>
@@ -261,16 +262,16 @@
 
 <script src="js/utils.js?v=20260817a" defer></script>
 <script src="js/icons.js?v=20260816a" defer></script>
-<script src="js/sample.js?v=20260816a" defer></script>
-<script src="js/graph.js?v=20260818a" defer></script>
+<script src="js/sample.js?v=20260819a" defer></script>
+<script src="js/graph.js?v=20260819a" defer></script>
 <script src="js/notion-client.js?v=20260816a" defer></script>
 <script src="js/export.js?v=20260807b" defer></script>
-<script src="js/ui-core.js?v=20260818g" defer></script>
-<script src="js/ui-legend.js?v=20260817b" defer></script>
+<script src="js/ui-core.js?v=20260819a" defer></script>
+<script src="js/ui-legend.js?v=20260819a" defer></script>
 <script src="js/ui-ai.js?v=20260816a" defer></script>
 <script src="js/ui-embed.js?v=20260817a" defer></script>
 <script src="js/ui-rail.js?v=20260820a" defer></script>
 <script src="js/ui-panel.js?v=20260818k" defer></script>
-<script src="js/ui-events.js?v=20260818a" defer></script>
+<script src="js/ui-events.js?v=20260819a" defer></script>
 </body>
 </html>

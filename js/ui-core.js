@@ -148,7 +148,7 @@ function setViewRotation(deg) {
   const newRot = deg * Math.PI / 180;
   // 회전축: 페이지별(cluster) 배치는 밀도에 안 쏠리는 기하학적 중심(링 정중앙),
   // 그 외에는 보이는 노드 무게중심. 회전 전 화면상 위치를 유지하도록 팬 보정
-  const c = (_layoutMode === 'cluster' ? visibleBBoxCenter() : visibleCentroid());
+  const c = (_clusterMode ? visibleBBoxCenter() : visibleCentroid()); // 나눠 놓으면 무게중심이 빈 가운데로 쏠린다
   if (c) {
     const sb = worldToScreen(c.x, c.y); // 회전 전 무게중심의 화면 위치
     _viewRotation = newRot;

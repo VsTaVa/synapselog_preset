@@ -113,8 +113,12 @@ function toggleConnections() {
   isStable = false;
 }
 
+function syncClusterToggle() {
+  const cb = document.getElementById('cluster-toggle-input');
+  if (cb) cb.checked = _clusterMode;
+}
 function syncLayoutButtons() {
-  const ids = { force: 'lm-force', radial: 'lm-radial', cluster: 'lm-cluster' };
+  const ids = { force: 'lm-force', radial: 'lm-radial' };
   Object.keys(ids).forEach(k => {
     const el = document.getElementById(ids[k]);
     if (el) el.classList.toggle('active', _layoutMode === k);
