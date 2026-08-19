@@ -423,7 +423,7 @@ canvas.addEventListener('mousedown', e => {
   const n = getNodeAt(e.clientX, e.clientY);
   mouseDownNode = n;
   if (n) { drag = n; isStable = false; }
-  else { isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartOffsetX = panX; panStartOffsetY = panY; canvas.style.cursor = 'grab'; }
+  else { isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartOffsetX = panX; panStartOffsetY = panY; canvas.style.cursor = 'grab'; resetFitCycle(); }
 });
 
 let _clickTimer = null;
@@ -529,6 +529,7 @@ canvas.addEventListener('contextmenu', e => {
 });
 
 canvas.addEventListener('wheel', e => {
+  resetFitCycle(); // 직접 확대·축소했으면 다음 맞춤은 이 페이지부터
   e.preventDefault();
   const factor = e.deltaY < 0 ? 1.06 : 0.94;
   const mx = e.clientX, my = e.clientY;
@@ -561,7 +562,7 @@ canvas.addEventListener('touchstart', e => {
     _touchStartX = t.clientX; _touchStartY = t.clientY; _touchMoved = false;
     _touchMode = 'single';
     if (n) { drag = n; isStable = false; }
-    else { isPanning = true; panStartX = t.clientX; panStartY = t.clientY; panStartOffsetX = panX; panStartOffsetY = panY; }
+    else { isPanning = true; panStartX = t.clientX; panStartY = t.clientY; panStartOffsetX = panX; panStartOffsetY = panY; resetFitCycle(); }
   } else if (e.touches.length === 2) {
     drag = null; isPanning = false; _touchMode = 'pinch';
     const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;

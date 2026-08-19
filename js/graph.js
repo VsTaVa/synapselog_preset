@@ -855,12 +855,12 @@ function currentPageKey() {
   });
   return best ? (best.sourcePageId || '_root') : null;
 }
-function currentPagePool() {
-  const key = currentPageKey();
+function pagePool(key) {
   if (!key) return null;
   const pool = nodes.filter(n => n.visible && (n.sourcePageId || '_root') === key);
   return pool.length ? pool : null;
 }
+function currentPagePool() { return pagePool(currentPageKey()); }
 function visibleCentroid() {
   let pool = null;
   if (searchKeyword.length > 0 && searchMatches.size > 0) {
@@ -957,9 +957,11 @@ function revealByLevel(nodeIds, onComplete) {
   });
 }
 
-// 화면 맞춤을 연달아 누르면 '이 페이지 → 전체'로 넘어간다
-const FIT_AGAIN_MS = 1600;
-let _fitAt = -Infinity, _fitAll = false; // 0으로 두면 페이지를 연 직후 첫 맞춤이 곧바로 전체가 된다
+// 화면 맞춤은 '이 페이지 ↔ 전체'를 오간다(시간 제한 없음 — 맞춰진 상태에서 한 번 더 누르면 넘어간다).
+// 전체로 갈 때 보던 페이지를 기억해 둔다: 전체 화면에서는 화면 한가운데가 페이지 사이라
+// 다시 고르면 늘 큰 그래프가 잡혔다
+let _fitAll = false, _fitPageKey = null;
+function resetFitCycle() { _fitAll = false; } // 직접 화면을 옮기면 다음 맞춤은 이 페이지부터
 function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible);
@@ -976,13 +978,15 @@ function fitGraph(rotate = true) {
     // 페이지별로 나눠 볼 때는 보고 있는 페이지만 담는다 — 전부 담으면 매번 전체로 줌아웃된다.
     // 다만 연달아 누르면 전체 보기로 넘어간다(한 번 더 = 다 보여줘). 시간이 지나면 다시 페이지부터.
     // 회전 탐색(subsetActive)은 켜지 않는다: 화면을 맞출 때마다 각도가 바뀌면 어지럽다
-    if (rotate) { // 사용자가 직접 누른 화면 맞춤만 이 토글을 쓴다(자동 호출은 rotate=false)
-      const now = performance.now();
-      _fitAll = (now - _fitAt < FIT_AGAIN_MS) ? !_fitAll : false;
-      _fitAt = now;
+    const useAll = rotate && _fitAll; // 사용자가 직접 누른 맞춤만 이 차례를 쓴다(자동 호출은 rotate=false)
+    if (rotate) _fitAll = !_fitAll;   // 다음 번엔 반대쪽
+    if (!useAll) {
+      // 전체를 보고 돌아오는 길이면 아까 그 페이지로, 아니면 지금 화면 기준으로
+      const key = (rotate && _fitPageKey) ? _fitPageKey : currentPageKey();
+      if (rotate) _fitPageKey = key;
+      const p = pagePool(key);
+      if (p) visibleNodes = p;
     }
-    const p = (rotate && _fitAll) ? null : currentPagePool();
-    if (p) visibleNodes = p;
   }
   const railEl = document.getElementById('activity-rail');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
