@@ -19,13 +19,23 @@ canvas { display: block; }
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 6px; }
 #multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
 /* 도움말 배지 — 도안 자체가 원이라 버튼을 꽉 채운다(테두리를 두면 원이 두 겹) */
-.ui-help-btn {
+/* 메뉴 안에선 '#메뉴 button' 규칙이 더 세다 — 두 메뉴를 선택자에 같이 적지 않으면
+   크기가 밀려 19px이 0이 되고 안의 svg(height:100%)가 통째로 사라진다 */
+.ui-help-btn,
+#multi-select-menu .ui-help-btn,
+.detail-settings-menu .ui-help-btn {
   width: 19px; height: 19px; padding: 0; flex-shrink: 0; display: grid; grid-template-columns: 1fr; place-items: center;
   border-radius: 50%; background: none; border: none; color: var(--icon-bright); cursor: pointer; transition: color 0.15s;
 }
-.ui-help-btn svg { width: 100%; height: 100%; display: block; }
+.ui-help-btn svg,
+#multi-select-menu .ui-help-btn svg,
+.detail-settings-menu .ui-help-btn svg { width: 100%; height: 100%; display: block; }
 .ui-help-btn.on { color: var(--accent); }
-@media (hover: hover) and (pointer: fine) { .ui-help-btn:hover { color: var(--fg); } }
+@media (hover: hover) and (pointer: fine) {
+  .ui-help-btn:hover,
+  #multi-select-menu .ui-help-btn:hover,
+  .detail-settings-menu .ui-help-btn:hover { color: var(--fg); background: none; }
+}
 /* 떠 있는 메뉴에선 모서리 밖으로 — 메뉴 안에 두면 항목 한 줄을 잡아먹는다 */
 #multi-select-menu .ui-help-btn, .detail-settings-menu .ui-help-btn { position: absolute; top: -9px; right: -9px; color: var(--accent); }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */

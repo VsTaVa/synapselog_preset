@@ -396,6 +396,62 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
+// 페이지별로 나눠 볼 때, 화면 밖에 있는 페이지가 어느 쪽인지 가장자리에 표시한다.
+// 클릭할 수 있어야 하므로 그린 자리를 남겨 둔다(캔버스라 히트 판정을 직접 한다)
+let _offscreenPins = [];
+function _drawOffscreenPages() {
+  _offscreenPins = [];
+  if (!_clusterMode) return;
+  const roots = nodes.filter(n => n.visible && n.level === 0);
+  if (roots.length < 2) return;
+  const vc = viewportCenter();
+  const pad = 26, minX = pad, minY = pad, maxX = W - pad, maxY = H - pad;
+  ctx.save();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  roots.forEach(n => {
+    const p = worldToScreen(n.x, n.y);
+    if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) return; // 화면 안이면 그대로 보인다
+    // 화면 중앙에서 그 페이지 방향으로 쏜 선이 가장자리와 만나는 지점
+    const dx = p.x - vc.x, dy = p.y - vc.y;
+    const tx = dx > 0 ? (maxX - vc.x) / dx : (dx < 0 ? (minX - vc.x) / dx : Infinity);
+    const ty = dy > 0 ? (maxY - vc.y) / dy : (dy < 0 ? (minY - vc.y) / dy : Infinity);
+    const t = Math.min(tx, ty);
+    if (!isFinite(t) || t <= 0) return;
+    const ex = vc.x + dx * t, ey = vc.y + dy * t;
+    const rgb = nodeRgb(n) || [255,255,255];
+    // 최상위 노드와 같은 도형(8각별) — 그래프에서 찾던 그 모양 그대로
+    ctx.globalAlpha = 0.9;
+    drawStar8(ctx, ex, ey, 9);
+    ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
+    ctx.globalAlpha = 1;
+    // 이름은 화면 안쪽으로 붙인다 — 가장자리 밖으로 나가면 잘린다
+    const label = (n.label || '').replace(/s+/g, ' ').slice(0, 12);
+    if (label) {
+      const inward = 16;
+      const lx = ex + (ex <= minX + 1 ? inward : ex >= maxX - 1 ? -inward : 0);
+      const ly = ey + (ey <= minY + 1 ? inward : ey >= maxY - 1 ? -inward : 0);
+      ctx.font = "700 10.5px 'Noto Sans KR',sans-serif";
+      ctx.textAlign = ex >= maxX - 1 ? 'right' : (ex <= minX + 1 ? 'left' : 'center');
+      ctx.textBaseline = ey >= maxY - 1 ? 'bottom' : (ey <= minY + 1 ? 'top' : 'middle');
+      ctx.fillStyle = rgbStr(bgRgb(), 1);
+      ctx.shadowColor = rgbStr(bgRgb(), 1); ctx.shadowBlur = 5 * DPR;
+      ctx.fillText(label, lx, ly); ctx.fillText(label, lx, ly);
+      ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
+      ctx.fillStyle = rgbStr(rgb, 1);
+      ctx.fillText(label, lx, ly);
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+    }
+    _offscreenPins.push({ x: ex, y: ey, r: 16, node: n });
+  });
+  ctx.restore();
+}
+// 가장자리 표시를 눌렀는지 — 캔버스 클릭보다 먼저 확인한다
+function offscreenPinAt(sx, sy) {
+  for (const p of _offscreenPins) {
+    if (Math.hypot(sx - p.x, sy - p.y) <= p.r) return p.node;
+  }
+  return null;
+}
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
@@ -676,6 +732,8 @@ function draw() {
     });
   }
   ctx.restore();
+
+  _drawOffscreenPages();
 
   // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로
   if (labelQueue.length) {
