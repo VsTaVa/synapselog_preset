@@ -961,7 +961,7 @@ function revealByLevel(nodeIds, onComplete) {
 // 전체로 갈 때 보던 페이지를 기억해 둔다: 전체 화면에서는 화면 한가운데가 페이지 사이라
 // 다시 고르면 늘 큰 그래프가 잡혔다
 let _fitAll = false, _fitPageKey = null;
-function resetFitCycle() { _fitAll = false; } // 직접 화면을 옮기면 다음 맞춤은 이 페이지부터
+function resetFitCycle() { _fitAll = false; _fitPageKey = null; } // 직접 화면을 옮기면 지금 보는 페이지부터 다시
 function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible);
@@ -980,10 +980,13 @@ function fitGraph(rotate = true) {
     // 회전 탐색(subsetActive)은 켜지 않는다: 화면을 맞출 때마다 각도가 바뀌면 어지럽다
     const useAll = rotate && _fitAll; // 사용자가 직접 누른 맞춤만 이 차례를 쓴다(자동 호출은 rotate=false)
     if (rotate) _fitAll = !_fitAll;   // 다음 번엔 반대쪽
-    if (!useAll) {
-      // 전체를 보고 돌아오는 길이면 아까 그 페이지로, 아니면 지금 화면 기준으로
+    if (useAll) {
+      if (rotate) _fitPageKey = currentPageKey(); // 전체로 넘어가기 직전에 보던 페이지
+    } else {
+      // 전체에서 돌아오는 길이면 아까 그 페이지로, 아니면 지금 화면 기준으로.
+      // 기억은 한 번 쓰고 버린다 — 남겨 두면 다른 페이지로 옮겨 가도 옛 페이지만 잡힌다
       const key = (rotate && _fitPageKey) ? _fitPageKey : currentPageKey();
-      if (rotate) _fitPageKey = key;
+      if (rotate) _fitPageKey = null;
       const p = pagePool(key);
       if (p) visibleNodes = p;
     }
