@@ -837,6 +837,26 @@ function viewportCenter() {
   return { x: sidebarWidth + 20 + availW/2, y: (H - 40 - ins.bottom)/2 + 20 };
 }
 // 회전 축 기준 무게중심(월드 좌표) — 검색/포커스/경로 활성 시엔 '활성 노드'만, 그 외엔 보이는 전체
+// 지금 보고 있는 페이지 — 화면 한가운데에서 가장 가까운 최상위 노드로 정한다.
+// 나눠 놓으면 전체 중심이 아무 페이지도 아닌 빈 공간이라 회전축·화면맞춤 기준으로 쓸 수 없다
+function currentPageKey() {
+  if (!_clusterMode) return null;
+  const vc = viewportCenter();
+  const w = screenToWorld(vc.x, vc.y);
+  let best = null, bestD = Infinity;
+  nodes.forEach(n => {
+    if (!n.visible || n.level !== 0) return;
+    const dx = n.x - w.x, dy = n.y - w.y, d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = n; }
+  });
+  return best ? (best.sourcePageId || '_root') : null;
+}
+function currentPagePool() {
+  const key = currentPageKey();
+  if (!key) return null;
+  const pool = nodes.filter(n => n.visible && (n.sourcePageId || '_root') === key);
+  return pool.length ? pool : null;
+}
 function visibleCentroid() {
   let pool = null;
   if (searchKeyword.length > 0 && searchMatches.size > 0) {
@@ -844,7 +864,7 @@ function visibleCentroid() {
   } else if (_focusMode || _isolateActive) {
     pool = nodes.filter(n => n.visible && !n.dimmed);
   }
-  if (!pool || !pool.length) pool = nodes.filter(n => n.visible);
+  if (!pool || !pool.length) pool = currentPagePool() || nodes.filter(n => n.visible);
   if (!pool.length) return null;
   let sx = 0, sy = 0;
   for (const nd of pool) { sx += nd.x; sy += nd.y; }
@@ -859,7 +879,7 @@ function visibleBBoxCenter() {
   } else if (_focusMode || _isolateActive) {
     pool = nodes.filter(n => n.visible && !n.dimmed);
   }
-  if (!pool || !pool.length) pool = nodes.filter(n => n.visible);
+  if (!pool || !pool.length) pool = currentPagePool() || nodes.filter(n => n.visible);
   if (!pool.length) return null;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const nd of pool) { if (nd.x < x0) x0 = nd.x; if (nd.x > x1) x1 = nd.x; if (nd.y < y0) y0 = nd.y; if (nd.y > y1) y1 = nd.y; }
@@ -945,6 +965,11 @@ function fitGraph(rotate = true) {
   } else if (_focusMode || _isolateActive) {
     const a = visibleNodes.filter(n => !n.dimmed);
     if (a.length) { visibleNodes = a; subsetActive = true; }
+  } else {
+    // 페이지별로 나눠 볼 때는 보고 있는 페이지만 담는다 — 전부 담으면 매번 전체로 줌아웃된다.
+    // 회전 탐색(subsetActive)은 켜지 않는다: 화면을 맞출 때마다 각도가 바뀌면 어지럽다
+    const p = currentPagePool();
+    if (p) visibleNodes = p;
   }
   const railEl = document.getElementById('activity-rail');
   // 플라이아웃은 오버레이라 그래프를 밀지 않음 — 항상 보이는 레일(56px)만 반영
