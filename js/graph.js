@@ -398,7 +398,7 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
 }
 // 많이 축소하면 페이지 이름을 크게 얹는다 — 덩어리가 어느 페이지인지 알 수 없어서.
 // 노드 제목이 이미 작아져 안 읽히는 구간이라 서로 부딪히지 않는다
-const PAGE_TITLE_AT = 0.3; // 이 배율 밑에서만 — 조금만 확대해도 사라지게
+const PAGE_TITLE_AT = 0.33; // 이 배율 밑에서만 — 조금만 확대해도 사라지게
 function _drawPageTitles() {
   if (!_clusterMode || scale > PAGE_TITLE_AT) return;
   const roots = nodes.filter(n => n.visible && n.level === 0);
@@ -953,6 +953,9 @@ function revealByLevel(nodeIds, onComplete) {
   });
 }
 
+// 화면 맞춤을 연달아 누르면 '이 페이지 → 전체'로 넘어간다
+const FIT_AGAIN_MS = 1600;
+let _fitAt = -Infinity, _fitAll = false; // 0으로 두면 페이지를 연 직후 첫 맞춤이 곧바로 전체가 된다
 function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible);
@@ -967,8 +970,14 @@ function fitGraph(rotate = true) {
     if (a.length) { visibleNodes = a; subsetActive = true; }
   } else {
     // 페이지별로 나눠 볼 때는 보고 있는 페이지만 담는다 — 전부 담으면 매번 전체로 줌아웃된다.
+    // 다만 연달아 누르면 전체 보기로 넘어간다(한 번 더 = 다 보여줘). 시간이 지나면 다시 페이지부터.
     // 회전 탐색(subsetActive)은 켜지 않는다: 화면을 맞출 때마다 각도가 바뀌면 어지럽다
-    const p = currentPagePool();
+    if (rotate) { // 사용자가 직접 누른 화면 맞춤만 이 토글을 쓴다(자동 호출은 rotate=false)
+      const now = performance.now();
+      _fitAll = (now - _fitAt < FIT_AGAIN_MS) ? !_fitAll : false;
+      _fitAt = now;
+    }
+    const p = (rotate && _fitAll) ? null : currentPagePool();
     if (p) visibleNodes = p;
   }
   const railEl = document.getElementById('activity-rail');
