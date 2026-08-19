@@ -433,9 +433,13 @@ function _drawOffscreenPages() {
   const roots = nodes.filter(n => n.visible && n.level === 0);
   if (roots.length < 2) return;
   const vc = viewportCenter();
-  const pad = 26, minX = pad, minY = pad, maxX = W - pad, maxY = H - pad;
+  const edge = 10; // 화면 끝에서 이만큼 안쪽까지가 표시가 놓일 수 있는 범위
+  const minX = edge, minY = edge, maxX = W - edge, maxY = H - edge;
+  const STAR_R = 9, GAP = 6, TEXT_H = 12;
+  const halfH = (STAR_R * 2 + GAP + TEXT_H) / 2; // 별+이름을 한 덩어리로 본 반높이
   ctx.save();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.font = "700 10.5px 'Noto Sans KR',sans-serif";
   roots.forEach(n => {
     const p = worldToScreen(n.x, n.y);
     if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) return; // 화면 안이면 그대로 보인다
@@ -445,32 +449,32 @@ function _drawOffscreenPages() {
     const ty = dy > 0 ? (maxY - vc.y) / dy : (dy < 0 ? (minY - vc.y) / dy : Infinity);
     const t = Math.min(tx, ty);
     if (!isFinite(t) || t <= 0) return;
-    const ex = vc.x + dx * t, ey = vc.y + dy * t;
+    const label = (n.label || '').replace(/\s+/g, ' ').slice(0, 12);
+    // 별을 경계에 붙이면 이름이 화면 밖으로 밀려 위로 올려야 했다.
+    // 별+이름 덩어리째로 화면 안에 넣으면 배치가 늘 같다(별 위, 이름 아래)
+    const halfW = Math.max(STAR_R, (label ? ctx.measureText(label).width : 0) / 2);
+    const cx = Math.min(maxX - halfW, Math.max(minX + halfW, vc.x + dx * t));
+    const cy = Math.min(maxY - halfH, Math.max(minY + halfH, vc.y + dy * t));
     const rgb = nodeRgb(n) || [255,255,255];
     // 최상위 노드와 같은 도형(8각별) — 그래프에서 찾던 그 모양 그대로
+    const starY = cy - halfH + STAR_R;
     ctx.globalAlpha = 0.9;
-    drawStar8(ctx, ex, ey, 9);
+    drawStar8(ctx, cx, starY, STAR_R);
     ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
     ctx.globalAlpha = 1;
-    // 이름은 별 아래에 — 그래프의 최상위 노드와 같은 배치라 눈이 헷갈리지 않는다.
-    // 아래 가장자리에 붙었을 때만 화면 밖이 되므로 그때는 위로 올린다
-    const label = (n.label || '').replace(/\s+/g, ' ').slice(0, 12);
     if (label) {
-      const below = ey < maxY - 20;
-      const lx = Math.min(maxX - 4, Math.max(minX + 4, ex));
-      const ly = ey + (below ? 15 : -15);
-      ctx.font = "700 10.5px 'Noto Sans KR',sans-serif";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = below ? 'top' : 'bottom';
+      const ly = starY + STAR_R + GAP;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.fillStyle = rgbStr(bgRgb(), 1);
       ctx.shadowColor = rgbStr(bgRgb(), 1); ctx.shadowBlur = 5 * DPR;
-      ctx.fillText(label, lx, ly); ctx.fillText(label, lx, ly);
+      ctx.fillText(label, cx, ly); ctx.fillText(label, cx, ly);
       ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
       ctx.fillStyle = rgbStr(rgb, 1);
-      ctx.fillText(label, lx, ly);
+      ctx.fillText(label, cx, ly);
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
-    _offscreenPins.push({ x: ex, y: ey, r: 16, node: n });
+    // 누르는 자리는 덩어리 전체 — 이름을 눌러도 이동한다
+    _offscreenPins.push({ x: cx, y: cy, r: Math.max(halfW, halfH) + 4, node: n });
   });
   ctx.restore();
 }
