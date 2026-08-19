@@ -26,7 +26,6 @@ function exportGraph(size) {
   const RP = new Map();
   visibleNodes.forEach(n => { const dx = n.x - _cx0, dy = n.y - _cy0; RP.set(n.id, { x: _cx0 + dx * _cos - dy * _sin, y: _cy0 + dx * _sin + dy * _cos }); });
   const _px = id => RP.get(id) || { x: 0, y: 0 };
-  const rxv = visibleNodes.map(n => RP.get(n.id).x), ryv = visibleNodes.map(n => RP.get(n.id).y);
   // 경계를 노드 '중심'으로만 잡으면 별 모양(반지름의 2배까지 뻗음)과 아래에 붙는 라벨이
   // 그림 밖으로 잘린다. 노드마다 실제로 그려지는 범위를 더해 경계를 넓힌다.
   const _ext = n => nodeR(n.level) * 2.2;                       // 별 최대 반경 2.0r + 링 여유

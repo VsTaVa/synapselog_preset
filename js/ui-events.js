@@ -471,7 +471,6 @@ function clearConnectMode() {
   _connectMode = false;
   if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
   nodes.forEach(nd => { nd.connectSelected = false; });
-  const cb = document.getElementById('connect-toggle-input'); if (cb) cb.checked = false;
   setStatusHint(''); // 진행 안내도 같이 내린다
   isStable = false;
 }
@@ -836,17 +835,12 @@ async function loadProfile() {
 }
 
 function renderProfile() {
-  const profileEl = document.getElementById('sidebar-profile');
-  if (profileEl) profileEl.style.display = 'flex';
   const initial = (_profile.name || '?')[0].toUpperCase();
   const initEl = document.getElementById('profile-initial');
   const avatarEl = document.getElementById('profile-avatar');
   if (_profile.avatar) {
     avatarEl.innerHTML = `<img src="${_profile.avatar}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`;
   } else if (initEl) { initEl.textContent = initial; }
-  const nameEl = document.getElementById('profile-name'), wsEl = document.getElementById('profile-workspace');
-  if (nameEl) nameEl.textContent = _profile.name || '—';
-  if (wsEl) wsEl.textContent = _profile.workspace || '';
 }
 
 // ── 설정 모달 ─────────────────────────────────────────────────────────
@@ -1032,11 +1026,6 @@ syncClusterToggle(); // 페이지별 나누기 체크 상태도 함께
 (() => { const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = _showConnections; })(); // 노드 연결 표시 토글 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
 (() => { const sl = document.getElementById('cfg-depth'); if (sl) sl.value = _depthLimit; setDepthLimit(_depthLimit); })(); // 저장된 표시 깊이 반영
-(() => {
-  const deg = Math.round(_viewRotation * 180 / Math.PI);
-  const sl = document.getElementById('cfg-rotation'); if (sl) sl.value = deg;
-  const out = document.getElementById('rotation-val'); if (out) out.textContent = deg + '°';
-})();
 renderPanes();
 renderShortcutRows(); // 설정 모달의 조작 목록 (도움말과 같은 배열에서)
 applyLegendState();

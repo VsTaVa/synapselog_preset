@@ -21,10 +21,6 @@ function snGet(key, scope) {
   }
   return sessionStorage.getItem(key);
 }
-function snRemove(key, scope) {
-  sessionStorage.removeItem(key);
-  if (scope) localStorage.removeItem(key);
-}
 
 let _favoritePageIds = new Set((() => { try { return JSON.parse(snGet('snlog_favorites', 'pages') || '[]'); } catch(e) { return []; } })());
 function toggleFavorite(pageId) {
@@ -261,26 +257,6 @@ function applyFocusMode(nodeId, shallow = false) {
     if (connectedIds.has(e.to)) connectedIds.add(e.from);
   });
   nodes.forEach(n => { n.dimmed = !connectedIds.has(n.id); });
-  isStable = false;
-}
-
-function toggleFocusMode() {
-  const cb = document.getElementById('focus-toggle-input');
-  _focusMode = cb ? cb.checked : !_focusMode;
-  if (!_focusMode) { _focusNodeId = null; _activeGlowIds = new Set(); nodes.forEach(n => { n.dimmed = false; }); }
-  else if (_focusNodeId) applyFocusMode(_focusNodeId);
-  isStable = false;
-}
-
-// ── 연결 모드 ─────────────────────────────────────────────────────────
-
-function toggleConnectMode() {
-  const cb = document.getElementById('connect-toggle-input');
-  _connectMode = cb ? cb.checked : !_connectMode;
-  if (_connectFirstNode) { _connectFirstNode.connectSelected = false; _connectFirstNode = null; }
-  if (!_connectMode) nodes.forEach(n => { n.connectSelected = false; });
-  if (_connectMode) { setStatusHint('연결 모드: 첫 번째 노드 클릭'); closePanel(); }
-  else setStatusHint('');
   isStable = false;
 }
 

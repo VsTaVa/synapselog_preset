@@ -644,7 +644,6 @@ function draw() {
     const isDim=(hasSearch&&!isMatch)||((_focusMode||_isolateActive)&&n.dimmed);
     const r=nodeR(n.level);
     const ndRgb = nodeRgb(n);
-    const nodeColor = n.level===0 ? '#ffffff' : (n.color||'#74b9ff');
     const isManualLinked = manualLinkedSet.has(n.id);
     // 뷰 회전 시: 노드 위치는 회전된 자리, 모양(별·선택 표시 등)은 똑바로 유지 — 역회전 적용
     ctx.save();

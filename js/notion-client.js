@@ -1098,7 +1098,9 @@ function savePageList() {
   _addedPageIds.forEach(pageId => {
     if (pageId.startsWith('local_')) return; // 로컬 노드는 snlog_local_pages로 따로 저장
     const cached = sessionStorage.getItem(`snlog_${pageId}`);
-    const title = cached ? (JSON.parse(cached).title || pageId) : pageId;
+    // 캐시가 깨져 있어도 목록 저장은 계속돼야 한다 — 여기서 던지면 페이지 추가·삭제가 통째로 안 남는다
+    let title = pageId;
+    if (cached) { try { title = JSON.parse(cached).title || pageId; } catch(e) {} }
     list.push({ pageId, title });
   });
   // 'pages' 스코프로 저장 → 로컬 저장 켜져 있으면 localStorage에 남아 F5·재시작에도 페이지 목록 복원(노드 위치는 저장 안 함)

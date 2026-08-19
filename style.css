@@ -74,8 +74,6 @@ canvas { display: block; }
 .lg-row:last-child { margin-bottom: 0; }
 .lg-shape { width: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .lg-line { width: 32px; display: inline-flex; align-items: center; flex-shrink: 0; }
-.lg-note { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.55; }
-.lg-note b { color: rgba(255,255,255,0.78); font-weight: 700; }
 .lg-tool span b { color: rgba(255,255,255,0.92); font-weight: 700; }
 .lg-tool { align-items: flex-start; }
 
@@ -335,12 +333,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
-#sidebar-logo { padding: 18px 18px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 24px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
-#sidebar-logo-text { display: flex; align-items: center; gap: 8px; }
-#sidebar-logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
-#sidebar-logo .accent { color: var(--accent); }
-#sidebar-collapse-btn { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--icon-bright); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
-#sidebar-collapse-btn:hover { background: rgba(255,255,255,0.12); color: var(--fg); }
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
 #sidebar-content::-webkit-scrollbar { width: 5px; }
 #sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -358,15 +350,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .ui-search-bar input { border: none; outline: none; font-size: 13px; font-family: inherit; background: transparent; color: #fff; flex: 1; width: 0; }
 .ui-search-bar input::placeholder { color: rgba(255,255,255,0.25); }
 .ui-search-bar > button { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; flex-shrink: 0; }
-#new-root-btn svg { width: 14px; height: 14px; }
-#top-search { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 150; width: min(440px, 56vw); }
-#top-search #search-bar { background: rgba(14,16,24,0.92); backdrop-filter: blur(10px); box-shadow: 0 4px 20px rgba(0,0,0,0.45); border-color: rgba(var(--accent-rgb),0.55); }
-#top-search #search-bar:focus-within { border-color: var(--accent); }
-#top-search #search-result-count { text-align: center; }
-#gcfg-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; padding: 12px 2px 4px; user-select: none; }
-#gcfg-toggle #gcfg-arrow { display: inline-block; transition: transform 0.18s; font-size: 13px; color: var(--accent); }
-#gcfg-toggle.open #gcfg-arrow { transform: rotate(90deg); }
-#gcfg-detail { margin-top: 8px; }
 #search-history { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
 .ctrl-group { margin-bottom: 16px; }
 .ctrl-group:last-child { margin-bottom: 0; }
@@ -380,8 +363,6 @@ input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: none; b
 #add-page-panel input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: #fff; outline: none; margin-bottom: 6px; transition: border-color 0.2s; }
 #add-page-panel input:focus { border-color: rgba(var(--accent-rgb),0.5); }
 #add-page-panel input::placeholder { color: rgba(255,255,255,0.2); }
-#add-page-submit-btn:hover { opacity: 0.7; }
-#add-page-error { font-size: 10px; color: #ff6b6b; margin-top: 4px; display: none; }
 #added-pages-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .btn-sync, .btn-export { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--icon); padding: 1px 3px; line-height: 1; transition: color 0.2s; }
 .btn-sync:hover, .btn-export:hover { color: var(--fg); }
@@ -631,13 +612,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(var(--accent-rgb),0.2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #loading-text { font-size: 12px; color: rgba(255,255,255,0.5); }
-#sidebar-profile { flex-shrink: 0; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
 #profile-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: rgba(var(--accent-rgb),0.2); border: 1px solid rgba(var(--accent-rgb),0.4); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent); overflow: hidden; cursor: pointer; }
 #profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-#profile-info { flex: 1; min-width: 0; cursor: pointer; }
-#profile-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#profile-workspace { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-#profile-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
 #settings-modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 1100; backdrop-filter: var(--overlay-blur); -webkit-backdrop-filter: var(--overlay-blur); }
 #settings-modal.open { display: flex; }
 #settings-box { background: var(--glass-bg-solid); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 16px; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.7); padding: 24px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
