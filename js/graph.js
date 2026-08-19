@@ -396,6 +396,34 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
   ctx.closePath(); ctx.fill();
   ctx.restore();
 }
+// 많이 축소하면 페이지 이름을 크게 얹는다 — 덩어리가 어느 페이지인지 알 수 없어서.
+// 노드 제목이 이미 작아져 안 읽히는 구간이라 서로 부딪히지 않는다
+const PAGE_TITLE_AT = 0.42; // 이 배율 밑에서만
+function _drawPageTitles() {
+  if (!_clusterMode || scale > PAGE_TITLE_AT) return;
+  const roots = nodes.filter(n => n.visible && n.level === 0);
+  if (roots.length < 2) return;
+  const fade = Math.min(1, (PAGE_TITLE_AT - scale) / (PAGE_TITLE_AT * 0.5)); // 임계 근처에서 서서히
+  ctx.save();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = "800 15px 'Noto Sans KR',sans-serif";
+  roots.forEach(n => {
+    const p = worldToScreen(n.x, n.y);
+    if (p.x < -80 || p.x > W + 80 || p.y < -40 || p.y > H + 40) return;
+    const label = (n.label || '').slice(0, 16);
+    if (!label) return;
+    const y = p.y - 26;
+    ctx.fillStyle = rgbStr(bgRgb(), fade);
+    ctx.shadowColor = rgbStr(bgRgb(), fade); ctx.shadowBlur = 8 * DPR;
+    ctx.fillText(label, p.x, y); ctx.fillText(label, p.x, y);
+    ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
+    ctx.fillStyle = rgbStr(nodeRgb(n) || [255,255,255], fade);
+    ctx.fillText(label, p.x, y);
+  });
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
 // 페이지별로 나눠 볼 때, 화면 밖에 있는 페이지가 어느 쪽인지 가장자리에 표시한다.
 // 클릭할 수 있어야 하므로 그린 자리를 남겨 둔다(캔버스라 히트 판정을 직접 한다)
 let _offscreenPins = [];
@@ -425,7 +453,7 @@ function _drawOffscreenPages() {
     ctx.fillStyle = rgbStr(rgb, 1); ctx.fill();
     ctx.globalAlpha = 1;
     // 이름은 화면 안쪽으로 붙인다 — 가장자리 밖으로 나가면 잘린다
-    const label = (n.label || '').replace(/s+/g, ' ').slice(0, 12);
+    const label = (n.label || '').replace(/\s+/g, ' ').slice(0, 12);
     if (label) {
       const inward = 16;
       const lx = ex + (ex <= minX + 1 ? inward : ex >= maxX - 1 ? -inward : 0);
@@ -733,6 +761,7 @@ function draw() {
   }
   ctx.restore();
 
+  _drawPageTitles();
   _drawOffscreenPages();
 
   // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로

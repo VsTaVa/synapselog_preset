@@ -416,6 +416,9 @@ canvas.addEventListener('mousedown', e => {
     if (!getNodeAt(e.clientX, e.clientY)) { _rotating = true; _rotMoved = false; _rotStartY = e.clientY; _rotStartAngle = _viewRotation; }
     e.preventDefault(); return;
   }
+  // 화면 밖 페이지 표시를 눌렀으면 그 페이지로 간다(그래프 조작보다 먼저 판정)
+  const pin = typeof offscreenPinAt === 'function' ? offscreenPinAt(e.clientX, e.clientY) : null;
+  if (pin) { focusViewOnNode(pin); e.preventDefault(); return; }
   mouseDownTime = Date.now();
   const n = getNodeAt(e.clientX, e.clientY);
   mouseDownNode = n;
@@ -545,6 +548,10 @@ let _pinchStartDist = 0, _pinchStartScale = 1, _pinchStartAngle = 0, _pinchStart
 let _lastTapTime = 0, _lastTapNode = null;
 
 canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1 && typeof offscreenPinAt === 'function') {
+    const t = e.touches[0], pin = offscreenPinAt(t.clientX, t.clientY);
+    if (pin) { focusViewOnNode(pin); e.preventDefault(); return; }
+  }
   e.preventDefault();
   if (e.touches.length === 1) {
     const t = e.touches[0];
