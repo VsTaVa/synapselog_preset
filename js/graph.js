@@ -399,6 +399,16 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
 // 많이 축소하면 페이지 이름을 크게 얹는다 — 덩어리가 어느 페이지인지 알 수 없어서.
 // 노드 제목이 이미 작아져 안 읽히는 구간이라 서로 부딪히지 않는다
 const PAGE_TITLE_AT = 0.33; // 이 배율 밑에서만 — 조금만 확대해도 사라지게
+// 배경색으로 두 번 덮어 뒤를 파낸 뒤 글자를 얹는다(그림자 블러가 곧 페더).
+// 세 곳(노드 제목·페이지 제목·가장자리 표시)이 같은 방식이라 한 곳에 둔다
+function _haloText(text, x, y, color, alpha, blur) {
+  const bg = rgbStr(bgRgb(), alpha);
+  ctx.fillStyle = bg; ctx.shadowColor = bg; ctx.shadowBlur = blur;
+  ctx.fillText(text, x, y); ctx.fillText(text, x, y);
+  ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
 function _drawPageTitles() {
   if (!_clusterMode || scale > PAGE_TITLE_AT) return;
   const roots = nodes.filter(n => n.visible && n.level === 0);
@@ -414,12 +424,7 @@ function _drawPageTitles() {
     const label = (n.label || '').slice(0, 16);
     if (!label) return;
     const y = p.y + 30; // 최상위 노드 아래 — 위에 두면 그쪽 가지를 가린다
-    ctx.fillStyle = rgbStr(bgRgb(), fade);
-    ctx.shadowColor = rgbStr(bgRgb(), fade); ctx.shadowBlur = 8 * DPR;
-    ctx.fillText(label, p.x, y); ctx.fillText(label, p.x, y);
-    ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
-    ctx.fillStyle = rgbStr(nodeRgb(n) || [255,255,255], fade);
-    ctx.fillText(label, p.x, y);
+    _haloText(label, p.x, y, rgbStr(nodeRgb(n) || [255,255,255], fade), fade, 8 * DPR);
   });
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   ctx.restore();
@@ -465,12 +470,7 @@ function _drawOffscreenPages() {
     if (label) {
       const ly = starY + STAR_R + GAP;
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      ctx.fillStyle = rgbStr(bgRgb(), 1);
-      ctx.shadowColor = rgbStr(bgRgb(), 1); ctx.shadowBlur = 5 * DPR;
-      ctx.fillText(label, cx, ly); ctx.fillText(label, cx, ly);
-      ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
-      ctx.fillStyle = rgbStr(rgb, 1);
-      ctx.fillText(label, cx, ly);
+      _haloText(label, cx, ly, rgbStr(rgb, 1), 1, 5 * DPR);
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
     // 누르는 자리는 덩어리 전체 — 이름을 눌러도 이동한다
@@ -861,14 +861,19 @@ function pagePool(key) {
   return pool.length ? pool : null;
 }
 function currentPagePool() { return pagePool(currentPageKey()); }
-function visibleCentroid() {
-  let pool = null;
+// 화면의 기준이 되는 노드들 — 검색·포커스가 있으면 그쪽, 없으면 보고 있는 페이지, 그것도 없으면 전부
+function focusPool() {
   if (searchKeyword.length > 0 && searchMatches.size > 0) {
-    pool = nodes.filter(n => n.visible && searchMatches.has(n.id));
+    const m = nodes.filter(n => n.visible && searchMatches.has(n.id));
+    if (m.length) return m;
   } else if (_focusMode || _isolateActive) {
-    pool = nodes.filter(n => n.visible && !n.dimmed);
+    const a = nodes.filter(n => n.visible && !n.dimmed);
+    if (a.length) return a;
   }
-  if (!pool || !pool.length) pool = currentPagePool() || nodes.filter(n => n.visible);
+  return currentPagePool() || nodes.filter(n => n.visible);
+}
+function visibleCentroid() {
+  const pool = focusPool();
   if (!pool.length) return null;
   let sx = 0, sy = 0;
   for (const nd of pool) { sx += nd.x; sy += nd.y; }
@@ -877,13 +882,7 @@ function visibleCentroid() {
 // 회전 피벗용 기하학적 중심(바운딩박스 가운데). 무게중심과 달리 노드 밀도에 안 쏠림 —
 // 페이지별(cluster) 배치에서 링의 정중앙을 축으로 잡으려고 사용
 function visibleBBoxCenter() {
-  let pool = null;
-  if (searchKeyword.length > 0 && searchMatches.size > 0) {
-    pool = nodes.filter(n => n.visible && searchMatches.has(n.id));
-  } else if (_focusMode || _isolateActive) {
-    pool = nodes.filter(n => n.visible && !n.dimmed);
-  }
-  if (!pool || !pool.length) pool = currentPagePool() || nodes.filter(n => n.visible);
+  const pool = focusPool();
   if (!pool.length) return null;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const nd of pool) { if (nd.x < x0) x0 = nd.x; if (nd.x > x1) x1 = nd.x; if (nd.y < y0) y0 = nd.y; if (nd.y > y1) y1 = nd.y; }
@@ -1124,8 +1123,10 @@ function applyTreeLayout() {
   const laid = groups.map(rs => _layoutTreeGroup(rs, childrenOf, visited, rStep));
   // 어느 트리에도 안 걸린 노드(끊긴 것)는 마지막에 중앙 주위로
   const orphans = nodes.filter(n => !visited.has(n.id));
-  if (orphans.length) laid.push({ items: orphans.map((n, i) => ({
-    n, ang: (i / orphans.length) * Math.PI * 2, r: rStep * 0.6 }), ), maxR: rStep * 0.6 });
+  if (orphans.length) {
+    const r = rStep * 0.6;
+    laid.push({ items: orphans.map((n, i) => ({ n, ang: (i / orphans.length) * Math.PI * 2, r })), maxR: r });
+  }
 
   // 트리가 하나면 화면 중앙, 여럿이면 가장 큰 트리에 맞춰 원형으로 — 반지름이 모자라면 서로 겹친다
   if (laid.length === 1) _placeTree(laid[0], WORLD_CX, WORLD_CY);
@@ -1230,13 +1231,18 @@ function _tweenNodes(prev, dur) {
   step();
 }
 // 페이지별로 나눠 보기 — 배치와 곱해져 네 조합이 된다(방사형/힘기반 × 나눔/합침)
+// 물리를 다시 돌린다 — 얼려 둔 노드를 풀고 잠깐 빠르게
+function restartPhysics() {
+  nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
+  isStable = false; _simBoost = 90;
+}
 function setClusterMode(on) {
   _clusterMode = !!on;
   try { localStorage.setItem('snlog_cluster', _clusterMode ? '1' : '0'); } catch(e) {}
   _pageAnchors = _clusterMode ? computePageAnchors() : null;
   _clusterSig = nodes.length;
-  if (_layoutMode === 'radial') { applyTreeLayout(); }
-  else { nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; }); isStable = false; _simBoost = 90; }
+  if (_layoutMode === 'radial') applyTreeLayout();
+  else restartPhysics();
   if (typeof fitGraph === 'function') fitGraph(false);
 }
 function setLayoutMode(mode) {
@@ -1249,13 +1255,11 @@ function setLayoutMode(mode) {
     tween = nodes.map(n => ({ n, x: n.x, y: n.y })); // 지금 자리를 기억해 두고 목표로 옮긴다
     applyTreeLayout();
   } else {
-    // force / cluster: 물리 시뮬 재가동
-    nodes.forEach(n => { n._frozen = false; n._frozenFrames = 0; });
-    _layoutSig = -1; isStable = false;
-    if (_clusterMode) { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
     // 물리는 목표 좌표가 미리 없어 트윈을 못 건다 → 대신 잠깐 빨리 돌려 눈에 보이게 풀리게 한다.
     // 미리 몇 스텝 돌려 보간하는 방식은 실패했다: 수렴에 수백 스텝이 필요해 목표가 출발점과 같았다
-    _simBoost = 90;
+    _layoutSig = -1;
+    if (_clusterMode) { _pageAnchors = computePageAnchors(); _clusterSig = nodes.length; }
+    restartPhysics();
   }
   if (typeof syncLayoutButtons === 'function') syncLayoutButtons();
   if (typeof fitGraph === 'function') fitGraph(false); // 화면 맞춤은 최종 좌표로 계산돼야 해서 먼저
