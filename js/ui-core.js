@@ -173,8 +173,13 @@ function _statusSpan(cls) {
 // 둘 다 비면 빈 상자만 떠 있게 되므로 표시 자체를 끈다
 function _syncStatusBox() {
   if (!statusEl) return;
-  const txt = c => (statusEl.querySelector('.' + c) || {}).textContent;
-  const has = txt('st-view') || txt('st-hint');
+  const el = c => statusEl.querySelector('.' + c);
+  const txt = c => (el(c) || {}).textContent;
+  // 크기·회전(과 진행 안내)이 우선 — 경로와 겹치면 상자가 두 배로 커지고 읽을 것도 늘어난다
+  const busy = !!(txt('st-view') || txt('st-hint'));
+  const path = el('st-path');
+  if (path) path.style.display = busy ? 'none' : 'flex';
+  const has = busy || (path && path.childElementCount);
   statusEl.style.display = has ? 'flex' : 'none';
 }
 // 연결 모드 같은 진행 안내 — 칩·확대 표시와 같은 상자에 나란히
@@ -197,7 +202,7 @@ function showViewStatus() {
 let _statusPathId = null, _statusPathLeftAt = 0;
 const STATUS_PATH_LINGER = 500; // 노드 사이를 지나갈 때마다 사라졌다 나타나면 깜빡여 보인다
 function updateStatusPath() {
-  const el = document.getElementById('status-path');
+  const el = _statusSpan('st-path');
   if (!el) return;
   // 터치엔 호버가 없다 — 끌고 있는 노드, 그것도 없으면 지금 패널에 열린 노드를 기준으로
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -212,15 +217,14 @@ function updateStatusPath() {
     const path = (typeof _nodePathHtml === 'function') ? _nodePathHtml(n) : '';
     const self = (typeof createNodeChip === 'function') ? createNodeChip(n, { maxLen: 14, className: 'node-chip--sm' }) : '';
     el.innerHTML = path + self;
-    el.style.display = (path || self) ? 'flex' : 'none';
-    // 지금 노드가 있는 끝을 먼저 보여준다(한 줄이면 가로로, 두 줄로 접히는 모바일이면 세로로 밀린다)
+    _syncStatusBox();
     el.scrollLeft = el.scrollWidth; // 한 줄일 때 잘리는 앞쪽 대신 지금 노드가 있는 끝부터
     return;
   }
   if (!_statusPathId) return;
   if (!_statusPathLeftAt) { _statusPathLeftAt = performance.now(); return; }
   if (performance.now() - _statusPathLeftAt < STATUS_PATH_LINGER) return;
-  _statusPathId = null; el.innerHTML = ''; el.style.display = 'none';
+  _statusPathId = null; el.innerHTML = ''; _syncStatusBox();
 }
 let _rotating = false, _rotStartY = 0, _rotStartAngle = 0, _rotMoved = false, _suppressContext = false;
 
