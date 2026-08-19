@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#ed7000">
 <!-- CSS보다 먼저 읽혀 브라우저 자동 다크 필터를 애초에 막는다 (style.css의 color-scheme와 같은 목적) -->
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="style.css?v=20260818q">
+<link rel="stylesheet" href="style.css?v=20260820a">
 </head>
 <body>
 <div id="login-screen">
@@ -155,23 +155,26 @@
       </div>
     </div>
     <div id="graphcfg-panel" class="panel-box rail-pane" data-section="graphcfg">
-      <div class="panel-title">그래프 설정</div>
+      <div class="panel-title-row">
+        <div class="panel-title" style="margin-bottom:0;">그래프 설정</div>
+        <button type="button" class="ui-help-btn" id="gc-help-btn" onclick="toggleGraphCfgHelp()" title="각 항목 설명 보기" aria-label="각 항목 설명 보기"></button>
+      </div>
       <button type="button" class="rail-subhead rail-sec-head" data-sec="nodemode" onclick="toggleRailSec('nodemode')"><svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg><span>노드 모드</span></button>
       <div class="rail-secbody" data-sec="nodemode">
-      <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><span style="font-size:13px; color:#fff;">노드 색상</span><div class="seg-toggle"><button id="cs-node" class="active" onclick="setColorScheme('node')">노드별</button><button id="cs-depth" onclick="setColorScheme('depth')">깊이별</button></div></div>
-      <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;">그래프 배치</span><div class="seg-toggle"><button id="lm-radial" class="active" onclick="setLayoutMode('radial')">방사형</button><button id="lm-force" onclick="setLayoutMode('force')">힘기반</button><button id="lm-cluster" onclick="setLayoutMode('cluster')">페이지별</button></div></div>
-      <div class="ctrl-group" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff; display:flex; align-items:center; gap:6px;"><span>노드 연결 표시</span><span class="shortcut-hint" id="hint-toggleConnections"></span></span><label class="ck-orange"><input type="checkbox" id="conn-toggle-input" checked onchange="toggleConnections()"><span class="ck-box"></span></label></div>
+      <div class="ctrl-group" data-help="노드별 = 가지마다 다른 색, 깊이별 = 헤딩 단계에 따라 명도 변화" style="display:flex; align-items:center; justify-content:space-between; gap:8px;"><span style="font-size:13px; color:#fff;">노드 색상</span><div class="seg-toggle"><button id="cs-node" class="active" onclick="setColorScheme('node')">노드별</button><button id="cs-depth" onclick="setColorScheme('depth')">깊이별</button></div></div>
+      <div class="ctrl-group" data-help="방사형 = 계층을 원으로, 힘기반 = 자유 배치, 페이지별 = 같은 페이지끼리 뭉침" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff;">그래프 배치</span><div class="seg-toggle"><button id="lm-radial" class="active" onclick="setLayoutMode('radial')">방사형</button><button id="lm-force" onclick="setLayoutMode('force')">힘기반</button><button id="lm-cluster" onclick="setLayoutMode('cluster')">페이지별</button></div></div>
+      <div class="ctrl-group" data-help="본문 링크로 이어진 점선 표시 여부" style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; color:#fff; display:flex; align-items:center; gap:6px;"><span>노드 연결 표시</span><span class="shortcut-hint" id="hint-toggleConnections"></span></span><label class="ck-orange"><input type="checkbox" id="conn-toggle-input" checked onchange="toggleConnections()"><span class="ck-box"></span></label></div>
       </div>
       <button type="button" class="rail-subhead rail-sec-head mt" data-sec="graphset" onclick="toggleRailSec('graphset')"><svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg><span>슬라이더</span></button>
       <div class="rail-secbody" data-sec="graphset">
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>노드 반발력</span><span class="val" id="v-rep">5</span></div><input type="range" id="cfg-rep" min="100" max="2000" step="50" value="500"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>링크 장력</span><span class="val" id="v-tension">5</span></div><input type="range" id="cfg-tension" min="0.001" max="0.020" step="0.0005" value="0.005"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>중력</span><span class="val" id="v-grav">10</span></div><input type="range" id="cfg-grav" min="0.0001" max="0.0030" step="0.0001" value="0.0010"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>노드 크기</span><span class="val" id="v-node-size">1.0</span></div><input type="range" id="cfg-node-size" min="0.5" max="2.5" step="0.1" value="1.0"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>제목 크기 <span class="shortcut-hint" id="hint-toggleLabels"></span></span><span class="val" id="label-scale-val">100%</span></div><input type="range" id="cfg-label-scale" min="0" max="2.5" step="0.1" value="1" oninput="setLabelScale(this.value)"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>링크 두께</span><span class="val" id="v-link-width">1.0</span></div><input type="range" id="cfg-link-width" min="0.3" max="3.0" step="0.1" value="1.0"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>노드 허브</span><span class="val" id="v-hub">1.0</span></div><input type="range" id="cfg-hub" min="0" max="2.0" step="0.1" value="1.0"></div>
-      <div class="ctrl-group"><div class="ctrl-label-row"><span>표시 깊이</span><span class="val" id="v-depth">전체</span></div><input type="range" id="cfg-depth" min="0" max="6" step="1" value="6" oninput="setDepthLimit(this.value)"></div>
+      <div class="ctrl-group" data-help="노드끼리 밀어내는 힘 — 높이면 전체가 넓게 퍼짐"><div class="ctrl-label-row"><span>노드 반발력</span><span class="val" id="v-rep">5</span></div><input type="range" id="cfg-rep" min="100" max="2000" step="50" value="500"></div>
+      <div class="ctrl-group" data-help="연결선이 당기는 힘 — 높이면 이어진 노드끼리 가까워짐"><div class="ctrl-label-row"><span>링크 장력</span><span class="val" id="v-tension">5</span></div><input type="range" id="cfg-tension" min="0.001" max="0.020" step="0.0005" value="0.005"></div>
+      <div class="ctrl-group" data-help="중심으로 모으는 힘 — 높이면 가운데로 뭉침"><div class="ctrl-label-row"><span>중력</span><span class="val" id="v-grav">10</span></div><input type="range" id="cfg-grav" min="0.0001" max="0.0030" step="0.0001" value="0.0010"></div>
+      <div class="ctrl-group" data-help="노드 반지름 배율"><div class="ctrl-label-row"><span>노드 크기</span><span class="val" id="v-node-size">1.0</span></div><input type="range" id="cfg-node-size" min="0.5" max="2.5" step="0.1" value="1.0"></div>
+      <div class="ctrl-group" data-help="노드 제목 글자 배율 — 0이면 제목 숨김"><div class="ctrl-label-row"><span>제목 크기 <span class="shortcut-hint" id="hint-toggleLabels"></span></span><span class="val" id="label-scale-val">100%</span></div><input type="range" id="cfg-label-scale" min="0" max="2.5" step="0.1" value="1" oninput="setLabelScale(this.value)"></div>
+      <div class="ctrl-group" data-help="연결선 굵기 배율"><div class="ctrl-label-row"><span>링크 두께</span><span class="val" id="v-link-width">1.0</span></div><input type="range" id="cfg-link-width" min="0.3" max="3.0" step="0.1" value="1.0"></div>
+      <div class="ctrl-group" data-help="자식이 많은 노드 둘레의 빛번짐 세기"><div class="ctrl-label-row"><span>노드 허브</span><span class="val" id="v-hub">1.0</span></div><input type="range" id="cfg-hub" min="0" max="2.0" step="0.1" value="1.0"></div>
+      <div class="ctrl-group" data-help="이 단계보다 깊은 노드 접기"><div class="ctrl-label-row"><span>표시 깊이</span><span class="val" id="v-depth">전체</span></div><input type="range" id="cfg-depth" min="0" max="6" step="1" value="6" oninput="setDepthLimit(this.value)"></div>
       </div>
     </div>
     <div id="legend-panel" class="panel-box rail-pane" data-section="legend">
@@ -266,7 +269,7 @@
 <script src="js/ui-legend.js?v=20260817b" defer></script>
 <script src="js/ui-ai.js?v=20260816a" defer></script>
 <script src="js/ui-embed.js?v=20260817a" defer></script>
-<script src="js/ui-rail.js?v=20260816b" defer></script>
+<script src="js/ui-rail.js?v=20260820a" defer></script>
 <script src="js/ui-panel.js?v=20260818k" defer></script>
 <script src="js/ui-events.js?v=20260818a" defer></script>
 </body>

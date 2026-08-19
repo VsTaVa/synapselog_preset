@@ -18,18 +18,21 @@ canvas { display: block; }
 /* 그리드 — 아이콘/라벨은 첫 줄, 설명은 아래 줄 전체. flex-wrap은 버튼 폭이 내용에 맞춰지는 탓에 줄을 안 넘겼다 */
 #multi-select-menu button { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; text-align: left; white-space: nowrap; transition: background 0.15s, color 0.15s; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 6px; }
 #multi-select-menu button:hover { background: rgba(var(--accent-rgb),0.15); color: var(--fg); }
-/* 도움말 배지 — 메뉴 안에 두면 한 줄을 잡아먹어 모서리 밖에 띄운다. 어느 모서리인지는 쓰는 쪽에서 */
-/* 도안 자체가 원이라 버튼을 꽉 채운다 — 크기 기준은 버튼 한 곳뿐(테두리를 두면 원이 두 겹) */
-#multi-select-menu .ui-help-btn, .detail-settings-menu .ui-help-btn {
-  position: absolute; top: -9px; right: -9px; width: 19px; height: 19px; padding: 0; display: grid; grid-template-columns: 1fr; place-items: center;
-  border-radius: 50%; background: none; border: none; color: var(--accent); cursor: pointer;
+/* 도움말 배지 — 도안 자체가 원이라 버튼을 꽉 채운다(테두리를 두면 원이 두 겹) */
+.ui-help-btn {
+  width: 19px; height: 19px; padding: 0; flex-shrink: 0; display: grid; grid-template-columns: 1fr; place-items: center;
+  border-radius: 50%; background: none; border: none; color: var(--icon-bright); cursor: pointer; transition: color 0.15s;
 }
-#multi-select-menu .ui-help-btn svg, .detail-settings-menu .ui-help-btn svg { width: 100%; height: 100%; display: block; }
-@media (hover: hover) and (pointer: fine) {
-  #multi-select-menu .ui-help-btn:hover, .detail-settings-menu .ui-help-btn:hover { color: var(--fg); }
-}
+.ui-help-btn svg { width: 100%; height: 100%; display: block; }
+.ui-help-btn.on { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) { .ui-help-btn:hover { color: var(--fg); } }
+/* 떠 있는 메뉴에선 모서리 밖으로 — 메뉴 안에 두면 항목 한 줄을 잡아먹는다 */
+#multi-select-menu .ui-help-btn, .detail-settings-menu .ui-help-btn { position: absolute; top: -9px; right: -9px; color: var(--accent); }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
 .ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
+/* 그래프 설정 항목: 가로 배치인 줄은 설명이 아래로 내려가게 감싼다 */
+.ctrl-group:has(.ms-desc) { flex-wrap: wrap; }
+.ctrl-group > .ms-desc { display: block; flex-basis: 100%; max-width: none; margin-top: 6px; }
 #multi-select-menu button.ms-danger { color: #ff8585; }
 #multi-select-menu button.ms-danger:hover { background: rgba(255,107,107,0.16); color: #ff6b6b; }
 #multi-select-menu .ms-divider { height: 1px; background: rgba(255,255,255,0.14); margin: 3px 8px; }

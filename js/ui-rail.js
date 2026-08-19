@@ -43,6 +43,31 @@ function applyRailSecState() {
     el.classList.toggle('closed', !isRailSecOpen(el.dataset.sec));
   });
 }
+// ── 그래프 설정 항목 설명 (? 토글) ──────────────────────────────────
+// 문구는 각 항목의 data-help 한 곳에만 — 여기 또 적으면 반드시 어긋난다
+let _gcHelpOpen = (() => { try { return localStorage.getItem('snlog_gc_help') === '1'; } catch (e) { return false; } })();
+function toggleGraphCfgHelp() {
+  _gcHelpOpen = !_gcHelpOpen;
+  try { localStorage.setItem('snlog_gc_help', _gcHelpOpen ? '1' : '0'); } catch (e) {}
+  applyGraphCfgHelp();
+}
+function applyGraphCfgHelp() {
+  const btn = document.getElementById('gc-help-btn');
+  if (btn) {
+    if (!btn.innerHTML && typeof helpIcon === 'function') btn.innerHTML = helpIcon(13); // 도안은 icons.js 한 곳에서
+    btn.classList.toggle('on', _gcHelpOpen);
+  }
+  document.querySelectorAll('#graphcfg-panel .ms-desc').forEach(d => d.remove());
+  if (!_gcHelpOpen) return;
+  document.querySelectorAll('#graphcfg-panel .ctrl-group[data-help]').forEach(g => {
+    const d = document.createElement('small');
+    d.className = 'ms-desc';
+    d.textContent = g.dataset.help;
+    g.appendChild(d);
+  });
+}
+applyGraphCfgHelp();
+
 const _RAIL_CARET = `<svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 // 접히는 소제목 머리글 (JS로 그리는 레일 섹션용)
 function railSecHead(key, label, extraCls) {
