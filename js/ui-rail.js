@@ -60,10 +60,14 @@ function applyGraphCfgHelp() {
   document.querySelectorAll('#graphcfg-panel .ms-desc').forEach(d => d.remove());
   if (!_gcHelpOpen) return;
   document.querySelectorAll('#graphcfg-panel .ctrl-group[data-help]').forEach(g => {
-    const d = document.createElement('small');
-    d.className = 'ms-desc';
-    d.textContent = g.dataset.help;
-    g.appendChild(d);
+    let after = g.querySelector('.ctrl-label-row'); // 슬라이더 항목은 제목 바로 밑에 끼운다(설명 다음이 슬라이더)
+    g.dataset.help.split('|').forEach(t => {
+      const d = document.createElement('small');
+      d.className = 'ms-desc';
+      d.textContent = t;
+      // 커서를 방금 넣은 줄로 옮긴다 — 매번 같은 자리에 끼우면 여러 줄이 거꾸로 쌓인다
+      if (after) { after.insertAdjacentElement('afterend', d); after = d; } else g.appendChild(d);
+    });
   });
 }
 applyGraphCfgHelp();
