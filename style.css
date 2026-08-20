@@ -36,8 +36,9 @@ canvas { display: block; }
   #multi-select-menu .ui-help-btn:hover,
   .detail-settings-menu .ui-help-btn:hover { color: var(--fg); background: none; }
 }
-/* 떠 있는 메뉴에선 모서리 밖으로 — 메뉴 안에 두면 항목 한 줄을 잡아먹는다 */
-#multi-select-menu .ui-help-btn, .detail-settings-menu .ui-help-btn { position: absolute; top: -9px; right: -9px; color: var(--accent); }
+/* 메뉴 제목 줄 — 이게 무슨 메뉴인지 알려주고 도움말은 그 옆에 */
+.menu-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 10px 5px; margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.12); font-size: 11px; font-weight: 700; color: var(--text-mute); white-space: nowrap; }
+#multi-select-menu .menu-head .ui-help-btn, .detail-settings-menu .menu-head .ui-help-btn { color: var(--accent); }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
 .ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 /* 그래프 설정 항목: 가로 배치인 줄은 설명이 아래로 내려가게 감싼다 */

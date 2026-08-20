@@ -385,7 +385,7 @@ function renderMultiSelectMenu() {
     const explore = _exploreToolsHtml();
     html = medit + (medit && explore ? '<div class="ms-divider"></div>' : '') + explore;
   }
-  menu.innerHTML = (html ? _msHelpBtn() + html : '')
+  menu.innerHTML = (html ? _msHeadHtml() + html : '')
     || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
   _applyMsHelp(menu);
   menu.classList.add('open');
@@ -394,8 +394,8 @@ function renderMultiSelectMenu() {
 
 // 툴바 도움말 — 설명 문구는 각 버튼의 title을 그대로 쓴다(두 곳에 적으면 반드시 어긋난다)
 let _msHelpOpen = (() => { try { return localStorage.getItem('snlog_ms_help') === '1'; } catch (e) { return false; } })();
-function _msHelpBtn() {
-  return `<button type="button" class="ui-help-btn ms-help-btn${_msHelpOpen ? ' on' : ''}" onclick="toggleMsHelp()" title="각 도구 설명 보기" aria-label="각 도구 설명 보기">${helpIcon(13)}</button>`;
+function _msHeadHtml() {
+  return `<div class="menu-head"><span>노드 툴바</span><button type="button" class="ui-help-btn ms-help-btn${_msHelpOpen ? ' on' : ''}" onclick="toggleMsHelp()" title="각 도구 설명 보기" aria-label="각 도구 설명 보기">${helpIcon(13)}</button></div>`;
 }
 function toggleMsHelp() {
   _msHelpOpen = !_msHelpOpen;
