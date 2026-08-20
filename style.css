@@ -44,7 +44,7 @@ canvas { display: block; }
 /* 메뉴 제목 줄 — 이게 무슨 메뉴인지 알려주고 도움말은 그 옆에 */
 .menu-head { display: flex; align-items: center; gap: 5px; padding: 3px 10px 5px; margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.12); font-size: 13px; font-weight: 800; letter-spacing: 0.04em; color: var(--accent); white-space: nowrap; }
 #multi-select-menu .menu-head .ui-help-btn, .detail-settings-menu .menu-head .ui-help-btn,
-.panel-title-row .ui-help-btn { width: 14px; height: 14px; }
+.panel-title-row .ui-help-btn { width: 16px; height: 16px; }
 /* 설명 줄 — 아이콘 칸까지 걸쳐 라벨 아래로 */
 .ms-desc { grid-column: 1 / -1; max-width: 200px; font-size: 10.5px; font-weight: 500; line-height: 1.45; color: var(--text-mute); white-space: normal; }
 /* 레일 패널 설명 — 머리글·항목 바로 아래 형제로 들어간다.
