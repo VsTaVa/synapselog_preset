@@ -26,6 +26,8 @@ canvas { display: block; }
 .detail-settings-menu .ui-help-btn {
   width: 19px; height: 19px; padding: 0; flex-shrink: 0; display: grid; grid-template-columns: 1fr; place-items: center;
   border-radius: 50%; background: none; border: none; color: var(--accent); cursor: pointer; transition: color 0.15s;
+  /* 광학 보정 — 글자는 대문자 높이 기준이라 가운데 정렬만 하면 원이 2px 떠 보인다 */
+  transform: translateY(2px);
 }
 .ui-help-btn svg,
 #multi-select-menu .ui-help-btn svg,
