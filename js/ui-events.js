@@ -403,7 +403,7 @@ canvas.addEventListener('mousemove', e => {
     { const q = [drag.id], seen = new Set([drag.id]); while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !seen.has(e.to)) { seen.add(e.to); const c = nodeMap[e.to]; if (c) { if (c._frozen) { c._frozen = false; c._frozenFrames = 0; } q.push(e.to); } } }); } }
     return;
   }
-  if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); return; }
+  if (isPanning) { panX = panStartOffsetX + (e.clientX - panStartX); panY = panStartOffsetY + (e.clientY - panStartY); resetFitCycle(); return; }
   const n = getNodeAt(e.clientX, e.clientY);
   hoveredNode = n;
   canvas.style.cursor = n ? 'pointer' : 'default';
@@ -426,7 +426,7 @@ canvas.addEventListener('mousedown', e => {
   const n = getNodeAt(e.clientX, e.clientY);
   mouseDownNode = n;
   if (n) { drag = n; isStable = false; }
-  else { isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartOffsetX = panX; panStartOffsetY = panY; canvas.style.cursor = 'grab'; resetFitCycle(); }
+  else { isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panStartOffsetX = panX; panStartOffsetY = panY; canvas.style.cursor = 'grab'; }
 });
 
 let _clickTimer = null;
@@ -564,7 +564,7 @@ canvas.addEventListener('touchstart', e => {
     _touchStartX = t.clientX; _touchStartY = t.clientY; _touchMoved = false;
     _touchMode = 'single';
     if (n) { drag = n; isStable = false; }
-    else { isPanning = true; panStartX = t.clientX; panStartY = t.clientY; panStartOffsetX = panX; panStartOffsetY = panY; resetFitCycle(); }
+    else { isPanning = true; panStartX = t.clientX; panStartY = t.clientY; panStartOffsetX = panX; panStartOffsetY = panY; }
   } else if (e.touches.length === 2) {
     drag = null; isPanning = false; _touchMode = 'pinch';
     const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -596,7 +596,7 @@ canvas.addEventListener('touchmove', e => {
       const w = screenToWorld(t.clientX, t.clientY); drag.x = w.x; drag.y = w.y;
       nodes.forEach(n => { if (n._frozen && dist(n, drag) < 200) { n._frozen = false; n._frozenFrames = 0; } });
     } else if (isPanning) {
-      panX = panStartOffsetX + (t.clientX - panStartX); panY = panStartOffsetY + (t.clientY - panStartY);
+      panX = panStartOffsetX + (t.clientX - panStartX); panY = panStartOffsetY + (t.clientY - panStartY); resetFitCycle();
     }
   }
 }, { passive: false });
