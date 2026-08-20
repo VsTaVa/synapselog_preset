@@ -30,10 +30,10 @@ canvas { display: block; }
 .ui-help-btn svg,
 #multi-select-menu .ui-help-btn svg,
 .detail-settings-menu .ui-help-btn svg { width: 100%; height: 100%; display: block; }
-/* 설명이 켜진 동안은 흰색 — 어디서든 같은 신호 */
+/* 설명이 켜진 동안은 회색으로 물러난다 — 어디서든 같은 신호 */
 .ui-help-btn.on,
 #multi-select-menu .ui-help-btn.on,
-.detail-settings-menu .ui-help-btn.on { color: var(--fg); }
+.detail-settings-menu .ui-help-btn.on { color: var(--icon-bright); }
 @media (hover: hover) and (pointer: fine) {
   .ui-help-btn:hover,
   #multi-select-menu .ui-help-btn:hover,
