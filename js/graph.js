@@ -129,6 +129,7 @@ function parseMarkdown(text, rootTitle) {
     const rawMd = String(rawLabel || '').trim();
     const parentNode = nodeMap[parentId];
     let color = null;
+    // 깊이는 명도로만 구분하므로 단계 간격이 고르지 않으면 한 구간만 안 읽힌다 (73/60/42/34/26)
     if (level === 0) { color = '#ffffff'; }
     else if (level === 1) { color = getH1Color(label); }
     else if (level === 2) {
@@ -141,13 +142,13 @@ function parseMarkdown(text, rootTitle) {
       } else { color = getH1Color(label); }
     } else if (level === 3) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), 90, 52);
+      if (parentColor) color = hslColor(extractHue(parentColor), 90, 42);
     } else if (level === 4) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 41);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 34);
     } else if (level === 5) {
       const parentColor = parentNode?.color;
-      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 30);
+      if (parentColor) color = hslColor(extractHue(parentColor), Math.max(getSaturation(parentColor), 88), 26);
     }
     const id = 'n' + (nid++);
     const n = {
