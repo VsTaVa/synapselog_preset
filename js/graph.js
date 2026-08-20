@@ -108,9 +108,14 @@ function hiddenChildCount() {
 let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_scheme') || 'node'; } catch(e) { return 'node'; } })();
 // 깊이별 색(성운 팔레트): #전기시안 ##비비드퍼플 ###마젠타핑크 ####코랄앰버 (페이지·DB·최상위는 흰색)
 const DEPTH_RGB = { 1:[0,207,255], 2:[168,85,247], 3:[255,77,184], 4:[255,140,66], 5:[255,210,74] };
+// 페이지·DB 노드 — 헤딩(글 조각)과 달리 별 모양으로 그리고 제목도 크게 쓴다
+const isPageNode = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entryNotionId;
+// 제목 크기·굵기 — 화면과 PNG 내보내기가 같은 값을 쓰게 한 곳에 둔다. 페이지·DB는 그래프의 이정표라 헤딩보다 크게
+const labelFontPx = n => isPageNode(n) ? 14 : n.level === 1 ? 12 : n.level === 2 ? 11 : 10;
+const labelBold = n => isPageNode(n) || n.level <= 1;
 function depthRgb(n) {
   // 최상위·페이지·DB 노드는 흰색 (깊이 색은 노션 헤딩에만)
-  if (n.level === 0 || n.isChildPage || n.isDbNode || n.entryNotionId) return [245,247,250];
+  if (isPageNode(n)) return [245,247,250];
   const d = n.headingDepth || n.level || 1;
   return DEPTH_RGB[Math.min(d, 5)] || [180,190,200];
 }
@@ -758,14 +763,11 @@ function draw() {
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
       if (!lbl) return;
-      let fontSize = 10;
-      if (n.level === 0 || n.level === 1) fontSize = 12;
-      else if (n.level === 2) fontSize = 11;
-      fontSize = fontSize * _labelScale * scale;
+      const fontSize = labelFontPx(n) * _labelScale * scale;
       const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
         lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
-        font: (n.level <= 1) ? `bold ${fontSize}px 'Noto Sans KR',sans-serif` : `500 ${fontSize}px 'Noto Sans KR',sans-serif`,
+        font: `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR',sans-serif`,
         // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
         // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
         color: _bmLbl ? rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.2 : 1)

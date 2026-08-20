@@ -29,7 +29,7 @@ function exportGraph(size) {
   // 경계를 노드 '중심'으로만 잡으면 별 모양(반지름의 2배까지 뻗음)과 아래에 붙는 라벨이
   // 그림 밖으로 잘린다. 노드마다 실제로 그려지는 범위를 더해 경계를 넓힌다.
   const _ext = n => nodeR(n.level) * 2.2;                       // 별 최대 반경 2.0r + 링 여유
-  const _lblH = n => nodeR(n.level) + 4 + (n.level <= 1 ? 12 : 10) * (typeof _labelScale === 'number' ? _labelScale : 1);
+  const _lblH = n => nodeR(n.level) + 4 + labelFontPx(n) * (typeof _labelScale === 'number' ? _labelScale : 1);
   const minX = Math.min(...visibleNodes.map(n => RP.get(n.id).x - _ext(n)));
   const maxX = Math.max(...visibleNodes.map(n => RP.get(n.id).x + _ext(n)));
   const minY = Math.min(...visibleNodes.map(n => RP.get(n.id).y - _ext(n)));
@@ -95,8 +95,8 @@ function exportGraph(size) {
     if (_labelScale > 0) {
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
-      const fontSize = (n.level <= 1 ? 12 : 10) * _labelScale;
-      ctx2.font = n.level <= 1 ? `bold ${fontSize}px 'Noto Sans KR', sans-serif` : `500 ${fontSize}px 'Noto Sans KR', sans-serif`;
+      const fontSize = labelFontPx(n) * _labelScale;
+      ctx2.font = `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR', sans-serif`;
       ctx2.textAlign = 'center'; ctx2.textBaseline = 'top';
       // 화면과 같은 '제목 뒤 지움' — 그림자 블러를 페더로 써서 겹친 선·노드를 글자 주변에서 뺀다
       ctx2.fillStyle = rgbStr(EXPORT_BG, 1);
