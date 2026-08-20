@@ -43,40 +43,47 @@ function applyRailSecState() {
     el.classList.toggle('closed', !isRailSecOpen(el.dataset.sec));
   });
 }
-// ── 그래프 설정 항목 설명 (? 토글) ──────────────────────────────────
+// ── 레일 패널 항목 설명 (? 토글) ────────────────────────────────────
 // 문구는 각 항목의 data-help 한 곳에만 — 여기 또 적으면 반드시 어긋난다
-let _gcHelpOpen = (() => { try { return localStorage.getItem('snlog_gc_help') === '1'; } catch (e) { return false; } })();
-function toggleGraphCfgHelp() {
-  _gcHelpOpen = !_gcHelpOpen;
-  try { localStorage.setItem('snlog_gc_help', _gcHelpOpen ? '1' : '0'); } catch (e) {}
-  applyGraphCfgHelp();
+// 켜짐 여부는 패널별로 따로 기억한다(패널 id가 키)
+let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_help') || '{}'); } catch (e) { return {}; } })();
+function toggleRailHelp(panelId) {
+  _helpOpen[panelId] = !_helpOpen[panelId];
+  try { localStorage.setItem('snlog_help', JSON.stringify(_helpOpen)); } catch (e) {}
+  applyRailHelp();
 }
-function applyGraphCfgHelp() {
-  const btn = document.getElementById('gc-help-btn');
-  if (btn) {
-    if (!btn.innerHTML && typeof helpIcon === 'function') btn.innerHTML = helpIcon(13); // 도안은 icons.js 한 곳에서
-    btn.classList.toggle('on', _gcHelpOpen);
-  }
-  document.querySelectorAll('#graphcfg-panel .ms-desc').forEach(d => d.remove());
-  if (!_gcHelpOpen) return;
-  document.querySelectorAll('#graphcfg-panel .ctrl-group[data-help]').forEach(g => {
-    let after = g.querySelector('.ctrl-label-row'); // 슬라이더 항목은 제목 바로 밑에 끼운다(설명 다음이 슬라이더)
-    g.dataset.help.split('|').forEach(t => {
-      const d = document.createElement('small');
-      d.className = 'ms-desc';
-      d.textContent = t;
-      // 커서를 방금 넣은 줄로 옮긴다 — 매번 같은 자리에 끼우면 여러 줄이 거꾸로 쌓인다
-      if (after) { after.insertAdjacentElement('afterend', d); after = d; } else g.appendChild(d);
+function applyRailHelp() {
+  document.querySelectorAll('#sidebar .rail-pane').forEach(panel => {
+    const on = !!_helpOpen[panel.id];
+    const btn = panel.querySelector('.ui-help-btn');
+    if (btn) {
+      if (!btn.innerHTML && typeof helpIcon === 'function') btn.innerHTML = helpIcon(13); // 도안은 icons.js 한 곳에서
+      btn.classList.toggle('on', on);
+    }
+    panel.querySelectorAll('.ms-desc').forEach(d => d.remove());
+    if (!on) return;
+    panel.querySelectorAll('[data-help]').forEach(el => {
+      if (el.style.display === 'none') return; // 비어서 감춘 목록에 설명만 남지 않게
+      // 슬라이더는 제목 바로 밑(설명 다음이 슬라이더), 가로로 놓인 설정 줄은 줄 끝, 나머지는 형제로
+      let after = el.querySelector('.ctrl-label-row') || (el.classList.contains('ctrl-group') ? null : el);
+      el.dataset.help.split('|').forEach(t => {
+        const d = document.createElement('small');
+        d.className = 'ms-desc';
+        d.textContent = t;
+        // 커서를 방금 넣은 줄로 옮긴다 — 매번 같은 자리에 끼우면 여러 줄이 거꾸로 쌓인다
+        if (after) { after.insertAdjacentElement('afterend', d); after = d; } else el.appendChild(d);
+      });
     });
   });
 }
-applyGraphCfgHelp();
+applyRailHelp();
 
 const _RAIL_CARET = `<svg class="rail-sec-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 // 접히는 소제목 머리글 (JS로 그리는 레일 섹션용)
-function railSecHead(key, label, extraCls) {
+function railSecHead(key, label, extraCls, help) {
   const cls = 'rail-subhead rail-sec-head' + (extraCls ? ' ' + extraCls : '') + (isRailSecOpen(key) ? '' : ' closed');
-  return `<button type="button" class="${cls}" data-sec="${key}" onclick="toggleRailSec('${key}')">${_RAIL_CARET}${label}</button>`;
+  const h = help ? ` data-help="${escapeHtml(help)}"` : '';
+  return `<button type="button" class="${cls}" data-sec="${key}"${h} onclick="toggleRailSec('${key}')">${_RAIL_CARET}${label}</button>`;
 }
 function railSecBody(key, inner) {
   return `<div class="rail-secbody${isRailSecOpen(key) ? '' : ' closed'}" data-sec="${key}">${inner}</div>`;
@@ -95,15 +102,16 @@ function renderBookmarkList() {
   const chipList = (arr, fn) => `<div class="insight-chips">${arr.map(fn).join('')}</div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
   const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
-  let html = railSecHead('bm', '북마크');
+  let html = railSecHead('bm', '북마크', '', '노드 우클릭 → 북마크로 담은 노드');
   html += railSecBody('bm', bms.length ? chipList(bms, n => chipItem(n))
     : `<div class="rail-empty">북마크 노드 모음</div>`);
-  html += railSecHead('recent', '최근 본 노드', 'mt');
+  html += railSecHead('recent', '최근 본 노드', 'mt', '클릭해서 연 노드 기록. 최대 10개');
   html += railSecBody('recent', recents.length
     ? chipList(recents, (n, i) => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`, i + 1))
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
   // 칩은 전역 핸들러가 패널을 열어주므로 여기선 카메라 이동만
+  applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
   el.querySelectorAll('.bm-chip').forEach(w => {
     w.onclick = () => {
       const n = nodeMap[w.dataset.nid];
@@ -192,10 +200,11 @@ function renderInsights() {
   let html = '';
   // 연결 제안 (제목 키워드 겹침 · 토큰 0 · 최대 5)
   _linkSuggestCache = _computeLinkSuggestions(3);
-  html += `<div class="insight-sec">` + railSecHead('suggest', '연결 제안', 'mt');
+  html += `<div class="insight-sec">` + railSecHead('suggest', '연결 제안', 'mt', '제목 키워드가 겹치는 노드 쌍. AI 없이 계산');
   html += railSecBody('suggest', `<div id="insight-suggest-body">` + _renderSuggestHtml(_linkSuggestCache) + `</div>`) + `</div>`;
 
   el.innerHTML = html;
+  applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
 }
 
 function _renderSuggestHtml(list) {

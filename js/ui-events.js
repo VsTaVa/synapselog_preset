@@ -11,10 +11,11 @@ function renderSearchHistory() {
   const el = document.getElementById('search-history');
   if (!el) return;
   if (searchKeyword || !_searchHistory.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="rail-subhead">검색 기록</div><div class="sp-chips">`
+  el.innerHTML = `<div class="rail-subhead" data-help="최근 검색한 키워드. 클릭하면 다시 검색">검색 기록</div><div class="sp-chips">`
     + _searchHistory.map((kw, i) => `<span class="sp-chip sp-chip-del"><button class="sp-chip-go" onclick="runKeyword('${escapeHtml(kw).replace(/'/g, "&#39;")}')">${escapeHtml(kw)}</button><button class="sp-chip-x" onclick="deleteHistory(${i},event)" aria-label="기록 삭제">✕</button></span>`).join('')
     + `</div>`;
   el.style.display = 'block';
+  applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
 }
 
 function addHistory(kw) {
@@ -51,10 +52,11 @@ function renderFrequentKeywords() {
   const top = Object.entries(_searchCounts).filter(e => e[1] >= 2)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10);
   if (searchKeyword || !top.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="rail-subhead mt">자주 검색하는 키워드</div><div class="sp-chips">`
+  el.innerHTML = `<div class="rail-subhead mt" data-help="두 번 이상 검색한 키워드">자주 검색하는 키워드</div><div class="sp-chips">`
     + top.map(([k, c]) => `<button class="sp-chip" onclick="runKeyword('${escapeHtml(k).replace(/'/g, "&#39;")}')">${escapeHtml(k)}<span class="sp-count">${c}</span></button>`).join('')
     + `</div>`;
   el.style.display = 'block';
+  applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
 }
 
 // 그래프 노드 제목에서 자주 나오는 키워드 top N (문서빈도 기준, AI 없이 코드로)
@@ -84,8 +86,9 @@ function renderPopularKeywords() {
   if (searchKeyword) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const kws = _popularKeywords(12);
   if (!kws.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="rail-subhead">주요 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
+  el.innerHTML = `<div class="rail-subhead" data-help="노드 제목에 자주 나오는 낱말. 지금 그래프에서 뽑음">주요 키워드</div><div class="sp-chips">` + kws.map(k => `<button class="sp-chip">${escapeHtml(k)}</button>`).join('') + `</div>`;
   el.style.display = 'block';
+  applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
   el.querySelectorAll('.sp-chip').forEach(c => { c.onclick = () => { const inp = document.getElementById('search-input'); if (inp) inp.value = c.textContent; doSearch(c.textContent); }; });
 }
 
