@@ -707,7 +707,6 @@ function draw() {
         ctx.fillStyle = gDel2; ctx.fill();
       }
     }
-    // 상세가 열린 노드는 검색 순회와 같은 주황 펄스로 알린다(맨 위 레이어에서 한 번에 그림)
     // 선택은 노드 자리를 통째로 덮는다
     const stAlpha = isDim ? 0.25 : 1;
     if(n.multiSelected && _multiSelected.indexOf(n) >= 0)
@@ -744,14 +743,15 @@ function draw() {
     ring(r + 18, 0.25);
     ring(r + 8, 0.45);
   });
-  // 깜빡이는 주황 링 — 검색으로 지금 보는 노드와 상세가 열린 노드에 같은 표시를 준다
-  const _pulseIds = new Set();
-  if (typeof _searchFocusId !== 'undefined' && _searchFocusId) _pulseIds.add(_searchFocusId);
-  openPanelIdx.forEach((_, id) => _pulseIds.add(id));
-  if (_pulseIds.size) {
+  // 깜빡이는 링 — 열려 있음은 초록, AI 대상으로 고른 노드는 주황(둘 다면 선택이 이긴다)
+  const _pulse = new Map();
+  const okRgb = cssRgb('--ok-rgb', [62,207,142]);
+  if (typeof _searchFocusId !== 'undefined' && _searchFocusId) _pulse.set(_searchFocusId, okRgb);
+  openPanelIdx.forEach((_, id) => _pulse.set(id, okRgb));
+  _multiSelected.forEach(n => { if (n.multiSelected) _pulse.set(n.id, cssRgb('--accent-rgb', [237,112,0])); });
+  if (_pulse.size) {
     const puls = 0.5 + 0.5 * Math.sin(performance.now() / 260); // 0~1 왕복
-    const acc = cssRgb('--accent-rgb', [237,112,0]);
-    _pulseIds.forEach(id => {
+    _pulse.forEach((acc, id) => {
       const pn = nodeMap[id];
       if (!pn || !pn.visible) return;
       const pr = nodeR(pn.level), outer = pr + 10 + puls * 16;
