@@ -178,7 +178,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
 .login-help a:hover { color: var(--accent); }
 .login-help b { color: rgba(var(--accent-rgb),0.9); }
 .panel-box { background: var(--glass-bg); border: 1px solid var(--glass-border); border-top: 2px solid rgba(var(--accent-rgb),0.6); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
-.panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.panel-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 12px; }
 .panel-title-row { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
 .panel-title-row #bulk-actions { margin-left: auto; }
 /* 주황 체크박스: 기본 주황 라인, 체크 시 주황 칠 + 흰 체크 */
@@ -639,7 +639,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-profile-info .s-workspace { font-size: 11px; color: rgba(var(--accent-rgb),0.6); margin-top: 2px; }
 .settings-section { margin: 20px 0 0; }
 .settings-section + .settings-section { border-top: 1px solid rgba(var(--fg-rgb),0.07); padding-top: 20px; }
-.settings-section-title { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.settings-section-title { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 10px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(var(--fg-rgb),0.05); }
 .settings-row:last-child { border-bottom: none; }
 .settings-row-label { font-size: 13px; color: rgba(var(--fg-rgb),0.75); }
