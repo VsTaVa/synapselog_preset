@@ -355,31 +355,11 @@ function simulate() {
 
 // ── 렌더링 ──────────────────────────────────────────────────────────
 
-const BADGE_INK_DARK = [21,17,10]; // 밝은 바탕 위 글리프 색 — 순검정은 가장자리와 붙어 보인다
-
 // 허브 글로우(하위 3개 이상) — 화면과 PNG 내보내기가 같은 공식을 쓰게 한 곳에 둔다. 슬라이더 0이면 안 그림
 function hubGlowSpec(childCount, r) {
   if (childCount < 3 || CONFIG.hubGlow <= 0) return null;
   const s = Math.min((childCount - 2) / 4, 1) * CONFIG.hubGlow;
   return { radius: r + 8 + s * 22, alpha: 0.28 + s * 0.15 };
-}
-const NODE_STATE_R = 1.25; // 상태 원반은 노드보다 살짝 크게 — 딱 맞추면 노드 색이 테두리로 새어 보인다
-// 상태 표시 — 노드를 덮는 원반 + 글리프.
-// 글리프에 7/r을 넘기면 예전 배지(반지름 7px)와 같은 비율이 그대로 나온다
-function _drawNodeState(ctx, x, y, r, rgb, ink, glyphFn, alpha) {
-  const a = alpha === undefined ? 1 : alpha;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
-  ctx.fillStyle = rgbStr(rgb, a); ctx.fill();
-  glyphFn(ctx, x, y, 7/r, rgbStr(ink, a));
-}
-// 선택 체크 — 좌표를 scale로 나눠 그린다(배지 반지름 7 기준 비율)
-function _drawCheck(ctx, bx, by, scale, color) {
-  ctx.beginPath();
-  ctx.moveTo(bx - 3.4/scale, by + 0.3/scale);
-  ctx.lineTo(bx - 0.9/scale, by + 2.8/scale);
-  ctx.lineTo(bx + 3.6/scale, by - 2.6/scale);
-  ctx.strokeStyle = color; ctx.lineWidth = 2/scale; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
-  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 }
 // 고정 핀 — 우클릭 툴바의 핀 아이콘과 같은 압정 형태(머리·목·받침·바늘). 선으로 그리면 이 크기에서 안 읽혀 실루엣을 채운다
 function _drawPin(ctx, bx, by, scale, color, rot) {
@@ -707,10 +687,6 @@ function draw() {
         ctx.fillStyle = gDel2; ctx.fill();
       }
     }
-    // 선택은 노드 자리를 통째로 덮는다
-    const stAlpha = isDim ? 0.25 : 1;
-    if(n.multiSelected && _multiSelected.indexOf(n) >= 0)
-      _drawNodeState(ctx, n.x, n.y, r*NODE_STATE_R, cssRgb('--accent-rgb',[237,112,0]), BADGE_INK_DARK, _drawCheck, stAlpha);
     // 고정은 배지가 아니라 '꽂힌 핀' — 오른쪽 위에서 45° 기울여 촉이 노드를 파고들게 둔다.
     // 확대하면 노드에 비례해 커지고(7/r), 축소해도 화면 크기 밑으로는 안 줄어 눈에 남는다
     if(n.fixed) {

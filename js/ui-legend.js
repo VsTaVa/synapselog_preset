@@ -56,15 +56,14 @@ function _legendBadgeImg(kind) {
   const S = 40, cx = 20, cy = 20, R = 18; // 노드 모양 범례의 별과 같은 크기로 — 표시 행만 작아 보였다
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const g = c.getContext('2d');
-  const acc = cssRgb('--accent-rgb', [237,112,0]);
-  // 고정은 노드에 꽂힌 흰 핀, 선택은 노드를 덮는 원반
+  // 고정은 노드에 꽂힌 흰 핀, 나머지는 깜빡이는 링 — 정지 이미지라 가장 밝은 순간을 그린다
   if (kind === 'fixed') _drawPin(g, cx, cy, 7 / R, '#ffffff', Math.PI / 4);
-  else if (kind === 'select') _drawNodeState(g, cx, cy, R, acc, BADGE_INK_DARK, _drawCheck);
-  else { // 상세 열림·검색 순회 = 깜빡이는 주황 링. 정지 이미지라 가장 밝은 순간을 그린다
+  else {
+    const rgb = kind === 'select' ? cssRgb('--accent-rgb', [237,112,0]) : cssRgb('--ok-rgb', [62,207,142]);
     const r0 = 7, outer = 18;
     g.beginPath(); g.arc(cx, cy, r0, 0, Math.PI * 2); g.fillStyle = '#c9d3e2'; g.fill();
     const gg = g.createRadialGradient(cx, cy, r0, cx, cy, outer);
-    gg.addColorStop(0, rgbStr(acc, 0.65)); gg.addColorStop(1, rgbStr(acc, 0));
+    gg.addColorStop(0, rgbStr(rgb, 0.65)); gg.addColorStop(1, rgbStr(rgb, 0));
     g.beginPath(); g.arc(cx, cy, outer, 0, Math.PI * 2); g.arc(cx, cy, r0, 0, Math.PI * 2, true);
     g.fillStyle = gg; g.fill();
   }
