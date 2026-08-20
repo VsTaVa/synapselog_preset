@@ -396,22 +396,29 @@ function _haloText(text, x, y, color, alpha, blur) {
   ctx.fillText(text, x, y);
 }
 function _drawPageTitles() {
-  if (!_clusterMode || scale > PAGE_TITLE_AT) return;
-  const roots = nodes.filter(n => n.visible && n.level === 0);
-  if (roots.length < 2) return;
+  if (scale > PAGE_TITLE_AT) return;
   const fade = Math.min(1, (PAGE_TITLE_AT - scale) / (PAGE_TITLE_AT * 0.5)); // 임계 근처에서 서서히
+  // 최상위 제목은 페이지별로 나눠 볼 때만 — 하나로 뭉쳐 있으면 중앙에 하나뿐이라 군더더기
+  const roots = _clusterMode ? nodes.filter(n => n.visible && n.level === 0) : [];
+  // 페이지형 노드(DB·하위페이지)는 배치와 무관하게 — 줌아웃하면 별 모양만으로는 뭐가 뭔지 모른다
+  const pages = nodes.filter(n => n.visible && n.level > 0 && (n.isDbNode || n.isChildPage || n.entryNotionId));
+  if (roots.length < 2 && !pages.length) return;
   ctx.save();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = "800 15px 'Noto Sans KR',sans-serif";
-  roots.forEach(n => {
-    const p = worldToScreen(n.x, n.y);
-    if (p.x < -80 || p.x > W + 80 || p.y < -40 || p.y > H + 40) return;
-    const label = (n.label || '').slice(0, 16);
-    if (!label) return;
-    const y = p.y + 30; // 최상위 노드 아래 — 위에 두면 그쪽 가지를 가린다
-    _haloText(label, p.x, y, rgbStr(nodeRgb(n) || [255,255,255], fade), fade, 8 * DPR);
-  });
+  const put = (list, font, dy, maxLen, blur) => {
+    ctx.font = font;
+    list.forEach(n => {
+      const s = worldToScreen(n.x, n.y);
+      if (s.x < -80 || s.x > W + 80 || s.y < -40 || s.y > H + 40) return;
+      const label = (n.label || '').replace(/\s+/g, ' ').slice(0, maxLen);
+      if (!label) return;
+      _haloText(label, s.x, s.y + dy, rgbStr(nodeRgb(n) || [255,255,255], fade), fade, blur);
+    });
+  };
+  // 노드 아래에 — 위에 두면 그쪽 가지를 가린다
+  if (roots.length >= 2) put(roots, "800 15px 'Noto Sans KR',sans-serif", 30, 16, 8 * DPR);
+  put(pages, "700 11px 'Noto Sans KR',sans-serif", 16, 14, 6 * DPR);
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
