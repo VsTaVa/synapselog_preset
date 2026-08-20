@@ -1169,7 +1169,9 @@ function _ringRadii(pos, totalLeaves, baseR, rStep) {
       let gap = totalLeaves;
       for (let i = 1; i < items.length; i++) gap = Math.min(gap, items[i].slot - items[i - 1].slot);
       gap = Math.min(gap, totalLeaves - (items[items.length - 1].slot - items[0].slot)); // 원형이라 양 끝도 이웃
-      const maxR = Math.max(...items.map(it => nodeR(it.lv)));
+      // 기본 반지름으로 잰다 — nodeR를 쓰면 노드 크기 슬라이더가 링 간격까지 밀어
+      // 그래프 전체가 부푼다(힘기반·페이지별은 노드 크기를 배치에 안 쓴다)
+      const maxR = Math.max(...items.map(it => nodeBaseR(it.lv)));
       need = (maxR * 4) / (Math.max(gap, 1) / totalLeaves * Math.PI * 2); // 호길이 = r×Δ각 → 필요한 r
     }
     prev = Math.max(baseR + d * rStep, prev + rStep, need); // 링 순서는 절대 뒤집히면 안 된다

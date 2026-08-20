@@ -56,9 +56,10 @@ function getBaseHue(label) {
   return _labelHueMap[label];
 }
 
+// 레벨별 기본 반지름 — 노드 크기 슬라이더를 곱하기 전 값(배치 계산이 이걸 쓴다)
+function nodeBaseR(level) { return [14, 10, 7.2, 5.2, 3.8, 2.8][Math.min(level, 5)]; }
 function nodeR(level) {
-  const base = [14, 10, 7.2, 5.2, 3.8, 2.8][Math.min(level, 5)];
-  return base * (typeof CONFIG !== 'undefined' ? CONFIG.nodeSize : 1);
+  return nodeBaseR(level) * (typeof CONFIG !== 'undefined' ? CONFIG.nodeSize : 1);
 }
 
 // 구조 연결선 두께 배수 — 자식이 깊을수록 가늘어져 가지가 뻗는 방향이 읽힌다.
