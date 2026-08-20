@@ -110,8 +110,8 @@ let _colorScheme = (() => { try { return localStorage.getItem('snlog_color_schem
 const DEPTH_RGB = { 1:[0,207,255], 2:[168,85,247], 3:[255,77,184], 4:[255,140,66], 5:[255,210,74] };
 // 페이지·DB 노드 — 헤딩(글 조각)과 달리 별 모양으로 그리고 제목도 크게 쓴다
 const isPageNode = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entryNotionId;
-// 제목 크기·굵기 — 화면과 PNG 내보내기가 같은 값을 쓰게 한 곳에 둔다. 페이지·DB는 그래프의 이정표라 헤딩보다 크게
-const labelFontPx = n => isPageNode(n) ? 14 : n.level === 1 ? 12 : n.level === 2 ? 11 : 10;
+// 제목 크기·굵기 — 화면과 PNG 내보내기가 같은 값을 쓰게 한 곳에 둔다.
+const labelFontPx = n => (isPageNode(n) || n.level === 1) ? 12 : n.level === 2 ? 11 : 10;
 const labelBold = n => isPageNode(n) || n.level <= 1;
 function depthRgb(n) {
   // 최상위·페이지·DB 노드는 흰색 (깊이 색은 노션 헤딩에만)
