@@ -106,7 +106,9 @@ function exportGraph(size) {
       ctx2.shadowBlur = Math.max(2.5, fontSize * 0.5) * exportScale;
       ctx2.fillText(lbl, nx, ny + r + 4); ctx2.fillText(lbl, nx, ny + r + 4);
       ctx2.shadowColor = 'rgba(0,0,0,0)'; ctx2.shadowBlur = 0;
-      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : 'rgba(215,220,230,0.85)';
+      // 화면과 같은 규칙 — 페이지·DB는 노드 색, 나머지는 회색
+      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff'
+        : isPageNode(n) ? rgbStr(nodeRgb(n) || [255,255,255], 1) : 'rgba(215,220,230,0.85)';
       ctx2.fillText(lbl, nx, ny + r + 4);
     }
   });

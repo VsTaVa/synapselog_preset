@@ -384,7 +384,6 @@ function _drawPin(ctx, bx, by, scale, color, rot) {
 }
 // 많이 축소하면 페이지 이름을 크게 얹는다 — 덩어리가 어느 페이지인지 알 수 없어서.
 // 노드 제목이 이미 작아져 안 읽히는 구간이라 서로 부딪히지 않는다
-const PAGE_TITLE_AT = 0.33; // 이 배율 밑에서만 — 조금만 확대해도 사라지게
 // 배경색으로 두 번 덮어 뒤를 파낸 뒤 글자를 얹는다(그림자 블러가 곧 페더).
 // 세 곳(노드 제목·페이지 제목·가장자리 표시)이 같은 방식이라 한 곳에 둔다
 function _haloText(text, x, y, color, alpha, blur) {
@@ -394,33 +393,6 @@ function _haloText(text, x, y, color, alpha, blur) {
   ctx.shadowBlur = 0; ctx.shadowColor = 'rgba(0,0,0,0)';
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
-}
-function _drawPageTitles() {
-  if (scale > PAGE_TITLE_AT) return;
-  const fade = Math.min(1, (PAGE_TITLE_AT - scale) / (PAGE_TITLE_AT * 0.5)); // 임계 근처에서 서서히
-  // 최상위 제목은 페이지별로 나눠 볼 때만 — 하나로 뭉쳐 있으면 중앙에 하나뿐이라 군더더기
-  const roots = _clusterMode ? nodes.filter(n => n.visible && n.level === 0) : [];
-  // 페이지형 노드(DB·하위페이지)는 배치와 무관하게 — 줌아웃하면 별 모양만으로는 뭐가 뭔지 모른다
-  const pages = nodes.filter(n => n.visible && n.level > 0 && (n.isDbNode || n.isChildPage || n.entryNotionId));
-  if (roots.length < 2 && !pages.length) return;
-  ctx.save();
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const put = (list, font, dy, maxLen, blur) => {
-    ctx.font = font;
-    list.forEach(n => {
-      const s = worldToScreen(n.x, n.y);
-      if (s.x < -80 || s.x > W + 80 || s.y < -40 || s.y > H + 40) return;
-      const label = (n.label || '').replace(/\s+/g, ' ').slice(0, maxLen);
-      if (!label) return;
-      _haloText(label, s.x, s.y + dy, rgbStr(nodeRgb(n) || [255,255,255], fade), fade, blur);
-    });
-  };
-  // 노드 아래에 — 위에 두면 그쪽 가지를 가린다
-  if (roots.length >= 2) put(roots, "800 15px 'Noto Sans KR',sans-serif", 30, 16, 8 * DPR);
-  put(pages, "700 11px 'Noto Sans KR',sans-serif", 16, 14, 6 * DPR);
-  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
-  ctx.restore();
 }
 // 페이지별로 나눠 볼 때, 화면 밖에 있는 페이지가 어느 쪽인지 가장자리에 표시한다.
 // 클릭할 수 있어야 하므로 그린 자리를 남겨 둔다(캔버스라 히트 판정을 직접 한다)
@@ -754,7 +726,6 @@ function draw() {
   }
   ctx.restore();
 
-  _drawPageTitles();
   _drawOffscreenPages();
 
   // 라벨은 화면좌표(수평·노드 아래)로 따로 그림 — 뷰 회전과 무관하게 항상 똑바로
@@ -770,15 +741,19 @@ function draw() {
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0, 13) + '…';
       if (!lbl) return;
-      const fontSize = labelFontPx(n) * _labelScale * scale;
+      // 페이지·DB 제목만 배율을 안 곱한다 — 그래프의 이정표라 축소해도 같은 크기로 읽혀야 한다
+      const fontSize = labelFontPx(n) * _labelScale * (isPageNode(n) ? 1 : scale);
       const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
-        lbl, x: sp.x, y: sp.y + sr + 5 * scale, fontSize, isDim,
+        lbl, x: sp.x, y: sp.y + sr + (isPageNode(n) ? 7 : 5 * scale), fontSize, isDim,
         font: `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR',sans-serif`,
         // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
         // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
         color: _bmLbl ? rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.2 : 1)
-          : (isMatch || lit) ? '#ffffff' : `rgba(150,157,170,${isDim ? 0.12 : 1})`
+          : (isMatch || lit) ? '#ffffff'
+          // 페이지·DB는 노드 색 그대로 — 이정표라 회색으로 물러나면 안 된다
+          : isPageNode(n) ? rgbStr(nodeRgb(n) || [255,255,255], isDim ? 0.12 : 1)
+          : `rgba(150,157,170,${isDim ? 0.12 : 1})`
       });
     });
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
