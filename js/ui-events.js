@@ -980,11 +980,12 @@ function renderRoTokens() {
   const el = document.getElementById('ro-token-list');
   if (!el) return;
   if (!_roTokens.length) { el.innerHTML = ""; return; }
-  const x = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  // 주 토큰 삭제와 같은 휴지통 — 같은 행위엔 같은 아이콘
+  const trashIc = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   el.innerHTML = _roTokens.map(t => `<div class="settings-row">
       <div><div class="settings-row-label">${escapeHtml(t.name || "이름 확인 중...")}</div>
-      <div class="settings-row-sub">${escapeHtml(t.ws || "")}${t.ws ? " · " : ""}읽기 전용 · 페이지 ${Object.values(_pageSrc).filter(v => v === t.id).length}개</div></div>
-      <button class="s-trash-btn soft" onclick="removeRoToken('${t.id}')" title="이 토큰 제거" aria-label="제거">${x}</button>
+      <div class="settings-row-sub">${escapeHtml(t.ws || "")}${t.ws ? " · " : ""}페이지 ${Object.values(_pageSrc).filter(v => v === t.id).length}개</div></div>
+      <button class="s-trash-btn soft" onclick="removeRoToken('${t.id}')" title="이 토큰 제거" aria-label="제거">${trashIc}</button>
     </div>`).join("");
 }
 function _roMsg(text) {
