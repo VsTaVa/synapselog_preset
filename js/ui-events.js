@@ -983,7 +983,7 @@ function renderRoTokens() {
   const x = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   el.innerHTML = _roTokens.map(t => `<div class="settings-row">
       <div><div class="settings-row-label">${escapeHtml(t.name || "이름 확인 중...")}</div>
-      <div class="settings-row-sub">읽기 전용</div></div>
+      <div class="settings-row-sub">${escapeHtml(t.ws || "")}${t.ws ? " · " : ""}읽기 전용 · 페이지 ${Object.values(_pageSrc).filter(v => v === t.id).length}개</div></div>
       <button class="s-trash-btn soft" onclick="removeRoToken('${t.id}')" title="이 토큰 제거" aria-label="제거">${x}</button>
     </div>`).join("");
 }
@@ -1000,12 +1000,14 @@ async function addRoToken() {
   if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { _roMsg('올바른 형식 아님 (secret_ 또는 ntn_)'); return; }
   if (val === _savedToken || _roTokens.some(t => t.token === val)) { _roMsg("이미 등록된 토큰"); return; }
   // 실제로 되는 토큰인지 먼저 확인 — 안 그러면 목록에만 남고 페이지는 영영 안 뜬다
-  let name = "";
+  let name = "", ws = "";
   try {
     const prof = await notionFetch({ action: "profile" }, null, val);
-    name = (prof && (prof.workspace || prof.name)) || "워크스페이스";
+    // 통합 이름이 곧 연결 이름 — 워크스페이스는 같아도 통합마다 다르다
+    name = (prof && (prof.integration || prof.name)) || "이름 없는 연결";
+    ws = (prof && prof.workspace) || "";
   } catch (e) { _roMsg("토큰 확인 실패 — " + e.message); return; }
-  _roTokens.push({ id: "ro" + Date.now().toString(36), token: val, name });
+  _roTokens.push({ id: "ro" + Date.now().toString(36), token: val, name, ws });
   saveRoTokens();
   if (input) input.value = "";
   renderRoTokens();

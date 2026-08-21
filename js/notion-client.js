@@ -29,6 +29,11 @@ function tokenFor(pageId) {
 }
 // 노드가 읽기 전용 워크스페이스에서 온 것인가 — 수정·추가·삭제 버튼을 감추는 기준
 function isReadOnlyNode(n) { return !!(n && n.sourcePageId && _pageSrc[n.sourcePageId]); }
+// 그 페이지가 어느 공유 토큰에서 왔는지 — 목록 태그와 설정 화면이 같은 이름을 쓴다
+function pageSrcName(pageId) {
+  const t = _roTokens.find(x => x.id === _pageSrc[pageId]);
+  return t ? (t.name || '공유') : '';
+}
 
 
 // ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
@@ -929,7 +934,8 @@ function _pageItemHtml(p) {
     let mdBadge = '';
     if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-md-tag">MD</span>`;
     // 공유받은 워크스페이스의 페이지 — 보기만 되는 이유를 목록에서 바로 알 수 있게
-    if (_pageSrc[p.id] || p.src) mdBadge += ` <span class="pli-ro-tag" title="공유받은 워크스페이스 — 보기 전용">읽기</span>`;
+    const roName = pageSrcName(p.id);
+    if (roName) mdBadge += ` <span class="pli-ro-tag" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용">${escapeHtml(roName.length > 8 ? roName.slice(0, 7) + "…" : roName)}</span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
     const exportBtn = `<button class="btn-export" title="MD파일 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;

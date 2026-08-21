@@ -67,16 +67,14 @@ export default async function handler(req, res) {
       const r = await fetch('https://api.notion.com/v1/users/me', { headers });
       if (!r.ok) { const e = await r.json(); throw new Error(e.message); }
       const u = await r.json();
-      const wr = await fetch('https://api.notion.com/v1/search', {
-        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page_size: 1 })
-      });
-      const ws = await wr.json();
+      // 봇 토큰이면 name = 통합 이름, bot.workspace_name = 워크스페이스 이름.
+      // 예전엔 workspace 를 고정 문자열로 돌려주면서 그걸 구하려고 search 를 한 번 더 쐈다.
       return res.status(200).json({
         name: u.name || '',
         email: u.person?.email || '',
         avatar: u.avatar_url || '',
-        workspace: ws.results?.[0]?.parent?.workspace_id ? '내 워크스페이스' : '내 워크스페이스'
+        integration: u.bot ? (u.name || '') : '',
+        workspace: u.bot?.workspace_name || '내 워크스페이스'
       });
     } catch(e) { return res.status(500).json({ error: e.message }); }
   }
