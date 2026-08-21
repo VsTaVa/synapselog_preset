@@ -344,7 +344,7 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .md-folder-ic { color:var(--accent); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
 .pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
 /* 공유받은(읽기 전용) 페이지 — 돋보기 하나만. 어느 연결인지는 호버(title)로 */
-.pli-ro { display:inline-flex; align-items:center; flex-shrink:0; color:var(--icon-bright); vertical-align:-2px; margin-left:2px; }
+.pli-ro { display:inline-flex; align-items:center; flex-shrink:0; color:var(--accent); vertical-align:-2px; margin-left:2px; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }

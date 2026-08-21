@@ -849,7 +849,7 @@ function renderProfile() {
 // ── 설정 모달 ─────────────────────────────────────────────────────────
 
 function openSettings() {
-  renderRoTokens(); // 공유받은 토큰 목록
+  renderRoTokens(); refreshRoTokenNames(); // 공유받은 토큰 목록 (이름은 열 때 한 번 맞춘다)
   const initial = (_profile.name || '?')[0].toUpperCase();
   const sAvatar = document.getElementById('settings-avatar'), sInitial = document.getElementById('settings-initial');
   if (_profile.avatar) { sAvatar.innerHTML = `<img src="${_profile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`; }
@@ -993,6 +993,27 @@ function _roMsg(text) {
   m.textContent = text; m.style.display = 'block';
   setTimeout(() => { m.style.display = 'none'; }, 2200);
 }
+// 이름은 등록할 때 한 번 잡아 저장한다 → 그 뒤 통합 이름이 바뀌거나,
+// 예전 코드가 엉뚱한 값을 넣어뒀으면 계속 그게 보인다. 설정을 열 때 한 번 맞춰준다.
+let _roNamesChecked = false;
+async function refreshRoTokenNames() {
+  if (_roNamesChecked || !_roTokens.length) return;
+  _roNamesChecked = true;
+  let changed = false;
+  for (const t of _roTokens) {
+    try {
+      const prof = await notionFetch({ action: "profile" }, null, t.token);
+      const name = (prof && (prof.integration || prof.name)) || t.name;
+      const ws = (prof && prof.workspace) || t.ws || "";
+      if (name !== t.name || ws !== t.ws) { t.name = name; t.ws = ws; changed = true; }
+    } catch (e) {} // 만료·권한 회수면 알던 이름을 그대로 둔다
+  }
+  if (!changed) return;
+  saveRoTokens();
+  renderRoTokens();
+  if (typeof refreshSidebarRender === 'function') refreshSidebarRender(); // 행 호버 이름도 같이
+}
+
 async function addRoToken() {
   const input = document.getElementById('ro-token-input');
   const val = input && input.value.trim();
