@@ -1000,7 +1000,7 @@ function renderTokenList() {
 }
 function renderAiKeyList() {
   _setList('settings-aikey-list', !_savedAiKey ? '' : _keyRow(
-    'Gemini API 키', _maskKey(_savedAiKey), 'clearAiKey()', '저장된 AI API 키 삭제'));
+    'Gemini API 토큰', _maskKey(_savedAiKey), 'clearAiKey()', '저장된 AI API 키 삭제'));
 }
 // _pageSrc 에는 그 토큰으로 볼 수 있는 페이지가 전부 들어 있다 —
 // 실제로 그래프에 담은 것과 구분해서 보여줘야 지울 때 뭐가 빠지는지 안다

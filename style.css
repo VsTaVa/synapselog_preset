@@ -644,6 +644,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-section-title { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 10px; }
 /* 한 섹션 안의 묶음 구분(노션 토큰 / 읽기 전용 / AI 키) — 레일의 .mt 와 같은 규칙 */
 .settings-group { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider); }
+/* 행에 붙일 땐 앞 행의 밑줄을 없앤다 — 안 그러면 옅은 줄과 구분선이 두 겹으로 뜬다 */
+.settings-row:has(+ .settings-row.settings-group) { border-bottom: none; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
 .settings-row:last-child { border-bottom: none; }
 .settings-row-label { font-size: 13px; color: rgba(var(--fg-rgb),0.75); }
