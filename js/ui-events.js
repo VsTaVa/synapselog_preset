@@ -844,12 +844,13 @@ function renderProfile() {
   if (_profile.avatar) {
     avatarEl.innerHTML = `<img src="${_profile.avatar}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`;
   } else if (initEl) { initEl.textContent = initial; }
+  renderTokenList(); // 프로필이 늦게 와도 목록의 통합 이름이 맞게
 }
 
 // ── 설정 모달 ─────────────────────────────────────────────────────────
 
 function openSettings() {
-  renderRoTokens(); refreshRoTokenNames(); // 공유받은 토큰 목록 (이름은 열 때 한 번 맞춘다)
+  renderKeyLists(); refreshRoTokenNames(); // 저장된 키 목록 (이름은 열 때 한 번 맞춘다)
   const initial = (_profile.name || '?')[0].toUpperCase();
   const sAvatar = document.getElementById('settings-avatar'), sInitial = document.getElementById('settings-initial');
   if (_profile.avatar) { sAvatar.innerHTML = `<img src="${_profile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`; }
@@ -907,7 +908,7 @@ function updateToken() {
   if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
   if (msg) { msg.textContent = '저장됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
-  loadProfile();
+  loadProfile(); renderTokenList();
   // 토큰이 바뀌면 접근 가능한 페이지가 통째로 달라진다 → 목록을 바로 다시 받는다
   // (예전엔 이게 없어서 새 토큰을 넣어도 새로고침 전까진 목록이 그대로였다)
   if (typeof initSidebarPageList === 'function') initSidebarPageList();
@@ -918,6 +919,7 @@ function updateAiKey() {
   const val = input?.value.trim();
   if (!val) { if (msg) { msg.textContent = 'API 키 입력 필요'; msg.style.display = 'block'; } return; }
   _savedAiKey = val;
+  renderAiKeyList();
   sessionStorage.setItem('snlog_ai_key', _encKey(val));
   if (_useLocalStorage) localStorage.setItem('snlog_ai_key', _encKey(val));
   if (input) { input.value = ''; input.placeholder = 'AI API 저장됨'; }
@@ -976,18 +978,37 @@ function clearChatAndRecent() {
 // 저장된 노션 토큰 삭제 (세션 + 로컬)
 // ── 공유받은 읽기 전용 토큰 ───────────────────────────────────────────
 // 워크스페이스 이름은 profile 로 확인한다 — 토큰 문자열은 화면에 절대 안 보인다
-function renderRoTokens() {
-  const el = document.getElementById('ro-token-list');
-  if (!el) return;
-  if (!_roTokens.length) { el.innerHTML = ""; return; }
-  // 주 토큰 삭제와 같은 휴지통 — 같은 행위엔 같은 아이콘
-  const trashIc = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-  el.innerHTML = _roTokens.map(t => `<div class="settings-row">
-      <div><div class="settings-row-label">${escapeHtml(t.name || "이름 확인 중...")}</div>
-      <div class="settings-row-sub">${escapeHtml(t.ws || "")}${t.ws ? " · " : ""}페이지 ${Object.values(_pageSrc).filter(v => v === t.id).length}개</div></div>
-      <button class="s-trash-btn soft" onclick="removeRoToken('${t.id}')" title="이 토큰 제거" aria-label="제거">${trashIc}</button>
-    </div>`).join("");
+// 저장된 키 목록 — 노션 토큰·읽기 전용 토큰·AI 키가 같은 행 모양을 쓴다
+const _KEY_TRASH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+function _keyRow(name, sub, onRemove, removeTitle) {
+  return `<div class="settings-row">
+      <div><div class="settings-row-label">${escapeHtml(name)}</div>
+      <div class="settings-row-sub">${escapeHtml(sub)}</div></div>
+      <button class="s-trash-btn soft" onclick="${onRemove}" title="${escapeHtml(removeTitle)}" aria-label="삭제">${_KEY_TRASH}</button>
+    </div>`;
 }
+function _setList(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+// 키 문자열은 절대 그대로 안 보여준다 — 어느 키인지 가릴 만큼만
+const _maskKey = k => k ? '••••' + String(k).slice(-4) : '';
+
+function renderTokenList() {
+  _setList('settings-token-list', !_savedToken ? '' : _keyRow(
+    (_profile && (_profile.integration || _profile.name)) || '노션 통합',
+    ((_profile && _profile.workspace) ? _profile.workspace + ' · ' : '') + '읽기 · 쓰기',
+    'clearToken()', '저장된 노션 토큰 삭제'));
+}
+function renderAiKeyList() {
+  _setList('settings-aikey-list', !_savedAiKey ? '' : _keyRow(
+    'Gemini API 키', _maskKey(_savedAiKey), 'clearAiKey()', '저장된 AI API 키 삭제'));
+}
+function renderRoTokens() {
+  _setList('ro-token-list', _roTokens.map(t => _keyRow(
+    t.name || '이름 확인 중...',
+    (t.ws ? t.ws + ' · ' : '') + '페이지 ' + Object.values(_pageSrc).filter(v => v === t.id).length + '개',
+    `removeRoToken('${t.id}')`, "이 토큰 제거")).join(""));
+}
+function renderKeyLists() { renderTokenList(); renderAiKeyList(); renderRoTokens(); }
 function _roMsg(text) {
   const m = document.getElementById('ro-token-msg');
   if (!m) return;
@@ -1057,7 +1078,7 @@ function clearToken() {
     if (input) { input.value = ''; input.placeholder = '새 토큰 입력...'; }
     const m = document.getElementById('settings-token-msg');
     if (m) { m.textContent = '삭제됨'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); }
-    if (typeof loadProfile === 'function') loadProfile();
+    if (typeof loadProfile === 'function') loadProfile(); renderTokenList();
   }, true);
 }
 
@@ -1066,6 +1087,7 @@ function clearAiKey() {
   if (!_savedAiKey) { const m = document.getElementById('settings-aikey-msg'); if (m) { m.textContent = '저장된 키 없음'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
   showConfirm('AI API 키 삭제', '저장된 AI API 키 삭제.', () => {
     _savedAiKey = '';
+    renderAiKeyList();
     try { sessionStorage.removeItem('snlog_ai_key'); localStorage.removeItem('snlog_ai_key'); } catch (e) {}
     const input = document.getElementById('settings-aikey-input');
     if (input) { input.value = ''; input.placeholder = 'AIza...'; }
