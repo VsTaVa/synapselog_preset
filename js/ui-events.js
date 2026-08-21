@@ -990,7 +990,7 @@ function _keyRow(name, sub, onRemove, removeTitle) {
 function _setList(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
 
 // 키 문자열은 절대 그대로 안 보여준다 — 어느 키인지 가릴 만큼만
-const _maskKey = k => k ? '••••' + String(k).slice(-4) : '';
+const _maskKey = k => k ? '•'.repeat(Math.max(4, String(k).length - 4)) + String(k).slice(-4) : '';
 
 function renderTokenList() {
   _setList('settings-token-list', !_savedToken ? '' : _keyRow(
@@ -1002,10 +1002,17 @@ function renderAiKeyList() {
   _setList('settings-aikey-list', !_savedAiKey ? '' : _keyRow(
     'Gemini API 키', _maskKey(_savedAiKey), 'clearAiKey()', '저장된 AI API 키 삭제'));
 }
+// _pageSrc 에는 그 토큰으로 볼 수 있는 페이지가 전부 들어 있다 —
+// 실제로 그래프에 담은 것과 구분해서 보여줘야 지울 때 뭐가 빠지는지 안다
+function _roPageCount(id) {
+  const all = Object.keys(_pageSrc).filter(k => _pageSrc[k] === id);
+  const added = all.filter(k => typeof _addedPageIds !== 'undefined' && _addedPageIds.has(k)).length;
+  return '담은 ' + added + '개 · 볼 수 있는 ' + all.length + '개';
+}
 function renderRoTokens() {
   _setList('ro-token-list', _roTokens.map(t => _keyRow(
     t.name || '이름 확인 중...',
-    (t.ws ? t.ws + ' · ' : '') + '페이지 ' + Object.values(_pageSrc).filter(v => v === t.id).length + '개',
+    (t.ws ? t.ws + ' · ' : '') + _roPageCount(t.id),
     `removeRoToken('${t.id}')`, "이 토큰 제거")).join(""));
 }
 function renderKeyLists() { renderTokenList(); renderAiKeyList(); renderRoTokens(); }
