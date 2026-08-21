@@ -269,7 +269,7 @@ function _wikiDisconnect(a, b) {
 // 공통 토글 — 단일/멀티 연결에서 모두 사용
 // 연결 클릭을 받을 수 있는 노드 — 페이지/MD 파일 루트(level 0)도 대상.
 // 페이지에 속하지 않은 합성 최상위 루트만 제외(연결할 본문 자체가 없음)
-function canConnectNode(n) { return !!n && (n.level > 0 || !!n.sourcePageId); }
+function canConnectNode(n) { return !!n && (n.level > 0 || !!n.sourcePageId) && !isReadOnlyNode(n); }
 // ── 연결 저장 방식은 출처별로 완전히 분리 ────────────────────────────
 // 로컬(MD)끼리  → 본문에 [[ ]]/내부링크 기록 + 원본 .md 되쓰기
 // 노션끼리      → 노션 블록에 [텍스트](노션URL) 추가

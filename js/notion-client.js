@@ -3,6 +3,34 @@
 let _savedToken = _decKey(sessionStorage.getItem('snlog_token')) || _decKey(localStorage.getItem('snlog_token')) || '';
 let _addedPageIds = new Set();
 
+// ── 읽기 전용 보조 토큰 ───────────────────────────────────────────────
+// 남의 워크스페이스를 "보기만" 하려고 받은 토큰들. 주 토큰(_savedToken)만 쓰기가 된다.
+// 토큰 주인이 노션에서 통합에 연결한 페이지만 넘어오므로, 공개 범위는 주는 쪽이 정한다.
+const _RO_KEY = 'snlog_ro_tokens';
+let _roTokens = (() => {
+  try { return JSON.parse(_decKey(sessionStorage.getItem(_RO_KEY)) || _decKey(localStorage.getItem(_RO_KEY)) || "[]") || []; }
+  catch (e) { return []; }
+})();
+function saveRoTokens() {
+  const s = _encKey(JSON.stringify(_roTokens));
+  try {
+    sessionStorage.setItem(_RO_KEY, s);
+    if (typeof _useLocalStorage !== 'undefined' && _useLocalStorage) localStorage.setItem(_RO_KEY, s);
+    else localStorage.removeItem(_RO_KEY);
+  } catch (e) {}
+}
+// 페이지 → 어느 토큰에서 왔는지. 값이 있으면 보조(읽기 전용) 토큰의 페이지다
+let _pageSrc = {};
+function tokenFor(pageId) {
+  const sid = pageId && _pageSrc[pageId];
+  if (!sid) return _savedToken;
+  const t = _roTokens.find(x => x.id === sid);
+  return t ? t.token : _savedToken;
+}
+// 노드가 읽기 전용 워크스페이스에서 온 것인가 — 수정·추가·삭제 버튼을 감추는 기준
+function isReadOnlyNode(n) { return !!(n && n.sourcePageId && _pageSrc[n.sourcePageId]); }
+
+
 // ── 로컬 폴더 동기화 (File System Access API, Chrome/Edge) ────────────
 
 function _idbOpen() {
@@ -288,17 +316,39 @@ async function removeFolderBatch(folderBatchId) {
   refreshFolderRows(); updateBulkActionsVisibility(); savePageList();
 }
 
-async function notionFetch(body) {
+// 쓰기는 주 토큰에서만 — 보조 토큰으로 새어 나가면 남의 문서를 고치게 된다
+const _WRITE_ACTIONS = new Set(['updateBlock', 'appendBlock', 'appendBlocks', 'deleteBlock', 'deleteSection', 'restoreBlock']);
+// srcPageId: pageId가 본문에 없을 때(블록 단위 호출) 어느 페이지 소속인지 알려준다
+async function notionFetch(body, srcPageId, tokenOverride) {
+  const token = tokenOverride || tokenFor(srcPageId || body.pageId);
+  if (_WRITE_ACTIONS.has(body.action) && token !== _savedToken) {
+    throw new Error('읽기 전용 워크스페이스라 수정할 수 없음');
+  }
   const res = await fetch('/api/notion', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: _savedToken, ...body })
+    body: JSON.stringify({ token, ...body })
   });
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch(e) { throw new Error('서버 응답 오류'); }
   if (!res.ok) throw new Error(data.error || '오류 발생');
   return data;
+}
+
+// 'list'는 pageId가 없어 라우팅이 안 된다 → 토큰마다 따로 부르고 합친다.
+// 한 토큰이 실패해도 나머지는 살린다(만료·권한 회수가 흔하다).
+async function notionListAll() {
+  const srcs = [{ id: '', token: _savedToken }].concat(_roTokens.map(t => ({ id: t.id, token: t.token })));
+  const out = [];
+  for (const s of srcs) {
+    if (!s.token) continue;
+    try {
+      const d = await notionFetch({ action: "list" }, null, s.token);
+      (d.pages || []).forEach(pg => { if (pg && pg.id) { out.push({ ...pg, src: s.id }); if (s.id) _pageSrc[pg.id] = s.id; } });
+    } catch (e) {}
+  }
+  return { pages: out };
 }
 
 // ── 노션 쓰기: 블록 텍스트 수정 ──────────────────────────────────────
@@ -651,7 +701,7 @@ async function showPagePicker() {
     <div id="page-pick-error"></div>
   `;
   try {
-    const data = await notionFetch({ action: 'list' });
+    const data = await notionListAll();
     window._pageList = data.pages || [];
     renderPageList(window._pageList);
   } catch(e) {
@@ -734,7 +784,7 @@ function skipToGraph() {
 // ── 사이드바 페이지 목록 ─────────────────────────────────────────────
 
 async function initSidebarPageList() {
-  if (!_savedToken) return;
+  if (!_savedToken && !_roTokens.length) return; // 공유받은 토큰만 있어도 목록은 뜬다
   const wrap = document.getElementById('sidebar-page-list-wrap');
   if (wrap) wrap.style.display = 'block';
   await refreshSidebarPageList();
@@ -743,7 +793,7 @@ async function initSidebarPageList() {
 // 노션에서 접근 가능한 페이지 목록을 다시 받아 사이드바에 반영.
 // 새로 만든 페이지·새 토큰으로 바뀐 목록이 여기서 들어온다. → 새로 발견한 페이지 수 반환
 async function refreshSidebarPageList() {
-  if (!_savedToken) return 0;
+  if (!_savedToken && !_roTokens.length) return 0;
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return 0;
   // 목록 영역이 접혀 있으면(토큰만 넣고 아직 페이지를 안 담은 상태) 펼쳐준다 —
@@ -753,7 +803,7 @@ async function refreshSidebarPageList() {
   listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
   try {
     const prevIds = new Set((window._sidebarPageList || []).map(p => p.id));
-    const data = await notionFetch({ action: 'list' });
+    const data = await notionListAll();
     const pages = data.pages || [];
     // 로컬/MD/폴더 항목은 노션 목록에 없으므로 보존
     const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd || p.isFolder) && !pages.some(q => q.id === p.id));
@@ -878,6 +928,8 @@ function _pageItemHtml(p) {
     const isFav = _favoritePageIds.has(p.id);
     let mdBadge = '';
     if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-md-tag">MD</span>`;
+    // 공유받은 워크스페이스의 페이지 — 보기만 되는 이유를 목록에서 바로 알 수 있게
+    if (_pageSrc[p.id] || p.src) mdBadge += ` <span class="pli-ro-tag" title="공유받은 워크스페이스 — 보기 전용">읽기</span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
     const exportBtn = `<button class="btn-export" title="MD파일 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
@@ -1101,7 +1153,7 @@ function savePageList() {
     // 캐시가 깨져 있어도 목록 저장은 계속돼야 한다 — 여기서 던지면 페이지 추가·삭제가 통째로 안 남는다
     let title = pageId;
     if (cached) { try { title = JSON.parse(cached).title || pageId; } catch(e) {} }
-    list.push({ pageId, title });
+    list.push(_pageSrc[pageId] ? { pageId, title, src: _pageSrc[pageId] } : { pageId, title });
   });
   // 'pages' 스코프로 저장 → 로컬 저장 켜져 있으면 localStorage에 남아 F5·재시작에도 페이지 목록 복원(노드 위치는 저장 안 함)
   snSet('snlog_pages', JSON.stringify(list), 'pages');
@@ -1111,7 +1163,8 @@ async function restorePageList() {
   const saved = snGet('snlog_pages', 'pages');
   if (!saved) return;
   let list; try { list = JSON.parse(saved); } catch(e) { return; }
-  for (const { pageId, title } of list) {
+  for (const { pageId, title, src } of list) {
+    if (src) _pageSrc[pageId] = src; // headings 를 받기 전에 세팅해야 알맞은 토큰으로 나간다
     if (_addedPageIds.has(pageId)) continue;
     const cached = sessionStorage.getItem(`snlog_${pageId}`);
     let data;
@@ -1172,7 +1225,7 @@ async function syncPage(pageId, opts) {
     let changed = null; // null=전부, Set=바뀐 엔트리 id만
     if (!opts.force) {
       try {
-        const list = await notionFetch({ action: 'list' });
+        const list = await notionListAll();
         const latest = {}; (list.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
         changed = new Set();
         nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId)
@@ -1276,7 +1329,7 @@ async function bulkSync(opts) {
   try {
     // 수정일 기준선 갱신(다음 증분 비교용)
     try {
-      const data = await notionFetch({ action: 'list' });
+      const data = await notionListAll();
       const latest = {}; (data.pages || []).forEach(p => { if (p.id) latest[p.id] = p.lastEdited || ''; });
       _pageEdited = latest; _savePageEdited();
     } catch (e) {}
@@ -1405,7 +1458,7 @@ async function _loadEntryNode(node, pageId) {
     let ok = false;
     for (let attempt = 0; attempt < 3 && !ok; attempt++) {
       try {
-        const data = await notionFetch({ pageId: node.entryNotionId, action: 'entry' });
+        const data = await notionFetch({ pageId: node.entryNotionId, action: 'entry' }, node.sourcePageId);
         md = data.markdown || '';
         if (md) try { sessionStorage.setItem(cacheKey, md); } catch(e) {}
         ok = true;

@@ -236,7 +236,7 @@ function _subtreeIds(rootId) {
   while (q.length) { const id = q.shift(); edges.forEach(e => { if (e.from === id && !e.weakLink && !e.manualLink && !ids.includes(e.to)) { ids.push(e.to); q.push(e.to); } }); }
   return ids;
 }
-function canDeleteNode(n) { return !!(n && (n.local || n.notionBlockId)); }
+function canDeleteNode(n) { return !!(n && (n.local || n.notionBlockId)) && !isReadOnlyNode(n); }
 
 // 노드 하나의 노션 블록 삭제 → 지운 블록 ID 배열(실행 취소용)
 // 헤딩 노드는 서버가 실제 children을 훑어 섹션 통째로 지운다 — 예전처럼 아는 본문 블록만 지우면
@@ -849,6 +849,7 @@ function renderProfile() {
 // ── 설정 모달 ─────────────────────────────────────────────────────────
 
 function openSettings() {
+  renderRoTokens(); // 공유받은 토큰 목록
   const initial = (_profile.name || '?')[0].toUpperCase();
   const sAvatar = document.getElementById('settings-avatar'), sInitial = document.getElementById('settings-initial');
   if (_profile.avatar) { sAvatar.innerHTML = `<img src="${_profile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`; }
@@ -892,7 +893,7 @@ function closeSettings() {
 function onStorageToggle(el) {
   _useLocalStorage = el.checked;
   localStorage.setItem('snlog_use_local', _useLocalStorage);
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); saveRoTokens(); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -928,7 +929,7 @@ function clearCache(type) {
   // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
   if (type === 'all') {
     showConfirm('전체 초기화', '노드 모드&그래프 설정 포함 저장 데이터 전체 초기화.\n(로그인&언어&단축키 유지, 새로고침됨)', () => {
-      const keep = ['snlog_token','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
+      const keep = ['snlog_token','snlog_ro_tokens','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
       [...Object.keys(sessionStorage), ...Object.keys(localStorage)]
         .filter(k => k.startsWith('snlog_') && !keep.includes(k))
         .forEach(k => { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch (e) {} });
@@ -973,6 +974,56 @@ function clearChatAndRecent() {
 }
 
 // 저장된 노션 토큰 삭제 (세션 + 로컬)
+// ── 공유받은 읽기 전용 토큰 ───────────────────────────────────────────
+// 워크스페이스 이름은 profile 로 확인한다 — 토큰 문자열은 화면에 절대 안 보인다
+function renderRoTokens() {
+  const el = document.getElementById('ro-token-list');
+  if (!el) return;
+  if (!_roTokens.length) { el.innerHTML = ""; return; }
+  const x = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  el.innerHTML = _roTokens.map(t => `<div class="settings-row">
+      <div><div class="settings-row-label">${escapeHtml(t.name || "이름 확인 중...")}</div>
+      <div class="settings-row-sub">읽기 전용</div></div>
+      <button class="s-trash-btn soft" onclick="removeRoToken('${t.id}')" title="이 토큰 제거" aria-label="제거">${x}</button>
+    </div>`).join("");
+}
+function _roMsg(text) {
+  const m = document.getElementById('ro-token-msg');
+  if (!m) return;
+  m.textContent = text; m.style.display = 'block';
+  setTimeout(() => { m.style.display = 'none'; }, 2200);
+}
+async function addRoToken() {
+  const input = document.getElementById('ro-token-input');
+  const val = input && input.value.trim();
+  if (!val) { _roMsg('토큰 입력 필요'); return; }
+  if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { _roMsg('올바른 형식 아님 (secret_ 또는 ntn_)'); return; }
+  if (val === _savedToken || _roTokens.some(t => t.token === val)) { _roMsg("이미 등록된 토큰"); return; }
+  // 실제로 되는 토큰인지 먼저 확인 — 안 그러면 목록에만 남고 페이지는 영영 안 뜬다
+  let name = "";
+  try {
+    const prof = await notionFetch({ action: "profile" }, null, val);
+    name = (prof && (prof.workspace || prof.name)) || "워크스페이스";
+  } catch (e) { _roMsg("토큰 확인 실패 — " + e.message); return; }
+  _roTokens.push({ id: "ro" + Date.now().toString(36), token: val, name });
+  saveRoTokens();
+  if (input) input.value = "";
+  renderRoTokens();
+  _roMsg(name + " 추가됨");
+  if (typeof initSidebarPageList === 'function') initSidebarPageList();
+}
+function removeRoToken(id) {
+  const t = _roTokens.find(x => x.id === id);
+  if (!t) return;
+  showConfirm("공유 토큰 제거", (t.name || "이 토큰") + " 제거. 담아둔 페이지는 그래프에 남지만 더는 갱신되지 않는다.", () => {
+    _roTokens = _roTokens.filter(x => x.id !== id);
+    saveRoTokens();
+    Object.keys(_pageSrc).forEach(k => { if (_pageSrc[k] === id) delete _pageSrc[k]; });
+    renderRoTokens();
+    if (typeof initSidebarPageList === 'function') initSidebarPageList();
+  }, true);
+}
+
 function clearToken() {
   if (!_savedToken) { const m = document.getElementById('settings-token-msg'); if (m) { m.textContent = '저장된 토큰 없음'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
   showConfirm('노션 토큰 삭제', '저장된 노션 API 토큰 삭제.', () => {

@@ -884,3 +884,5 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   #detail-resize-handle.will-collapse::before { width: 56px; height: 4px; }
   body.resizing-panel { cursor: ns-resize; }
 }
+/* 공유받은(읽기 전용) 워크스페이스 페이지 표시 — MD 태그와 같은 규격 */
+.pli-ro-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-mute); border:1px solid var(--border); border-radius:3px; padding:0 3px; }

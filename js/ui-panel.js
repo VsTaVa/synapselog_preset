@@ -433,7 +433,7 @@ function collectSyncDescendants(rootNode) {
 
 // 노드 1개를 노션에서 다시 가져와 제목/본문/토글 갱신 (UI 갱신·캐시 무효화는 호출자에서)
 async function _applyNodeSync(node) {
-  const data = await notionFetch({ action: 'headingNode', blockId: node.notionBlockId, parentId: node.notionParentId });
+  const data = await notionFetch({ action: 'headingNode', blockId: node.notionBlockId, parentId: node.notionParentId }, node.sourcePageId);
   const newTitle = (data.title || '').trim();
   if (newTitle && newTitle !== node.label) {
     node.label = newTitle;
@@ -536,7 +536,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
     : '';
   const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
   const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-  const canEdit = n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length);
+  const canEdit = (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) && !isReadOnlyNode(n);
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
   const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
@@ -1210,6 +1210,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
 // 이 노드에 하위 노드를 만들 수 있는가 (####/제한 노드는 false)
 function canAddChild(n) {
   if (!n) return false;
+  if (isReadOnlyNode(n)) return false; // 읽기 전용 워크스페이스는 담기만 한다
   // 노드가 #### (깊이 4) 이상이면 그 아래 노드는 만들 수 없음
   if (n.local) return (n.headingDepth || 0) <= 3;
   if (n.notionBlockId && n.notionParentId && (n.headingDepth || 1) <= 3) return true;
