@@ -646,6 +646,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .settings-group { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--divider); }
 /* 묶음 제목은 섹션 제목과 같은 주황 — 행에 붙은 .settings-group 은 해당 없음 */
 .settings-row-label.settings-group { color: var(--accent); font-weight: 700; letter-spacing: 0.04em; }
+/* 섹션 첫 묶음은 위에 선을 안 긋는다 — 섹션 제목 바로 밑이라 두 줄이 겹쳐 보인다 */
+.s-section-body > .settings-group:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 /* 행에 붙일 땐 앞 행의 밑줄을 없앤다 — 안 그러면 옅은 줄과 구분선이 두 겹으로 뜬다 */
 .settings-row:has(+ .settings-row.settings-group) { border-bottom: none; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
