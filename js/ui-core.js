@@ -110,6 +110,25 @@ function showLoading(text='불러오는 중...') {
 }
 function hideLoading() { const el = document.getElementById('loading-overlay'); if (el) el.classList.remove('visible'); }
 
+// 버튼 아래에 뜨는 작은 메뉴 — 같은 버튼을 다시 누르면 닫히고 null을 준다.
+// 여는 쪽마다 바깥 클릭·리사이즈 정리를 다시 적으면 하나만 빠뜨려도 메뉴가 화면에 남는다
+function openMenuNear(anchor, id, className, html) {
+  const old = document.getElementById(id);
+  if (old) { const same = old._anchor === anchor; old._close(); if (same) return null; }
+  const menu = document.createElement('div');
+  menu.id = id; menu.className = className; menu.innerHTML = html;
+  document.body.appendChild(menu);
+  const r = anchor.getBoundingClientRect(), mw = 168;
+  menu.style.top = (r.bottom + 6) + 'px';
+  menu.style.left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8)) + 'px';
+  const close = () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('resize', close); menu.remove(); };
+  const onDoc = (e) => { if (!menu.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) close(); };
+  menu._anchor = anchor; menu._close = close;
+  setTimeout(() => document.addEventListener('mousedown', onDoc), 0);
+  window.addEventListener('resize', close);
+  return menu;
+}
+
 // ── 제목 크기 ─────────────────────────────────────────────────────────
 
 // 0(숨김)에서 돌아올 크기 — 숨긴 채 새로고침해도 원래 크기로 돌아오게 따로 저장한다

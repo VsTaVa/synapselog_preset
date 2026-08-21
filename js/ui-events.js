@@ -856,9 +856,9 @@ function openSettings() {
   if (_profile.avatar) { sAvatar.innerHTML = `<img src="${_profile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='<span>${initial}</span>'" />`; }
   else if (sInitial) { sInitial.textContent = initial; }
   const sName = document.getElementById('settings-name'), sEmail = document.getElementById('settings-email'), sWs = document.getElementById('settings-workspace');
-  if (sName) sName.textContent = _profile.name || '—';
-  if (sEmail) sEmail.textContent = _profile.email || '—';
-  if (sWs) sWs.textContent = _profile.workspace || '—';
+  // 값이 없으면 줄을 감춘다 — 통합 토큰은 봇 계정이라 이메일이 없어서 대시만 남았다
+  const _setLine = (el, v) => { if (!el) return; el.textContent = v || ''; el.style.display = v ? '' : 'none'; };
+  _setLine(sName, _profile.name); _setLine(sEmail, _profile.email); _setLine(sWs, _profile.workspace);
 
   // 저장된 키 표시(마스킹) — 넣었는지 눈으로 확인 가능하게
   const tIn = document.getElementById('settings-token-input');

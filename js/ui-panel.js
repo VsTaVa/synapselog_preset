@@ -525,11 +525,6 @@ function _applyDsHelp(menu) {
 
 // 우측 패널 설정 메뉴 (⚙) — 노션에서 보기 / 북마크
 function toggleDetailSettings(anchor, i, n, notionHref) {
-  const existing = document.getElementById('detail-settings-menu');
-  if (existing) { const same = existing._anchor === anchor; existing._close(); if (same) return; }
-  const menu = document.createElement('div');
-  menu.id = 'detail-settings-menu';
-  menu.className = 'detail-settings-menu';
   const bmOn = isBookmarked(n);
   const notionItem = notionHref
     ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
@@ -546,19 +541,12 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem;
   const midGroup = notionItem + aiActItem + bmItem;
-  menu.innerHTML = `<div class="menu-head"><span>메뉴</span><button type="button" class="ui-help-btn${_dsHelpOpen ? ' on' : ''}" onclick="toggleDsHelp(this)" title="각 항목 설명 보기" aria-label="각 항목 설명 보기">${helpIcon(13)}</button></div>`
+  const html = `<div class="menu-head"><span>메뉴</span><button type="button" class="ui-help-btn${_dsHelpOpen ? ' on' : ''}" onclick="toggleDsHelp(this)" title="각 항목 설명 보기" aria-label="각 항목 설명 보기">${helpIcon(13)}</button></div>`
     + topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
+  const menu = openMenuNear(anchor, 'detail-settings-menu', 'detail-settings-menu', html);
+  if (!menu) return;
   _applyDsHelp(menu);
-  document.body.appendChild(menu);
-  const r = anchor.getBoundingClientRect();
-  const mw = 168;
-  menu.style.top = (r.bottom + 6) + 'px';
-  menu.style.left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8)) + 'px';
-  const close = () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('resize', close); menu.remove(); };
-  const onDoc = (e) => { if (!menu.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) close(); };
-  menu._anchor = anchor; menu._close = close;
-  setTimeout(() => document.addEventListener('mousedown', onDoc), 0);
-  window.addEventListener('resize', close);
+  const close = menu._close;
   const eb = menu.querySelector('[data-act="edit"]');
   if (eb) eb.onclick = () => { close(); beginNodeEdit(i, n); };
   const ab = menu.querySelector('[data-act="add"]');

@@ -313,7 +313,8 @@ function _kwRegex(kw, flags) {
   return new RegExp('(' + src + ')', flags || 'gi');
 }
 
-// 노드 표시용 텍스트 헬퍼 — 제목 없으면 '(제목 없음)', 본문은 trim(+선택적 길이 제한)
+// 다운로드 파일명 — 경로·예약문자를 밑줄로. 빈 이름이면 export
+function _safeFileName(t) { return String(t || '').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'export'; }
 function nodeTitle(n) { return ((n && n.label) || '(제목 없음)').trim(); }
 function nodeBody(n, len) { const b = ((n && n.desc) || '').trim(); return len ? b.slice(0, len) : b; }
 

@@ -8,10 +8,12 @@ function exportGraphAt(size) {
   exportGraph(size);
 }
 
-function exportGraph(size) {
+// opts.nodes 를 주면 그 노드들만(페이지별로 나눠 뽑을 때), opts.name 은 파일명에 붙는다
+function exportGraph(size, opts) {
+  opts = opts || {};
   const SIZE = size || _exportSize || 2048, PADDING = Math.round(SIZE * 0.05); // 크기에 비례(고정 60은 큰 이미지에서 너무 좁았음)
   const hasSearch = searchKeyword.length > 0;
-  const visibleNodes = nodes.filter(n => {
+  const visibleNodes = (opts.nodes || nodes).filter(n => {
     if (!n.visible) return false;
     if (_focusMode && n.dimmed) return false;
     if (hasSearch && !searchMatches.has(n.id)) return false;
@@ -131,7 +133,8 @@ function exportGraph(size) {
       } catch (e) {}
     }
     const link = document.createElement('a');
-    link.download = `SynapseLog_${new Date().toISOString().slice(0, 10)}.png`;
+    const tag = opts.name ? _safeFileName(opts.name) + '_' : '';
+    link.download = `SynapseLog_${tag}${new Date().toISOString().slice(0, 10)}.png`;
     link.href = offscreen.toDataURL('image/png'); link.click();
   };
   if (_exportLogo && !_exportLogo.complete) { _exportLogo.onload = finalize; _exportLogo.onerror = finalize; }

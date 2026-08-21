@@ -510,7 +510,7 @@ function exportNodeMarkdown(node) {
     if (node.desc && node.desc !== '(내용 없음)') md += node.desc.replace(/\n+$/, '') + '\n';
     md += serializeChildrenMd(node.id, 2);
   }
-  const safe = (node.label || 'export').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 60).trim() || 'export';
+  const safe = _safeFileName(node.label);
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const a = document.createElement('a');
   a.download = safe + '.md';
@@ -519,10 +519,29 @@ function exportNodeMarkdown(node) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+function _pageRoot(pageId) { return nodes.find(n => n.sourcePageId === pageId && n.level === 0); }
 function exportPageById(pageId) {
-  const root = nodes.find(n => n.sourcePageId === pageId && n.level === 0);
+  const root = _pageRoot(pageId);
   if (root) exportNodeMarkdown(root);
   else alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.');
+}
+// 이 페이지의 그래프만 PNG로 — 페이지별 보기에선 페이지끼리 멀어서 전체 이미지로는 하나가 잘 안 보인다
+function exportPageImage(pageId) {
+  const pool = (typeof pagePool === 'function') ? pagePool(pageId) : null;
+  if (!pool) { alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.'); return; }
+  const root = _pageRoot(pageId);
+  exportGraph(null, { nodes: pool, name: root ? root.label : '' });
+}
+function openPageExportMenu(anchor, pageId) {
+  const mdSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  const imgSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+  const html = `<div class="menu-head"><span>내보내기</span></div>`
+    + `<button data-act="md">${mdSvg} MD 파일</button>`
+    + `<button data-act="png">${imgSvg} 그래프 이미지</button>`;
+  const menu = openMenuNear(anchor, 'page-export-menu', 'detail-settings-menu', html);
+  if (!menu) return;
+  menu.querySelector('[data-act="md"]').onclick = () => { menu._close(); exportPageById(pageId); };
+  menu.querySelector('[data-act="png"]').onclick = () => { menu._close(); exportPageImage(pageId); };
 }
 
 // ── 로컬(MD) 원본 파일 쓰기 (File System Access, readwrite) ──────────────
@@ -939,7 +958,7 @@ function _pageItemHtml(p) {
     if (roName) mdBadge += ` <span class="pli-ro" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
-    const exportBtn = `<button class="btn-export" title="MD파일 내보내기" onclick="event.stopPropagation();exportPageById('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
+    const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const syncSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
     const removeSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
