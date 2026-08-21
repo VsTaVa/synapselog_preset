@@ -1,11 +1,13 @@
 // ── 그래프 PNG 내보내기 ── 화면(draw)과 같은 공식으로 다시 그린다(갈리면 그림만 달라짐)
 
-// 설정 창의 이미지 내보내기 — 고른 크기를 기억하고, 저장 진행/결과가 보이도록 설정 창을 닫는다
-function exportGraphAt(size) {
+// 설정의 크기 버튼은 '어느 크기로 뽑을지'만 정한다 — 실제 저장은 페이지 목록 쪽 버튼에서
+function _syncExportSizeBtns() {
+  [1024, 2048, 4096].forEach(s => { const b = document.getElementById('s-size-' + s); if (b) b.classList.toggle('active', _exportSize === s); });
+}
+function setExportSize(size) {
   _exportSize = size;
   try { localStorage.setItem('snlog_export_size', String(size)); } catch (e) {}
-  if (typeof closeSettings === 'function') closeSettings();
-  exportGraph(size);
+  _syncExportSizeBtns();
 }
 
 // opts.nodes 를 주면 그 노드들만(페이지별로 나눠 뽑을 때), opts.name 은 파일명에 붙는다

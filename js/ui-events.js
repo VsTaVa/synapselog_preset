@@ -870,7 +870,7 @@ function openSettings() {
   if (localToggle) localToggle.checked = _useLocalStorage;
 
   ['pages'].forEach(k => { const el = document.getElementById(`s-scope-${k}`); if (el) el.checked = _storageScopes[k] !== false; });
-  [1024, 2048, 4096].forEach(s => { const btn = document.getElementById(`s-size-${s}`); if (btn) btn.classList.toggle('active', _exportSize === s); });
+  _syncExportSizeBtns();
   SHORTCUT_ACTIONS.forEach(action => { const btn = document.getElementById('sc-' + action); if (btn) btn.textContent = formatKey(_shortcuts[action]); });
 
   ['shortcuts', 'storage'].forEach(id => {
