@@ -831,6 +831,21 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 /* 북마크된 노드칩: 앞 아이콘을 체인 → 북마크로, 색은 그래프의 주황 제목과 맞춤 */
 .node-chip--bm::before { background-color: var(--accent); -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='%23000'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021l-7-5-7%205V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202z'/%3E%3C/svg%3E"); }
 
+/* ── 목록 호버 스포트라이트 ─────────────────────────────────────────
+   한 항목에 올리면 같은 컨테이너의 형제들만 물러난다. 컨테이너에 :has 를 걸어야
+   형제 판정이 되므로 JS 없이 CSS만으로 된다.
+   터치에서는 :hover 가 손을 떼도 남아 항목들이 흐려진 채 굳는다 → 포인터 있는 기기만. */
+@media (hover: hover) and (pointer: fine) {
+  #sidebar-page-list > .pli-row,
+  .rail-secbody[data-sec="graphset"] > .ctrl-group,
+  #search-popular .sp-chips > .sp-chip { transition: opacity 0.35s ease; }
+
+  #sidebar-page-list:has(> .pli-row:hover) > .pli-row:not(:hover),
+  .rail-secbody[data-sec="graphset"]:has(> .ctrl-group:hover) > .ctrl-group:not(:hover),
+  #search-popular .sp-chips:has(> .sp-chip:hover) > .sp-chip:not(:hover) { opacity: 0.4; }
+}
+
+
 /* ── 동작 줄이기(prefers-reduced-motion) 존중 ─────────────────────────
    transition/animation이 80곳 넘는데 지금까지 이 설정을 전혀 보지 않았다.
    transitionend/animationend에 걸린 로직이 없어 시간만 0으로 줄여도 안전하다.
