@@ -786,6 +786,7 @@ delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _
 const SHORTCUT_ROWS = [
   { label: '제목 숨김', sub: '제목 크기 0 / 원래 크기', action: 'toggleLabels' },
   { label: '노드 연결 표시', sub: '노드 연결선 표시 / 숨김', action: 'toggleConnections' },
+  { label: '검색 열기', sub: '검색란으로 이동', key: 'Ctrl+F' },
   { label: '삭제 되돌리기', sub: '마지막 노드 삭제 취소', key: 'Ctrl+Z' },
   { label: '패널·범례 닫기', sub: 'Esc (고정)', key: 'Esc' },
   { label: '노드 고정 / 해제', sub: 'Ctrl+클릭으로 고정', key: 'Ctrl+클릭' },
@@ -840,6 +841,15 @@ document.addEventListener('keydown', e => {
   }
   // Ctrl/⌘+Z → 마지막 삭제 되돌리기. 되돌릴 데이터(_undoDelete)는 계속 남아 있는데
   // 도달 경로가 6초짜리 토스트 버튼뿐이라, 놓치면 되돌릴 방법이 없었다.
+  // Ctrl/⌘+F → 검색 열고 입력란으로. 브라우저 찾기는 캔버스 그래프에선 쓸모가 없다
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+    e.preventDefault();
+    if (typeof openRailSection === 'function' && _activeRailSection !== 'search') openRailSection('search');
+    setTimeout(() => { const s = document.getElementById('search-input'); if (s) { s.focus(); s.select(); } }, 60);
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
     const el = document.activeElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return; // 글 고치는 중엔 브라우저 되돌리기

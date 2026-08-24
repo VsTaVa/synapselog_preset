@@ -343,6 +343,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 /* MD 폴더 행 — 페이지 목록 안에서 DB 그룹 머리글과 같은 규격, 아이콘만 폴더 */
 .md-folder-ic { color:var(--accent); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
 .pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
+/* 노션에서 마지막으로 수정된 때 — 동기화할지 판단하는 값이라 행 끝에 조용히 */
+.pli-edited { flex-shrink:0; font-size:9.5px; color:var(--text-faint); padding:0 4px; white-space:nowrap; }
 /* 공유받은(읽기 전용) 페이지 — 돋보기 하나만. 어느 연결인지는 호버(title)로 */
 .pli-ro { display:inline-flex; align-items:center; flex-shrink:0; color:var(--accent); vertical-align:-2px; margin-left:2px; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
@@ -709,6 +711,9 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .aichat-bubble { font-size: 12.5px; line-height: 1.55; padding: 8px 11px; border-radius: 11px; word-break: break-word; white-space: normal; max-width: 92%; }
 .aichat-msg.user .aichat-bubble { background: rgba(var(--accent-rgb),0.16); border: 1px solid rgba(var(--accent-rgb),0.32); color: #ffd9b0; border-bottom-right-radius: 3px; }
 .aichat-msg.ai .aichat-bubble { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); border-bottom-left-radius: 3px; }
+/* 쓴 토큰 — 구글이 응답에 실어 보내는 실수치. 무료 한도를 가늠하는 용도라 조용히 */
+.aichat-usage { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+.aichat-usage-sum { text-align: right; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border-soft); }
 .aichat-refs { font-size: 10.5px; color: rgba(255,255,255,0.35); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .aichat-ref { display: inline-block; padding: 2px 7px; border-radius: 5px; background: rgba(var(--accent-rgb),0.1); border: 1px solid rgba(var(--accent-rgb),0.28); color: var(--accent); cursor: pointer; transition: background 0.15s; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aichat-ref:hover { background: rgba(var(--accent-rgb),0.22); }

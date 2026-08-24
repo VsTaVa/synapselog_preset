@@ -18,6 +18,18 @@ const _SYNAPSE_GUIDE = `SynapseLog는 노션 페이지·마크다운(.md)을 신
   · 노드를 선택하고 "요약해줘/연결해줘/다듬어줘"처럼 자연어로 말해도 동작한다.
   · 기본은 AI와 자유 대화(글 함께 다듬기)다. "검색해줘"라고 하면 그래프 노드를 검색해 근거로 답하고, "하위 노드에 넣어줘"라고 하면 방금 대화한 글을 선택/열린 노드의 하위 노드로 넣는다.
 - 설정(⚙)에서 노션 API 토큰과 AI(구글 제미나이) API 키를 입력한다.`;
+// 제미나이는 호출마다 쓴 토큰을 같이 돌려준다 — 추정이 아니라 구글이 센 실수.
+// 예전엔 candidates 만 꺼내 쓰고 이걸 버려서, 무료 한도를 얼마나 썼는지 알 길이 없었다.
+let _lastAiUsage = null;                                  // 방금 호출분 (말풍선에 한 번 붙고 비워진다)
+let _aiUsageTotal = { prompt: 0, output: 0, total: 0, calls: 0 }; // 이번 세션 누적
+function _noteAiUsage(u) {
+  if (!u) return;
+  const inTok = u.promptTokenCount || 0, outTok = u.candidatesTokenCount || 0;
+  _lastAiUsage = { in: inTok, out: outTok, total: u.totalTokenCount || (inTok + outTok) };
+  _aiUsageTotal.prompt += inTok; _aiUsageTotal.output += outTok;
+  _aiUsageTotal.total += _lastAiUsage.total; _aiUsageTotal.calls++;
+}
+
 async function geminiGenerate(prompt) {
   if (!_savedAiKey) throw new Error('AI API 키가 없어 (설정에서 입력)');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${_GEMINI_MODEL}:generateContent?key=${encodeURIComponent(_savedAiKey)}`;
@@ -32,6 +44,7 @@ async function geminiGenerate(prompt) {
     const err = new Error(msg); err.status = res.status; throw err;
   }
   const data = await res.json();
+  _noteAiUsage(data && data.usageMetadata);
   const cand = data && data.candidates && data.candidates[0];
   const out = cand && cand.content && cand.content.parts ? cand.content.parts.map(p => p.text || '').join('') : '';
   if (!out.trim()) throw new Error('빈 응답 (안전 필터 차단일 수 있어)');
@@ -404,6 +417,7 @@ function _renderAiChat() {
       ? escapeHtml(m.text) + ' ' + m.chips.map(n => createNodeChip(n)).join(' ')
       : _aiMdToHtml(m.text);
     let html = `<div class="aichat-msg ${m.role}"><div class="aichat-bubble">${bubbleInner}</div>`;
+    if (m.usage) html += `<div class="aichat-usage">토큰 입력 ${m.usage.in} · 출력 ${m.usage.out}</div>`;
     if (m.refs && m.refs.length) {
       html += `<div class="aichat-refs"><div class="aichat-refs-label">근거</div>` + m.refs.map(n => createNodeChip(n)).join('') + `</div>`;
     }
@@ -423,6 +437,9 @@ function _renderAiChat() {
     }
     return html + `</div>`;
   }).join('');
+  if (_aiUsageTotal.calls) {
+    box.innerHTML += `<div class="aichat-usage aichat-usage-sum">이번 세션 합계 ${_aiUsageTotal.total} 토큰 · ${_aiUsageTotal.calls}회 호출</div>`;
+  }
   box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
     el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);
   });
@@ -437,7 +454,8 @@ function _renderAiChat() {
 
 function _aiChatPush(role, text, refs, suggestions, chips) {
   const id = 'm' + Date.now() + Math.random().toString(36).slice(2, 6);
-  _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null, chips: chips || null });
+  _aiChat.push({ id, role, text, refs: refs || [], suggestions: suggestions || null, chips: chips || null, usage: (role === 'ai' ? _lastAiUsage : null) });
+  if (role === 'ai') _lastAiUsage = null;
   _renderAiChat();
   _saveAiChat();
   return id;
@@ -445,6 +463,7 @@ function _aiChatPush(role, text, refs, suggestions, chips) {
 function _aiChatReplace(id, text, refs, suggestions, refine, retry) {
   const m = _aiChat.find(x => x.id === id);
   if (m) { m.text = text; m.refs = refs || []; if (suggestions !== undefined) m.suggestions = suggestions; if (refine !== undefined) m.refine = refine; m.retry = (typeof retry === 'function') ? retry : null; }
+  if (m && _lastAiUsage) { m.usage = _lastAiUsage; _lastAiUsage = null; } // 진행중 말풍선이 결과로 바뀔 때
   _renderAiChat();
   _saveAiChat();
 }

@@ -946,6 +946,22 @@ function _orderPagesByHierarchy(pages, opts) {
   return out;
 }
 
+// 목록에 보여줄 상대 시각. lastEdited 는 이미 받아서 _pageEdited 에 넣어두고도
+// 동기화 비교에만 쓰고 화면엔 한 번도 안 썼다.
+function _agoText(iso) {
+  if (!iso) return '';
+  const t = Date.parse(iso);
+  if (!isFinite(t)) return '';
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return m + '분 전';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + '시간 전';
+  const d = Math.floor(h / 24);
+  if (d < 30) return d + '일 전';
+  return Math.floor(d / 30) + '개월 전';
+}
+
 function _pageItemHtml(p) {
   {
     const isActive = _addedPageIds.has(p.id);
@@ -989,6 +1005,7 @@ function _pageItemHtml(p) {
     if (p.isLocal) {
       return `<div class="page-list-item active" data-page-id="${p.id}" draggable="true" title="MD 폴더로 드래그해 넣기">
         <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
+        ${_agoText(_pageEdited[p.id]) ? `<span class="pli-edited" title="노션에서 마지막으로 수정된 시각">${_agoText(_pageEdited[p.id])}</span>` : ''}
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
