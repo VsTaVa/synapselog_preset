@@ -196,6 +196,12 @@ function gotoSearchMatch(dir) {
 function _markSearchChip(id) {
   const box = document.getElementById('search-results');
   if (!box) return;
+  // 결과를 끊어 보여주므로 순회 대상이 아직 안 그려졌을 수 있다 → 그 자리까지 펼친 뒤 표시한다
+  const idx = _searchHits.indexOf(id);
+  if (idx >= _searchChipLimit) {
+    _searchChipLimit = Math.ceil((idx + 1) / SEARCH_CHIP_STEP) * SEARCH_CHIP_STEP;
+    _renderSearchChips();
+  }
   let hit = null;
   box.querySelectorAll('.node-chip[data-nid]').forEach(el => {
     const on = el.dataset.nid === String(id);

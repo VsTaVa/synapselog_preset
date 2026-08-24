@@ -767,7 +767,7 @@ function renderPageList(pages) {
       ${_pliToggle(row)}
       <div class="page-pick-item${window._selectedPageIds.has(row.p.id) ? ' selected' : ''}" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)">
         <div class="pick-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}</span>
+        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}${pageSrcName(row.p.id) ? ` <span class="pli-ro" title="${escapeHtml(pageSrcName(row.p.id))} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>` : ''}</span>
       </div>
     </div>
   `).join('');

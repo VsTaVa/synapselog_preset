@@ -352,18 +352,22 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #search-bar { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; transition: border-color 0.2s; }
 #search-bar:focus-within { border-color: rgba(var(--accent-rgb),0.6); }
-#search-bar:focus-within #search-btn svg circle, #search-bar:focus-within #search-btn svg line { stroke: var(--accent); }
 #search-bar input { border: none; outline: none; font-size: 13px; font-family: inherit; background: transparent; color: #fff; flex: 1; width: 0; }
 #search-bar input::placeholder { color: rgba(255,255,255,0.25); }
 #search-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; flex-shrink: 0; }
 #search-btn svg { width: 13px; height: 13px; }
 #clear-btn { background: none; border: none; cursor: pointer; font-size: 10px; color: var(--icon-dim); padding: 0; display: none; flex-shrink: 0; }
+@media (hover: hover) and (pointer: fine) { #clear-btn:hover { color: var(--fg); } }
 #search-result-count { font-size: 10px; color: rgba(var(--accent-rgb),0.7); margin-top: 5px; display: none; }
 .ui-search-bar { display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; transition: border-color 0.2s; }
 .ui-search-bar:focus-within { border-color: rgba(var(--accent-rgb),0.6); }
 .ui-search-bar input { border: none; outline: none; font-size: 13px; font-family: inherit; background: transparent; color: #fff; flex: 1; width: 0; }
 .ui-search-bar input::placeholder { color: rgba(255,255,255,0.25); }
-.ui-search-bar > button { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; flex-shrink: 0; }
+.ui-search-bar > button { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; flex-shrink: 0; color: var(--accent); transition: color 0.15s; }
+/* 돋보기·보내기·지우기는 반응이 없었다 — SVG 에 주황이 박혀 있어 CSS 가 색을 못 바꿨다 */
+@media (hover: hover) and (pointer: fine) {
+  .ui-search-bar > button:hover { color: var(--fg); }
+}
 #search-history { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
 .ctrl-group { margin-bottom: 16px; }
 .ctrl-group:last-child { margin-bottom: 0; }
