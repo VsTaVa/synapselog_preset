@@ -350,9 +350,10 @@ async function notionListAll() {
     if (!s.token) continue;
     try {
       const d = await notionFetch({ action: "list" }, null, s.token);
-      (d.pages || []).forEach(pg => { if (pg && pg.id) { out.push({ ...pg, src: s.id }); if (s.id) _pageSrc[pg.id] = s.id; } });
+      (d.pages || []).forEach(pg => { if (pg && pg.id) { out.push({ ...pg, src: s.id }); if (s.id) _pageSrc[pg.id] = s.id; if (pg.lastEdited) _pageEdited[pg.id] = pg.lastEdited; } });
     } catch (e) {}
   }
+  _savePageEdited();
   return { pages: out };
 }
 
@@ -1017,6 +1018,7 @@ function _pageItemHtml(p) {
       const dragAttr = (p.isMd && p.folderBatchId) ? ' draggable="true" title="폴더 안에서 드래그해 이동"' : '';
       return `<div class="page-list-item active" data-page-id="${p.id}"${dragAttr}>
         <span class="item-label" title="${safeTitle}" onclick="focusPage('${p.id}')">${safeTitle}${mdBadge}</span>
+        ${_agoText(_pageEdited[p.id]) ? `<span class="pli-edited" title="노션에서 마지막으로 수정된 시각">${_agoText(_pageEdited[p.id])}</span>` : ''}
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
