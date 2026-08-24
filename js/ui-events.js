@@ -786,6 +786,7 @@ delete _shortcuts.toggleFocusMode; delete _shortcuts.toggleConnectMode; delete _
 const SHORTCUT_ROWS = [
   { label: '제목 숨김', sub: '제목 크기 0 / 원래 크기', action: 'toggleLabels' },
   { label: '노드 연결 표시', sub: '노드 연결선 표시 / 숨김', action: 'toggleConnections' },
+  { label: '삭제 되돌리기', sub: '마지막 노드 삭제 취소', key: 'Ctrl+Z' },
   { label: '패널·범례 닫기', sub: 'Esc (고정)', key: 'Esc' },
   { label: '노드 고정 / 해제', sub: 'Ctrl+클릭으로 고정', key: 'Ctrl+클릭' },
   { label: '노드 선택', sub: '노드 우클릭 (모바일: 더블탭)', key: '우클릭' },
@@ -837,6 +838,16 @@ document.addEventListener('keydown', e => {
     if (detailPanel.classList.contains('open')) hidePanel();
     return;
   }
+  // Ctrl/⌘+Z → 마지막 삭제 되돌리기. 되돌릴 데이터(_undoDelete)는 계속 남아 있는데
+  // 도달 경로가 6초짜리 토스트 버튼뿐이라, 놓치면 되돌릴 방법이 없었다.
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return; // 글 고치는 중엔 브라우저 되돌리기
+    if (typeof _undoDelete !== 'undefined' && _undoDelete && _undoDelete.entries.length) { e.preventDefault(); undoLastDelete(); }
+    else toast('되돌릴 삭제 없음', { type: 'info' });
+    return;
+  }
+
   const tag = document.activeElement?.tagName;
   // 입력란이나 본문 편집(contenteditable) 중이면 단축키 무시 — 1, 2 등 글자 입력 보장
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable || e.ctrlKey || e.metaKey || e.altKey) return;
