@@ -325,6 +325,21 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// 노드칩 우클릭(위임): 캔버스에서 노드를 우클릭한 것과 같은 도구 메뉴.
+// 메뉴는 그래프 위 그 노드 옆에 뜨므로(repositionMultiSelectMenu) 먼저 카메라를 옮긴다 —
+// 안 옮기면 화면 밖 노드에서 메뉴가 엉뚱한 데 그려지고, 포커스·고정 결과도 안 보인다.
+document.addEventListener('contextmenu', (e) => {
+  const chip = e.target.closest && e.target.closest('.node-chip[data-nid]');
+  if (!chip || typeof nodeMap === 'undefined') return;
+  e.preventDefault(); // 칩은 우리 UI — 브라우저 기본 메뉴는 안 띄운다
+  const n = nodeMap[chip.dataset.nid];
+  if (!n || !n.visible) return; // 그래프에 없는 노드엔 그래프 동작을 걸 수 없다
+  if (typeof focusViewOnNode === 'function') focusViewOnNode(n);
+  // 기존 선택은 비운다 — 여러 개가 잡혀 있으면 단일 노드 도구가 안 나온다
+  if (typeof clearMultiSelect === 'function') clearMultiSelect();
+  if (typeof toggleMultiSelect === 'function') toggleMultiSelect(n);
+});
+
 // 노드칩 호버(위임): 그래프에서 그 노드를 실제로 호버한 것과 똑같이 강조 —
 // hoveredNode만 세우면 draw()가 조상·하위 사슬 링크선까지 알아서 굵게 그린다.
 // 캔버스 위 마우스 이동이 다시 계산해 덮어쓰므로 따로 복원할 게 없다.
