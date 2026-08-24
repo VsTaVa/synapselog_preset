@@ -204,44 +204,54 @@
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">이미지 저장</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">PNG 저장</div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="s-size-btn" onclick="exportGraphAt(1024)">1024px</button>
-          <button class="s-size-btn" onclick="exportGraphAt(2048)">2048px</button>
-          <button class="s-size-btn" onclick="exportGraphAt(4096)">4096px</button>
-        </div>
-      </div>
-    </div>
-    <div class="settings-section">
       <div class="settings-section-title s-collapsible" onclick="toggleSection('storage')">
         <span class="s-arrow" id="arrow-storage">▾</span>
-        <span>저장 &amp; 캐시</span>
+        <span>저장 &amp; 스토리지</span>
       </div>
       <div class="s-section-body" id="section-storage">
-        <div class="settings-row">
-          <div><div class="settings-row-label">로컬 저장 사용</div><div class="settings-row-sub s-warn-sub">로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.</div></div>
-          <label class="ck-orange"><input type="checkbox" id="s-local-toggle" onchange="onStorageToggle(this)"><span class="ck-box"></span></label>
-        </div>
-        <div class="settings-row-label" style="margin-top:14px;">Notion API 토큰</div>
+        <div class="settings-row-label settings-group">Notion API 토큰</div>
         <div class="token-edit-row">
           <input type="password" id="settings-token-input" placeholder="새 토큰 입력..." />
           <button onclick="updateToken()">저장</button>
-          <button class="s-trash-btn" onclick="clearToken()" title="저장된 노션 토큰 삭제" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+
         </div>
         <div id="settings-token-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
-        <div class="settings-row-label" style="margin-top:14px;">AI API 키</div>
+        <div id="settings-token-list" class="settings-list"></div>
+        <div class="settings-row-label settings-group">읽기 전용 Notion API 토큰</div>
+        <div class="settings-row-sub" style="margin:2px 0 6px;">협업을 위해 발급 받은 팀원의 토큰(읽기 기능만)</div>
+        <div class="token-edit-row">
+          <input type="password" id="ro-token-input" placeholder="secret_ 또는 ntn_ ..." />
+          <button onclick="addRoToken()">추가</button>
+        </div>
+        <div id="ro-token-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
+        <div id="ro-token-list" class="settings-list"></div>
+        <div class="settings-row-label settings-group">AI API 토큰</div>
         <div class="settings-row-sub" style="margin:2px 0 6px;">Google AI Studio 제미나이 키. 선택 노드 요약&마크다운 작성에 사용.</div>
         <div class="token-edit-row">
           <input type="password" id="settings-aikey-input" placeholder="AIza..." />
           <button onclick="updateAiKey()">저장</button>
-          <button class="s-trash-btn" onclick="clearAiKey()" title="저장된 AI API 키 삭제" aria-label="삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+
         </div>
         <div id="settings-aikey-msg" style="font-size:11px; color:rgba(237,112,0,0.7); margin-top:6px; display:none;"></div>
-        <div class="settings-row" style="margin-top:14px;"><div><span class="settings-row-label">사용 기록</span><div class="settings-row-sub">검색 & 대화 기록 삭제</div></div><button class="s-trash-btn soft" onclick="clearChatAndRecent()" title="삭제" aria-label="사용 기록 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
+        <div id="settings-aikey-list" class="settings-list"></div>
+        <div class="settings-row-label settings-group">이미지 저장</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">PNG 크기</div>
+            <div class="settings-row-sub">저장은 페이지 목록의 내보내기 버튼에서</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="s-size-btn" id="s-size-1024" onclick="setExportSize(1024)">1024px</button>
+            <button class="s-size-btn" id="s-size-2048" onclick="setExportSize(2048)">2048px</button>
+            <button class="s-size-btn" id="s-size-4096" onclick="setExportSize(4096)">4096px</button>
+          </div>
+        </div>
+        <div class="settings-row-label settings-group">스토리지</div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">로컬 저장 사용</div><div class="settings-row-sub s-warn-sub">로컬 저장시 토큰이 브라우저에 저장. 공용 기기 주의.</div></div>
+          <label class="ck-orange"><input type="checkbox" id="s-local-toggle" onchange="onStorageToggle(this)"><span class="ck-box"></span></label>
+        </div>
+        <div class="settings-row"><div><span class="settings-row-label">사용 기록</span><div class="settings-row-sub">검색 & 대화 기록 삭제</div></div><button class="s-trash-btn soft" onclick="clearChatAndRecent()" title="삭제" aria-label="사용 기록 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
         <div class="settings-row"><div><span class="settings-row-label">전체 캐시</span><div class="settings-row-sub">전체 초기화</div></div><button class="s-trash-btn" onclick="clearCache('all')" title="전체 초기화" aria-label="전체 초기화"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>
       </div>
     </div>
