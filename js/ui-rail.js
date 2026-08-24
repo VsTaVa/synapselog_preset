@@ -26,6 +26,12 @@ function openRailSection(name) {
   }
   if (name === 'aichat') { setTimeout(() => document.getElementById('aichat-input')?.focus(), 60); if (typeof _renderAiChat === 'function') _renderAiChat(); }
   if (name === 'pages') { renderBookmarkList(); renderInsights(); } // 노드 섹션이 페이지 목록에 합쳐짐
+  // 수정 시각을 보여주는데 목록을 다시 안 받으면 저장된 옛 값이 그대로 뜬다.
+  // 열 때마다 쏘지는 않게 1분은 그냥 쓴다(조용히 갱신 — 목록이 깜빡이지 않는다).
+  if (name === 'pages' && typeof refreshSidebarPageList === 'function'
+      && typeof _pageListAt !== 'undefined' && Date.now() - _pageListAt > 60000) {
+    refreshSidebarPageList(true).catch(() => {});
+  }
   applyRailSecState(); // 정적 마크업(노드 모드·그래프 설정)에 저장된 접힘 상태 반영
 }
 

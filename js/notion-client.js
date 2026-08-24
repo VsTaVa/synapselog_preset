@@ -817,7 +817,9 @@ async function initSidebarPageList() {
 
 // 노션에서 접근 가능한 페이지 목록을 다시 받아 사이드바에 반영.
 // 새로 만든 페이지·새 토큰으로 바뀐 목록이 여기서 들어온다. → 새로 발견한 페이지 수 반환
-async function refreshSidebarPageList() {
+// 마지막으로 목록을 받아온 때 — 섹션을 열 때마다 쏘지 않으려는 기준
+let _pageListAt = 0;
+async function refreshSidebarPageList(quiet) {
   if (!_savedToken && !_roTokens.length) return 0;
   const listEl = document.getElementById('sidebar-page-list');
   if (!listEl) return 0;
@@ -825,7 +827,7 @@ async function refreshSidebarPageList() {
   // 안 그러면 새로 받아온 목록이 숨겨진 채로 그려져 "반영이 안 된다"로 보인다
   const wrap = document.getElementById('sidebar-page-list-wrap');
   if (wrap) wrap.style.display = 'block';
-  listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
+  if (!quiet) listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
   try {
     const prevIds = new Set((window._sidebarPageList || []).map(p => p.id));
     const data = await notionListAll();
@@ -834,6 +836,7 @@ async function refreshSidebarPageList() {
     const extras = (window._sidebarPageList || []).filter(p => (p.isLocal || p.isMd || p.isFolder) && !pages.some(q => q.id === p.id));
     window._sidebarPageList = pages.concat(extras);
     renderSidebarPageList(window._sidebarPageList);
+    _pageListAt = Date.now();
     return pages.filter(p => !prevIds.has(p.id)).length;
   } catch(e) {
     listEl.innerHTML = `<div style="font-size:11px; color:#ff6b6b; padding:6px 0; text-align:center;">${e.message}</div>`;
