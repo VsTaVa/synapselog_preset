@@ -118,6 +118,25 @@ function clearGraphHighlight() {
   isStable = false;
 }
 
+// 결과 칩은 끊어서 보여준다 — 예전엔 60개까지 그리면서 잘렸다는 표시가 없어
+// 개수(120개 결과)와 화면에 뜬 칩 수가 말없이 어긋났다.
+const SEARCH_CHIP_STEP = 30;
+let _searchChipLimit = SEARCH_CHIP_STEP;
+function _renderSearchChips() {
+  const el = document.getElementById('search-results');
+  if (!el) return;
+  const all = _searchHits.map(id => nodeMap[id]).filter(Boolean);
+  const shown = all.slice(0, _searchChipLimit), rest = all.length - shown.length;
+  el.innerHTML = shown.map(n => createNodeChip(n)).join('')
+    + (rest > 0 ? `<button type="button" class="sp-chip" onclick="_showMoreSearchChips()">＋${rest}개 더</button>` : '');
+  el.style.display = all.length ? 'flex' : 'none';
+  // 검색칩 클릭 → 그 노드로 카메라 이동 (패널 열기는 전역 칩 핸들러가 처리)
+  el.querySelectorAll('.node-chip[data-nid]').forEach(c => {
+    c.addEventListener('click', () => { const nn = nodeMap[c.dataset.nid]; if (nn && typeof focusViewOnNode === 'function') focusViewOnNode(nn); });
+  });
+}
+function _showMoreSearchChips() { _searchChipLimit += SEARCH_CHIP_STEP; _renderSearchChips(); }
+
 function doSearch(kw) {
   const resultEl = document.getElementById('search-result-count');
   const resultsEl = document.getElementById('search-results');
@@ -133,16 +152,9 @@ function doSearch(kw) {
           (kwns.length && (lt.replace(/\s+/g, '').includes(kwns) || dt.replace(/\s+/g, '').includes(kwns)))) directMatches.add(n.id);
     });
     applyGraphHighlight([...directMatches], keyword, { max: 10, fit: directMatches.size > 0, fitDelay: 450 });
-    if (resultsEl) {
-      const chips = [...directMatches].map(id => nodeMap[id]).filter(Boolean).slice(0, 60);
-      resultsEl.innerHTML = chips.map(n => createNodeChip(n)).join('');
-      resultsEl.style.display = chips.length ? 'flex' : 'none';
-      // 검색칩 클릭 → 그 노드로 카메라 이동 (패널 열기는 전역 칩 핸들러가 처리)
-      resultsEl.querySelectorAll('.node-chip[data-nid]').forEach(el => {
-        el.addEventListener('click', () => { const nn = nodeMap[el.dataset.nid]; if (nn && typeof focusViewOnNode === 'function') focusViewOnNode(nn); });
-      });
-    }
     _searchHits = [...directMatches]; _searchCursor = -1; _searchFocusId = null; // 엔터를 다시 누르면 여기부터 하나씩 돈다
+    _searchChipLimit = SEARCH_CHIP_STEP; // 새 검색이면 다시 처음부터
+    _renderSearchChips();
     _updateSearchCount();
   } else {
     clearGraphHighlight();

@@ -840,13 +840,15 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   .rail-secbody[data-sec="graphset"] > .ctrl-group,
   #search-popular .sp-chips > .sp-chip,
   .insight-chips > .insight-chipwrap,
-  #shortcut-rows > .settings-row { transition: opacity 0.35s ease; }
+  #shortcut-rows > .settings-row,
+  .search-results > .node-chip { transition: opacity 0.35s ease; }
 
   #sidebar-page-list:has(> .pli-row:hover) > .pli-row:not(:hover),
   .rail-secbody[data-sec="graphset"]:has(> .ctrl-group:hover) > .ctrl-group:not(:hover),
   #search-popular .sp-chips:has(> .sp-chip:hover) > .sp-chip:not(:hover),
   .insight-chips:has(> .insight-chipwrap:hover) > .insight-chipwrap:not(:hover),
-  #shortcut-rows:has(> .settings-row:hover) > .settings-row:not(:hover) { opacity: 0.4; }
+  #shortcut-rows:has(> .settings-row:hover) > .settings-row:not(:hover),
+  .search-results:has(> .node-chip:hover) > .node-chip:not(:hover) { opacity: 0.4; }
 }
 
 
