@@ -541,7 +541,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   const sep = (a, b) => (a && b) ? '<div class="ds-sep"></div>' : '';
   const topGroup = editItem + addItem;
   const midGroup = notionItem + aiActItem + bmItem;
-  const html = `<div class="menu-head"><span>메뉴</span><button type="button" class="ui-help-btn${_dsHelpOpen ? ' on' : ''}" onclick="toggleDsHelp(this)" title="각 항목 설명 보기" aria-label="각 항목 설명 보기">${helpIcon(13)}</button></div>`
+  const html = `<div class="menu-head"><span>메뉴</span><button type="button" class="ui-help-btn${_dsHelpOpen ? ' on' : ''}" onclick="toggleDsHelp(this)" title="각 항목 설명 보기" aria-label="각 항목 설명 보기">${infoIcon(13)}</button></div>`
     + topGroup + sep(topGroup, midGroup) + midGroup + sep(midGroup || topGroup, delItem) + delItem;
   const menu = openMenuNear(anchor, 'detail-settings-menu', 'detail-settings-menu', html);
   if (!menu) return;

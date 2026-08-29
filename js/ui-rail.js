@@ -63,7 +63,7 @@ function applyRailHelp() {
     const on = !!_helpOpen[panel.id];
     const btn = panel.querySelector('.ui-help-btn');
     if (btn) {
-      if (!btn.innerHTML && typeof helpIcon === 'function') btn.innerHTML = helpIcon(13); // 도안은 icons.js 한 곳에서
+      if (!btn.innerHTML && typeof infoIcon === 'function') btn.innerHTML = infoIcon(13); // 도안은 icons.js 한 곳에서
       btn.classList.toggle('on', on);
     }
     panel.querySelectorAll('.ms-desc').forEach(d => d.remove());
