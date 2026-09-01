@@ -141,6 +141,7 @@ function setDepthLimit(v) {
   applyDepthLimit(n);
   const out = document.getElementById('v-depth');
   if (out) out.textContent = (n >= DEPTH_ALL) ? '전체' : String(n);
+  showViewStatus(); // 몇 개가 접혔는지 바로 보이게
 }
 function toggleLabels() {
   setLabelScale(_labelScale > 0 ? 0 : _labelScalePrev);
@@ -204,12 +205,28 @@ function setStatusHint(t) {
   el.textContent = t || '';
   _syncStatusBox();
 }
+// 노드·연결 수 — 표시 깊이로 감춘 게 있으면 보이는 수/전체로 적는다
+function _graphCountText() {
+  if (typeof nodes === 'undefined' || !nodes.length) return '';
+  const vis = nodes.filter(n => n.visible).length;
+  const link = edges.filter(e => nodeMap[e.from] && nodeMap[e.to] && nodeMap[e.from].visible && nodeMap[e.to].visible).length;
+  return `노드 ${vis < nodes.length ? vis + '/' + nodes.length : vis}    ·   연결 ${link}`;
+}
+// 담은 페이지가 없으면 캔버스 위에 안내를 띄운다 — 레일이 접혀 있으면 사이드바 안내가 안 보인다
+function syncEmptyHint() {
+  const el = document.getElementById('graph-empty');
+  if (!el) return;
+  const empty = typeof nodes === 'undefined' || !nodes.some(n => n.visible);
+  if (el._on === empty) return;
+  el._on = empty; el.style.display = empty ? 'flex' : 'none';
+}
 function showViewStatus() {
   const el = _statusSpan('st-view');
   if (!el) return;
   const pct = Math.round(scale * 100);
   const deg = Math.round(((_viewRotation * 180 / Math.PI) % 360 + 360) % 360);
-  el.textContent = `크기 ${pct}%` + (deg ? `    ·   회전 ${deg}°` : '');
+  const cnt = _graphCountText();
+  el.textContent = `크기 ${pct}%` + (deg ? `    ·   회전 ${deg}°` : '') + (cnt ? `    ·   ${cnt}` : '');
   _syncStatusBox();
   clearTimeout(canvas._st); canvas._st = setTimeout(() => { el.textContent = ''; _syncStatusBox(); }, 1400);
 }

@@ -1185,7 +1185,7 @@ function loop() {
   const tick = () => {
     const k = _simBoost > 0 ? (_simBoost--, 3) : 1; // 전환 직후만 3배속
     for (let i = 0; i < k; i++) simulate();
-    draw(); repositionMultiSelectMenu(); updateStatusPath(); requestAnimationFrame(tick);
+    draw(); repositionMultiSelectMenu(); updateStatusPath(); syncEmptyHint(); requestAnimationFrame(tick);
   };
   tick();
 }
