@@ -450,6 +450,19 @@ function offscreenPinAt(sx, sy) {
   }
   return null;
 }
+// 제목 폭 캐시 — 글자·굵기당 한 번만 재고 크기는 비례로 곱한다(줌마다 다시 재면 프레임을 먹는다)
+const _lblW = new Map();
+function _labelWidthPer1px(text, bold) {
+  const k = (bold ? "b" : "n") + text;
+  let w = _lblW.get(k);
+  if (w === undefined) {
+    ctx.font = (bold ? 'bold' : '500') + " 100px 'Noto Sans KR',sans-serif";
+    w = ctx.measureText(text).width / 100;
+    _lblW.set(k, w);
+  }
+  return w;
+}
+
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0,0,W,H);
@@ -746,6 +759,9 @@ function draw() {
       const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
         lbl, x: sp.x, y: sp.y + sr + (isPageNode(n) ? 7 : 5 * scale), fontSize, isDim,
+        // 자리 다툼에서 살아남는 순서 — 작을수록 먼저 자리를 잡는다
+        pri: isDim ? 4 : _bmLbl ? 0 : (isMatch || lit) ? 1 : isPageNode(n) ? 2 : 3,
+        lvl: n.level, bold: labelBold(n),
         font: `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR',sans-serif`,
         // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
         // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
@@ -756,6 +772,28 @@ function draw() {
           : `rgba(150,157,170,${isDim ? 0.12 : 1})`
       });
     });
+    // 1-2) 겹치는 제목 솎기 — 노드가 붙은 구간에서 제목이 서로 포개져 글자 벽이 된다.
+    //      중요한 것부터 자리를 잡고, 이미 놓인 상자와 겹치면 그 제목은 접는다.
+    specs.sort((a, b) => a.pri - b.pri || a.lvl - b.lvl);
+    const kept = [], CELL = 96, grid = new Map();
+    specs.forEach(s => {
+      const w = _labelWidthPer1px(s.lbl, s.bold) * s.fontSize, h = s.fontSize * 1.15;
+      const x0 = s.x - w / 2, y0 = s.y, x1 = x0 + w, y1 = y0 + h;
+      if (x1 < 0 || y1 < 0 || x0 > W || y0 > H) return; // 화면 밖은 그릴 것도, 자리를 잡을 것도 없다
+      const cx0 = Math.floor(x0 / CELL), cx1 = Math.floor(x1 / CELL);
+      const cy0 = Math.floor(y0 / CELL), cy1 = Math.floor(y1 / CELL);
+      for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
+        const b = grid.get(cx + "," + cy);
+        if (!b) continue;
+        for (const o of b) if (x0 < o.x1 && x1 > o.x0 && y0 < o.y1 && y1 > o.y0) return;
+      }
+      const box = { x0, y0, x1, y1 };
+      for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
+        const k = cx + "," + cy;
+        const b = grid.get(k); if (b) b.push(box); else grid.set(k, [box]);
+      }
+      kept.push(s);
+    });
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
     //    (윤곽선을 두께별로 겹쳐 긋는 방식은 단계가 층으로 보였다 — 블러는 연속이라 층이 안 생김)
     //    캔버스가 불투명 배경이라 '투명하게 파기'(destination-out)는 아래 DOM 배경이 비쳐 얼룩진다 → 같은 색으로 덮는 방식.
@@ -764,7 +802,7 @@ function draw() {
     ctx.fillStyle = rgbStr(bg, 1);
     ctx.shadowColor = rgbStr(bg, 1);
     ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-    specs.forEach(s => {
+    kept.forEach(s => {
       if (s.isDim) return;
       ctx.font = s.font;
       // 그림자 블러는 변환행렬을 안 타므로 장치 픽셀로 환산(DPR). 글자 크기에 비례 + 최소치.
@@ -774,7 +812,7 @@ function draw() {
     });
     ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0;
     // 3) 글자
-    specs.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });
+    kept.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
   }
