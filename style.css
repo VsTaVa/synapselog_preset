@@ -216,7 +216,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --fg-rgb: 255,255,255;                 /* 어두운 배경 위 전경색 */
   --fg: rgb(var(--fg-rgb));              /* 순백 텍스트 */
   --surface-rgb: 14,16,24;               /* 카드/모달 표면 */
-  --danger: var(--danger);                     /* 삭제·경고 */
+  --danger: #ff6b6b;                     /* 삭제·경고 */
   --text: rgb(var(--fg-rgb));            /* 본문 — 불투명(순백) */
   --text-soft: rgba(var(--fg-rgb),0.85); /* 제목 다음 밝기 */
   --text-body: rgba(var(--fg-rgb),0.72); /* 목록·본문 */
@@ -240,7 +240,7 @@ button.rail-sec-head { display: flex; gap: 6px; }
   --accent-line-strong: rgba(var(--accent-rgb),0.6);  /* 테두리(강조·포커스) */
   --icon: #62646b;                       /* 행 아이콘 기본 — 불투명(선 겹침 방지) */
   --icon-dim: #4a4c53;                   /* 더 흐린 행 아이콘 — 불투명 */
-  --icon-bright: var(--icon-bright);                /* 밝은 행/툴 아이콘 — 불투명 */
+  --icon-bright: #909093;                /* 밝은 행/툴 아이콘 — 불투명 */
   /* 모서리 — 네 계단만. 값이 열 가지로 흩어져 나란한 버튼끼리 곡률이 어긋났다 */
   --radius-xs: 2px; --radius-sm: 6px; --radius: 8px; --radius-lg: 12px;
   /* 글자 크기 — 0.5px 차이가 여섯 군데나 있어 화면에선 구분도 안 되면서 매번 새로 정해야 했다 */

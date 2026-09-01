@@ -24,7 +24,7 @@ function cssRgb(name, fallback) {
   return _cssRgbCache[name];
 }
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
-const accentRgb = () => accentRgb();    // 브랜드 주황 — 리터럴을 여기서만 안다
+const accentRgb = () => cssRgb('--accent-rgb', [237,112,0]);    // 브랜드 주황 — 리터럴을 여기서만 안다
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
