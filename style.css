@@ -289,6 +289,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 .pli-row { position:relative; display:flex; align-items:center; gap:3px; padding-left:calc(var(--d,0) * 13px); }
 .pli-row > .page-list-item, .pli-row > .page-pick-item { flex:1; min-width:0; }
 /* 하위 페이지 접기/펼치기 토글 (기본 닫힘) */
+/* 목록 행 표시(MD·읽기 전용) — 문법을 아이콘 하나로 통일. 뜻은 호버(title)로 */
+.pli-tag { display:inline-flex; align-items:center; flex-shrink:0; color:var(--accent); vertical-align:-2px; margin-left:3px; }
 .pli-toggle { flex-shrink:0; width:15px; height:15px; display:flex; align-items:center; justify-content:center; padding:0; background:none; border:none; border-radius:3px; cursor:pointer; color:var(--icon); transition:color .15s, transform .15s; }
 .pli-toggle.open { transform:rotate(90deg); color:var(--accent); }
 @media (hover: hover) and (pointer: fine) { .pli-toggle:hover, .pli-toggle.open:hover { color:var(--fg); } }
@@ -348,11 +350,8 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 }
 /* MD 폴더 행 — 페이지 목록 안에서 DB 그룹 머리글과 같은 규격, 아이콘만 폴더 */
 .md-folder-ic { color:var(--accent); flex-shrink:0; vertical-align:-2px; margin-left:5px; }
-.pli-md-tag { font-size:9px; font-weight:700; letter-spacing:0.03em; color:var(--text-dim); }
 /* 노션에서 마지막으로 수정된 때 — 동기화할지 판단하는 값이라 행 끝에 조용히 */
 .pli-edited { flex-shrink:0; font-size:9.5px; color:var(--text-faint); padding:0 4px; white-space:nowrap; }
-/* 공유받은(읽기 전용) 페이지 — 돋보기 하나만. 어느 연결인지는 호버(title)로 */
-.pli-ro { display:inline-flex; align-items:center; flex-shrink:0; color:var(--accent); vertical-align:-2px; margin-left:2px; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
 #sidebar-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }

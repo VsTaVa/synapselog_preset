@@ -768,7 +768,7 @@ function renderPageList(pages) {
       ${_pliToggle(row)}
       <div class="page-pick-item${window._selectedPageIds.has(row.p.id) ? ' selected' : ''}" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)">
         <div class="pick-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}${pageSrcName(row.p.id) ? ` <span class="pli-ro" title="${escapeHtml(pageSrcName(row.p.id))} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>` : ''}</span>
+        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}${pageSrcName(row.p.id) ? ` <span class="pli-tag" title="${escapeHtml(pageSrcName(row.p.id))} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>` : ''}</span>
       </div>
     </div>
   `).join('');
@@ -971,11 +971,12 @@ function _pageItemHtml(p) {
     const isActive = _addedPageIds.has(p.id);
     const isFav = _favoritePageIds.has(p.id);
     let mdBadge = '';
-    if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-md-tag">MD</span>`;
+    // 표시는 전부 아이콘으로 — 한 줄에 글자 배지와 아이콘이 섞이면 문법이 갈린다
+    if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-tag" title="마크다운 파일"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>`;
     // 공유받은 워크스페이스의 페이지 — 보기만 되는 이유를 목록에서 바로 알 수 있게
     const roName = pageSrcName(p.id);
     // 보기 전용 표시는 돋보기 — 어느 연결에서 왔는지는 호버로(행 안에 이름을 다 쓰면 제목을 밀어낸다)
-    if (roName) mdBadge += ` <span class="pli-ro" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
+    if (roName) mdBadge += ` <span class="pli-tag" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
     const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
     const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
