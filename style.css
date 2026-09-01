@@ -25,17 +25,17 @@ canvas { display: block; }
 #multi-select-menu .ui-help-btn,
 .detail-settings-menu .ui-help-btn {
   width: 19px; height: 19px; padding: 0; flex-shrink: 0; display: grid; grid-template-columns: 1fr; place-items: center;
-  border-radius: 50%; background: none; border: none; color: var(--accent); cursor: pointer; transition: color 0.15s;
+  border-radius: 50%; background: none; border: none; color: var(--accent); cursor: pointer; transition: color 0.15s, opacity 0.15s;
   /* 광학 보정 — 글자는 대문자 높이 기준이라 가운데 정렬만 하면 원이 떠 보인다 */
   transform: translateY(1px);
 }
 .ui-help-btn svg,
 #multi-select-menu .ui-help-btn svg,
 .detail-settings-menu .ui-help-btn svg { width: 100%; height: 100%; display: block; }
-/* 설명이 켜진 동안은 회색으로 물러난다 — 어디서든 같은 신호 */
+/* 설명이 켜진 동안은 투명도로 물러난다 — 색을 바꾸면 주황 정체성이 흐려진다 */
 .ui-help-btn.on,
 #multi-select-menu .ui-help-btn.on,
-.detail-settings-menu .ui-help-btn.on { color: var(--icon-bright); }
+.detail-settings-menu .ui-help-btn.on { color: var(--accent); opacity: 0.45; }
 @media (hover: hover) and (pointer: fine) {
   .ui-help-btn:hover,
   #multi-select-menu .ui-help-btn:hover,
