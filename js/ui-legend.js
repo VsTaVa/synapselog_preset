@@ -451,13 +451,13 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectStartConnect()" title="해당 노드를 다른 노드들과 연결/해제">${chainIcon} 노드 다중 연결</button>`;
     // 고정 버튼과 같은 방식 — 켜져 있으면 해제 버튼으로 보인다
     const focusOn = _focusMode && _focusNodeId === _multiSelected[0].id;
-    html += `<button onclick="multiSelectFocus()" title="${focusOn ? '전체 노드 다시 표시' : '해당 노드의 상/하위 노드만 표시'}">${focusIcon} ${focusOn ? '포커스 해제' : '포커스 모드'}</button>`;
+    html += `<button onclick="multiSelectFocus()" title="${focusOn ? '전체 노드 다시 표시' : '해당 노드의 상/하위 노드만 표시'}" aria-label="${focusOn ? '전체 노드 다시 표시' : '해당 노드의 상/하위 노드만 표시'}">${focusIcon} ${focusOn ? '포커스 해제' : '포커스 모드'}</button>`;
   } else if (n === 2) {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   }
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
   const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(var(--accent-rgb),0.25)' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
-  html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
+  html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제" aria-label="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
   return html;
 }
 

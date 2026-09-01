@@ -978,8 +978,8 @@ function _pageItemHtml(p) {
     // 보기 전용 표시는 돋보기 — 어느 연결에서 왔는지는 호버로(행 안에 이름을 다 쓰면 제목을 밀어낸다)
     if (roName) mdBadge += ` <span class="pli-tag" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
-    const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
-    const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
+    const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" aria-label="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
+    const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" aria-label="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
     const syncSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
     const removeSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
@@ -987,8 +987,8 @@ function _pageItemHtml(p) {
     if (p.isFolder) {
       const folderIc = `<svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
       const acts = p.folderRel ? '' : `<div class="item-actions">
-          <button class="btn-sync" title="폴더 동기화 — 폴더 안 MD 파일을 전부 다시 읽음" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
-          <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
+          <button class="btn-sync" title="폴더 동기화 — 폴더 안 MD 파일을 전부 다시 읽음" aria-label="폴더 동기화 — 폴더 안 MD 파일을 전부 다시 읽음" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
+          <button class="btn-remove" title="폴더 제거" aria-label="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
         </div>`;
       return `<div class="page-list-item pli-group" data-page-id="${p.id}">
         <span class="item-label" title="${safeTitle}">${safeTitle} ${folderIc}</span>
@@ -999,7 +999,7 @@ function _pageItemHtml(p) {
     // 하위를 묶는 상위 행이기도 하므로 pli-group 모양은 유지한다.
     if (p.isDatabase) {
       const dbActs = isActive ? `<div class="item-actions">
-          <button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
+          <button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" aria-label="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}')">${syncSvg}</button>
           <button class="btn-remove" onclick="event.stopPropagation();removePage('${p.id}', document.querySelector('[data-page-id=&quot;${p.id}&quot;]'))">${removeSvg}</button>
         </div>` : '';
       return `<div class="page-list-item pli-group${isActive ? ' active' : ''}" data-page-id="${p.id}">
@@ -1026,7 +1026,7 @@ function _pageItemHtml(p) {
         <div class="item-actions">
           ${starBtn}
           ${exportBtn}
-          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="MD 동기화 — 원본 파일을 다시 읽어 반영" onclick="event.stopPropagation();syncMdFile('${p.id}')">${syncSvg}</button>` : '') :`<button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">${syncSvg}</button>`}
+          ${p.isMd ? (p.hasHandle ? `<button class="btn-sync" title="MD 동기화 — 원본 파일을 다시 읽어 반영" aria-label="MD 동기화 — 원본 파일을 다시 읽어 반영" onclick="event.stopPropagation();syncMdFile('${p.id}')">${syncSvg}</button>` : '') :`<button class="btn-sync" title="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" aria-label="페이지 동기화 — 이 페이지만. 바뀐 하위 페이지·DB 항목만 다시 받음" onclick="event.stopPropagation();syncPage('${p.id}', {noOverlay:true})">${syncSvg}</button>`}
           <button class="btn-remove" onclick="removePage('${p.id}', document.querySelector('[data-page-id=\\'${p.id}\\']'))">${removeSvg}</button>
         </div>
       </div>`;
@@ -1348,6 +1348,8 @@ function removePage(pageId, el) {
 function updateBulkActionsVisibility() {
   const bulk = document.getElementById('bulk-actions');
   if (bulk) bulk.style.display = _addedPageIds.size > 0 ? 'flex' : 'none';
+  const badge = document.getElementById('rail-pages-count');
+  if (badge) { badge.textContent = _addedPageIds.size || ''; badge.style.display = _addedPageIds.size ? 'block' : 'none'; }
 }
 
 let _confirmCallback = null;

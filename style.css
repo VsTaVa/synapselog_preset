@@ -269,6 +269,9 @@ button.rail-sec-head { display: flex; gap: var(--sp-3); }
 .rail-grp { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
 .rail-icon { width: 42px; height: 42px; border-radius: var(--radius); background: none; border: none; color: var(--icon-bright); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color var(--t-fast); }
 .rail-icon.active { color: var(--accent); }
+/* 담은 페이지 수 — 레일이 접혀 있어도 보이게 아이콘 오른쪽 위에 */
+.rail-icon { position: relative; }
+.rail-badge { position: absolute; top: var(--sp-3); right: var(--sp-3); min-width: 14px; height: 14px; padding: 0 3px; box-sizing: border-box; border-radius: 999px; background: var(--accent); color: var(--graph-bg); font-size: 9px; font-weight: 700; line-height: 14px; text-align: center; display: none; }
 /* 손가락 입력 제외 — 탭 뒤에도 :hover가 남아 활성 주황을 흰색이 계속 덮었다.
    hover:hover만으론 부족했다(그렇게 보고하는 모바일 브라우저가 있다) → pointer:fine까지 요구 */
 @media (hover: hover) and (pointer: fine) {

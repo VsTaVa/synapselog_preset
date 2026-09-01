@@ -653,7 +653,7 @@ canvas.addEventListener('touchend', e => {
   drag = null; isPanning = false; mouseDownNode = null; _touchMode = null;
 }, { passive: true });
 
-let _wasSheetLayout = _isSheetLayout();
+let _resizeFitTimer = null;
 window.addEventListener('resize', () => {
   DPR = window.devicePixelRatio || 1;
   W = window.innerWidth; H = window.innerHeight;
@@ -664,13 +664,10 @@ window.addEventListener('resize', () => {
     const sb = document.getElementById('sidebar');
     if (sb && sb.classList.contains('open') && typeof collapseDetailPanel === 'function') collapseDetailPanel();
   }
-  // 세로↔가로가 뒤집히면 패널이 우측↔하단으로 옮겨가 그래프 영역이 통째로 달라진다 → 다시 맞춤.
-  // 창을 조금씩 끄는 동안에는 안 건드린다(계속 다시 맞추면 손과 싸운다). 전환(0.28s) 후 실행.
-  const nowSheet = _isSheetLayout();
-  if (nowSheet !== _wasSheetLayout) {
-    _wasSheetLayout = nowSheet;
-    setTimeout(() => { try { fitGraph(false); } catch (e) {} }, 320);
-  }
+  // 창 크기가 달라지면(세로↔가로 뒤집힘 포함) 그래프 영역이 통째로 달라진다 → 다시 맞춤.
+  // 끄는 동안에는 안 건드린다(계속 다시 맞추면 손과 싸운다) — 멈춘 뒤 한 번만.
+  clearTimeout(_resizeFitTimer);
+  _resizeFitTimer = setTimeout(() => { try { fitGraph(false); } catch (e) {} }, 400);
 });
 
 // ── 패널 너비 조절 (드래그) ───────────────────────────────────────────
@@ -836,6 +833,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     // 설정창이 떠 있으면 그것만 닫고, 그 외엔 좌측 플라이아웃·우측 패널을 한 번에 닫는다
     if (document.getElementById('settings-modal').classList.contains('open')) { closeSettings(); return; }
+    // 편집 중이면 패널을 닫지 않는다 — 취소는 편집기가 직접 묻는다
+    if (document.querySelector('.detail-edit-save')) return;
     if (typeof _legendOpen !== 'undefined' && _legendOpen) toggleLegend(); // 범례는 섹션과 별개로 켜지므로 따로 닫는다
     if (_activeRailSection) closeRailFlyout();
     if (detailPanel.classList.contains('open')) hidePanel();

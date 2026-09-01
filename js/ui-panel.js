@@ -974,6 +974,8 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
     attachWikiAutocomplete(ce); // '[' 입력 시 헤딩 자동완성
     ce.addEventListener('keydown', e => {
       const menuOpen = _wikiMenu && _wikiMenu.style.display !== 'none' && _wikiRow === ce;
+      // Esc = 편집 취소 — 없으면 document로 새어 나가 패널이 통째로 닫히고 고친 글이 사라졌다
+      if (e.key === 'Escape' && !menuOpen) { e.preventDefault(); cancelEdit(); return; }
       const idx = rows.indexOf(rowObj);
       // 빈 블록 백스페이스 → 삭제 후 이전 행 끝으로 (노션식)
       if (e.key === 'Backspace' && (ce.textContent || '').trim() === '') {
@@ -1087,9 +1089,16 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
   else if (rows[0]) rows[0].el.focus();
 
   const finish = () => renderPaneContent(paneIdx, node);
-  cancelBtn.onclick = finish;
+  // 편집을 접기 전 확인 — 고친 게 없으면 묻지 않는다
+  const editSnap = () => (titleInput ? titleInput.innerHTML : '') + rows.map(r => '<<|>>' + r.el.innerHTML).join('');
+  const snap0 = editSnap();
+  const cancelEdit = () => {
+    if (editSnap() === snap0) { finish(); return; }
+    showConfirm('편집 취소', '고친 내용을 버리고 닫기.', finish);
+  };
+  cancelBtn.onclick = cancelEdit;
   if (titleInput) titleInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); finish(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); return; }
     // 제목은 한 줄 — Enter로 줄바꿈 대신 첫 본문으로 이동(본문이 없으면 그대로)
     if (e.key === 'Enter') { e.preventDefault(); if (rows[0]) _focusEditRow(rows[0], true); }
   });
