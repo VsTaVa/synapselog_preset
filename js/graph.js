@@ -959,7 +959,8 @@ function revealByLevel(nodeIds, onComplete) {
 // 전체로 갈 때 보던 페이지를 기억해 둔다: 전체 화면에서는 화면 한가운데가 페이지 사이라
 // 다시 고르면 늘 큰 그래프가 잡혔다
 let _fitAll = false, _fitPageKey = null;
-function resetFitCycle() { _fitAll = false; _fitPageKey = null; } // 직접 화면을 옮기면 지금 보는 페이지부터 다시
+let _viewTouchedAt = 0; // 사용자가 마지막으로 화면을 직접 옮긴 시각 — 뒤늦은 자동 맞춤이 이걸 존중한다
+function resetFitCycle() { _fitAll = false; _fitPageKey = null; _viewTouchedAt = performance.now(); }
 function fitGraph(rotate = true) {
   if (nodes.length === 0) return;
   let visibleNodes = nodes.filter(n => n.visible);

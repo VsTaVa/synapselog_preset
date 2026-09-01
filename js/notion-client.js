@@ -1562,6 +1562,7 @@ function _entryOwnBody(md, leadOnly) {
 async function _loadEntriesBackground(pageId) {
   const entryNodes = nodes.filter(n => n.sourcePageId === pageId && n.entryNotionId);
   if (!entryNodes.length) return;
+  const startedAt = performance.now(); // 로딩 중 사용자가 화면을 옮겼는지 판단할 기준
   const total = entryNodes.length;
   let loaded = 0;
 
@@ -1594,6 +1595,9 @@ async function _loadEntriesBackground(pageId) {
   } catch(e) {}
   loadManualLinks();
   if (typeof resolveWikiLinks === 'function') resolveWikiLinks(); // 엔트리 본문까지 로드된 뒤 [](url) 링크 재해석
+  // 항목이 다 들어온 뒤 한 번 더 — 먼저 맞춘 화면은 아직 절반만 그려진 그래프였다.
+  // 그 사이 사용자가 직접 화면을 옮겼으면 건드리지 않는다
+  if (_viewTouchedAt < startedAt) { try { fitGraph(false); } catch (e) {} }
 }
 
 // ── 파일 임포트 / 내보내기 ───────────────────────────────────────────
