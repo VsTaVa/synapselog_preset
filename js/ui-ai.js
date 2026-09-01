@@ -390,7 +390,7 @@ document.addEventListener('mouseout', (e) => {
 function _aiMdToHtml(t) {
   let s = escapeHtml(t || '');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class="wl-code">$1</code>');
-  s = s.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:#ed7000;">$2</span>$3');
+  s = s.replace(/^(\s*)(\d+\.|-)(\s)/gm, '$1<span style="color:var(--accent);">$2</span>$3');
   return s.replace(/\n/g, '<br>');
 }
 

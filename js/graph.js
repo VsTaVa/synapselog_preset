@@ -24,6 +24,7 @@ function cssRgb(name, fallback) {
   return _cssRgbCache[name];
 }
 const bgRgb = () => cssRgb('--graph-bg-rgb', [12,13,18]);       // 캔버스 배경 = 라벨 뒤를 파낼 색
+const accentRgb = () => accentRgb();    // 브랜드 주황 — 리터럴을 여기서만 안다
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
@@ -527,8 +528,8 @@ function draw() {
     } else if(e.weakLink) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const pathActive = (_focusMode||_isolateActive) && !na.dimmed && !nb.dimmed;
-      if(pathActive) { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.95:0.85})`; ctx.lineWidth = 1.6*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]); }
-      else { ctx.strokeStyle = `rgba(237,112,0,${isHov?0.6:0.25})`; ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]); }
+      if(pathActive) { ctx.strokeStyle = rgbStr(accentRgb(), isHov?0.95:0.85); ctx.lineWidth = 1.6*CONFIG.linkWidth/scale; ctx.setLineDash([8,4]); }
+      else { ctx.strokeStyle = rgbStr(accentRgb(), isHov?0.6:0.25); ctx.lineWidth = CONFIG.linkWidth/scale; ctx.setLineDash([6,6]); }
     } else if(hasSearch) {
       if((_focusMode||_isolateActive) && na.dimmed && nb.dimmed) return;
       const focusDim = (_focusMode||_isolateActive) && (na.dimmed || nb.dimmed);
@@ -591,7 +592,7 @@ function draw() {
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)||existingEdgeSet.has(key)) continue;
         drawnPairs.add(key);
-        ctx.strokeStyle=rgbStr(hexToRgb(b.color||a.color||'#ed7000'),0.75);
+        ctx.strokeStyle=rgbStr(b.color||a.color ? hexToRgb(b.color||a.color) : accentRgb(),0.75);
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       }
     });
@@ -607,7 +608,7 @@ function draw() {
         const key=[a.id,b.id].sort().join('|');
         if(drawnPairs.has(key)) continue;
         drawnPairs.add(key);
-        ctx.strokeStyle=rgbStr(hexToRgb(a.color||'#ed7000'),0.9);
+        ctx.strokeStyle=rgbStr(a.color ? hexToRgb(a.color) : accentRgb(),0.9);
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       }
     }
@@ -697,7 +698,7 @@ function draw() {
       const fs2 = 10 / scale, bx = n.x + r + 2/scale, by = n.y + r + 2/scale;
       ctx.font = `700 ${fs2}px 'Noto Sans KR',sans-serif`;
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillStyle = rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.3 : 1);
+      ctx.fillStyle = rgbStr(accentRgb(), isDim ? 0.3 : 1);
       ctx.fillText('+' + hk, bx, by);
       ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
@@ -722,7 +723,7 @@ function draw() {
   const okRgb = cssRgb('--ok-rgb', [62,207,142]);
   if (typeof _searchFocusId !== 'undefined' && _searchFocusId) _pulse.set(_searchFocusId, okRgb);
   openPanelIdx.forEach((_, id) => _pulse.set(id, okRgb));
-  _multiSelected.forEach(n => { if (n.multiSelected) _pulse.set(n.id, cssRgb('--accent-rgb', [237,112,0])); });
+  _multiSelected.forEach(n => { if (n.multiSelected) _pulse.set(n.id, accentRgb()); });
   if (_pulse.size) {
     const puls = 0.5 + 0.5 * Math.sin(performance.now() / 260); // 0~1 왕복
     _pulse.forEach((acc, id) => {
@@ -765,7 +766,7 @@ function draw() {
         font: `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR',sans-serif`,
         // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
         // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
-        color: _bmLbl ? rgbStr(cssRgb('--accent-rgb',[237,112,0]), isDim ? 0.2 : 1)
+        color: _bmLbl ? rgbStr(accentRgb(), isDim ? 0.2 : 1)
           : (isMatch || lit) ? '#ffffff'
           // 페이지·DB는 노드 색 그대로 — 이정표라 회색으로 물러나면 안 된다
           : isPageNode(n) ? rgbStr(nodeRgb(n) || [255,255,255], isDim ? 0.12 : 1)

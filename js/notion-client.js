@@ -534,8 +534,8 @@ function exportPageImage(pageId) {
   exportGraph(null, { nodes: pool, name: root ? root.label : '' });
 }
 function openPageExportMenu(anchor, pageId) {
-  const mdSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-  const imgSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+  const mdSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  const imgSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
   const html = `<div class="menu-head"><span>내보내기</span></div>`
     + `<button data-act="md">${mdSvg} MD 파일</button>`
     + `<button data-act="png">${imgSvg} 그래프 이미지</button>`;
@@ -710,7 +710,7 @@ async function showPagePicker() {
   // 토큰 입력 폼을 덮어쓰기 전에 원본을 보관 — 시작 화면으로 돌아갈 때 복원용
   if (loginBox && !window._loginBoxHtml) window._loginBoxHtml = loginBox.innerHTML;
   loginBox.innerHTML = `
-    <button type="button" class="picker-back" onclick="backToTokenInput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>뒤로 가기</button>
+    <button type="button" class="picker-back" onclick="backToTokenInput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>뒤로 가기</button>
     <div class="login-title">Synapse<span>Log</span></div>
     <div class="login-sub picker-sub">불러올 페이지 선택</div>
     <div class="picker-search-wrap">
@@ -768,7 +768,7 @@ function renderPageList(pages) {
       ${_pliToggle(row)}
       <div class="page-pick-item${window._selectedPageIds.has(row.p.id) ? ' selected' : ''}" data-id="${row.p.id}" onclick="togglePageSelect('${row.p.id}', this)">
         <div class="pick-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7 8,3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}${pageSrcName(row.p.id) ? ` <span class="pli-tag" title="${escapeHtml(pageSrcName(row.p.id))} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>` : ''}</span>
+        <span class="pick-label">${escapeHtml(row.p.title) || '(제목 없음)'}${pageSrcName(row.p.id) ? ` <span class="pli-tag" title="${escapeHtml(pageSrcName(row.p.id))} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>` : ''}</span>
       </div>
     </div>
   `).join('');
@@ -827,7 +827,7 @@ async function refreshSidebarPageList(quiet) {
   // 안 그러면 새로 받아온 목록이 숨겨진 채로 그려져 "반영이 안 된다"로 보인다
   const wrap = document.getElementById('sidebar-page-list-wrap');
   if (wrap) wrap.style.display = 'block';
-  if (!quiet) listEl.innerHTML = '<div style="font-size:11px; color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
+  if (!quiet) listEl.innerHTML = '<div style="font-size:var(--fs-sm); color:rgba(255,255,255,0.25); padding:6px 0; text-align:center;">불러오는 중...</div>';
   try {
     const prevIds = new Set((window._sidebarPageList || []).map(p => p.id));
     const data = await notionListAll();
@@ -839,7 +839,7 @@ async function refreshSidebarPageList(quiet) {
     _pageListAt = Date.now();
     return pages.filter(p => !prevIds.has(p.id)).length;
   } catch(e) {
-    listEl.innerHTML = `<div style="font-size:11px; color:#ff6b6b; padding:6px 0; text-align:center;">${e.message}</div>`;
+    listEl.innerHTML = `<div style="font-size:var(--fs-sm); color:#ff6b6b; padding:6px 0; text-align:center;">${e.message}</div>`;
     return 0;
   }
 }
@@ -972,20 +972,20 @@ function _pageItemHtml(p) {
     const isFav = _favoritePageIds.has(p.id);
     let mdBadge = '';
     // 표시는 전부 아이콘으로 — 한 줄에 글자 배지와 아이콘이 섞이면 문법이 갈린다
-    if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-tag" title="마크다운 파일"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>`;
+    if (p.isMd || p.isLocal) mdBadge = ` <span class="pli-tag" title="마크다운 파일"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>`;
     // 공유받은 워크스페이스의 페이지 — 보기만 되는 이유를 목록에서 바로 알 수 있게
     const roName = pageSrcName(p.id);
     // 보기 전용 표시는 돋보기 — 어느 연결에서 왔는지는 호버로(행 안에 이름을 다 쓰면 제목을 밀어낸다)
-    if (roName) mdBadge += ` <span class="pli-tag" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
+    if (roName) mdBadge += ` <span class="pli-tag" title="${escapeHtml(roName)} — 공유받은 연결이라 보기 전용"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.2" y1="16.2" x2="21" y2="21"/></svg></span>`;
     // 행 아이콘은 선 SVG로 통일. 별은 뚫린 5각형이라 같은 굵기면 얇아 보여, 이웃 아이콘과 눈으로 맞도록 2.4로 올림
-    const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
-    const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
-    const syncSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
-    const removeSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    const starBtn = `<button class="btn-favorite${isFav ? ' active' : ''}" title="즐겨찾기" onclick="event.stopPropagation();toggleFavorite('${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
+    const exportBtn = `<button class="btn-export" title="내보내기 — MD 파일 / 그래프 이미지" onclick="event.stopPropagation();openPageExportMenu(this, '${p.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>`;
+    const syncSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+    const removeSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     const safeTitle = escapeHtml(p.title) || '(제목 없음)';
     // MD 폴더도 데이터베이스처럼 하위를 묶는 상위 행. 배치 루트에만 동기화/제거를 둔다
     if (p.isFolder) {
-      const folderIc = `<svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+      const folderIc = `<svg class="md-folder-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
       const acts = p.folderRel ? '' : `<div class="item-actions">
           <button class="btn-sync" title="폴더 동기화 — 폴더 안 MD 파일을 전부 다시 읽음" onclick="event.stopPropagation();syncFolderBatch('${p.folderBatchId}')">${syncSvg}</button>
           <button class="btn-remove" title="폴더 제거" onclick="event.stopPropagation();removeFolderBatch('${p.folderBatchId}')">${removeSvg}</button>
@@ -1354,7 +1354,7 @@ let _confirmCallback = null;
 function showConfirm(title, msg, onOk, accent) {
   const t = document.getElementById('confirm-title');
   t.textContent = title;
-  t.style.color = accent ? '#ed7000' : '';
+  t.style.color = accent ? 'var(--accent)' : '';
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-modal').classList.add('open');
   _confirmCallback = onOk;
@@ -1571,7 +1571,7 @@ async function _loadEntriesBackground(pageId) {
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const labelEl = item?.querySelector('.item-label') || item?.querySelector('span');
   if (labelEl && !labelEl.querySelector('.entry-load-tag')) {
-    labelEl.insertAdjacentHTML('beforeend', ` <span class="entry-load-tag" style="color:rgba(237,112,0,0.45);font-size:9px;">로딩 0/${total}</span>`);
+    labelEl.insertAdjacentHTML('beforeend', ` <span class="entry-load-tag" style="color:rgba(var(--accent-rgb),0.45);font-size:var(--fs-xs);">로딩 0/${total}</span>`);
   }
 
   // 동시 4개씩 병렬 로드(공유 인덱스에서 하나씩 꺼내는 워커 풀). JS 단일 스레드라 노드 추가는 원자적 → 경합 없음.

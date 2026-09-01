@@ -101,7 +101,7 @@ let _recentNodes = [];
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
-  const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  const xIc = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   // 북마크·자주·최근 모두 중심 노드와 같은 칩 — 노드 색으로 구분, 부가정보는 오른쪽에
   const chipItem = (n, tail, rank) =>
     `<span class="insight-chipwrap bm-chip" data-nid="${n.id}">${rank ? `<span class="chip-rank">${rank}.</span>` : ''}${createNodeChip(n)}${tail || ''}</span>`;
@@ -217,8 +217,8 @@ function _renderSuggestHtml(list) {
   list = (list || []).filter(p => nodeMap[p.a.id] && nodeMap[p.b.id]);
   if (!list.length) return `<div class="rail-empty">이을 만한 노드 없음</div>`;
   const closeIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  const upIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>`;
-  const downIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/></svg>`;
+  const upIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>`;
+  const downIc = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/></svg>`;
   return list.map((p, i) => {
     const terms = (p.terms || []).slice(0, 3).join(', ');
     const la = escapeHtml((p.a.label || '').trim()), lb = escapeHtml((p.b.label || '').trim());

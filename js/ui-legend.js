@@ -59,7 +59,7 @@ function _legendBadgeImg(kind) {
   // 고정은 노드에 꽂힌 흰 핀, 나머지는 깜빡이는 링 — 정지 이미지라 가장 밝은 순간을 그린다
   if (kind === 'fixed') _drawPin(g, cx, cy, 7 / R, '#ffffff', Math.PI / 4);
   else {
-    const rgb = kind === 'select' ? cssRgb('--accent-rgb', [237,112,0]) : cssRgb('--ok-rgb', [62,207,142]);
+    const rgb = kind === 'select' ? accentRgb() : cssRgb('--ok-rgb', [62,207,142]);
     const r0 = 7, outer = 18;
     g.beginPath(); g.arc(cx, cy, r0, 0, Math.PI * 2); g.fillStyle = '#c9d3e2'; g.fill();
     const gg = g.createRadialGradient(cx, cy, r0, cx, cy, outer);
@@ -92,7 +92,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 열림 · 검색 순회 중</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:12px;">가</span><span>북마크 (제목 주황색)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:var(--fs);">가</span><span>북마크 (제목 주황색)</span></div>`
     + `</div>`;
 }
 function setColorScheme(mode) {
@@ -385,7 +385,7 @@ function renderMultiSelectMenu() {
     html = medit + (medit && explore ? '<div class="ms-divider"></div>' : '') + explore;
   }
   menu.innerHTML = (html ? _msHeadHtml() + html : '')
-    || `<div style="padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
+    || `<div style="padding:7px 14px;font-size:var(--fs);color:rgba(255,255,255,0.4);white-space:nowrap;">사용할 수 있는 동작 없음</div>`;
   _applyMsHelp(menu);
   menu.classList.add('open');
   repositionMultiSelectMenu();
@@ -414,11 +414,11 @@ function _applyMsHelp(menu) {
 // 편집 툴 (단일 노드): 하위 노드 추가 / 노드 동기화 / 북마크 / 노드 삭제
 function _editToolsHtml(node) {
   if (!node) return '';
-  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const syncIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
   const bmOn = isBookmarked(node);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${bmOn ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
-  const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+  const notionIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   const isLocalLike = node.local || String(node.sourcePageId || '').startsWith('md_') || String(node.sourcePageId || '').startsWith('local_');
   let html = '';
   if (canAddChild(node)) html += `<button onclick="multiSelectAddChild()" title="해당 아래 자식 노드 생성">${icSlot(addChildIcon(12), 12)} 하위 노드 추가</button>`;
@@ -433,7 +433,7 @@ function _editToolsHtml(node) {
 function _multiEditToolsHtml() {
   const nodes = _multiSelected || [];
   if (!nodes.length) return '';
-  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+  const trashIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const allBm = nodes.every(isBookmarked);
   const bmIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>${allBm ? '<line x1="3.5" y1="3.5" x2="20.5" y2="20.5"/>' : ''}</svg>`;
   let html = `<button onclick="multiSelectBookmark()" title="즐겨찾기">${bmIcon} 북마크${allBm ? ' 해제' : ''}</button>`;
@@ -456,7 +456,7 @@ function _exploreToolsHtml() {
     html += `<button onclick="multiSelectConnect()" title="선택한 두 노드를 연결/해제">${chainIcon} 노드 간 연결</button>`;
   }
   const pinOn = _multiSelected.length > 0 && _multiSelected.every(nd => nd.fixed);
-  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(237,112,0,0.25)' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
+  const pinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${pinOn ? 'rgba(var(--accent-rgb),0.25)' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.7l-1.8-.9a2 2 0 0 1-1.1-1.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
   html += `<button onclick="multiSelectPin()" title="선택한 노드를 제자리에 고정/해제">${pinIcon} ${pinOn ? '고정 해제' : '노드 고정'}</button>`;
   return html;
 }

@@ -386,7 +386,7 @@ function renderPaneContent(i, n) {
   // 구분선(--- 만 있는 줄) → 가로줄. 줄 끝 개행까지 먹어 아래에 빈 줄이 안 생기게(위아래 간격 = hr margin으로 대칭)
   rawDesc = rawDesc.replace(/^[ \t]*---+[ \t]*\n?/gm, '<hr class="md-hr">');
   // 화살표(-> 또는 →)도 주황색 (escapeHtml 후 > 는 &gt;)
-  rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:#ed7000;">$1</span>');
+  rawDesc = rawDesc.replace(/(-&gt;|→)/g, '<span style="color:var(--accent);">$1</span>');
   // 이미지 ![캡션](url) → <img> (링크 치환보다 먼저 — '!'가 붙은 링크가 텍스트 링크로 안 잡히게)
   rawDesc = rawDesc.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, url) =>
     `<img class="md-img" src="${url.replace(/&amp;/g, '&')}" alt="${alt}" loading="lazy">`);
@@ -400,7 +400,7 @@ function renderPaneContent(i, n) {
   });
   if (searchKeyword && searchKeyword.trim() && searchMatches.has(n.id)) {
     const re = _kwRegex(searchKeyword); // 띄어쓰기 무시 매칭
-    if (re) rawDesc = rawDesc.replace(re, '<mark style="background:rgba(237,112,0,0.35);color:#ed7000;border-radius:3px;padding:0 2px;">$1</mark>');
+    if (re) rawDesc = rawDesc.replace(re, '<mark style="background:rgba(var(--accent-rgb),0.35);color:var(--accent);border-radius:var(--radius-xs);padding:0 2px;">$1</mark>');
   }
   if (contentEl) {
     contentEl.innerHTML = mdTableToHtml(rawDesc);
@@ -527,14 +527,14 @@ function _applyDsHelp(menu) {
 function toggleDetailSettings(anchor, i, n, notionHref) {
   const bmOn = isBookmarked(n);
   const notionItem = notionHref
-    ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
+    ? `<button data-act="notion"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Notion에서 보기</button>`
     : '';
-  const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? '#ed7000' : 'none'}" stroke="${bmOn ? '#ed7000' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
-  const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+  const bmItem = `<button data-act="bookmark" class="${bmOn ? 'on' : ''}"><svg width="15" height="15" viewBox="0 0 24 24" fill="${bmOn ? 'var(--accent)' : 'none'}" stroke="${bmOn ? 'var(--accent)' : 'currentColor'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ${bmOn ? '북마크 해제' : '북마크'}</button>`;
+  const trashSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   const canEdit = (n.local || n.notionBlockId || (n.bodyBlocks && n.bodyBlocks.length)) && !isReadOnlyNode(n);
   const canAdd = typeof canAddChild === 'function' && canAddChild(n);
   const canDel = typeof canDeleteNode === 'function' && canDeleteNode(n);
-  const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
+  const editItem = canEdit ? `<button data-act="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 제목&본문 수정</button>` : '';
   const addItem = canAdd ? `<button data-act="add">${icSlot(addChildIcon(15), 15)} 하위 노드 추가</button>` : '';
   const delItem = canDel ? `<button data-act="delete" class="danger">${trashSvg} 노드 삭제</button>` : '';
   const aiActItem = `<button data-act="aiact"><span class="menu-ic-txt">AI</span> AI 노드 선택</button>`;
@@ -1065,7 +1065,7 @@ async function beginNodeEdit(paneIdx, node, overrideText) {
       b.onclick = onClick;
       return b;
     };
-    const _bulbSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
+    const _bulbSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
     // 체크박스: 노션은 문단 앞 클릭형 체크박스(유형 삽입), 로컬(.md)은 desc가 원본이라 마커 텍스트로
     actions.appendChild(tbBtn('☑', '체크박스', () => isLocal ? insertTyped('☐ ') : insertTyped('', { type: 'to_do', checked: false })));
     actions.appendChild(tbBtn('❝', '인용', () => isLocal ? insertTyped('> ') : insertTyped('', { type: 'quote' })));
