@@ -92,7 +92,7 @@ function _legendSymbolsHtml() {
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('panel')}</span><span>상세 열림 · 검색 순회 중</span></div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('fixed')}</span><span>노드 고정</span></div>`
-      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:800;font-size:var(--fs);">가</span><span>북마크 (제목 주황색)</span></div>`
+      + `<div class="lg-row"><span class="lg-shape" style="color:var(--accent);font-weight:700;font-size:var(--fs);">가</span><span>북마크 (제목 주황색)</span></div>`
     + `</div>`;
 }
 function setColorScheme(mode) {
