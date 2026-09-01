@@ -524,12 +524,12 @@ function _pageRoot(pageId) { return nodes.find(n => n.sourcePageId === pageId &&
 function exportPageById(pageId) {
   const root = _pageRoot(pageId);
   if (root) exportNodeMarkdown(root);
-  else alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.');
+  else toast('내보낼 내용 없음 — 페이지를 먼저 불러오기', { type: 'error' });
 }
 // 이 페이지의 그래프만 PNG로 — 페이지별 보기에선 페이지끼리 멀어서 전체 이미지로는 하나가 잘 안 보인다
 function exportPageImage(pageId) {
   const pool = (typeof pagePool === 'function') ? pagePool(pageId) : null;
-  if (!pool) { alert('내보낼 내용 없음. 페이지를 먼저 불러오거나 열기.'); return; }
+  if (!pool) { toast('내보낼 내용 없음 — 페이지를 먼저 불러오기', { type: 'error' }); return; }
   const root = _pageRoot(pageId);
   exportGraph(null, { nodes: pool, name: root ? root.label : '' });
 }
@@ -1567,7 +1567,7 @@ async function _loadEntriesBackground(pageId) {
   let loaded = 0;
 
   const getTag = () => document.querySelector(`[data-page-id="${pageId}"] .entry-load-tag`);
-  const setTag = (t) => { const el = getTag(); if (el) el.textContent = t; };
+  const setTag = (t, hint) => { const el = getTag(); if (el) el.textContent = t; if (typeof setStatusHint === 'function') setStatusHint(hint || ''); };
 
   const item = document.querySelector(`[data-page-id="${pageId}"]`);
   const labelEl = item?.querySelector('.item-label') || item?.querySelector('span');
@@ -1583,12 +1583,15 @@ async function _loadEntriesBackground(pageId) {
       const node = entryNodes[_i++];
       if (!_addedPageIds.has(pageId)) break; // 닫혔으면 남은 항목은 요청조차 하지 않는다
       await _loadEntryNode(node, pageId);
-      loaded++; setTag(`로딩 ${loaded}/${total}`);
+      loaded++; setTag(`로딩 ${loaded}/${total}`, `항목 ${loaded}/${total} 불러오는 중`);
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, entryNodes.length) }, worker));
 
   const tag = getTag(); if (tag) tag.remove();
+  // 연결 모드 같은 다른 안내를 지우지 않도록, 우리가 쓴 진행 표시일 때만 비운다
+  const hint = statusEl && statusEl.querySelector('.st-hint');
+  if (hint && hint.textContent.startsWith('항목 ')) setStatusHint('');
   try {
     const c = sessionStorage.getItem(`snlog_${pageId}`);
     if (c) { const p = JSON.parse(c); delete p._headingsOnly; sessionStorage.setItem(`snlog_${pageId}`, JSON.stringify(p)); }

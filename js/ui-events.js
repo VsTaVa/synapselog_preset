@@ -174,8 +174,9 @@ let _searchHits = [], _searchCursor = -1, _searchCommitted = '';
 function _updateSearchCount() {
   const el = document.getElementById('search-result-count');
   if (!el) return;
-  if (!_searchHits.length) { el.style.display = 'none'; return; }
   el.style.display = 'block';
+  if (!_searchHits.length) { el.textContent = '0개 결과'; el.classList.add('none'); return; }
+  el.classList.remove('none');
   el.textContent = _searchCursor >= 0 ? `${_searchCursor + 1} / ${_searchHits.length}` : `${_searchHits.length}개 결과`;
 }
 function gotoSearchMatch(dir) {
@@ -791,7 +792,8 @@ const SHORTCUT_ROWS = [
   { label: '패널·범례 닫기', sub: 'Esc (고정)', key: 'Esc' },
   { label: '노드 고정 / 해제', sub: 'Ctrl+클릭으로 고정', key: 'Ctrl+클릭' },
   { label: '노드 선택', sub: '노드 우클릭 (모바일: 더블탭)', key: '우클릭' },
-  { label: '화면 맞춤', sub: '빈 공간 더블클릭 / 더블탭', key: '더블클릭' },
+  { label: '화면 맞춤', sub: '한 번 더 누르면 전체 그래프', key: 'Space' },
+  { label: '화면 맞춤 (마우스)', sub: '빈 공간 더블클릭 / 더블탭', key: '더블클릭' },
   { label: '화면 확대 / 축소', sub: '마우스 휠 (모바일: 두 손가락)', key: '마우스 휠' },
   { label: '화면 회전', sub: '빈 공간 우클릭 상하 드래그 (모바일: 두 손가락)', key: '우클릭 드래그' },
 ];

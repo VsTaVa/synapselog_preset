@@ -553,7 +553,7 @@ function toggleDetailSettings(anchor, i, n, notionHref) {
   if (ab) ab.onclick = async () => {
     close();
     try { const ids = await createChildNode(n, '(제목 없음)'); if (ids.length && nodeMap[ids[0]]) { openPanel(nodeMap[ids[0]]); beginNodeEdit(_stack.length - 1, nodeMap[ids[0]]); } }
-    catch (err) { alert('하위 노드 추가 실패: ' + (err.message || err)); }
+    catch (err) { toast('하위 노드 추가 실패 — ' + (err.message || err), { type: 'error' }); }
   };
   const nb = menu.querySelector('[data-act="notion"]');
   if (nb) nb.onclick = () => { window.open(notionHref, '_blank'); close(); };
