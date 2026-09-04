@@ -28,6 +28,36 @@ const accentRgb = () => cssRgb('--accent-rgb', [237,112,0]);    // 브랜드 주
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
+// ── 의미 연결 표시 ──────────────────────────────────────────────────
+// 값은 두 개뿐: 켜짐 여부와 최소 유사도. 짝 계산은 ui-embed.js가 한다
+let _semOn = false;
+let _semMin = (() => { try { const v = parseFloat(localStorage.getItem('snlog_sem_min')); return (v >= 0.5 && v <= 0.95) ? v : 0.7; } catch (e) { return 0.7; } })();
+function setSemanticOn(on) {
+  _semOn = !!on;
+  const cb = document.getElementById('sem-toggle-input');
+  if (cb) cb.checked = _semOn;
+  const row = document.getElementById('sem-min-row');
+  if (row) row.style.display = _semOn ? '' : 'none';
+  // 켤 때만 계산 — 끌 땐 이미 구한 짝을 남겨둬서 다시 켤 때 즉시 뜬다
+  if (_semOn && typeof buildSemanticEdges === 'function' && !_semEdges.length) buildSemanticEdges();
+  isStable = false;
+}
+function toggleSemantic() { setSemanticOn(!_semOn); }
+// 그래프를 다시 만들면 짝을 버린다 — node.id 는 재빌드마다 새로 발급돼 예전 id가 죽는다.
+// 켜져 있었으면 새 노드로 다시 계산(제목이 그대로면 캐시된 벡터라 추가 요청 없음)
+function invalidateSemanticEdges() {
+  if (typeof _semEdges === 'undefined') return;
+  _semEdges = [];
+  if (_semOn && typeof buildSemanticEdges === 'function') setTimeout(buildSemanticEdges, 0);
+}
+function setSemMin(v) {
+  _semMin = parseFloat(v);
+  try { localStorage.setItem('snlog_sem_min', String(_semMin)); } catch (e) {}
+  const out = document.getElementById('v-sem-min');
+  if (out) out.textContent = Math.round(_semMin * 100) + '%';
+  isStable = false;
+}
+
 // 노드 연결(위키링크 엣지) 표시 여부
 let _showConnections = (() => { try { return localStorage.getItem('snlog_show_conn') !== 'false'; } catch(e) { return true; } })();
 // 그래프 배치: 'radial'(방사형 트리·기본) | 'force'(힘기반). 페이지별 나눔은 _clusterMode로 따로 켠다
@@ -503,6 +533,27 @@ function draw() {
       if (ed.from === hoverSrc.id) _hoverLinked.add(ed.to);
       else if (ed.to === hoverSrc.id) _hoverLinked.add(ed.from);
     });
+  }
+  // 의미 연결 — 계산으로 나온 선이라 구조·링크선 아래에 깔고 모양도 다르게(둥근 점선, 보라)
+  if (_semOn && typeof _semEdges !== 'undefined' && _semEdges.length) {
+    const semRgb = cssRgb('--sem-rgb', [138,120,255]);
+    ctx.save();
+    ctx.setLineDash([0.1, 4]); ctx.lineCap = 'round';
+    _semEdges.forEach(e => {
+      if (e.s < _semMin) return;
+      const a = nodeMap[e.from], b = nodeMap[e.to];
+      if (!a || !b || !a.visible || !b.visible) return;
+      if (hasSearch && !(searchMatches.has(e.from) && searchMatches.has(e.to))) return;
+      if ((_focusMode || _isolateActive) && (a.dimmed || b.dimmed)) return;
+      const hov = hoverSrc && (e.from === hoverSrc.id || e.to === hoverSrc.id);
+      // 임계값 바로 위는 옅게, 확실히 가까운 짝은 진하게 — 슬라이더를 움직이면 차이가 보인다
+      const t = Math.min(1, (e.s - _semMin) / Math.max(0.05, 1 - _semMin));
+      ctx.strokeStyle = rgbStr(semRgb, hov ? 0.9 : 0.2 + t * 0.4);
+      ctx.lineWidth = (hov ? 2 : 1.4) * CONFIG.linkWidth / scale;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    });
+    ctx.restore();
+    ctx.setLineDash([]); ctx.lineCap = 'butt';
   }
   [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
@@ -1345,6 +1396,7 @@ function resolveWikiLinks() {
 }
 
 function buildGraph() {
+  invalidateSemanticEdges();
   _hueIndex = 0;
   const markdown = window._NOTION_MARKDOWN || '';
   if (!markdown || !markdown.trim()) {
@@ -1362,6 +1414,7 @@ function buildGraph() {
 }
 
 function mergeGraph(title, markdown, pageId) {
+  invalidateSemanticEdges();
   const result = parseMarkdown(markdown, title);
   const idMap = {};
   const prefix = 'p' + Date.now() + '_' + (_idSeq++) + '_';

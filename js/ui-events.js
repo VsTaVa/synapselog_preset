@@ -1173,6 +1173,8 @@ syncClusterToggle(); // 페이지별 나누기 체크 상태도 함께
 (() => { const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = _showConnections; })(); // 노드 연결 표시 토글 동기화
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
 (() => { const sl = document.getElementById('cfg-depth'); if (sl) sl.value = _depthLimit; setDepthLimit(_depthLimit); })(); // 저장된 표시 깊이 반영
+(() => { const sl = document.getElementById('cfg-sem-min'); if (sl) sl.value = _semMin; setSemMin(_semMin); })();
+// 의미 연결은 켜진 채로 시작하지 않는다 — 켜는 순간 벡터를 받아오므로 사용자가 직접 켜야 한다
 renderPanes();
 renderShortcutRows(); // 설정 모달의 조작 목록 (도움말과 같은 배열에서)
 applyLegendState();
