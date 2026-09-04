@@ -74,7 +74,6 @@ function _legendSymbolsHtml() {
   const L = {
     solid: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="#9fb0c6" stroke-width="2"/></svg>`,
     wiki: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="24" y2="5" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M23 2 L30 5 L23 8" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
-    sem: `<svg width="32" height="10" viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="rgb(var(--sem-rgb))" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="0.1 4"/></svg>`,
   };
   const colorSec = `<div class="lg-row lg-tool"><span><b>노드별</b>: 노드마다 색상 변화</span></div>`
     + `<div class="lg-row lg-tool"><span><b>깊이별</b>: 헤딩 레벨에 따라 색상 변화</span></div>`;
@@ -88,7 +87,6 @@ function _legendSymbolsHtml() {
     + `<div class="lg-sec"><div class="lg-sec-title">연결선</div>`
       + `<div class="lg-row"><span class="lg-line">${L.solid}</span><span>계층 구조</span></div>`
       + `<div class="lg-row"><span class="lg-line">${L.wiki}</span><span>노드 연결 (→ 방향)</span></div>`
-      + `<div class="lg-row"><span class="lg-line">${L.sem}</span><span>의미 연결 (계산)</span></div>`
     + `</div>`
     + `<div class="lg-sec"><div class="lg-sec-title">표시</div>`
       + `<div class="lg-row"><span class="lg-shape">${_legendBadgeImg('select')}</span><span>선택한 노드</span></div>`

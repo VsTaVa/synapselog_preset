@@ -76,56 +76,6 @@ async function _ensureNodeEmbeds() {
   }
   return targets;
 }
-
-// ── 의미 연결 ──────────────────────────────────────────────────────
-// 같은 벡터를 '질문↔노드'가 아니라 '노드↔노드'로 쓴다. 새 요청 없이 이미 받아둔 값만 곱한다.
-// 목차에도 [[링크]]에도 없는, 뜻만 가까운 짝을 찾아내는 게 목적.
-const SEM_FLOOR = 0.5;   // 이 미만은 저장도 안 한다
-const SEM_TOPK = 4;      // 노드당 상위 몇 개까지 — 안 걸면 빽빽한 구간이 털뭉치가 된다
-let _semEdges = [];      // {from, to, s} — 그리기 전용. edges 배열엔 절대 넣지 않는다(탐색·내보내기가 오염된다)
-let _semBuilding = false;
-
-// 벡터를 확보한 뒤 모든 짝을 비교 → 노드당 상위 K개만 남긴다
-async function buildSemanticEdges() {
-  if (_semBuilding) return;
-  if (!_savedAiKey) { toast('의미 연결에는 AI 키 필요 — 설정에서 입력', { type: 'error' }); setSemanticOn(false); return; }
-  _semBuilding = true;
-  const done = toast('의미 연결 계산 중…', { type: 'info', duration: 60000 });
-  try {
-    const targets = await _ensureNodeEmbeds();
-    const list = targets.filter(n => _titleEmbeds[_titleKey(n.label)]);
-    const vec = list.map(n => _titleEmbeds[_titleKey(n.label)]);
-    // 이미 구조나 링크로 이어진 짝은 뺀다 — 있는 선을 한 겹 더 그으면 화면만 두꺼워진다
-    const known = new Set(edges.map(e => [e.from, e.to].sort().join('|')));
-    const best = list.map(() => []);
-    const put = (arr, item) => {
-      if (arr.length < SEM_TOPK) { arr.push(item); arr.sort((a, b) => b.s - a.s); return; }
-      if (item.s > arr[SEM_TOPK - 1].s) { arr[SEM_TOPK - 1] = item; arr.sort((a, b) => b.s - a.s); }
-    };
-    for (let i = 0; i < list.length; i++) {
-      for (let j = i + 1; j < list.length; j++) {
-        if (known.has([list[i].id, list[j].id].sort().join('|'))) continue;
-        const s = _cosine(vec[i], vec[j]);
-        if (s < SEM_FLOOR) continue;
-        put(best[i], { k: j, s }); put(best[j], { k: i, s });
-      }
-    }
-    const seen = new Set(); const out = [];
-    best.forEach((arr, i) => arr.forEach(({ k, s }) => {
-      const key = [list[i].id, list[k].id].sort().join('|');
-      if (seen.has(key)) return;
-      seen.add(key); out.push({ from: list[i].id, to: list[k].id, s });
-    }));
-    _semEdges = out;
-    if (done) done();
-    toast(out.length ? ('의미 연결 ' + out.length + '개') : '의미가 가까운 짝 없음', { type: out.length ? 'success' : 'info' });
-  } catch (e) {
-    if (done) done();
-    // 429·키 문제를 사람 말로 — AI 대화와 같은 문구를 쓴다(두 곳에 따로 적지 않게)
-    toast(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : ('의미 연결 실패 — ' + (e.message || e)), { type: 'error' });
-    setSemanticOn(false);
-  } finally { _semBuilding = false; isStable = false; }
-}
 // 질문 → 임베딩 → 노드 제목과 코사인 유사도 → 상위 노드. 실패/저유사도면 null(폴백)
 async function _semanticSearchNodes(query, topN) {
   if (!_savedAiKey) return null;
