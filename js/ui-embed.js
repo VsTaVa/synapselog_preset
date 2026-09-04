@@ -20,25 +20,43 @@ function _saveEmbeds() {
     if (obj && typeof obj === 'object') Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) _titleEmbeds[k] = obj[k]; });
   } catch (e) {}
 })();
+// 429(무료 한도)는 잠깐 기다리면 대개 풀린다 — 구글이 응답에 적어주는 대기 시간을 그대로 따르고,
+// 없으면 점점 늘려 기다린다. 재시도가 없으면 한 번 걸릴 때마다 통째로 실패했다
+const EMBED_BATCH = 50;   // 100개씩 몰아 보내면 분당 토큰 한도에 더 잘 걸린다
+async function _embedFetch(url, body, tries) {
+  tries = tries || 4;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) return res.json();
+    const txt = await res.text().catch(() => '');
+    if (res.status === 429 && attempt < tries - 1) {
+      const m = txt.match(/"retryDelay"\s*:\s*"(\d+)s"/);
+      await new Promise(r => setTimeout(r, m ? (parseInt(m[1], 10) + 1) * 1000 : 4000 * (attempt + 1)));
+      continue;
+    }
+    const e = new Error('embed HTTP ' + res.status + (txt ? ' — ' + txt.slice(0, 200) : ''));
+    e.status = res.status;
+    throw e;
+  }
+}
 async function _embedTexts(texts) {
   const out = [];
-  for (let i = 0; i < texts.length; i += 100) {
-    const chunk = texts.slice(i, i + 100);
+  for (let i = 0; i < texts.length; i += EMBED_BATCH) {
+    const chunk = texts.slice(i, i + EMBED_BATCH);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${_EMBED_MODEL}:batchEmbedContents?key=${encodeURIComponent(_savedAiKey)}`;
     const body = { requests: chunk.map(t => ({ model: `models/${_EMBED_MODEL}`, content: { parts: [{ text: t }] }, outputDimensionality: _EMBED_DIM })) };
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!res.ok) { const e = new Error('embed HTTP ' + res.status); e.status = res.status; throw e; }
-    const data = await res.json();
+    let data;
+    // 중간에 끊겨도 여기까지 받은 벡터는 살린다 — 안 그러면 429 한 번에 처음부터 다시다
+    try { data = await _embedFetch(url, body); } catch (err) { err.partial = out; throw err; }
     (data.embeddings || []).forEach(emb => out.push((emb && emb.values) || null));
+    if (i + EMBED_BATCH < texts.length) await new Promise(r => setTimeout(r, 250)); // 분당 한도에 여유를 준다
   }
   return out;
 }
 async function _embedOne(text) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${_EMBED_MODEL}:embedContent?key=${encodeURIComponent(_savedAiKey)}`;
   const body = { model: `models/${_EMBED_MODEL}`, content: { parts: [{ text }] }, outputDimensionality: _EMBED_DIM };
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) { const e = new Error('embed HTTP ' + res.status); e.status = res.status; throw e; }
-  const data = await res.json();
+  const data = await _embedFetch(url, body);
   return (data.embedding && data.embedding.values) || null;
 }
 function _cosine(a, b) {
@@ -51,9 +69,10 @@ async function _ensureNodeEmbeds() {
   const targets = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && !n._aiSummary && n.label && n.label.trim());
   const missing = [...new Set(targets.map(n => n.label.trim()))].filter(t => !_titleEmbeds[_titleKey(t)]);
   if (missing.length) {
-    const vecs = await _embedTexts(missing);
-    missing.forEach((t, i) => { if (vecs[i] && vecs[i].length) _titleEmbeds[_titleKey(t)] = vecs[i]; });
-    _saveEmbeds();
+    const keep = (arr) => { arr.forEach((v, k) => { if (v && v.length) _titleEmbeds[_titleKey(missing[k])] = v; }); _saveEmbeds(); };
+    let vecs;
+    try { vecs = await _embedTexts(missing); } catch (err) { keep(err.partial || []); throw err; }
+    keep(vecs);
   }
   return targets;
 }
@@ -102,7 +121,8 @@ async function buildSemanticEdges() {
     toast(out.length ? ('의미 연결 ' + out.length + '개') : '의미가 가까운 짝 없음', { type: out.length ? 'success' : 'info' });
   } catch (e) {
     if (done) done();
-    toast('의미 연결 실패 — ' + (e.message || e), { type: 'error' });
+    // 429·키 문제를 사람 말로 — AI 대화와 같은 문구를 쓴다(두 곳에 따로 적지 않게)
+    toast(typeof _aiErrMsg === 'function' ? _aiErrMsg(e) : ('의미 연결 실패 — ' + (e.message || e)), { type: 'error' });
     setSemanticOn(false);
   } finally { _semBuilding = false; isStable = false; }
 }
