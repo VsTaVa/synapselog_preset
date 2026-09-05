@@ -114,7 +114,6 @@ const isPageNode = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entr
 // 제목 크기·굵기 — 화면과 PNG 내보내기가 같은 값을 쓰게 한 곳에 둔다.
 const labelFontPx = n => (isPageNode(n) || n.level === 1) ? 12 : n.level === 2 ? 11 : 10;
 const labelBold = n => isPageNode(n) || n.level <= 1;
-const LABEL_FADE = 0.3; // 겹쳐서 자리를 못 잡은 제목의 투명도 — 지우는 대신 옅게 남긴다
 function depthRgb(n) {
   // 최상위·페이지·DB 노드는 흰색 (깊이 색은 노션 헤딩에만)
   if (isPageNode(n)) return [245,247,250];
@@ -804,8 +803,8 @@ function draw() {
           : `rgba(150,157,170,${isDim ? 0.12 : 1})`
       });
     });
-    // 1-2) 겹치는 제목 — 지우지 않고 흐리게. 중요한 것부터 자리를 잡고,
-    //      이미 놓인 상자와 겹친 제목은 자리를 못 잡는 대신 옅게 남는다(무엇이 있는지는 보이게).
+    // 1-2) 겹치는 제목 솎기 — 노드가 붙은 구간에서 제목이 서로 포개져 글자 벽이 된다.
+    //      중요한 것부터 자리를 잡고, 이미 놓인 상자와 겹치면 그 제목은 접는다.
     specs.sort((a, b) => a.pri - b.pri || a.lvl - b.lvl);
     const kept = [], CELL = 96, grid = new Map();
     specs.forEach(s => {
@@ -820,8 +819,7 @@ function draw() {
         if (!bx) continue;
         for (const o of bx) if (x0 < o.x1 && x1 > o.x0 && y0 < o.y1 && y1 > o.y0) { hit = true; break; }
       }
-      // 흐려진 제목은 자리를 잡지 않는다 — 잡으면 뒤에 올 또렷한 제목까지 밀어낸다
-      if (hit) { s.faded = true; kept.push(s); return; }
+      if (hit) return;
       const box = { x0, y0, x1, y1 };
       for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
         const k = cx + "," + cy;
@@ -838,7 +836,7 @@ function draw() {
     ctx.shadowColor = rgbStr(bg, 1);
     ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     kept.forEach(s => {
-      if (s.isDim || s.faded) return; // 흐린 제목까지 파내면 옆의 또렷한 제목이 갉아먹힌다
+      if (s.isDim) return;
       ctx.font = s.font;
       // 그림자 블러는 변환행렬을 안 타므로 장치 픽셀로 환산(DPR). 글자 크기에 비례 + 최소치.
       ctx.shadowBlur = Math.max(2.5, s.fontSize * 0.5) * DPR;
@@ -846,12 +844,8 @@ function draw() {
       ctx.fillText(s.lbl, s.x, s.y); ctx.fillText(s.lbl, s.x, s.y);
     });
     ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0;
-    // 3) 글자 — 흐린 것부터 깔고 또렷한 것을 위에 올린다(겹쳐도 중요한 쪽이 읽힌다)
-    const paint = s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); };
-    ctx.globalAlpha = LABEL_FADE;
-    kept.forEach(s => { if (s.faded) paint(s); });
-    ctx.globalAlpha = 1;
-    kept.forEach(s => { if (!s.faded) paint(s); });
+    // 3) 글자
+    kept.forEach(s => { ctx.font = s.font; ctx.fillStyle = s.color; ctx.fillText(s.lbl, s.x, s.y); });
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.restore();
   }
