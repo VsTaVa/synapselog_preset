@@ -54,8 +54,8 @@ function applyRailSecState() {
 // 켜짐 여부는 패널별로 따로 기억한다(패널 id가 키)
 let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_help') || '{}'); } catch (e) { return {}; } })();
 // 도안이 큰 레일 아이콘은 icons.js에서 채운다 — HTML에 수 KB짜리 path를 박지 않게
-(() => { const set = (id, fn) => { const b = document.getElementById(id); if (b && !b.innerHTML && typeof fn === 'function') b.innerHTML = fn(20); };
-  set('rail-graphcfg', typeof sliderIcon === 'function' ? sliderIcon : null);
+(() => { const set = (id, fn, px) => { const b = document.getElementById(id); if (b && !b.innerHTML && typeof fn === 'function') b.innerHTML = fn(px || 20); };
+  set('rail-graphcfg', typeof sliderIcon === 'function' ? sliderIcon : null, 18); // 채움 도안이라 선 아이콘과 같은 20px면 커 보인다
   set('rail-search', typeof searchIcon === 'function' ? searchIcon : null);
   set('search-btn', typeof searchIcon === 'function' ? searchIcon : null); // 검색창 돋보기도 같은 도안
 })();
