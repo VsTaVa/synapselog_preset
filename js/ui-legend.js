@@ -11,7 +11,7 @@ function applyLegendState() {
   const pane = document.getElementById('legend-panel');
   if (pane) pane.classList.toggle('active', _legendOpen);
   const btn = document.getElementById('rail-legend');
-  if (btn && !btn.innerHTML) btn.innerHTML = helpIcon(20); // 도안은 icons.js 한 곳에서
+  if (btn && !btn.innerHTML) btn.innerHTML = infoIcon(20); // 패널 도움말 배지와 같은 도안 — 도안 자체는 icons.js 한 곳에
   if (btn) btn.classList.toggle('active', _legendOpen);
   if (_legendOpen) renderLegendBody();
   // 사이드바는 '섹션이 열렸거나 범례가 켜졌을 때' 열려 있어야 한다
