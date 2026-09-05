@@ -57,6 +57,7 @@ let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_hel
 (() => { const set = (id, fn) => { const b = document.getElementById(id); if (b && !b.innerHTML && typeof fn === 'function') b.innerHTML = fn(20); };
   set('rail-graphcfg', typeof sliderIcon === 'function' ? sliderIcon : null);
   set('rail-search', typeof searchIcon === 'function' ? searchIcon : null);
+  set('search-btn', typeof searchIcon === 'function' ? searchIcon : null); // 검색창 돋보기도 같은 도안
 })();
 function toggleRailHelp(panelId) {
   if (!_helpOpen[panelId]) markNewSeen(document.getElementById(panelId)); // 켜는 순간에만
