@@ -667,7 +667,8 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
 .detail-content .md-table th, .detail-content .md-table td { border: 1px solid var(--divider); padding: var(--sp-2) var(--sp-4); text-align: left; vertical-align: top; }
 .detail-content .md-table th { background: var(--accent-fill); color: var(--accent); font-weight: 700; }
 .detail-content .md-table td { color: var(--text-soft); }
-#loading-overlay { position: fixed; inset: 0; z-index: 900; background: rgba(10,12,20,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: var(--sp-6); }
+/* 레일(260)·사이드바(200)보다 아래 — 그래프만 가리고 좌측 조작은 계속 되게 */
+#loading-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(10,12,20,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: var(--sp-6); }
 #loading-overlay.visible { display: flex; }
 .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--accent-line); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
