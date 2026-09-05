@@ -481,18 +481,6 @@ function offscreenPinAt(sx, sy) {
   }
   return null;
 }
-// 제목 폭 캐시 — 글자·굵기당 한 번만 재고 크기는 비례로 곱한다(줌마다 다시 재면 프레임을 먹는다)
-const _lblW = new Map();
-function _labelWidthPer1px(text, bold) {
-  const k = (bold ? "b" : "n") + text;
-  let w = _lblW.get(k);
-  if (w === undefined) {
-    ctx.font = (bold ? 'bold' : '500') + " 100px 'Noto Sans KR',sans-serif";
-    w = ctx.measureText(text).width / 100;
-    _lblW.set(k, w);
-  }
-  return w;
-}
 
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -803,30 +791,10 @@ function draw() {
           : `rgba(150,157,170,${isDim ? 0.12 : 1})`
       });
     });
-    // 1-2) 겹치는 제목 솎기 — 노드가 붙은 구간에서 제목이 서로 포개져 글자 벽이 된다.
-    //      중요한 것부터 자리를 잡고, 이미 놓인 상자와 겹치면 그 제목은 접는다.
-    specs.sort((a, b) => a.pri - b.pri || a.lvl - b.lvl);
-    const kept = [], CELL = 96, grid = new Map();
-    specs.forEach(s => {
-      const w = _labelWidthPer1px(s.lbl, s.bold) * s.fontSize, h = s.fontSize * 1.15;
-      const x0 = s.x - w / 2, y0 = s.y, x1 = x0 + w, y1 = y0 + h;
-      if (x1 < 0 || y1 < 0 || x0 > W || y0 > H) return; // 화면 밖은 그릴 것도, 자리를 잡을 것도 없다
-      const cx0 = Math.floor(x0 / CELL), cx1 = Math.floor(x1 / CELL);
-      const cy0 = Math.floor(y0 / CELL), cy1 = Math.floor(y1 / CELL);
-      let hit = false;
-      for (let cx = cx0; cx <= cx1 && !hit; cx++) for (let cy = cy0; cy <= cy1 && !hit; cy++) {
-        const bx = grid.get(cx + "," + cy);
-        if (!bx) continue;
-        for (const o of bx) if (x0 < o.x1 && x1 > o.x0 && y0 < o.y1 && y1 > o.y0) { hit = true; break; }
-      }
-      if (hit) return;
-      const box = { x0, y0, x1, y1 };
-      for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
-        const k = cx + "," + cy;
-        const bx = grid.get(k); if (bx) bx.push(box); else grid.set(k, [box]);
-      }
-      kept.push(s);
-    });
+    // 1-2) 화면 밖은 뺀다. 겹쳐도 그대로 둔다 — 솎아내면 그 구간에 뭐가 있는지 알 수 없다.
+    //      덜 중요한 것부터 그려서 겹칠 때 북마크·검색 결과가 위에 오게 한다
+    const kept = specs.filter(s => !(s.x < -200 || s.x > W + 200 || s.y < -50 || s.y > H + 50));
+    kept.sort((a, b) => b.pri - a.pri || b.lvl - a.lvl);
     // 2) 제목 뒤 지움 — 글자를 배경색으로 그리되 그림자 블러(가우시안)를 그대로 페더로 쓴다.
     //    (윤곽선을 두께별로 겹쳐 긋는 방식은 단계가 층으로 보였다 — 블러는 연속이라 층이 안 생김)
     //    캔버스가 불투명 배경이라 '투명하게 파기'(destination-out)는 아래 DOM 배경이 비쳐 얼룩진다 → 같은 색으로 덮는 방식.
