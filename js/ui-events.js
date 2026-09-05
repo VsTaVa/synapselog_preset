@@ -220,11 +220,19 @@ function highlightAiNodes(nodeList) {
   applyGraphHighlight(arr.map(n => n && n.id).filter(Boolean), '\uE000', { max: 12, fit: true, fitDelay: 320 }); // 마커=본문에 없는 문자(비면 하이라이트 꺼짐)
 }
 
-searchInput.addEventListener('input', e => doSearch(e.target.value));
+// 한 글자마다 전체 노드의 제목·본문을 훑고 칩까지 다시 그리면 입력이 끊긴다 → 손을 멈춘 뒤 한 번
+let _searchTypeTimer = null;
+function _searchNow(v) { clearTimeout(_searchTypeTimer); doSearch(v); }
+searchInput.addEventListener('input', e => {
+  const v = e.target.value;
+  clearTimeout(_searchTypeTimer);
+  _searchTypeTimer = setTimeout(() => doSearch(v), 150);
+});
 // 확정 검색(엔터·검색 버튼)만 기록 — 타이핑 중간값이 기록에 쌓이지 않게
-function _commitSearch() { const kw = searchInput.value.trim(); doSearch(kw); if (kw) addHistory(kw); }
+function _commitSearch() { const kw = searchInput.value.trim(); _searchNow(kw); if (kw) addHistory(kw); }
 // 엔터와 돋보기가 같게 동작한다 — 처음이면 검색, 같은 말로 또 누르면 다음 결과로
 function searchCommitOrNext(back) {
+  clearTimeout(_searchTypeTimer); // 기다리던 검색이 나중에 터져 순회 위치를 되돌리지 않게
   const kw = searchInput.value.trim();
   if (kw && kw === _searchCommitted && _searchHits.length) { gotoSearchMatch(back ? -1 : 1); return; }
   _commitSearch(); _searchCommitted = kw;
@@ -242,7 +250,7 @@ document.addEventListener('keydown', e => {
   gotoSearchMatch(e.shiftKey ? -1 : 1);
 });
 document.getElementById('search-btn').addEventListener('click', () => searchCommitOrNext(false));
-clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); });
+clearBtn.addEventListener('click', () => { searchInput.value = ''; _searchNow(''); });
 
 
 // ── 캔버스 이벤트 ─────────────────────────────────────────────────────

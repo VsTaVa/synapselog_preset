@@ -298,6 +298,24 @@ function parseMarkdown(text, rootTitle) {
 
 // ── 물리 시뮬레이션 ─────────────────────────────────────────────────
 
+// ── 엣지 색인 ──────────────────────────────────────────────────────
+// 노드에 붙은 엣지 목록 + 그리기 순서를 한 번만 만들어 재사용한다.
+// 링크 장력이 노드마다 전체 엣지를 훑어 O(N×E)였다(500노드·600엣지면 프레임당 30만 번 중 1200번만 쓸모).
+// edges 는 push 로 늘거나 filter 로 통째로 갈리므로, 배열 신원과 길이만 보면 바뀐 걸 안다
+const _NO_EDGES = [];
+let _edgeIdx = new Map(), _drawEdges = [], _edgeSrc = null, _edgeLen = -1;
+function _syncEdgeCaches() {
+  if (_edgeSrc === edges && _edgeLen === edges.length) return;
+  _edgeSrc = edges; _edgeLen = edges.length;
+  _edgeIdx = new Map();
+  const put = (id, e) => { const a = _edgeIdx.get(id); if (a) a.push(e); else _edgeIdx.set(id, [e]); };
+  edges.forEach(e => { put(e.from, e); if (e.to !== e.from) put(e.to, e); });
+  // 위키링크를 먼저 그려 아래에 깔리게 — 기준이 하나뿐이라 엣지가 바뀔 때만 정렬한다
+  _drawEdges = edges.slice().sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1));
+}
+function edgesOf(id) { _syncEdgeCaches(); return _edgeIdx.get(id) || _NO_EDGES; }
+function drawOrderedEdges() { _syncEdgeCaches(); return _drawEdges; }
+
 function simulate() {
   // 방사형 배치: 물리 끄고 계산 좌표 유지. 노드 수 바뀌면(페이지 로드/삭제 등) 재배치
   if (_layoutMode === 'radial') {
@@ -312,23 +330,35 @@ function simulate() {
   const fixedDescendants = new Set();
   nodes.filter(n => n.fixed && n.visible).forEach(fn => {
     const q=[fn.id], v=new Set([fn.id]);
-    while(q.length){ const id=q.shift(); edges.forEach(e=>{ if(e.from===id&&!e.weakLink&&!v.has(e.to)){v.add(e.to);fixedDescendants.add(e.to);q.push(e.to);} }); }
+    while(q.length){ const id=q.shift(); edgesOf(id).forEach(e=>{ if(e.from===id&&!e.weakLink&&!v.has(e.to)){v.add(e.to);fixedDescendants.add(e.to);q.push(e.to);} }); }
+  });
+  // 반발력 격자 — 사거리 밖은 볼 필요가 없다. 칸을 사거리 크기로 잡으면 이웃 9칸만 봐도 빠짐이 없다
+  const CELL = clusterMode ? 750 : 400;
+  const cellKey = (cx, cy) => cx + ',' + cy;
+  const grid = new Map();
+  nodes.forEach(m => {
+    if (!m.visible) return;
+    const k = cellKey(Math.floor(m.x / CELL), Math.floor(m.y / CELL));
+    const arr = grid.get(k); if (arr) arr.push(m); else grid.set(k, [m]);
   });
   const activeNodes = nodes.filter(n => n.visible && !n.fixed && !n._frozen && n !== drag);
   let totalVelocity = 0;
   activeNodes.forEach(n => {
     let fx = 0, fy = 0;
     const nKey = clusterMode ? (n.sourcePageId || '_root') : null;
-    nodes.forEach(m => {
-      if(m === n || !m.visible) return;
-      const dx = n.x-m.x, dy = n.y-m.y, d = Math.max(dist(n,m), 1);
-      // 클러스터 모드: 다른 페이지끼리는 더 멀리·세게 밀어내 섬을 분리
-      const diffPage = clusterMode && (m.sourcePageId || '_root') !== nKey;
-      const range = diffPage ? 750 : 400;
-      if(d < range) { const f = repulsion * (diffPage ? 2.4 : 1)/(d*d); fx += dx/d*f; fy += dy/d*f; }
-    });
-    edges.forEach(e => {
-      if(e.from !== n.id && e.to !== n.id) return;
+    const gx = Math.floor(n.x / CELL), gy = Math.floor(n.y / CELL);
+    for (let ix = gx - 1; ix <= gx + 1; ix++) for (let iy = gy - 1; iy <= gy + 1; iy++) {
+      const cell = grid.get(cellKey(ix, iy)); if (!cell) continue;
+      for (const m of cell) {
+        if (m === n) continue;
+        const dx = n.x-m.x, dy = n.y-m.y, d = Math.max(dist(n,m), 1);
+        // 클러스터 모드: 다른 페이지끼리는 더 멀리·세게 밀어내 섬을 분리
+        const diffPage = clusterMode && (m.sourcePageId || '_root') !== nKey;
+        const range = diffPage ? 750 : 400;
+        if(d < range) { const f = repulsion * (diffPage ? 2.4 : 1)/(d*d); fx += dx/d*f; fy += dy/d*f; }
+      }
+    }
+    edgesOf(n.id).forEach(e => {
       const other = nodeMap[e.from===n.id?e.to:e.from];
       if(!other||!other.visible) return;
       if(other.fixed && e.from === n.id) return;
@@ -504,7 +534,7 @@ function draw() {
       else if (ed.to === hoverSrc.id) _hoverLinked.add(ed.from);
     });
   }
-  [...edges].sort((a, b) => (a.wikiLink ? 0 : 1) - (b.wikiLink ? 0 : 1)).forEach(e => {
+  drawOrderedEdges().forEach(e => {
     const na=nodeMap[e.from], nb=nodeMap[e.to];
     if(!na||!nb||!na.visible||!nb.visible) return;
     // 점선은 호버 노드에 닿기만 하면 활성 — 상대가 사슬 밖이라 양끝 조건으론 절대 안 걸린다
@@ -906,7 +936,14 @@ const _coarsePointer = (typeof matchMedia === 'function') && matchMedia('(pointe
 function getNodeAt(sx, sy) {
   const w = screenToWorld(sx, sy);
   const pad = _coarsePointer ? 14/scale : 5;
-  return nodes.find(n=>n.visible&&isNodeInteractable(n)&&dist(n,w)<=nodeR(n.level)+pad)||null;
+  // 마우스가 움직일 때마다 전 노드를 재므로, 사각 범위로 먼저 걸러 sqrt 를 대부분 건너뛴다
+  return nodes.find(n => {
+    if (!n.visible) return false;
+    const r = nodeR(n.level) + pad;
+    const dx = n.x - w.x; if (dx > r || dx < -r) return false;
+    const dy = n.y - w.y; if (dy > r || dy < -r) return false;
+    return dx*dx + dy*dy <= r*r && isNodeInteractable(n);
+  }) || null;
 }
 
 function saveFixedPositions() {
