@@ -1350,7 +1350,7 @@ function updateBulkActionsVisibility() {
   if (bulk) bulk.style.display = _addedPageIds.size > 0 ? 'flex' : 'none';
   if (typeof applyNewBadges === 'function') applyNewBadges(); // 목록이 나타나면 새 표시도 같이
   const badge = document.getElementById('rail-pages-count');
-  if (badge) { badge.textContent = _addedPageIds.size || ''; badge.style.display = _addedPageIds.size ? 'block' : 'none'; }
+  if (badge) { badge.textContent = _addedPageIds.size || ''; badge.style.display = _addedPageIds.size ? 'flex' : 'none'; }
 }
 
 let _confirmCallback = null;
