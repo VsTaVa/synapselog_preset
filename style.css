@@ -203,6 +203,9 @@ button.rail-sec-head { display: flex; gap: var(--sp-3); }
 #bulk-actions { display: flex; gap: var(--sp-3); }
 .icon-btn-sm { width: 28px; height: 28px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accent-fill); border: 1px solid var(--accent-line); color: var(--accent); transition: background var(--t); }
 .icon-btn-sm:hover { background: var(--accent-fill-hover); }
+/* 켜진 토글 — 평상시도 주황이라 채움·테두리를 한 단계 올려 구분한다 */
+.icon-btn-sm.on { background: var(--accent-fill-hover); border-color: var(--accent-line-strong); }
+#cfg-actions { display: flex; gap: var(--sp-3); margin-left: auto; }
 :root {
   /* 이 앱은 다크 전용 — 선언이 없으면 모바일 브라우저(삼성 인터넷·크롬 안드로이드)가
      "라이트 페이지"로 보고 자체 다크 필터를 덧씌워 색을 통째로 틀어버린다.
@@ -413,10 +416,6 @@ body.resizing-panel #sidebar, body.resizing-panel #detail-panel { transition: no
 #search-history { margin-top: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-1); }
 .ctrl-group { margin-bottom: var(--sp-8); }
 .ctrl-group:last-child { margin-bottom:0; }
-/* 슬라이더 묶음 끝의 되돌리기 — 위 슬라이더들에만 걸린다는 게 위치로 읽히게 */
-.ctrl-reset-row { display: flex; justify-content: flex-end; margin-top: var(--sp-4); }
-.ctrl-reset-btn { font-family: inherit; font-size: var(--fs-sm); font-weight: 700; padding: var(--sp-1) var(--sp-4); border-radius: var(--radius-sm); cursor: pointer; background: none; border: 1px solid var(--border); color: var(--text-mute); transition: color var(--t-fast), border-color var(--t-fast); }
-@media (hover: hover) and (pointer: fine) { .ctrl-reset-btn:hover { color: var(--fg); border-color: var(--accent-line); } }
 .ctrl-label-row { display: flex; justify-content: space-between; align-items: center; font-size: var(--fs-md); color: var(--fg); margin-bottom: var(--sp-3); }
 .ctrl-label-row .val { color: var(--accent); font-weight: 700; font-family: monospace; font-size: var(--fs-md); }
 input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: var(--fill-strong); height: 3px; border-radius: var(--radius-xs); outline: none; }

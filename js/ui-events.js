@@ -1179,7 +1179,7 @@ setColorScheme(_colorScheme); // 저장된 색상 표현으로 UI 동기화
 syncLayoutButtons(); // 저장된 배치 모드로 버튼 동기화
 syncClusterToggle(); // 페이지별 나누기 체크 상태도 함께
 (() => { const cb = document.getElementById('conn-toggle-input'); if (cb) cb.checked = _showConnections; })(); // 노드 연결 표시 토글 동기화
-(() => { const cb = document.getElementById('freeze-toggle-input'); if (cb) cb.checked = _freezeLayout; })(); // 저장된 배치 고정 상태 동기화(여기서 물리를 건드리진 않는다)
+_syncFreezeBtn(); // 저장된 배치 고정 상태 반영 — 물리는 건드리지 않는다
 (() => { const sl = document.getElementById('cfg-label-scale'); if (sl) sl.value = _labelScale; setLabelScale(_labelScale); })();
 (() => { const sl = document.getElementById('cfg-depth'); if (sl) sl.value = _depthLimit; setDepthLimit(_depthLimit); })(); // 저장된 표시 깊이 반영
 renderPanes();

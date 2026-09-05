@@ -28,17 +28,22 @@ const accentRgb = () => cssRgb('--accent-rgb', [237,112,0]);    // 브랜드 주
 // 뷰 회전(라디안) — 노드 위치는 그대로, 보는 각도만 회전. 라벨은 화면좌표로 따로 그려 항상 수평
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
-// 노드 연결(위키링크 엣지) 표시 여부
 // 배치 고정 — 물리를 멈춰 손으로 잡은 자리가 안 흔들리게. 노드 개별 고정(핀)과 달리 전체가 대상
 let _freezeLayout = (() => { try { return localStorage.getItem('snlog_freeze') === '1'; } catch(e) { return false; } })();
+function _syncFreezeBtn() {
+  const btn = document.getElementById('freeze-btn');
+  if (!btn) return;
+  if (!btn.innerHTML && typeof lockIcon === 'function') btn.innerHTML = lockIcon(14);
+  btn.classList.toggle('on', _freezeLayout);
+}
 function setFreezeLayout(on) {
   _freezeLayout = !!on;
   try { localStorage.setItem('snlog_freeze', _freezeLayout ? '1' : '0'); } catch (e) {}
-  const cb = document.getElementById('freeze-toggle-input');
-  if (cb) cb.checked = _freezeLayout;
+  _syncFreezeBtn();
   if (!_freezeLayout) restartPhysics(); // 풀면 다시 움직여야 한다
 }
 function toggleFreezeLayout() { setFreezeLayout(!_freezeLayout); }
+// 노드 연결(위키링크 엣지) 표시 여부
 let _showConnections = (() => { try { return localStorage.getItem('snlog_show_conn') !== 'false'; } catch(e) { return true; } })();
 // 그래프 배치: 'radial'(방사형 트리·기본) | 'force'(힘기반). 페이지별 나눔은 _clusterMode로 따로 켠다
 // 저장값이 없으면 방사형이 기본 — 처음 여는 사람에게 계층이 한눈에 보인다

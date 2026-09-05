@@ -58,6 +58,7 @@ let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_hel
   set('rail-graphcfg', typeof sliderIcon === 'function' ? sliderIcon : null, 18); // 채움 도안이라 선 아이콘과 같은 20px면 커 보인다
   set('rail-search', typeof searchIcon === 'function' ? searchIcon : null);
   set('search-btn', typeof searchIcon === 'function' ? searchIcon : null); // 검색창 돋보기도 같은 도안
+  set('reset-sliders-btn', typeof resetIcon === 'function' ? resetIcon : null, 14);
 })();
 function toggleRailHelp(panelId) {
   if (!_helpOpen[panelId]) markNewSeen(document.getElementById(panelId)); // 켜는 순간에만
