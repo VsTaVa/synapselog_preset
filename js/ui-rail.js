@@ -54,7 +54,10 @@ function applyRailSecState() {
 // 켜짐 여부는 패널별로 따로 기억한다(패널 id가 키)
 let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_help') || '{}'); } catch (e) { return {}; } })();
 // 도안이 큰 레일 아이콘은 icons.js에서 채운다 — HTML에 수 KB짜리 path를 박지 않게
-(() => { const b = document.getElementById('rail-graphcfg'); if (b && !b.innerHTML && typeof sliderIcon === 'function') b.innerHTML = sliderIcon(20); })();
+(() => { const set = (id, fn) => { const b = document.getElementById(id); if (b && !b.innerHTML && typeof fn === 'function') b.innerHTML = fn(20); };
+  set('rail-graphcfg', typeof sliderIcon === 'function' ? sliderIcon : null);
+  set('rail-search', typeof searchIcon === 'function' ? searchIcon : null);
+})();
 function toggleRailHelp(panelId) {
   if (!_helpOpen[panelId]) markNewSeen(document.getElementById(panelId)); // 켜는 순간에만
   _helpOpen[panelId] = !_helpOpen[panelId];
