@@ -29,6 +29,16 @@ const accentRgb = () => cssRgb('--accent-rgb', [237,112,0]);    // 브랜드 주
 let _viewRotation = (() => { try { const v = parseFloat(localStorage.getItem('snlog_rotation')); return isFinite(v) ? v : 0; } catch(e) { return 0; } })();
 
 // 노드 연결(위키링크 엣지) 표시 여부
+// 배치 고정 — 물리를 멈춰 손으로 잡은 자리가 안 흔들리게. 노드 개별 고정(핀)과 달리 전체가 대상
+let _freezeLayout = (() => { try { return localStorage.getItem('snlog_freeze') === '1'; } catch(e) { return false; } })();
+function setFreezeLayout(on) {
+  _freezeLayout = !!on;
+  try { localStorage.setItem('snlog_freeze', _freezeLayout ? '1' : '0'); } catch (e) {}
+  const cb = document.getElementById('freeze-toggle-input');
+  if (cb) cb.checked = _freezeLayout;
+  if (!_freezeLayout) restartPhysics(); // 풀면 다시 움직여야 한다
+}
+function toggleFreezeLayout() { setFreezeLayout(!_freezeLayout); }
 let _showConnections = (() => { try { return localStorage.getItem('snlog_show_conn') !== 'false'; } catch(e) { return true; } })();
 // 그래프 배치: 'radial'(방사형 트리·기본) | 'force'(힘기반). 페이지별 나눔은 _clusterMode로 따로 켠다
 // 저장값이 없으면 방사형이 기본 — 처음 여는 사람에게 계층이 한눈에 보인다
@@ -321,6 +331,7 @@ function simulate() {
     if (nodes.length !== _layoutSig) applyTreeLayout();
     return;
   }
+  if (_freezeLayout) return; // 고정 중엔 끌고 있는 노드만 움직인다(위치는 드래그가 직접 넣는다)
   if (isStable && !drag) return;
   // 페이지별 클러스터: 페이지마다 중력 앵커를 따로 둬서 섬처럼 뭉침. 페이지 집합 바뀌면 앵커 재계산
   const clusterMode = _clusterMode;

@@ -143,6 +143,13 @@ function setDepthLimit(v) {
   if (out) out.textContent = (n >= DEPTH_ALL) ? '전체' : String(n);
   showViewStatus(); // 몇 개가 접혔는지 바로 보이게
 }
+// 슬라이더 기본값 되돌리기 — 기본값은 HTML의 value 속성에만 있고 defaultValue 로 읽는다(두 곳에 안 적는다)
+function resetSliders() {
+  [cfgRep, cfgGrav, cfgTension, cfgNodeSize, cfgLinkWidth, cfgHub].forEach(el => { if (el) el.value = el.defaultValue; });
+  updateConfig();
+  const ls = document.getElementById('cfg-label-scale'); if (ls) { ls.value = ls.defaultValue; setLabelScale(ls.defaultValue); }
+  const dp = document.getElementById('cfg-depth'); if (dp) { dp.value = dp.defaultValue; setDepthLimit(dp.defaultValue); }
+}
 function toggleLabels() {
   setLabelScale(_labelScale > 0 ? 0 : _labelScalePrev);
   const sl = document.getElementById('cfg-label-scale');
