@@ -128,7 +128,9 @@ function railSecBody(key, inner) {
 
 // 북마크한 노드 목록 (레일 섹션) — 클릭 시 그 노드로 이동 + 패널 열기
 // 노드 섹션: 북마크 + 최근 본 노드
-let _recentNodes = [];
+// 최근 본 노드 — node.id 는 재로딩마다 새로 발급되므로 안정 키(sourcePageId::label)로 담고 저장한다
+let _recentNodes = (() => { try { return JSON.parse(localStorage.getItem('snlog_recent') || '[]'); } catch (e) { return []; } })();
+function _saveRecent() { try { localStorage.setItem('snlog_recent', JSON.stringify(_recentNodes)); } catch (e) {} }
 function renderBookmarkList() {
   const el = document.getElementById('bookmark-list');
   if (!el) return;
@@ -138,15 +140,18 @@ function renderBookmarkList() {
     `<span class="insight-chipwrap bm-chip" data-nid="${n.id}">${rank ? `<span class="chip-rank">${rank}.</span>` : ''}${createNodeChip(n)}${tail || ''}</span>`;
   const chipList = (arr, fn) => `<div class="insight-chips">${arr.map(fn).join('')}</div>`;
   const bms = (typeof nodes !== 'undefined' ? nodes : []).filter(n => n.visible && isBookmarked(n));
-  const recents = (typeof _recentNodes !== 'undefined' ? _recentNodes : []).map(id => nodeMap[id]).filter(n => n && n.visible);
+  const byKey = new Map();
+  (typeof nodes !== 'undefined' ? nodes : []).forEach(n => { if (n.visible) byKey.set(_stableNodeKey(n), n); });
+  const recents = _recentNodes.map(k => byKey.get(k)).filter(Boolean);
   let html = railSecHead('bm', '북마크', '', '노드 우클릭 → 북마크로 담은 노드');
   html += railSecBody('bm', bms.length ? chipList(bms, n => chipItem(n))
     : `<div class="rail-empty">북마크 노드 모음</div>`);
   html += railSecHead('recent', '최근 본 노드', 'mt', '클릭해서 연 노드 기록. 최대 10개');
   html += railSecBody('recent', recents.length
-    ? chipList(recents, (n, i) => chipItem(n, `<button class="bm-x" onclick="event.stopPropagation();removeRecentNode('${n.id}')" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`, i + 1))
+    ? chipList(recents, (n, i) => chipItem(n, `<button class="bm-x" data-rk="${escapeHtml(_stableNodeKey(n))}" title="목록에서 제거" aria-label="목록에서 제거">${xIc}</button>`, i + 1))
     : `<div class="rail-empty">클릭한 노드 기록</div>`);
   el.innerHTML = html;
+  el.querySelectorAll('.bm-x[data-rk]').forEach(b => { b.onclick = e => { e.stopPropagation(); removeRecentNode(b.dataset.rk); }; });
   // 칩은 전역 핸들러가 패널을 열어주므로 여기선 카메라 이동만
   applyRailHelp(); // innerHTML을 갈아끼웠으니 설명도 다시 붙인다
   el.querySelectorAll('.bm-chip').forEach(w => {
@@ -158,8 +163,9 @@ function renderBookmarkList() {
 }
 
 // 최근 본 노드 목록에서 항목 하나 제거 (메모리에만 있는 기록이라 목록만 갱신)
-function removeRecentNode(id) {
-  _recentNodes = _recentNodes.filter(x => x !== id);
+function removeRecentNode(key) {
+  _recentNodes = _recentNodes.filter(x => x !== key);
+  _saveRecent();
   renderBookmarkList();
 }
 

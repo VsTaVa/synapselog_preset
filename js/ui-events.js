@@ -1016,8 +1016,9 @@ function clearChatAndRecent() {
     drop('snlog_search_history'); drop('snlog_search_counts');
     if (typeof renderSearchHistory === 'function') renderSearchHistory();
     if (typeof renderFrequentKeywords === 'function') renderFrequentKeywords();
-    // 최근 본 노드(메모리)
+    // 최근 본 노드
     if (typeof _recentNodes !== 'undefined') _recentNodes = [];
+    drop('snlog_recent');
     if (typeof renderBookmarkList === 'function') renderBookmarkList();
     toast('사용 기록 삭제됨', { type: 'success' });
   }, true);

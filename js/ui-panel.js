@@ -1376,9 +1376,11 @@ function openPanel(n, opts) {
   _activeNode = n;
   // 최근 본 노드 추적 (노드 섹션용)
   if (n && n.id && typeof _recentNodes !== 'undefined') {
-    _recentNodes = _recentNodes.filter(id => id !== n.id);
-    _recentNodes.unshift(n.id);
+    const rk = _stableNodeKey(n);
+    _recentNodes = _recentNodes.filter(k => k !== rk);
+    _recentNodes.unshift(rk);
     if (_recentNodes.length > 10) _recentNodes.length = 10;
+    if (typeof _saveRecent === 'function') _saveRecent();
     if (_activeRailSection === 'pages' && typeof renderBookmarkList === 'function') renderBookmarkList();
   }
   // '자리를 차지하고 있었나' — 접힌 상태는 그래프를 안 가리므로 열림으로 치지 않는다
