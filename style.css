@@ -36,6 +36,9 @@ canvas { display: block; }
 .ui-help-btn.on,
 #multi-select-menu .ui-help-btn.on,
 .detail-settings-menu .ui-help-btn.on { color: var(--accent); opacity: 0.45; }
+/* 새 기능 표시 — 그 패널에 아직 안 본 변경이 있으면 도움말 아이콘에 점 */
+.ui-help-btn.has-new { position: relative; }
+.ui-help-btn.has-new::after { content: ""; position: absolute; top: -1px; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1.5px var(--graph-bg); }
 @media (hover: hover) and (pointer: fine) {
   .ui-help-btn:hover,
   #multi-select-menu .ui-help-btn:hover,

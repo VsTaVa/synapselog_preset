@@ -54,9 +54,32 @@ function applyRailSecState() {
 // 켜짐 여부는 패널별로 따로 기억한다(패널 id가 키)
 let _helpOpen = (() => { try { return JSON.parse(localStorage.getItem('snlog_help') || '{}'); } catch (e) { return {}; } })();
 function toggleRailHelp(panelId) {
+  if (!_helpOpen[panelId]) markNewSeen(document.getElementById(panelId)); // 켜는 순간에만
   _helpOpen[panelId] = !_helpOpen[panelId];
   try { localStorage.setItem('snlog_help', JSON.stringify(_helpOpen)); } catch (e) {}
   applyRailHelp();
+}
+// ── 새 기능 표시 ────────────────────────────────────────────────────
+// 대상 요소에 data-new="키"만 달면 된다 — 목록을 따로 두면 DOM과 어긋난다.
+// 그 패널의 도움말을 한 번 열면 본 것으로 치고 표시가 사라진다
+let _seenNew = (() => { try { return new Set(JSON.parse(localStorage.getItem('snlog_seen_new') || '[]')); } catch (e) { return new Set(); } })();
+function applyNewBadges() {
+  document.querySelectorAll('.ui-help-btn.has-new').forEach(b => b.classList.remove('has-new'));
+  document.querySelectorAll('[data-new]').forEach(el => {
+    if (_seenNew.has(el.dataset.new)) return;
+    if (el.style.display === 'none') return; // 아직 안 보이는 영역은 알릴 것도 없다
+    const pane = el.closest('.rail-pane');
+    const btn = pane && pane.querySelector('.ui-help-btn');
+    if (btn) btn.classList.add('has-new');
+  });
+}
+// 도움말을 연 패널의 새 표시는 본 것으로 — 설명을 읽을 기회를 이미 준 셈이다
+function markNewSeen(panel) {
+  if (!panel) return;
+  let changed = false;
+  panel.querySelectorAll('[data-new]').forEach(el => { if (!_seenNew.has(el.dataset.new)) { _seenNew.add(el.dataset.new); changed = true; } });
+  if (!changed) return;
+  try { localStorage.setItem('snlog_seen_new', JSON.stringify([..._seenNew])); } catch (e) {}
 }
 function applyRailHelp() {
   document.querySelectorAll('#sidebar .rail-pane').forEach(panel => {
@@ -81,6 +104,7 @@ function applyRailHelp() {
       });
     });
   });
+  applyNewBadges();
 }
 applyRailHelp();
 

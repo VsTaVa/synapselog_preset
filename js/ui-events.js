@@ -1214,7 +1214,9 @@ function showOnboarding() {
   }, 500);
 })();
 
-if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages')) {
+// 저장된 페이지가 있으면 되살리는 동안 로딩을 띄운다 — 빈 그래프 안내가 잠깐 떴다 사라지면 잘못 담긴 줄 안다
+const _hasSavedPages = !!(sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages'));
+if (_savedToken || _hasSavedPages) {
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('input-token');
     if (input) input.value = _savedToken;
@@ -1224,8 +1226,14 @@ if (_savedToken || sessionStorage.getItem('snlog_pages') || localStorage.getItem
     loop();
     loadFolderBatches();
     loadMdFileHandles();
-    setTimeout(restoreLocalPages, 300);
-    setTimeout(restorePageList, 500);
+    // 순서대로 돌린다 — 시간차(300·500ms)로 맞추면 느린 쪽이 밀릴 때 순서가 뒤집힌다
+    if (_hasSavedPages) { _restoringPages = true; showLoading('저장된 페이지 불러오는 중...'); }
+    setTimeout(async () => {
+      try { await restoreLocalPages(); } catch (e) {}
+      try { await restorePageList(); } catch (e) {}
+      _restoringPages = false;
+      if (_hasSavedPages) hideLoading();
+    }, 300);
     setTimeout(loadManualLinks, 2000);
     setTimeout(initSidebarPageList, 600);
     setTimeout(loadProfile, 400);

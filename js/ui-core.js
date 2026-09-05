@@ -212,11 +212,13 @@ function _graphCountText() {
   const link = edges.filter(e => nodeMap[e.from] && nodeMap[e.to] && nodeMap[e.from].visible && nodeMap[e.to].visible).length;
   return `노드 ${vis < nodes.length ? vis + '/' + nodes.length : vis}    ·   연결 ${link}`;
 }
+// 저장된 페이지를 되살리는 중 — 이때는 빈 그래프가 아니라 로딩이다
+let _restoringPages = false;
 // 담은 페이지가 없으면 캔버스 위에 안내를 띄운다 — 레일이 접혀 있으면 사이드바 안내가 안 보인다
 function syncEmptyHint() {
   const el = document.getElementById('graph-empty');
   if (!el) return;
-  const empty = typeof nodes === 'undefined' || !nodes.some(n => n.visible);
+  const empty = !_restoringPages && (typeof nodes === 'undefined' || !nodes.some(n => n.visible));
   if (el._on === empty) return;
   el._on = empty; el.style.display = empty ? 'flex' : 'none';
 }
