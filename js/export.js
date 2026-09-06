@@ -96,6 +96,11 @@ function exportGraph(size, opts) {
     else if(n.isChildPage || n.entryNotionId) drawStarX(ctx2, nx, ny, r);
     else { ctx2.beginPath(); ctx2.arc(nx, ny, r, 0, Math.PI*2); }
     ctx2.fillStyle = hasSearch && isMatch ? '#ffffff' : rgbStr(rgb, 1); ctx2.fill();
+    // 고정 핀 — 범례가 알려주는 표시인데 내보낸 이미지에만 없었다. 배율만 출력 배율로 바꿔 넣는다
+    if (n.fixed) {
+      const ps = Math.min(exportScale, 7/r), off = r + 4/ps, dg = Math.SQRT1_2;
+      _drawPin(ctx2, nx + off*dg, ny - off*dg, ps, '#ffffff', Math.PI/4);
+    }
     if (_labelScale > 0) {
       let lbl = n.label ? n.label.replace(/[\n]/g, ' ') : '';
       if (n.level >= 2 && lbl.length > 14) lbl = lbl.substring(0,13) + '…';
@@ -110,9 +115,7 @@ function exportGraph(size, opts) {
       ctx2.shadowBlur = Math.max(2.5, fontSize * 0.5) * exportScale;
       ctx2.fillText(lbl, nx, ny + r + 4); ctx2.fillText(lbl, nx, ny + r + 4);
       ctx2.shadowColor = 'rgba(0,0,0,0)'; ctx2.shadowBlur = 0;
-      // 화면과 같은 규칙 — 페이지·DB는 노드 색, 나머지는 회색
-      ctx2.fillStyle = hasSearch && isMatch ? '#ffffff'
-        : isPageNode(n) ? rgbStr(nodeRgb(n) || [255,255,255], 1) : 'rgba(215,220,230,0.85)';
+      ctx2.fillStyle = labelColor(n, hasSearch && isMatch, false, false); // 색 규칙은 graph.js 한 곳에
       ctx2.fillText(lbl, nx, ny + r + 4);
     }
   });

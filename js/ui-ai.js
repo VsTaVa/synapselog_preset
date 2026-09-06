@@ -21,13 +21,22 @@ const _SYNAPSE_GUIDE = `SynapseLog는 노션 페이지·마크다운(.md)을 신
 // 제미나이는 호출마다 쓴 토큰을 같이 돌려준다 — 추정이 아니라 구글이 센 실수.
 // 예전엔 candidates 만 꺼내 쓰고 이걸 버려서, 무료 한도를 얼마나 썼는지 알 길이 없었다.
 let _lastAiUsage = null;                                  // 방금 호출분 (말풍선에 한 번 붙고 비워진다)
-let _aiUsageTotal = { prompt: 0, output: 0, total: 0, calls: 0 }; // 이번 세션 누적
+// 무료 한도는 하루 단위로 걸린다 — 세션 누적만 있으면 새로고침마다 0이 돼 오늘 얼마 썼는지 알 수 없다
+const _aiToday = () => new Date().toISOString().slice(0, 10);
+let _aiUsageTotal = (() => {
+  const empty = { d: _aiToday(), prompt: 0, output: 0, total: 0, calls: 0 };
+  try { const s = JSON.parse(localStorage.getItem('snlog_ai_usage') || 'null'); return (s && s.d === empty.d) ? s : empty; }
+  catch (e) { return empty; }
+})();
+function _saveAiUsage() { try { localStorage.setItem('snlog_ai_usage', JSON.stringify(_aiUsageTotal)); } catch (e) {} }
 function _noteAiUsage(u) {
   if (!u) return;
   const inTok = u.promptTokenCount || 0, outTok = u.candidatesTokenCount || 0;
   _lastAiUsage = { in: inTok, out: outTok, total: u.totalTokenCount || (inTok + outTok) };
+  if (_aiUsageTotal.d !== _aiToday()) _aiUsageTotal = { d: _aiToday(), prompt: 0, output: 0, total: 0, calls: 0 }; // 자정을 넘겼으면 처음부터
   _aiUsageTotal.prompt += inTok; _aiUsageTotal.output += outTok;
   _aiUsageTotal.total += _lastAiUsage.total; _aiUsageTotal.calls++;
+  _saveAiUsage();
 }
 
 async function geminiGenerate(prompt) {
@@ -438,7 +447,7 @@ function _renderAiChat() {
     return html + `</div>`;
   }).join('');
   if (_aiUsageTotal.calls) {
-    box.innerHTML += `<div class="aichat-usage aichat-usage-sum">이번 세션 합계 ${_aiUsageTotal.total} 토큰 · ${_aiUsageTotal.calls}회 호출</div>`;
+    box.innerHTML += `<div class="aichat-usage aichat-usage-sum">오늘 ${_aiUsageTotal.total} 토큰 · ${_aiUsageTotal.calls}회 호출</div>`;
   }
   box.querySelectorAll('.aichat-connect-btn:not(.done)').forEach(el => {
     el.onclick = () => applyAiLink(el.dataset.a, el.dataset.b);

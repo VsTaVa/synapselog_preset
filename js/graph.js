@@ -129,6 +129,14 @@ const isPageNode = n => n.level === 0 || n.isChildPage || n.isDbNode || !!n.entr
 // 제목 크기·굵기 — 화면과 PNG 내보내기가 같은 값을 쓰게 한 곳에 둔다.
 const labelFontPx = n => (isPageNode(n) || n.level === 1) ? 12 : n.level === 2 ? 11 : 10;
 const labelBold = n => isPageNode(n) || n.level <= 1;
+// 제목 색 — 화면과 PNG 내보내기가 같은 규칙을 읽게 한 곳에.
+// 북마크 주황이 검색 매치(흰색)보다 우선이고, 페이지·DB는 이정표라 노드 색 그대로 둔다
+function labelColor(n, isMatch, lit, isDim) {
+  if ((typeof isBookmarked === 'function') && isBookmarked(n)) return rgbStr(accentRgb(), isDim ? 0.2 : 1);
+  if (isMatch || lit) return '#ffffff';
+  if (isPageNode(n)) return rgbStr(nodeRgb(n) || [255,255,255], isDim ? 0.12 : 1);
+  return `rgba(150,157,170,${isDim ? 0.12 : 1})`;
+}
 function depthRgb(n) {
   // 최상위·페이지·DB 노드는 흰색 (깊이 색은 노션 헤딩에만)
   if (isPageNode(n)) return [245,247,250];
@@ -791,20 +799,13 @@ function draw() {
       if (!lbl) return;
       // 페이지·DB 제목만 배율을 안 곱한다 — 그래프의 이정표라 축소해도 같은 크기로 읽혀야 한다
       const fontSize = labelFontPx(n) * _labelScale * (isPageNode(n) ? 1 : scale);
-      const _bmLbl = (typeof isBookmarked === 'function') && isBookmarked(n);
       specs.push({
         lbl, x: sp.x, y: sp.y + sr + (isPageNode(n) ? 7 : 5 * scale), fontSize, isDim,
         // 자리 다툼에서 살아남는 순서 — 작을수록 먼저 자리를 잡는다
-        pri: isDim ? 4 : _bmLbl ? 0 : (isMatch || lit) ? 1 : isPageNode(n) ? 2 : 3,
+        pri: isDim ? 4 : isBookmarked(n) ? 0 : (isMatch || lit) ? 1 : isPageNode(n) ? 2 : 3,
         lvl: n.level, bold: labelBold(n),
         font: `${labelBold(n) ? 'bold' : '500'} ${fontSize}px 'Noto Sans KR',sans-serif`,
-        // 북마크 주황이 검색 매치(흰색)보다 우선 — 검색 중에도 북마크는 계속 주황으로 보여야 한다
-        // 평소엔 회색으로 물러나 있고 호버·선택한 것만 흰색 — 제목이 다 밝으면 붙어 있는 구간이 글자 벽처럼 보인다
-        color: _bmLbl ? rgbStr(accentRgb(), isDim ? 0.2 : 1)
-          : (isMatch || lit) ? '#ffffff'
-          // 페이지·DB는 노드 색 그대로 — 이정표라 회색으로 물러나면 안 된다
-          : isPageNode(n) ? rgbStr(nodeRgb(n) || [255,255,255], isDim ? 0.12 : 1)
-          : `rgba(150,157,170,${isDim ? 0.12 : 1})`
+        color: labelColor(n, isMatch, lit, isDim)
       });
     });
     // 1-2) 화면 밖은 뺀다. 겹쳐도 그대로 둔다 — 솎아내면 그 구간에 뭐가 있는지 알 수 없다.

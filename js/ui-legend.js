@@ -362,6 +362,11 @@ function toggleMultiSelect(n) {
   isStable = false;
 }
 
+// 선택한 노드로 화면 이동 — 검색 순회·화면 밖 페이지 표시가 쓰는 함수와 같은 것
+function multiSelectAim() {
+  const n = _multiSelected[0];
+  if (n && typeof focusViewOnNode === 'function') focusViewOnNode(n);
+}
 function clearMultiSelect() {
   _multiSelected.forEach(n => { n.multiSelected = false; });
   _multiSelected = [];
@@ -448,6 +453,8 @@ function _exploreToolsHtml() {
   const focusIcon = icSlot(focusModeIcon(13), 12);
   let html = '';
   if (n === 1) {
+    const aimIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/></svg>`;
+    html += `<button onclick="multiSelectAim()" title="해당 노드를 화면 가운데로">${aimIcon} 화면 맞춤</button>`;
     html += `<button onclick="multiSelectStartConnect()" title="해당 노드를 다른 노드들과 연결/해제">${chainIcon} 노드 다중 연결</button>`;
     // 고정 버튼과 같은 방식 — 켜져 있으면 해제 버튼으로 보인다
     const focusOn = _focusMode && _focusNodeId === _multiSelected[0].id;

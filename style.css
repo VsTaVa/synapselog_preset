@@ -65,9 +65,9 @@ canvas { display: block; }
 #multi-select-menu .ms-divider { height: 1px; background: var(--fill-strong); margin: var(--sp-1) var(--sp-4); }
 /* 노드 색상 표현 세그먼트 토글 */
 .seg-toggle { display: inline-flex; border: 1px solid var(--accent-line); border-radius: var(--radius-sm); overflow: hidden; }
-.seg-toggle button { background: none; border: none; color: var(--fg); font-family: inherit; font-size: var(--fs-sm); padding: var(--sp-2) var(--sp-4); cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }
+.seg-toggle button { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: var(--fs-sm); padding: var(--sp-2) var(--sp-4); cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }
 .seg-toggle button.active { background: rgba(var(--accent-rgb),0.9); color: #15110a; font-weight: 700; }
-.seg-toggle button:not(.active):hover { background: var(--accent-fill); color: var(--fg); }
+@media (hover: hover) and (pointer: fine) { .seg-toggle button:not(.active):hover { background: var(--accent-fill); color: var(--fg); } }
 
 /* ── 범례 오버레이 (레일 하단 버튼으로 토글, 카드는 레일 옆에 팝업) ── */
 /* 범례는 사이드바 안의 한 패널 — 바깥 상자(.panel-box)가 유리질감·여백을 이미 준다 */
