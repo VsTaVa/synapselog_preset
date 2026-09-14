@@ -297,13 +297,22 @@ function insightShowPair(i) {
   if (typeof highlightAiNodes === 'function') highlightAiNodes([p.a, p.b]);
 }
 // 카드 호버 → 그래프에서 보기. 스치듯 지나가는 건 무시하려고 살짝 늦춘다.
-// 벗어나도 하이라이트는 유지 — 그래프를 보는 동안 꺼지면 쓸모가 없다
-let _insightHoverTimer = null;
+let _insightHoverTimer = null, _insightHoverLit = false;
 function insightHoverPair(i) {
-  clearTimeout(_insightHoverTimer);
-  _insightHoverTimer = setTimeout(() => insightShowPair(i), 180);
+  clearTimeout(_insightHoverTimer); // 대기 중인 복원도 같이 취소된다(카드 사이 이동)
+  _insightHoverTimer = setTimeout(() => { insightShowPair(i); _insightHoverLit = true; }, 180);
 }
-function insightHoverCancel() { clearTimeout(_insightHoverTimer); }
+// 벗어나면 원래 화면(전체 맞춤)으로. 내가 켠 하이라이트일 때만 되돌린다
+function insightHoverCancel() {
+  clearTimeout(_insightHoverTimer);
+  if (!_insightHoverLit) return;
+  _insightHoverTimer = setTimeout(() => {
+    _insightHoverLit = false;
+    clearTimeout(_searchFitTimer); // 늦게 도착할 화면맞춤이 해제 뒤에 튀지 않게
+    clearGraphHighlight();
+    fitGraph();
+  }, 180);
+}
 
 // 닫기 → 다시 제안 안 함 + 다음 후보로 즉시 교체
 function insightDismiss(i) {
