@@ -892,6 +892,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   #sidebar-page-list > .pli-row,
   .rail-secbody[data-sec="graphset"] > .ctrl-group,
   .sp-chips > .sp-chip,
+  .aichat-cmd-menu > .ai-cmd-item,
   .insight-chips > .insight-chipwrap,
   #shortcut-rows > .settings-row,
   .search-results > .node-chip { transition: opacity var(--t-slow) ease; }
@@ -899,6 +900,7 @@ a.wl-ref, a.wl-ref:visited { text-decoration: none; }
   #sidebar-page-list:has(> .pli-row:hover) > .pli-row:not(:hover),
   .rail-secbody[data-sec="graphset"]:has(> .ctrl-group:hover) > .ctrl-group:not(:hover),
   .sp-chips:has(> .sp-chip:hover) > .sp-chip:not(:hover),
+  .aichat-cmd-menu:has(> .ai-cmd-item:hover) > .ai-cmd-item:not(:hover),
   .insight-chips:has(> .insight-chipwrap:hover) > .insight-chipwrap:not(:hover),
   #shortcut-rows:has(> .settings-row:hover) > .settings-row:not(:hover),
   .search-results:has(> .node-chip:hover) > .node-chip:not(:hover) { opacity: 0.4; }
