@@ -27,8 +27,9 @@ async function exchange(body, id, secret) {
 export default async function handler(req, res) {
   const CLIENT_ID = process.env.NOTION_CLIENT_ID;
   const CLIENT_SECRET = process.env.NOTION_CLIENT_SECRET;
-  const proto = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+  // vercel dev 로컬은 x-forwarded-proto를 안 붙인다 → https로 단정하면 포털에 등록한 http 주소와 어긋난다
+  const proto = req.headers['x-forwarded-proto'] || (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? 'http' : 'https');
   const origin = `${proto}://${host}`;
   const redirectUri = `${origin}/api/notion-oauth`; // 배포·로컬 주소를 각각 하드코딩하지 않으려고 요청 호스트에서 만든다
   const back = (frag) => { res.writeHead(302, { Location: `${origin}/#${frag}` }); res.end(); };

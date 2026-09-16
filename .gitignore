@@ -1,0 +1,6 @@
+# 노션 client_secret 등 — 공개 저장소라 실수로 올라가면 즉시 폐기해야 한다
+.env
+.env.*
+!.env.example
+.vercel
+node_modules
