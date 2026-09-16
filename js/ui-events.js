@@ -942,7 +942,7 @@ function closeSettings() {
 function onStorageToggle(el) {
   _useLocalStorage = el.checked;
   localStorage.setItem('snlog_use_local', _useLocalStorage);
-  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); saveRoTokens(); }
+  if (_useLocalStorage) { if (_savedToken) localStorage.setItem('snlog_token', _encKey(_savedToken)); if (_refreshToken) localStorage.setItem('snlog_refresh', _encKey(_refreshToken)); if (_savedAiKey) localStorage.setItem('snlog_ai_key', _encKey(_savedAiKey)); saveRoTokens(); }
   else { Object.keys(localStorage).filter(k => k.startsWith('snlog_') && k !== 'snlog_use_local').forEach(k => localStorage.removeItem(k)); }
 }
 
@@ -951,9 +951,7 @@ function updateToken() {
   const val = input?.value.trim();
   if (!val) { if (msg) { msg.textContent = '토큰 입력 필요'; msg.style.display = 'block'; } return; }
   if (!val.startsWith('secret_') && !val.startsWith('ntn_')) { if (msg) { msg.textContent = '올바른 형식 아님 (secret_ 또는 ntn_)'; msg.style.display = 'block'; } return; }
-  _savedToken = val;
-  sessionStorage.setItem('snlog_token', _encKey(val));
-  if (_useLocalStorage) localStorage.setItem('snlog_token', _encKey(val));
+  _persistNotionToken(val, ''); // 설정에서 직접 넣은 토큰도 갱신 대상이 아니다
   if (input) { input.value = ''; input.placeholder = 'Notion API 저장됨'; }
   if (msg) { msg.textContent = '저장됨'; msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 2000); }
   loadProfile(); renderTokenList();
@@ -979,7 +977,7 @@ function clearCache(type) {
   // 로그인(토큰·AI키)·저장 토글/스코프·언어·단축키·이미지 크기는 유지. 적용된 설정을 확실히 되돌리려 새로고침.
   if (type === 'all') {
     showConfirm('전체 초기화', '노드 모드&그래프 설정 포함 저장 데이터 전체 초기화.\n(로그인&언어&단축키 유지, 새로고침됨)', () => {
-      const keep = ['snlog_token','snlog_ro_tokens','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
+      const keep = ['snlog_token','snlog_refresh','snlog_ro_tokens','snlog_ai_key','snlog_use_local','snlog_scopes','snlog_export_size','snlog_lang','snlog_shortcuts'];
       [...Object.keys(sessionStorage), ...Object.keys(localStorage)]
         .filter(k => k.startsWith('snlog_') && !keep.includes(k))
         .forEach(k => { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch (e) {} });
@@ -989,7 +987,7 @@ function clearCache(type) {
   }
   const allKeys = [...Object.keys(sessionStorage), ...Object.keys(localStorage)];
   if (type === 'pages') {
-    allKeys.filter(k => k.startsWith('snlog_') && !['snlog_token','snlog_ai_key','snlog_pages','snlog_manual_links','snlog_use_local','snlog_scopes','snlog_export_size','snlog_slider','snlog_search_history'].includes(k))
+    allKeys.filter(k => k.startsWith('snlog_') && !['snlog_token','snlog_refresh','snlog_ai_key','snlog_pages','snlog_manual_links','snlog_use_local','snlog_scopes','snlog_export_size','snlog_slider','snlog_search_history'].includes(k))
       .forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); });
     sessionStorage.removeItem('snlog_pages'); localStorage.removeItem('snlog_pages');
   }
@@ -1129,7 +1127,8 @@ function clearToken() {
   if (!_savedToken) { const m = document.getElementById('settings-token-msg'); if (m) { m.textContent = '저장된 토큰 없음'; m.style.display = 'block'; setTimeout(() => { m.style.display = 'none'; }, 1500); } return; }
   showConfirm('노션 토큰 삭제', '저장된 노션 API 토큰 삭제.', () => {
     _savedToken = '';
-    try { sessionStorage.removeItem('snlog_token'); localStorage.removeItem('snlog_token'); } catch (e) {}
+    _refreshToken = '';
+    try { ['snlog_token','snlog_refresh'].forEach(k => { sessionStorage.removeItem(k); localStorage.removeItem(k); }); } catch (e) {}
     const input = document.getElementById('settings-token-input');
     if (input) { input.value = ''; input.placeholder = '새 토큰 입력...'; }
     const m = document.getElementById('settings-token-msg');
@@ -1226,12 +1225,15 @@ function showOnboarding() {
 
 // 저장된 페이지가 있으면 되살리는 동안 로딩을 띄운다 — 빈 그래프 안내가 잠깐 떴다 사라지면 잘못 담긴 줄 안다
 const _hasSavedPages = !!(sessionStorage.getItem('snlog_pages') || localStorage.getItem('snlog_pages') || localStorage.getItem('snlog_local_pages'));
+// OAuth로 막 로그인했고 복원할 페이지가 없으면 로그인 화면을 유지한다 — 곧바로 페이지 선택으로 이어져야 하므로
+const _oauthFresh = !!window._oauthJustLoggedIn && !_hasSavedPages;
 if (_savedToken || _hasSavedPages) {
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('input-token');
     if (input) input.value = _savedToken;
     const loginScreen = document.getElementById('login-screen');
-    if (loginScreen) loginScreen.style.display = 'none';
+    if (loginScreen && !_oauthFresh) loginScreen.style.display = 'none';
+    if (_oauthFresh) showPagePicker();
     buildGraph();
     loop();
     loadFolderBatches();
@@ -1248,6 +1250,15 @@ if (_savedToken || _hasSavedPages) {
     setTimeout(initSidebarPageList, 600);
     setTimeout(loadProfile, 400);
     restoreSearchHistory(); // 저장해둔 검색 기록 복원
+  });
+}
+
+// OAuth 실패를 조용히 삼키지 않는다 — 로그인 화면이 떠 있으면 거기에, 이미 들어와 있으면 토스트로
+if (window._oauthError) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const scr = document.getElementById('login-screen'), e = document.getElementById('login-error');
+    if (scr && scr.style.display !== 'none' && e) { e.textContent = window._oauthError; e.style.display = 'block'; }
+    else if (typeof toast === 'function') toast(window._oauthError, { type: 'error' });
   });
 }
 

@@ -1,6 +1,5 @@
 // ── 스토리지 시스템 ──────────────────────────────────────────────────
 
-let _useLocalStorage = localStorage.getItem('snlog_use_local') === 'true';
 let _storageScopes = (() => { try { return JSON.parse(localStorage.getItem('snlog_scopes') || '{}'); } catch(e) { return {}; } })();
 ['pages','slider','connect'].forEach(k => { if (_storageScopes[k] === undefined) _storageScopes[k] = true; });
 let _exportSize = parseInt(localStorage.getItem('snlog_export_size') || '2048');

@@ -43,6 +43,13 @@ SynapseLog — a client-side web app that visualizes Notion pages and Markdown f
 
 `js/notion-client.js` never talks to Notion directly (browser CORS + secret handling). It POSTs `{ token, pageId, action }` to `/api/notion` (`api/notion.js`), which calls the Notion REST API server-side. `api/notion.js` also converts Markdown ↔ Notion `rich_text` for writes (bold/italic/strike/code/links). After any write, **invalidate caches via `invalidateNodeCache(node)`** rather than editing cache structures by hand.
 
+Two ways to get a token, both ending in `_savedToken`:
+
+- **Paste an internal integration token** (`secret_`/`ntn_`) — the original path, still the default.
+- **OAuth** (`api/notion-oauth.js`) — needs a **public** Notion connection, because OAuth does not exist for internal integrations. Requires env vars `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` on Vercel, and the redirect URI `<origin>/api/notion-oauth` registered in the Notion developer portal (register the localhost one too for `vercel dev`). Notion only populates the Authorization URL **after the public connection is submitted for review**, so OAuth stays dead until that clears; the button simply reports "미설정" while the env vars are missing.
+
+OAuth tokens expire and come with a rotating `refresh_token` (stored as `snlog_refresh`). `notionFetch` retries once through `refreshNotionToken()` when Notion's error text looks like an expired token — Notion's status codes vary per action, so the check is on the message. Always save tokens through `_persistNotionToken(token, refresh)`, never by touching storage directly.
+
 ### AI
 
 `js/ui-ai.js` (+ `js/ui-embed.js` for embedding/RAG) call Google Gemini **directly from the browser** using the user-supplied key (`_savedAiKey`). Models: `gemini-2.5-flash` (generation), `gemini-embedding-001` (semantic title search). Only the user's selection/search scope is sent — keep AI payloads minimal. Common shared helpers: `_aiRun` (progress→work→retry-on-error shell), `requireAiKey`, `openAiChat`, `geminiGenerate`.
