@@ -1,58 +1,6 @@
 // ── Notion 클라이언트 & 페이지 관리 ────────────────────────────────
 
 let _savedToken = _decKey(sessionStorage.getItem('snlog_token')) || _decKey(localStorage.getItem('snlog_token')) || '';
-
-// ── 노션 OAuth (공개 연결) ────────────────────────────────────────────
-let _refreshToken = _decKey(sessionStorage.getItem('snlog_refresh')) || _decKey(localStorage.getItem('snlog_refresh')) || '';
-
-// 토큰 저장 한 곳 — 세션엔 항상, '로컬 저장'을 켰을 때만 localStorage에도
-function _persistNotionToken(token, refresh) {
-  _savedToken = token;
-  if (refresh !== undefined) _refreshToken = refresh;
-  const put = (store) => {
-    try {
-      store.setItem('snlog_token', _encKey(token));
-      if (refresh === undefined) return;
-      if (refresh) store.setItem('snlog_refresh', _encKey(refresh));
-      else store.removeItem('snlog_refresh');
-    } catch (e) {}
-  };
-  put(sessionStorage);
-  if (_useLocalStorage) put(localStorage);
-}
-
-function startNotionOAuth() { location.href = '/api/notion-oauth'; }
-
-// 만료된 access_token 갱신. 노션은 갱신할 때 refresh_token도 새로 주므로 둘 다 갈아끼운다
-async function refreshNotionToken() {
-  if (!_refreshToken) return false;
-  try {
-    const r = await fetch('/api/notion-oauth', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: _refreshToken })
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.access_token) return false;
-    _persistNotionToken(d.access_token, d.refresh_token || _refreshToken);
-    return true;
-  } catch (e) { return false; }
-}
-
-// OAuth 복귀 — 프래그먼트의 토큰을 거두고 주소창에서 즉시 지운다(뒤로가기·링크 공유로 새지 않게).
-// 로드 시점에 끝내야 한다: 부트가 _savedToken 유무로 로그인 화면을 건너뛸지 정하기 때문.
-(function () {
-  const h = location.hash || '';
-  if (h.indexOf('nt=') === -1 && h.indexOf('nerr=') === -1) return;
-  const p = new URLSearchParams(h.slice(1));
-  const err = p.get('nerr');
-  history.replaceState(null, '', location.pathname + location.search);
-  if (err) { window._oauthError = err; return; }
-  const t = p.get('nt') || '';
-  if (!t) return;
-  _persistNotionToken(t, p.get('nr') || '');
-  window._oauthWorkspace = p.get('nw') || '';
-  window._oauthJustLoggedIn = true;
-})();
 let _addedPageIds = new Set();
 
 // ── 읽기 전용 보조 토큰 ───────────────────────────────────────────────
@@ -376,7 +324,7 @@ async function removeFolderBatch(folderBatchId) {
 // 쓰기는 주 토큰에서만 — 보조 토큰으로 새어 나가면 남의 문서를 고치게 된다
 const _WRITE_ACTIONS = new Set(['updateBlock', 'appendBlock', 'appendBlocks', 'deleteBlock', 'deleteSection', 'restoreBlock']);
 // srcPageId: pageId가 본문에 없을 때(블록 단위 호출) 어느 페이지 소속인지 알려준다
-async function notionFetch(body, srcPageId, tokenOverride, _retried) {
+async function notionFetch(body, srcPageId, tokenOverride) {
   const token = tokenOverride || tokenFor(srcPageId || body.pageId);
   if (_WRITE_ACTIONS.has(body.action) && token !== _savedToken) {
     throw new Error('읽기 전용 워크스페이스라 수정할 수 없음');
@@ -389,14 +337,7 @@ async function notionFetch(body, srcPageId, tokenOverride, _retried) {
   const text = await res.text();
   let data;
   try { data = JSON.parse(text); } catch(e) { throw new Error('서버 응답 오류'); }
-  if (!res.ok) {
-    // 만료 판정은 메시지로 — api/notion.js가 액션마다 상태코드를 다르게(때로 500으로) 돌려준다
-    const expired = /token is invalid|unauthorized|invalid[_ ]?token|API token/i.test(data.error || '');
-    if (expired && !_retried && token === _savedToken && _refreshToken && await refreshNotionToken()) {
-      return notionFetch(body, srcPageId, tokenOverride, true);
-    }
-    throw new Error(data.error || '오류 발생');
-  }
+  if (!res.ok) throw new Error(data.error || '오류 발생');
   return data;
 }
 
@@ -757,7 +698,9 @@ async function startGraph() {
     errEl.textContent = '올바른 토큰 형식 아님 (secret_ 또는 ntn_ 으로 시작)';
     errEl.style.display = 'block'; return;
   }
-  _persistNotionToken(token, ''); // 직접 넣은 내부 통합 토큰은 갱신 대상이 아니라 refresh를 비운다
+  _savedToken = token;
+  try { sessionStorage.setItem('snlog_token', _encKey(token)); } catch(e) {}
+  if (_useLocalStorage) { try { localStorage.setItem('snlog_token', _encKey(token)); } catch(e) {} }
   errEl.style.display = 'none';
   showPagePicker();
 }

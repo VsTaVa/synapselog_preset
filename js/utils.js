@@ -1,6 +1,3 @@
-// 로컬 저장 여부 — notion-client가 ui-core보다 먼저 로드돼 토큰을 저장하므로 여기(utils)에 둔다
-let _useLocalStorage = localStorage.getItem('snlog_use_local') === 'true';
-
 // ── 키 난독화 : 로컬/세션 저장 시 평문 노출 방지 ──────────────────────
 // 주의: 클라이언트 전용 난독화라 완벽한 암호화가 아님(복호 키가 코드에 존재).
 // F12 등으로 평문이 그대로 보이는 것만 막는 용도.
